@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="Backend/Teambalance.API/Teambalance.API.csproj" />
+  <Project Path="Backend/TeamBalance.BE/TeamBalance.BE.csproj" />
+  <Project Path="Backend/TeamBalance.BLL/TeamBalance.BLL.csproj" />
+  <Project Path="Backend/TeamBalance.DAL/TeamBalance.DAL.csproj" />
+  <Project Path="Backend/TeamBalance.Interfaces/TeamBalance.Interfaces.csproj" />
+  <Project Path="Backend/TeamBalance.MPP/TeamBalance.MPP.csproj" />
+  <Project Path="Backend/TeamBalance.SEG/TeamBalance.SEG.csproj" />
+  <Project Path="Backend/TeamBalance.Services/TeamBalance.Services.csproj" />
+</Solution>

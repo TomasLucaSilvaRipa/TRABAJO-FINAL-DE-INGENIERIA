@@ -1,0 +1,66 @@
+<header
+  class="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur"
+>
+  <div
+    class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8"
+  >
+
+    <!-- Logo -->
+    <a routerLink="/" class="flex items-center gap-3">
+      <img src="/images/team-balance-logo.png" alt="TeamBalance" class="h-11 w-auto"/>
+    </a>
+
+    <!-- Navegación -->
+    <nav class="hidden items-center gap-8 md:flex">
+      <a
+        routerLink="/"
+        routerLinkActive="text-cyan-600"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="text-sm font-medium text-slate-700 transition hover:text-cyan-600"
+      >
+        Inicio
+      </a>
+
+      <a routerLink="/plans" routerLinkActive="text-cyan-600" class="text-sm font-medium text-slate-700 transition hover:text-cyan-600" >
+        Planes
+      </a>
+
+      <a
+        routerLink="/about-us"
+        routerLinkActive="text-cyan-600"
+        class="text-sm font-medium text-slate-700 transition hover:text-cyan-600"
+      >
+        Nosotros
+      </a>
+
+      <a
+        routerLink="/contact"
+        routerLinkActive="text-cyan-600"
+        class="text-sm font-medium text-slate-700 transition hover:text-cyan-600"
+      >
+        Contacto
+      </a>
+    </nav>
+
+    <!-- Acciones -->
+    <div class="flex items-center gap-4">
+
+      <a
+        routerLink="/signin"
+        class="hidden text-sm font-semibold text-slate-700 hover:text-cyan-600 sm:block"
+      >
+        Iniciar sesión
+      </a>
+
+      <a
+        routerLink="/plans"
+        class="rounded-lg bg-cyan-600 px-5 py-2.5 text-sm font-semibold text-white
+               transition hover:bg-cyan-700"
+      >
+        Comenzar
+      </a>
+
+    </div>
+
+  </div>
+</header>

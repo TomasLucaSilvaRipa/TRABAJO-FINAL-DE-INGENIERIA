@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TeamBalance.BE\TeamBalance.BE.csproj" />
+    <ProjectReference Include="..\TeamBalance.Interfaces\TeamBalance.Interfaces.csproj" />
+    <ProjectReference Include="..\TeamBalance.MPP\TeamBalance.MPP.csproj" />
+  </ItemGroup>
+
+</Project>
