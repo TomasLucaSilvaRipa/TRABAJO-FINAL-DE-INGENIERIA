@@ -22,7 +22,10 @@ import { PublicLayoutComponent } from './shared/layout/public-layout/public-layo
 import { HomeComponent } from './pages/public/home/home';
 import { AboutUsComponent } from './pages/public/about us/about-us';
 import { ContactComponent } from './pages/public/contact/contact';
-
+import { PrivacyPolicyComponent } from './pages/public/privacy-policy/privacy-policy';
+import { SecurityPolicyComponent } from './pages/public/security-policy/security-policy';
+import { PlansComponent } from './pages/public/plans/plans';
+import { TermsAndConditions } from './pages/public/terms-and-conditions/terms-and-conditions';
 
 export const routes: Routes = [
   {
@@ -33,27 +36,52 @@ export const routes: Routes = [
         path: '',
         component: HomeComponent,
         pathMatch: 'full',
+        title: 'TeamBalance | Gestión inteligente de equipos',
       },
       {
-        path: 'signin',
-        component: SignInComponent,
-      },
-      {
-        path: 'signup',
-        component: SignUpComponent,
-      },
-      {
-        path:'Contact',
+        path:'contact',
         component: ContactComponent,
+        title: 'Contacto | TeamBalance',
       },
       {
-        path: 'AboutUs',
+        path: 'about-us',
         component: AboutUsComponent,
+        title: 'Nosotros | TeamBalance',
+      },
+      {
+        path: 'plans',
+        component: PlansComponent,
+        title: 'Planes | TeamBalance',
+      },
+      {
+        path: 'privacy-policy',
+        component: PrivacyPolicyComponent,
+        title: 'Política de privacidad | TeamBalance',
+      },
+      {
+        path: 'security-policy',
+        component: SecurityPolicyComponent,
+        title: 'Política de seguridad | TeamBalance',
+      },
+      {
+        path: 'terms-and-conditions',
+        component: TermsAndConditions,
+        title: 'Términos y condiciones | TeamBalance',
       }
     ],
   },
   {
-    path:'',
+    path: 'signin',
+    component: SignInComponent,
+    title: 'Iniciar sesión | TeamBalance',
+  },
+  {
+    path: 'signup',
+    component: SignUpComponent,
+    title: 'Crear cuenta | TeamBalance',
+  },
+  {
+    path:'dashboard',
     component:AppLayoutComponent,
     children:[
       {
@@ -134,18 +162,8 @@ export const routes: Routes = [
         component:VideosComponent,
         title:'Angular Videos Dashboard | TeamBalance - Angular Admin Dashboard Template'
       },
+
     ]
-  },
-  // auth pages
-  {
-    path:'signin',
-    component:SignInComponent,
-    title:'Angular Sign In Dashboard | TeamBalance - Angular Admin Dashboard Template'
-  },
-  {
-    path:'signup',
-    component:SignUpComponent,
-    title:'Angular Sign Up Dashboard | TeamBalance - Angular Admin Dashboard Template'
   },
   // error pages
   {
@@ -153,5 +171,4 @@ export const routes: Routes = [
     component:NotFoundComponent,
     title:'Angular NotFound Dashboard | TeamBalance - Angular Admin Dashboard Template'
   },
-
 ];

@@ -1,156 +1,87 @@
-<!-- HERO -->
-<section class="overflow-hidden bg-white">
-
-  <div
-    class="mx-auto grid max-w-7xl items-center gap-14 px-6 py-24
-           lg:grid-cols-2 lg:px-8 lg:py-32"
-  >
-
-    <div>
-
-      <span
-        class="mb-5 inline-block rounded-full bg-cyan-50 px-4 py-2
-               text-sm font-semibold text-cyan-700"
-      >
-        Gestión inteligente de equipos
-      </span>
-
-      <h1
-        class="text-5xl font-bold tracking-tight text-slate-950
-               lg:text-7xl"
-      >
-        Asigná mejor.
-        <span class="text-cyan-600">Trabajá en equilibrio.</span>
-      </h1>
-
-      <p class="mt-7 max-w-xl text-lg leading-8 text-slate-600">
-        TeamBalance centraliza la gestión de proyectos, personas y
-        recursos para ayudarte a tomar mejores decisiones y mantener
-        equipos más equilibrados.
-      </p>
-
-      <div class="mt-9 flex flex-wrap gap-4">
-
-        <a
-          routerLink="/plans"
-          class="rounded-lg bg-cyan-600 px-6 py-3 font-semibold text-white
-                 transition hover:bg-cyan-700"
-        >
-          Ver planes
-        </a>
-
-        <a
-          routerLink="/about-us"
-          class="rounded-lg border border-slate-300 px-6 py-3
-                 font-semibold text-slate-800 transition
-                 hover:bg-slate-50"
-        >
-          Conocer TeamBalance
-        </a>
-
+<section class="tb-hero">
+  <div class="tb-container tb-hero__grid">
+    <div class="tb-hero__copy">
+      <p class="tb-eyebrow">Gestión inteligente de equipos</p>
+      <h1 class="tb-hero__title">Asigná con datos.<br /><span>Trabajá en equilibrio.</span></h1>
+      <p class="tb-lead">TeamBalance ayuda a agencias y consultoras a planificar proyectos según la disponibilidad, los skills, el seniority y la carga real de cada persona.</p>
+      <div class="tb-hero__actions">
+        <a routerLink="/plans" class="tb-button tb-button--light">Conocer planes</a>
+        <a routerLink="/about-us" class="tb-button tb-button--secondary">Cómo funciona</a>
       </div>
-
+      <ul class="tb-hero__proof">
+        <li>Menos asignaciones “a ojo”</li>
+        <li>Más visibilidad operativa</li>
+        <li>Decisiones con contexto</li>
+      </ul>
     </div>
 
-    <div
-      class="rounded-3xl bg-gradient-to-br from-cyan-100
-             via-white to-green-100 p-10"
-    >
+    <div class="tb-product-preview" aria-label="Vista ilustrativa del tablero de capacidad">
+      <div class="tb-product-preview__bar"><span></span><span></span><span></span></div>
+      <div class="tb-product-preview__body">
+        <article class="tb-preview-card">
+          <p class="tb-preview-label">Capacidad disponible</p>
+          <p class="tb-preview-value">78<small>%</small></p>
+          <p class="tb-preview-note">12% más que la semana anterior</p>
+          <div class="tb-bars" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        </article>
 
-      <img
-        src="/images/team-balance-logo.png"
-        alt="TeamBalance"
-        class="mx-auto w-full max-w-md"
-      />
-
+        <article class="tb-preview-card tb-preview-card--blue">
+          <p class="tb-preview-label">Carga del equipo</p>
+          <div class="tb-load"><div class="tb-load__row"><span>Producto</span><span>82%</span></div><div class="tb-load__track"><span style="width: 82%"></span></div></div>
+          <div class="tb-load"><div class="tb-load__row"><span>Desarrollo</span><span>64%</span></div><div class="tb-load__track"><span style="width: 64%"></span></div></div>
+          <div class="tb-load"><div class="tb-load__row"><span>Diseño</span><span>91%</span></div><div class="tb-load__track"><span style="width: 91%"></span></div></div>
+        </article>
+      </div>
+      <div class="tb-preview-alert"><span>i</span><p><strong>3 personas</strong> liberan capacidad esta semana.</p></div>
     </div>
-
   </div>
-
 </section>
 
+<section class="tb-section">
+  <div class="tb-container">
+    <p class="tb-eyebrow">Más que gestión de proyectos</p>
+    <h2 class="tb-title">La capacidad de tu equipo deja de ser una intuición.</h2>
+    <p class="tb-lead">La plataforma centraliza las variables que impactan en la planificación para que el líder pueda anticipar desvíos antes de que se conviertan en horas extra, retrasos o pérdida de margen.</p>
 
-<!-- BENEFICIOS -->
-<section class="bg-slate-950 py-24 text-white">
-
-  <div class="mx-auto max-w-7xl px-6 lg:px-8">
-
-    <div class="mb-14 max-w-2xl">
-      <p class="mb-3 font-semibold text-cyan-400">
-        Más que gestión de proyectos
-      </p>
-
-      <h2 class="text-4xl font-bold">
-        Tomá decisiones con una visión completa de tu equipo.
-      </h2>
+    <div class="tb-card-grid">
+      <article class="tb-card tb-card--feature">
+        <span class="tb-card__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3M3 21h18"/></svg></span>
+        <h3 class="tb-card__title">Capacidad visible</h3>
+        <p class="tb-card__text">Visualizá disponibilidad, licencias y ocupación para evitar sobrecarga o subutilización.</p>
+      </article>
+      <article class="tb-card tb-card--feature">
+        <span class="tb-card__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 18 5-5 3 3 6-7M15 9h4v4"/></svg></span>
+        <h3 class="tb-card__title">Mejor asignación</h3>
+        <p class="tb-card__text">Contrastá skill, seniority, carga y plazo para encontrar el perfil más conveniente para cada tarea.</p>
+      </article>
+      <article class="tb-card tb-card--feature">
+        <span class="tb-card__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M5 20c.7-3.6 3-5.5 7-5.5s6.3 1.9 7 5.5M4 5h3m10 0h3"/></svg></span>
+        <h3 class="tb-card__title">Equipos sostenibles</h3>
+        <p class="tb-card__text">Detectá riesgos de ocupación y tomá decisiones que cuiden el ritmo y la rentabilidad.</p>
+      </article>
     </div>
-
-    <div class="grid gap-6 md:grid-cols-3">
-
-      <article class="rounded-2xl border border-slate-800 p-7">
-        <h3 class="text-xl font-semibold">
-          Recursos equilibrados
-        </h3>
-
-        <p class="mt-3 text-slate-400">
-          Visualizá la ocupación del equipo y evitá sobrecargas o
-          períodos de subutilización.
-        </p>
-      </article>
-
-      <article class="rounded-2xl border border-slate-800 p-7">
-        <h3 class="text-xl font-semibold">
-          Mejor asignación
-        </h3>
-
-        <p class="mt-3 text-slate-400">
-          Encontrá los perfiles adecuados para cada necesidad y
-          proyecto.
-        </p>
-      </article>
-
-      <article class="rounded-2xl border border-slate-800 p-7">
-        <h3 class="text-xl font-semibold">
-          Información centralizada
-        </h3>
-
-        <p class="mt-3 text-slate-400">
-          Proyectos, tareas y personas reunidos en una única plataforma.
-        </p>
-      </article>
-
-    </div>
-
   </div>
-
 </section>
 
-
-<!-- CTA -->
-<section class="py-24">
-
-  <div
-    class="mx-auto max-w-5xl rounded-3xl bg-cyan-600
-           px-8 py-16 text-center text-white"
-  >
-
-    <h2 class="text-4xl font-bold">
-      Empezá a trabajar con un equipo más equilibrado
-    </h2>
-
-    <p class="mx-auto mt-4 max-w-2xl text-cyan-50">
-      Elegí el plan que mejor se adapte a tu organización y comenzá
-      a gestionar tus recursos con TeamBalance.
-    </p>
-
-    <a
-      routerLink="/plans"
-      class="mt-8 inline-block rounded-lg bg-white px-7 py-3
-             font-semibold text-cyan-700 transition hover:bg-slate-100"
-    >
-      Ver planes
-    </a>
-
+<section class="tb-section tb-section--soft">
+  <div class="tb-container">
+    <div class="tb-stats">
+      <div><p class="tb-stat__value">Skills + seniority</p><p class="tb-stat__label">para evaluar cada asignación</p></div>
+      <div><p class="tb-stat__value">Riesgo proyectado</p><p class="tb-stat__label">para anticipar desvíos de plazos</p></div>
+      <div><p class="tb-stat__value">Carga consolidada</p><p class="tb-stat__label">para decidir con la misma información</p></div>
+    </div>
   </div>
+</section>
 
+<section class="tb-section">
+  <div class="tb-container">
+    <div class="tb-cta">
+      <div>
+        <p class="tb-eyebrow">Un mejor punto de partida</p>
+        <h2 class="tb-title">Hacé que cada proyecto tenga el equipo que necesita.</h2>
+        <p class="tb-lead">Elegí la modalidad de suscripción que acompañe a tu agencia.</p>
+      </div>
+      <div class="tb-cta__actions"><a routerLink="/plans" class="tb-button tb-button--light">Ver planes</a></div>
+    </div>
+  </div>
 </section>

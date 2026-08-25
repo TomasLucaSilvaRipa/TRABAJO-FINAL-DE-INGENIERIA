@@ -1,31 +1,19 @@
-<div class="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
-  <div
-    class="relative flex flex-col justify-center w-full h-screen lg:flex-row dark:bg-gray-900 sm:p-0"
-  >
+<div class="relative min-h-screen bg-white p-5 sm:p-0">
+  <div class="relative flex min-h-screen w-full flex-col bg-white lg:flex-row">
     <ng-content></ng-content>
-    <div
-      class="items-center hidden w-full h-full lg:w-1/2 bg-brand-950 dark:bg-white/5 lg:grid relative"
-    >
-      <div class="flex items-center justify-center z-1">
-        <!-- ===== Common Grid Shape Start ===== -->
-        <app-grid-shape />
-        <div class="flex flex-col items-center max-w-xs">
-          <a routerLink="/" class="block mb-4">
-            <img
-              width="231"
-              height="48"
-              src="/images/logo/auth-logo.svg"
-              alt="Logo"
-            />
-          </a>
-          <p class="text-center text-gray-400 dark:text-white/60">
-            Free and Open-Source Tailwind CSS Admin Dashboard Template
-          </p>
-        </div>
+    <aside class="relative hidden w-full overflow-hidden bg-slate-950 lg:grid lg:w-1/2 lg:place-items-center">
+      <app-grid-shape />
+      <div class="relative z-10 max-w-sm px-10 text-center">
+        <a routerLink="/" class="inline-flex items-center gap-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-300">
+          <span class="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-cyan-400 to-emerald-400">
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="h-7 w-7 fill-none stroke-slate-950" stroke-width="2.2"><path d="M5 15.5V12m5 3.5V8m5 7.5V5m4 13.5H4" stroke-linecap="round"/><path d="M4 5.5h5.5l2.5 2.25L15 4.5h5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="text-2xl font-bold tracking-tight text-white">Team<span class="text-cyan-400">Balance</span></span>
+        </a>
+        <h2 class="mt-8 text-3xl font-bold tracking-tight text-white">Decidí con más claridad.</h2>
+        <p class="mt-4 leading-7 text-slate-300">Organizá personas, proyectos y capacidad desde una misma vista.</p>
       </div>
-    </div>
-    <div class="fixed z-50 hidden bottom-6 right-6 sm:block">
-      <app-theme-toggle-two />
-    </div>
+    </aside>
+    <div class="fixed bottom-6 right-6 z-50 hidden sm:block"><app-theme-toggle-two /></div>
   </div>
 </div>
