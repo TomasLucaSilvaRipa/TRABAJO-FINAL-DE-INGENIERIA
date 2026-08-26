@@ -1,67 +1,89 @@
 <section class="tb-page-hero tb-page-hero--navy">
-  <div class="tb-container">
-    <p class="tb-eyebrow">Planes TeamBalance</p>
-    <h1 class="tb-title">Una suscripción para planificar mejor desde el primer proyecto.</h1>
-    <p class="tb-lead">Elegí la periodicidad que acompañe a tu agencia. Todos los planes incluyen el núcleo operativo de TeamBalance.</p>
+  <div class="tb-container tb-page-hero__content">
+    <p class="tb-eyebrow">Suscripción TeamBalance</p>
+    <h1>Planes simples para gestionar mejor tu equipo.</h1>
+    <p>
+      Todas las funcionalidades de TeamBalance están incluidas. Elegí la modalidad de pago que mejor se adapte a tu agencia.
+    </p>
   </div>
 </section>
 
-<section class="tb-section">
+<section class="tb-section tb-plans-section">
   <div class="tb-container">
     <div class="tb-pricing-grid">
       <article class="tb-price-card">
-        <span class="tb-price-card__tag">Mensual</span>
-        <h2 class="tb-price-card__title">Estándar mensual</h2>
-        <p class="tb-price-card__text">Flexibilidad para empezar y validar el valor de TeamBalance en tu operación.</p>
-        <p class="tb-price">ARS 100.000<small>por mes · suscripción mensual</small></p>
-        <ul class="tb-plan-list">
-          <li>Gestión de proyectos y tareas</li>
-          <li>Visibilidad de carga y disponibilidad</li>
-          <li>Tablero operativo y reportes</li>
-        </ul>
-        <a routerLink="/contact" class="tb-button tb-button--secondary">Consultar este plan</a>
+        <p class="tb-price-card__tag">Mensual</p>
+        <h2>TeamBalance mensual</h2>
+        <p class="tb-price"><span>USD</span> 89 <small>/ mes</small></p>
+        <p class="tb-price-card__same-plan">Acceso completo a TeamBalance, hasta 20 usuarios.</p>
+        <a class="tb-button tb-button--primary" routerLink="/checkout" [queryParams]="{ period: 'monthly' }">Contratar TeamBalance</a>
       </article>
 
       <article class="tb-price-card tb-price-card--featured">
-        <span class="tb-price-card__tag">Ahorro trimestral</span>
-        <h2 class="tb-price-card__title">Estándar trimestral</h2>
-        <p class="tb-price-card__text">Una alternativa para equipos que quieren sostener el uso y la planificación durante el trimestre.</p>
-        <p class="tb-price">ARS 270.000<small>cada 3 meses · equivalente a ARS 90.000 por mes</small></p>
-        <ul class="tb-plan-list">
-          <li>Gestión de proyectos y tareas</li>
-          <li>Visibilidad de carga y disponibilidad</li>
-          <li>Tablero operativo y reportes</li>
-        </ul>
-        <a routerLink="/contact" class="tb-button tb-button--primary">Elegir trimestral</a>
-      </article>
-
-      <article class="tb-price-card">
-        <span class="tb-price-card__tag">Mejor valor anual</span>
-        <h2 class="tb-price-card__title">Estándar anual</h2>
-        <p class="tb-price-card__text">Para agencias que quieren incorporar TeamBalance como parte de su forma de trabajar.</p>
-        <p class="tb-price">ARS 1.000.000<small>por año · equivalente a ARS 83.333 por mes</small></p>
-        <ul class="tb-plan-list">
-          <li>Gestión de proyectos y tareas</li>
-          <li>Visibilidad de carga y disponibilidad</li>
-          <li>Tablero operativo y reportes</li>
-        </ul>
-        <a routerLink="/contact" class="tb-button tb-button--secondary">Elegir anual</a>
+        <p class="tb-price-card__tag">Mejor valor</p>
+        <h2>TeamBalance anual</h2>
+        <p class="tb-price"><span>USD</span> 890 <small>/ año</small></p>
+        <p class="tb-price-card__saving">Ahorrás USD 178 · 2 meses sin cargo</p>
+        <p class="tb-price-card__same-plan">Las mismas funcionalidades, con una única renovación anual.</p>
+        <a class="tb-button tb-button--primary" routerLink="/checkout" [queryParams]="{ period: 'annual' }">Contratar TeamBalance</a>
       </article>
     </div>
 
-    <p class="tb-legal__meta tb-plan-note">Las condiciones aplicables se confirman al momento de la contratación.</p>
+    <section class="tb-included" aria-labelledby="included-title">
+      <div class="tb-included__intro">
+        <p class="tb-eyebrow">Una única versión, sin niveles funcionales</p>
+        <h2 id="included-title">Todo lo que tu equipo necesita para operar con claridad.</h2>
+        <p>
+          La suscripción incluye acceso completo a la plataforma, configuración inicial básica, capacitación inicial y soporte estándar.
+        </p>
+      </div>
+
+      <ul class="tb-included__list">
+        <li>Hasta 20 usuarios</li>
+        <li>Gestión de proyectos y tareas</li>
+        <li>Gestión de empleados</li>
+        <li>Disponibilidad y carga de trabajo</li>
+        <li>Motor Best Fit para sugerir recursos</li>
+        <li>Skills y seniority</li>
+        <li>Dashboards operativos y alertas</li>
+        <li>Seguimiento de horas y reportes</li>
+        <li>Soporte estándar y actualizaciones</li>
+        <li>Configuración inicial básica</li>
+        <li>Capacitación inicial básica</li>
+      </ul>
+    </section>
+
+    <aside class="tb-plan-scale">
+      <div>
+        <p class="tb-eyebrow">Equipos en expansión</p>
+        <h2>¿Necesitás más de 20 usuarios?</h2>
+        <p>Contanos cómo está conformada tu agencia y preparemos una cotización personalizada.</p>
+      </div>
+      <a class="tb-button tb-button--secondary" routerLink="/contact">Solicitar cotización personalizada</a>
+    </aside>
   </div>
 </section>
 
 <section class="tb-section tb-section--soft">
   <div class="tb-container">
-    <div class="tb-cta">
+    <div class="tb-implementation">
       <div>
-        <p class="tb-eyebrow">¿No sabés cuál elegir?</p>
-        <h2 class="tb-title">Empezamos por entender cómo trabaja tu agencia.</h2>
-        <p class="tb-lead">Te acompañamos para identificar la modalidad de suscripción más conveniente para tu operación.</p>
+        <p class="tb-eyebrow">¿Necesitás ayuda para comenzar?</p>
+        <h2>Implementación y capacitación</h2>
+        <p>
+          Configuramos TeamBalance para tu agencia, acompañamos la puesta en marcha y capacitamos a tu equipo para comenzar a utilizar la plataforma con confianza.
+        </p>
       </div>
-      <div class="tb-cta__actions"><a routerLink="/contact" class="tb-button tb-button--light">Hablar con nosotros</a></div>
+
+      <div class="tb-implementation__details">
+        <ul class="tb-plan-list">
+          <li>Configuración y puesta en marcha</li>
+          <li>Capacitación inicial del equipo</li>
+          <li>Capacitación adaptada a Dueño, PM y Empleado</li>
+          <li>Acompañamiento durante la adopción</li>
+        </ul>
+        <a class="tb-button tb-button--primary" routerLink="/contact">Consultar servicio</a>
+      </div>
     </div>
   </div>
 </section>

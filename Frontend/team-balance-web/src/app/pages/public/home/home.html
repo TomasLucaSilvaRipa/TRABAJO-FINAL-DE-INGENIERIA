@@ -73,6 +73,43 @@
   </div>
 </section>
 
+<section class="tb-section tb-reviews-section" aria-labelledby="reviews-title">
+  <div class="tb-container">
+    <div class="tb-reviews-heading">
+      <p class="tb-eyebrow">Opiniones</p>
+      <h2 class="tb-title" id="reviews-title">La experiencia de quienes ya trabajan con TeamBalance.</h2>
+      <p class="tb-lead">Conocé cómo agencias y consultoras usan la plataforma para organizar mejor la operación de sus equipos.</p>
+    </div>
+
+    <div class="tb-reviews-list">
+      @for (review of reviews; track review.name) {
+        <article class="tb-review-card">
+          <div class="tb-review-stars" [attr.aria-label]="review.rating + ' de 5 estrellas'">
+            @for (star of stars; track star) {
+              <span [class.tb-review-stars__star--filled]="star <= review.rating" aria-hidden="true">★</span>
+            }
+          </div>
+          <h3>{{ review.title }}</h3>
+          <p class="tb-review-card__description">{{ review.description }}</p>
+          <div class="tb-review-card__author">
+            <p>{{ review.name }}</p>
+            <span>{{ review.role }}</span>
+            <time>{{ review.date }}</time>
+          </div>
+        </article>
+      }
+    </div>
+
+    <div class="tb-reviews-action">
+      <div>
+        <h3>¿Ya usás TeamBalance?</h3>
+        <p>Compartí tu experiencia para ayudar a otras agencias a conocer la plataforma.</p>
+      </div>
+      <button class="tb-button tb-button--secondary" type="button" (click)="openReviewNotice()">Dejar mi opinión</button>
+    </div>
+  </div>
+</section>
+
 <section class="tb-section">
   <div class="tb-container">
     <div class="tb-cta">
@@ -85,3 +122,18 @@
     </div>
   </div>
 </section>
+
+@if (reviewNoticeOpen()) {
+  <div class="tb-dialog-backdrop" role="presentation" (click)="closeReviewNotice()">
+    <section class="tb-dialog" role="dialog" aria-modal="true" aria-labelledby="review-dialog-title" (click)="$event.stopPropagation()">
+      <button class="tb-dialog__close" type="button" aria-label="Cerrar" (click)="closeReviewNotice()">×</button>
+      <p class="tb-eyebrow">Opiniones de clientes</p>
+      <h2 id="review-dialog-title">Tu opinión se publica desde tu cuenta.</h2>
+      <p>Para dejar una opinión necesitás estar registrado y contar con una suscripción activa de TeamBalance.</p>
+      <div class="tb-dialog__actions">
+        <a class="tb-button tb-button--primary" routerLink="/signup" (click)="closeReviewNotice()">Crear cuenta</a>
+        <a class="tb-button tb-button--secondary" routerLink="/plans" (click)="closeReviewNotice()">Conocer planes</a>
+      </div>
+    </section>
+  </div>
+}

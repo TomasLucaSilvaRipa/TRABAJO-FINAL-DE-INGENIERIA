@@ -26,6 +26,7 @@ import { PrivacyPolicyComponent } from './pages/public/privacy-policy/privacy-po
 import { SecurityPolicyComponent } from './pages/public/security-policy/security-policy';
 import { PlansComponent } from './pages/public/plans/plans';
 import { TermsAndConditions } from './pages/public/terms-and-conditions/terms-and-conditions';
+import { CheckoutComponent } from './pages/public/checkout/checkout';
 
 export const routes: Routes = [
   {
@@ -52,6 +53,11 @@ export const routes: Routes = [
         path: 'plans',
         component: PlansComponent,
         title: 'Planes | TeamBalance',
+      },
+      {
+        path: 'checkout',
+        component: CheckoutComponent,
+        title: 'Contratación | TeamBalance',
       },
       {
         path: 'privacy-policy',

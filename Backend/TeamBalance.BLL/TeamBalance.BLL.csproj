@@ -10,6 +10,7 @@
     <ProjectReference Include="..\TeamBalance.BE\TeamBalance.BE.csproj" />
     <ProjectReference Include="..\TeamBalance.Interfaces\TeamBalance.Interfaces.csproj" />
     <ProjectReference Include="..\TeamBalance.MPP\TeamBalance.MPP.csproj" />
+    <ProjectReference Include="..\TeamBalance.Services\TeamBalance.Services.csproj" />
   </ItemGroup>
 
 </Project>

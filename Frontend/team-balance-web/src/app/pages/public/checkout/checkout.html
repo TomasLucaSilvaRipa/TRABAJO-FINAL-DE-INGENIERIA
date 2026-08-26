@@ -1,0 +1,206 @@
+<section class="tb-page-hero tb-page-hero--navy tb-checkout-hero">
+  <div class="tb-container tb-page-hero__content">
+    <p class="tb-eyebrow">Contratación TeamBalance</p>
+    <h1>Completá tu contratación.</h1>
+    <p>Ingresá los datos de tu agencia y revisá tu suscripción antes de continuar al pago.</p>
+  </div>
+</section>
+
+<section class="tb-section tb-checkout-section">
+  <div class="tb-container tb-checkout-grid">
+    <form class="tb-checkout-form" [formGroup]="checkoutForm" (ngSubmit)="continueToPayment()" novalidate>
+      <section class="tb-checkout-form__section" aria-labelledby="agency-data-title">
+        <div class="tb-checkout-form__heading">
+          <p class="tb-eyebrow">01 · Datos comerciales</p>
+          <h2 id="agency-data-title">Datos de la agencia</h2>
+          <p>Usaremos esta información para preparar tu contratación y la facturación.</p>
+        </div>
+
+        <div class="tb-form__row">
+          <div class="tb-field">
+            <label for="commercialName">Nombre comercial</label>
+            <input id="commercialName" type="text" formControlName="commercialName" autocomplete="organization" />
+            @if (checkoutForm.controls.commercialName.touched && checkoutForm.controls.commercialName.invalid) {
+              <small class="tb-field__error">Ingresá el nombre comercial.</small>
+            }
+          </div>
+          <div class="tb-field">
+            <label for="legalName">Razón social</label>
+            <input id="legalName" type="text" formControlName="legalName" />
+            @if (checkoutForm.controls.legalName.touched && checkoutForm.controls.legalName.invalid) {
+              <small class="tb-field__error">Ingresá la razón social.</small>
+            }
+          </div>
+        </div>
+
+        <div class="tb-form__row">
+          <div class="tb-field">
+            <label for="taxId">CUIT / identificación fiscal</label>
+            <input id="taxId" type="text" formControlName="taxId" inputmode="numeric" />
+            @if (checkoutForm.controls.taxId.touched && checkoutForm.controls.taxId.invalid) {
+              <small class="tb-field__error">Ingresá la identificación fiscal.</small>
+            }
+          </div>
+          <div class="tb-field">
+            <label for="taxCondition">Condición fiscal</label>
+            <select id="taxCondition" formControlName="taxCondition">
+              <option value="" disabled>Seleccionar condición</option>
+              <option value="registered">Responsable Inscripto</option>
+              <option value="monotributo">Monotributista</option>
+              <option value="exempt">Exento</option>
+              <option value="consumer">Consumidor Final</option>
+              <option value="other">Otra</option>
+            </select>
+            @if (checkoutForm.controls.taxCondition.touched && checkoutForm.controls.taxCondition.invalid) {
+              <small class="tb-field__error">Seleccioná una condición fiscal.</small>
+            }
+          </div>
+        </div>
+
+        <div class="tb-form__row">
+          <div class="tb-field">
+            <label for="billingEmail">Email de facturación o contacto comercial</label>
+            <input id="billingEmail" type="email" formControlName="billingEmail" autocomplete="email" />
+            @if (checkoutForm.controls.billingEmail.touched && checkoutForm.controls.billingEmail.invalid) {
+              <small class="tb-field__error">Ingresá un email válido.</small>
+            }
+          </div>
+          <div class="tb-field">
+            <label for="phone">Teléfono de contacto</label>
+            <input id="phone" type="tel" formControlName="phone" autocomplete="tel" />
+            @if (checkoutForm.controls.phone.touched && checkoutForm.controls.phone.invalid) {
+              <small class="tb-field__error">Ingresá un teléfono de contacto.</small>
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="tb-checkout-form__section" aria-labelledby="responsible-title">
+        <div class="tb-checkout-form__heading">
+          <p class="tb-eyebrow">02 · Responsable</p>
+          <h2 id="responsible-title">Responsable de la contratación</h2>
+          <p>Será el contacto principal para acompañar el inicio de TeamBalance.</p>
+        </div>
+
+        <div class="tb-form__row">
+          <div class="tb-field">
+            <label for="firstName">Nombre</label>
+            <input id="firstName" type="text" formControlName="firstName" autocomplete="given-name" />
+            @if (checkoutForm.controls.firstName.touched && checkoutForm.controls.firstName.invalid) {
+              <small class="tb-field__error">Ingresá el nombre.</small>
+            }
+          </div>
+          <div class="tb-field">
+            <label for="lastName">Apellido</label>
+            <input id="lastName" type="text" formControlName="lastName" autocomplete="family-name" />
+            @if (checkoutForm.controls.lastName.touched && checkoutForm.controls.lastName.invalid) {
+              <small class="tb-field__error">Ingresá el apellido.</small>
+            }
+          </div>
+        </div>
+
+        <div class="tb-form__row">
+          <div class="tb-field">
+            <label for="workEmail">Email laboral</label>
+            <input id="workEmail" type="email" formControlName="workEmail" autocomplete="email" />
+            @if (checkoutForm.controls.workEmail.touched && checkoutForm.controls.workEmail.invalid) {
+              <small class="tb-field__error">Ingresá un email válido.</small>
+            }
+          </div>
+          <div class="tb-field">
+            <label for="role">Cargo o función</label>
+            <input id="role" type="text" formControlName="role" autocomplete="organization-title" />
+            @if (checkoutForm.controls.role.touched && checkoutForm.controls.role.invalid) {
+              <small class="tb-field__error">Indicá el cargo o función.</small>
+            }
+          </div>
+        </div>
+      </section>
+
+      <section class="tb-checkout-form__section" aria-labelledby="payment-title">
+        <div class="tb-checkout-form__heading">
+          <p class="tb-eyebrow">03 · Pago</p>
+          <h2 id="payment-title">Medio de pago</h2>
+          <p>La operación se realizará fuera de TeamBalance, en el sitio seguro del proveedor que elijas.</p>
+        </div>
+
+        <div class="tb-payment-options">
+          <label class="tb-payment-option" [class.tb-payment-option--selected]="checkoutForm.controls.paymentProvider.value === 'mercado-pago'">
+            <input type="radio" formControlName="paymentProvider" value="mercado-pago" />
+            <span class="tb-payment-option__radio" aria-hidden="true"></span>
+            <span>
+              <strong>Mercado Pago</strong>
+              <small>Pago seguro para Argentina y Latinoamérica.</small>
+            </span>
+          </label>
+          <label class="tb-payment-option" [class.tb-payment-option--selected]="checkoutForm.controls.paymentProvider.value === 'stripe'">
+            <input type="radio" formControlName="paymentProvider" value="stripe" />
+            <span class="tb-payment-option__radio" aria-hidden="true"></span>
+            <span>
+              <strong>Stripe</strong>
+              <small>Procesamiento internacional de pagos.</small>
+            </span>
+          </label>
+        </div>
+
+        <p class="tb-payment-notice">El pago se realizará de forma segura en el sitio del proveedor seleccionado. TeamBalance no almacena los datos de tu tarjeta.</p>
+      </section>
+
+      <section class="tb-checkout-form__section tb-checkout-form__section--final">
+        <label class="tb-terms-check">
+          <input type="checkbox" formControlName="acceptsTerms" />
+          <span>
+            Leí y acepto los <a routerLink="/terms-and-conditions">Términos y Condiciones</a> de TeamBalance.
+          </span>
+        </label>
+        @if (checkoutForm.controls.acceptsTerms.touched && checkoutForm.controls.acceptsTerms.invalid) {
+          <p class="tb-field__error">Necesitás aceptar los Términos y Condiciones para continuar.</p>
+        }
+
+        <button class="tb-button tb-button--primary tb-checkout-submit" type="submit" [disabled]="checkoutForm.invalid">
+          Continuar al pago
+        </button>
+
+        @if (paymentIntegrationPending()) {
+          <p class="tb-checkout-pending" role="status">
+            La integración con el proveedor de pago se habilitará próximamente. No se realizó ningún cobro.
+          </p>
+        }
+      </section>
+    </form>
+
+    <aside class="tb-order-summary" aria-labelledby="order-summary-title">
+      <div class="tb-order-summary__top">
+        <p class="tb-eyebrow">Resumen de compra</p>
+        <h2 id="order-summary-title">TeamBalance</h2>
+        @if (period() === 'annual') {
+          <p class="tb-order-summary__plan">Plan anual</p>
+          <p class="tb-order-summary__price"><span>USD</span> 890 <small>/ año</small></p>
+          <p class="tb-order-summary__saving">Ahorrás USD 178 · Equivale a 2 meses sin cargo</p>
+        } @else {
+          <p class="tb-order-summary__plan">Plan mensual</p>
+          <p class="tb-order-summary__price"><span>USD</span> 89 <small>/ mes</small></p>
+        }
+        <a class="tb-order-summary__change" routerLink="/plans">Cambiar plan</a>
+      </div>
+
+      <div class="tb-order-summary__included">
+        <p>La misma plataforma completa en ambas modalidades:</p>
+        <ul>
+          <li>Hasta 20 usuarios</li>
+          <li>Acceso completo a TeamBalance</li>
+          <li>Gestión de proyectos y tareas</li>
+          <li>Gestión de empleados</li>
+          <li>Motor Best Fit</li>
+          <li>Disponibilidad y carga de trabajo</li>
+          <li>Dashboards y alertas</li>
+          <li>Seguimiento de horas y reportes</li>
+          <li>Soporte estándar</li>
+          <li>Actualizaciones del sistema</li>
+          <li>Configuración inicial básica</li>
+          <li>Capacitación inicial básica</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</section>
