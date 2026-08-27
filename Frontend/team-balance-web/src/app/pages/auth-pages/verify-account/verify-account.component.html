@@ -1,0 +1,25 @@
+<app-auth-page-layout>
+  <section class="tb-auth-form" aria-labelledby="verify-account-title">
+    @if (validating()) {
+      <div class="tb-auth-status" role="status">
+        <p class="tb-auth-form__eyebrow">Validación de cuenta</p>
+        <h1 id="verify-account-title">Estamos confirmando tu correo.</h1>
+        <p>Esto demora sólo unos segundos.</p>
+      </div>
+    } @else if (validada()) {
+      <div class="tb-auth-status tb-auth-status--success" role="status">
+        <p class="tb-auth-form__eyebrow">Correo confirmado</p>
+        <h1 id="verify-account-title">Tu acceso está habilitado.</h1>
+        <p>{{ message() }}</p>
+        <a class="tb-auth-submit tb-auth-submit--link" routerLink="/signin">Iniciar sesión</a>
+      </div>
+    } @else {
+      <div class="tb-auth-status tb-auth-status--error" role="alert">
+        <p class="tb-auth-form__eyebrow">No pudimos validar tu cuenta</p>
+        <h1 id="verify-account-title">El enlace ya no está disponible.</h1>
+        <p>{{ message() }}</p>
+        <a class="tb-auth-submit tb-auth-submit--link" routerLink="/reenviar-validacion">Solicitar nuevo enlace</a>
+      </div>
+    }
+  </section>
+</app-auth-page-layout>

@@ -12,13 +12,24 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddHttpClient<MercadoPagoService>();
+builder.Services.AddSingleton(new EmailService(
+    builder.Configuration["Email:Emisor"],
+    builder.Configuration["Email:ClaveAplicacion"],
+    builder.Configuration["Frontend:PublicBaseUrl"]));
 
 builder.Services.AddScoped<Conexion>(_ =>
     new Conexion(builder.Configuration.GetConnectionString("TeamBalanceDB")
         ?? throw new InvalidOperationException("No se configuró la cadena de conexión TeamBalanceDB.")));
 
 builder.Services.AddScoped<MPPContratacion>();
+builder.Services.AddScoped<MPPAgencia>();
+builder.Services.AddScoped<MPPUsuario>();
+builder.Services.AddScoped<MPPRol>();
+
 builder.Services.AddScoped<ContratacionBLL>();
+builder.Services.AddScoped<BLLAgencia>();
+builder.Services.AddScoped<BLLUsuario>();
+builder.Services.AddScoped<BLLRol>();
 
 var app = builder.Build();
 

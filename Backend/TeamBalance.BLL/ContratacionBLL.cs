@@ -9,11 +9,13 @@ namespace TeamBalance.BLL
     {
         private readonly MercadoPagoService _mercadoPagoService;
         private readonly MPPContratacion _contratacionMPP;
+        private readonly EmailService _emailService;
 
-        public ContratacionBLL(MercadoPagoService mercadoPagoService, MPPContratacion contratacionMPP)
+        public ContratacionBLL(MercadoPagoService mercadoPagoService, MPPContratacion contratacionMPP, EmailService emailService)
         {
             _mercadoPagoService = mercadoPagoService;
             _contratacionMPP = contratacionMPP;
+            _emailService = emailService;
         }
 
         public async Task<ContratacionInicioResponse> Contratar(ContratacionRequest request)
@@ -48,9 +50,12 @@ namespace TeamBalance.BLL
             return CrearRespuestaEstado(contratacion);
         }
 
-        public async Task<EstadoContratacionResponse> VerificarPagoMercadoPago(
-            string referenciaContratacion,
-            string paymentId)
+        public ContratacionServicio ConsultarContratacionParaRegistro(string referenciaContratacion)
+        {
+            return _contratacionMPP.ConsultarContratacionParaRegistro(referenciaContratacion);
+        }
+
+        public async Task<EstadoContratacionResponse> VerificarPagoMercadoPago(string referenciaContratacion, string paymentId)
         {
             if (string.IsNullOrWhiteSpace(paymentId))
             {
@@ -77,11 +82,17 @@ namespace TeamBalance.BLL
                 throw new InvalidOperationException("El importe o la moneda informados por Mercado Pago no coinciden con la contratación.");
             }
 
-            EstadoContratacionPersistido resultado = _contratacionMPP.ActualizarResultadoPago(
-                referenciaContratacion,
-                payment.Id,
-                payment.Status,
-                $"Mercado Pago informó el estado '{payment.Status}'.");
+            EstadoContratacionPersistido resultado = _contratacionMPP.ActualizarResultadoPago( referenciaContratacion, payment.Id, payment.Status, $"Mercado Pago informó el estado '{payment.Status}'.");
+
+            if (string.Equals(resultado.EstadoContratacion, "Aprobada", StringComparison.OrdinalIgnoreCase))
+            {
+                ContratacionServicio contratacionParaRegistro = _contratacionMPP.ConsultarContratacionParaRegistro(referenciaContratacion);
+
+                await _emailService.EnviarCorreoContinuarRegistro(
+                    contratacionParaRegistro.EmailLaboralResponsable,
+                    contratacionParaRegistro.NombreResponsable,
+                    contratacionParaRegistro.ReferenciaContratacion);
+            }
 
             return CrearRespuestaEstado(resultado);
         }

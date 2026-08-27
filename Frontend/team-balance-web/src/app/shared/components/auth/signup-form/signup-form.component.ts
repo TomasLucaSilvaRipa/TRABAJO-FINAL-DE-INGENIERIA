@@ -4,7 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
-import { AuthService, RegistryRequest } from '../../../../services/auth.service';
+import { AuthService } from '../../../../services/auth.service';
 import { ContratacionService } from '../../../../services/contratacion.service';
 
 @Component({
@@ -28,6 +28,7 @@ export class SignupFormComponent {
   readonly submitting = signal(false);
   readonly requestError = signal('');
   readonly registrationCompleted = signal(false);
+  readonly emailValidacionEnviado = signal(false);
   readonly showPassword = signal(false);
   readonly showConfirmPassword = signal(false);
 
@@ -75,21 +76,27 @@ export class SignupFormComponent {
       return;
     }
 
-    const registryData: RegistryRequest = {
-      referenciaContratacion,
-      nombre: form.firstName,
-      apellido: form.lastName,
-      emailLaboral: form.workEmail,
-      telefonoResponsable: form.phone,
-      password: form.password,
+    const agencia = {
+      telefonoContacto: form.phone,
+      usuarios: [
+        {
+          nombre: form.firstName,
+          apellido: form.lastName,
+          email: form.workEmail,
+          passwordHash: form.password,
+        },
+      ],
     };
 
     this.submitting.set(true);
 
-    this.authService.registrarAgencia(registryData)
+    this.authService.registrarAgencia(referenciaContratacion, agencia)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
-        next: () => this.registrationCompleted.set(true),
+        next: (respuesta) => {
+          this.emailValidacionEnviado.set(respuesta.emailValidacionEnviado);
+          this.registrationCompleted.set(true);
+        },
         error: (error) => {
           this.requestError.set(
             typeof error.error === 'string'

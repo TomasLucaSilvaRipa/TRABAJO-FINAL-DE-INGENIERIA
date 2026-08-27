@@ -13,5 +13,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+	<ItemGroup>
+		<Compile Remove="Context\**\*.cs" />
+	</ItemGroup>	
 
 </Project>

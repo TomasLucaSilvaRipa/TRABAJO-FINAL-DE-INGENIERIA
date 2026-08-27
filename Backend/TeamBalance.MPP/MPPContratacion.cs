@@ -75,6 +75,42 @@ public sealed class MPPContratacion
             Convert.ToString(fila["Moneda"]) ?? string.Empty);
     }
 
+    public ContratacionServicio ConsultarContratacionParaRegistro(string referenciaContratacion)
+    {
+        var parametros = new List<SqlParameter>
+        {
+            new("@ReferenciaContratacion", referenciaContratacion),
+        };
+
+        DataTable resultado = _conexion.Leer("dbo.usp_Contratacion_ConsultarParaRegistro", parametros);
+
+        if (resultado.Rows.Count != 1)
+        {
+            throw new KeyNotFoundException("No existe una contratación aprobada disponible para registrar la agencia.");
+        }
+
+        DataRow fila = resultado.Rows[0];
+
+        return new ContratacionServicio
+        {
+            ID = Convert.ToInt32(fila["ID"]),
+            IdAgencia = fila["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAgencia"]),
+            IdUsuario = fila["IdUsuario"] == DBNull.Value ? null : Convert.ToInt32(fila["IdUsuario"]),
+            ReferenciaContratacion = Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty,
+            NombreComercialAgencia = Convert.ToString(fila["NombreComercialAgencia"]) ?? string.Empty,
+            RazonSocial = Convert.ToString(fila["RazonSocial"]),
+            CUIT = Convert.ToString(fila["CUIT"]) ?? string.Empty,
+            CondicionFiscal = Convert.ToString(fila["CondicionFiscal"]),
+            EmailFacturacion = Convert.ToString(fila["EmailFacturacion"]),
+            TelefonoContacto = Convert.ToString(fila["TelefonoContacto"]),
+            NombreResponsable = Convert.ToString(fila["NombreResponsable"]) ?? string.Empty,
+            ApellidoResponsable = Convert.ToString(fila["ApellidoResponsable"]) ?? string.Empty,
+            EmailLaboralResponsable = Convert.ToString(fila["EmailLaboralResponsable"]) ?? string.Empty,
+            EstadoContratacion = Convert.ToString(fila["EstadoContratacion"]) ?? string.Empty,
+            Activo = Convert.ToBoolean(fila["Activo"]),
+        };
+    }
+
     public EstadoContratacionPersistido ActualizarResultadoPago(
         string referenciaContratacion,
         string referenciaProveedor,

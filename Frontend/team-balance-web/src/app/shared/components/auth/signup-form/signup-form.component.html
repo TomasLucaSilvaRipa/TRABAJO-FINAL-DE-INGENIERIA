@@ -15,9 +15,14 @@
   } @else if (registrationCompleted()) {
     <div class="tb-auth-status tb-auth-status--success" role="status">
       <p class="tb-auth-form__eyebrow">Registro iniciado</p>
-      <h1 id="signup-title">Revisá tu correo.</h1>
-      <p>Enviamos las instrucciones para validar la cuenta y activar el acceso inicial de tu agencia.</p>
-      <a class="tb-auth-submit tb-auth-submit--link" routerLink="/signin">Ir a iniciar sesión</a>
+      <h1 id="signup-title">Tu agencia fue registrada.</h1>
+      @if (emailValidacionEnviado()) {
+        <p>El acceso inicial quedó asociado al rol de Dueño. Te enviamos un enlace para confirmar tu correo antes de iniciar sesión.</p>
+        <a class="tb-auth-submit tb-auth-submit--link" routerLink="/signin">Ir a iniciar sesión</a>
+      } @else {
+        <p>El acceso inicial quedó asociado al rol de Dueño, pero no pudimos enviar el correo de validación. Podés solicitar un nuevo enlace desde el inicio de sesión.</p>
+        <a class="tb-auth-submit tb-auth-submit--link" routerLink="/reenviar-validacion">Reenviar validación</a>
+      }
     </div>
   } @else {
     <a class="tb-auth-form__back" routerLink="/plans">

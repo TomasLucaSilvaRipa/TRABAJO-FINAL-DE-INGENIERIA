@@ -28,6 +28,9 @@ import { PlansComponent } from './pages/public/plans/plans';
 import { TermsAndConditions } from './pages/public/terms-and-conditions/terms-and-conditions';
 import { CheckoutComponent } from './pages/public/checkout/checkout';
 import { PaymentResultComponent } from './pages/public/payment-result/payment-result';
+import { VerifyAccountComponent } from './pages/auth-pages/verify-account/verify-account.component';
+import { ResendValidationComponent } from './pages/auth-pages/resend-validation/resend-validation.component';
+import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -91,6 +94,16 @@ export const routes: Routes = [
         title: 'Iniciar sesión | TeamBalance',
       },
       {
+        path: 'validar-cuenta',
+        component: VerifyAccountComponent,
+        title: 'Validar cuenta | TeamBalance',
+      },
+      {
+        path: 'reenviar-validacion',
+        component: ResendValidationComponent,
+        title: 'Reenviar validación | TeamBalance',
+      },
+      {
         path: 'signup',
         redirectTo: 'plans',
         pathMatch: 'full',
@@ -100,6 +113,7 @@ export const routes: Routes = [
   {
     path:'dashboard',
     component:AppLayoutComponent,
+    canActivate: [authGuard],
     children:[
       {
         path: '',

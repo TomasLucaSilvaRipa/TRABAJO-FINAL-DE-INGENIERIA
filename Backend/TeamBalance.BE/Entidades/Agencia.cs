@@ -27,17 +27,6 @@ public partial class Agencia
 
     public DateTime? FechaBaja { get; set; }
 
-    public virtual ICollection<AgenciaCliente> AgenciaClientes { get; set; } = new List<AgenciaCliente>();
-
-    public virtual ICollection<Bitacora> Bitacoras { get; set; } = new List<Bitacora>();
-
-    public virtual ICollection<ConsultaSoporte> ConsultaSoportes { get; set; } = new List<ConsultaSoporte>();
-
-    public virtual ICollection<ContratacionServicio> ContratacionServicios { get; set; } = new List<ContratacionServicio>();
-
-    public virtual ICollection<EstadoTarea> EstadoTareas { get; set; } = new List<EstadoTarea>();
-
-    public virtual ICollection<PlantillaTarea> PlantillaTareas { get; set; } = new List<PlantillaTarea>();
 
     public virtual ICollection<Proyecto> Proyectos { get; set; } = new List<Proyecto>();
 

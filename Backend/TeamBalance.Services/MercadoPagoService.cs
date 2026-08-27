@@ -131,7 +131,7 @@ namespace TeamBalance.Services
     public class MercadoPagoPreferenceResponse
     {
         [JsonPropertyName("id")]
-        public long Id { get; set; }
+        public string? Id { get; set; }
 
         [JsonPropertyName("init_point")]
         public string? InitPoint { get; set; }
@@ -143,7 +143,7 @@ namespace TeamBalance.Services
     public class MercadoPagoPaymentResponse
     {
         [JsonPropertyName("id")]
-        public string? Id { get; set; }
+        public long Id { get; set; }
 
         [JsonPropertyName("status")]
         public string? Status { get; set; }

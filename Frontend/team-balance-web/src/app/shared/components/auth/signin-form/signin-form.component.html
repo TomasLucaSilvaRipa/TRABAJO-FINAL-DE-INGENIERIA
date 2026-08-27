@@ -11,16 +11,16 @@
     <p>Ingresá con tus credenciales para continuar gestionando tu equipo.</p>
   </div>
 
-  <form class="tb-auth-form__fields" (ngSubmit)="onSignIn()">
+  <form class="tb-auth-form__fields" [formGroup]="signInForm" (ngSubmit)="onSignIn()" novalidate>
     <div class="tb-auth-field">
       <label for="signin-email">Email laboral</label>
-      <input id="signin-email" type="email" name="email" [(ngModel)]="email" autocomplete="email" placeholder="nombre@agencia.com" required />
+      <input id="signin-email" type="email" formControlName="email" autocomplete="email" placeholder="nombre@agencia.com" />
     </div>
 
     <div class="tb-auth-field">
       <label for="signin-password">Contraseña</label>
       <div class="tb-auth-password">
-        <input id="signin-password" [type]="showPassword ? 'text' : 'password'" name="password" [(ngModel)]="password" autocomplete="current-password" placeholder="Ingresá tu contraseña" required />
+        <input id="signin-password" [type]="showPassword ? 'text' : 'password'" formControlName="password" autocomplete="current-password" placeholder="Ingresá tu contraseña" />
         <button type="button" (click)="togglePasswordVisibility()" [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'">
           @if (showPassword) {
             <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2.7 10s2.4-4.1 7.3-4.1S17.3 10 17.3 10 14.9 14.1 10 14.1 2.7 10 2.7 10Z" /><circle cx="10" cy="10" r="2.2" /></svg>
@@ -32,15 +32,25 @@
     </div>
 
     <div class="tb-auth-form__options">
-      <label class="tb-auth-check"><input type="checkbox" name="remember" [(ngModel)]="isChecked" /><span>Mantener sesión iniciada</span></label>
+      <label class="tb-auth-check"><input type="checkbox" formControlName="mantenerSesion" /><span>Mantener sesión iniciada</span></label>
       <a routerLink="/contact">¿Necesitás ayuda?</a>
     </div>
 
-    <button class="tb-auth-submit" type="submit">Iniciar sesión</button>
+    @if (requestError()) {
+      <p class="tb-auth-request-error" role="alert">{{ requestError() }}</p>
+    }
+
+    <button class="tb-auth-submit" type="submit" [disabled]="submitting()">
+      {{ submitting() ? 'Ingresando…' : 'Iniciar sesión' }}
+    </button>
   </form>
 
   <div class="tb-auth-form__alternate">
     <span>¿Querés empezar a usar TeamBalance?</span>
     <a routerLink="/plans">Elegí tu plan</a>
+  </div>
+  <div class="tb-auth-form__alternate">
+    <span>¿No recibiste el correo de validación?</span>
+    <a routerLink="/reenviar-validacion">Reenviar enlace</a>
   </div>
 </section>
