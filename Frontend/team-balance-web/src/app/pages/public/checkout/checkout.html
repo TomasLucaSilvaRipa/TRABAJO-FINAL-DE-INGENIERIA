@@ -125,20 +125,12 @@
         </div>
 
         <div class="tb-payment-options">
-          <label class="tb-payment-option" [class.tb-payment-option--selected]="checkoutForm.controls.paymentProvider.value === 'mercado-pago'">
-            <input type="radio" formControlName="paymentProvider" value="mercado-pago" />
+          <label class="tb-payment-option" [class.tb-payment-option--selected]="checkoutForm.controls.paymentProvider.value === 'MercadoPago'">
+            <input type="radio" formControlName="paymentProvider" value="MercadoPago" />
             <span class="tb-payment-option__radio" aria-hidden="true"></span>
             <span>
               <strong>Mercado Pago</strong>
               <small>Pago seguro para Argentina y Latinoamérica.</small>
-            </span>
-          </label>
-          <label class="tb-payment-option" [class.tb-payment-option--selected]="checkoutForm.controls.paymentProvider.value === 'stripe'">
-            <input type="radio" formControlName="paymentProvider" value="stripe" />
-            <span class="tb-payment-option__radio" aria-hidden="true"></span>
-            <span>
-              <strong>Stripe</strong>
-              <small>Procesamiento internacional de pagos.</small>
             </span>
           </label>
         </div>
@@ -157,13 +149,13 @@
           <p class="tb-field__error">Necesitás aceptar los Términos y Condiciones para continuar.</p>
         }
 
-        <button class="tb-button tb-button--primary tb-checkout-submit" type="submit" [disabled]="checkoutForm.invalid">
+        <button class="tb-button tb-button--primary tb-checkout-submit" type="submit" [disabled]="checkoutForm.invalid || paymentIntegrationPending()">
           Continuar al pago
         </button>
 
         @if (paymentIntegrationPending()) {
           <p class="tb-checkout-pending" role="status">
-            La integración con el proveedor de pago se habilitará próximamente. No se realizó ningún cobro.
+            Estamos redirigiéndote al sitio seguro de pago.
           </p>
         }
       </section>

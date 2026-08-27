@@ -1,18 +1,15 @@
-import { Component } from '@angular/core';
-import { GridShapeComponent } from '../../components/common/grid-shape/grid-shape.component';
-import { RouterModule } from '@angular/router';
-import { ThemeToggleTwoComponent } from '../../components/common/theme-toggle-two/theme-toggle-two.component';
+import { Component, signal } from '@angular/core';
 
 @Component({
   selector: 'app-auth-page-layout',
-  imports: [
-    GridShapeComponent,
-    RouterModule,
-    ThemeToggleTwoComponent,
-  ],
+  imports: [],
   templateUrl: './auth-page-layout.component.html',
-  styles: ``
+  styleUrl: './auth-page-layout.component.css',
 })
 export class AuthPageLayoutComponent {
+  protected readonly contrastMode = signal(false);
 
+  protected toggleContrast(): void {
+    this.contrastMode.update((enabled) => !enabled);
+  }
 }

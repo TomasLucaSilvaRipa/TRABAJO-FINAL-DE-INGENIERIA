@@ -1,0 +1,43 @@
+<section class="tb-page-hero tb-page-hero--navy">
+  <div class="tb-container tb-page-hero__content">
+    <p class="tb-eyebrow">Contratación TeamBalance</p>
+    <h1>Estamos verificando tu pago.</h1>
+    <p>Confirmamos el resultado de la operación antes de habilitar el registro de tu agencia.</p>
+  </div>
+</section>
+
+<section class="tb-section">
+  <div class="tb-container" style="max-width: 720px;">
+    @if (loading()) {
+      <div class="tb-card">
+        <p class="tb-eyebrow">Pago en proceso</p>
+        <h2>Validando la información de Mercado Pago.</h2>
+        <p>Esto puede demorar unos segundos. No cierres esta ventana.</p>
+      </div>
+    } @else if (errorMessage()) {
+      <div class="tb-card">
+        <p class="tb-eyebrow">No pudimos continuar</p>
+        <h2>Necesitamos revisar tu contratación.</h2>
+        <p>{{ errorMessage() }}</p>
+        <a class="tb-button tb-button--primary" routerLink="/plans">Ver planes</a>
+      </div>
+    } @else if (resultado(); as estado) {
+      <div class="tb-card">
+        @if (estado.puedeRegistrar) {
+          <p class="tb-eyebrow">Pago aprobado</p>
+          <h2>Tu contratación fue confirmada.</h2>
+          <p>La referencia quedó asociada a tu contratación y será utilizada para continuar con el registro seguro de la agencia.</p>
+        } @else if (estado.estado === 'Rechazada') {
+          <p class="tb-eyebrow">Pago no aprobado</p>
+          <h2>No pudimos confirmar la operación.</h2>
+          <p>Podés volver a los planes e intentar nuevamente con Mercado Pago.</p>
+          <a class="tb-button tb-button--primary" routerLink="/plans">Volver a los planes</a>
+        } @else {
+          <p class="tb-eyebrow">Pago pendiente</p>
+          <h2>Tu operación todavía está en proceso.</h2>
+          <p>Cuando Mercado Pago confirme el pago, la contratación quedará habilitada para registrar tu agencia.</p>
+        }
+      </div>
+    }
+  </div>
+</section>

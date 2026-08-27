@@ -27,6 +27,7 @@ import { SecurityPolicyComponent } from './pages/public/security-policy/security
 import { PlansComponent } from './pages/public/plans/plans';
 import { TermsAndConditions } from './pages/public/terms-and-conditions/terms-and-conditions';
 import { CheckoutComponent } from './pages/public/checkout/checkout';
+import { PaymentResultComponent } from './pages/public/payment-result/payment-result';
 
 export const routes: Routes = [
   {
@@ -60,6 +61,16 @@ export const routes: Routes = [
         title: 'Contratación | TeamBalance',
       },
       {
+        path: 'pago/resultado',
+        component: PaymentResultComponent,
+        title: 'Estado del pago | TeamBalance',
+      },
+      {
+        path: 'registrar-agencia',
+        component: SignUpComponent,
+        title: 'Registrar agencia | TeamBalance',
+      },
+      {
         path: 'privacy-policy',
         component: PrivacyPolicyComponent,
         title: 'Política de privacidad | TeamBalance',
@@ -73,18 +84,18 @@ export const routes: Routes = [
         path: 'terms-and-conditions',
         component: TermsAndConditions,
         title: 'Términos y condiciones | TeamBalance',
-      }
+      },
+      {
+        path: 'signin',
+        component: SignInComponent,
+        title: 'Iniciar sesión | TeamBalance',
+      },
+      {
+        path: 'signup',
+        redirectTo: 'plans',
+        pathMatch: 'full',
+      },
     ],
-  },
-  {
-    path: 'signin',
-    component: SignInComponent,
-    title: 'Iniciar sesión | TeamBalance',
-  },
-  {
-    path: 'signup',
-    component: SignUpComponent,
-    title: 'Crear cuenta | TeamBalance',
   },
   {
     path:'dashboard',

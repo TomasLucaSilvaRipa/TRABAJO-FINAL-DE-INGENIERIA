@@ -16,11 +16,42 @@ namespace Teambalance.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Contratar(ContratacionServicio contratacion)
+        public async Task<IActionResult> Contratar([FromBody] ContratacionRequest request)
         {
-            var resultado = await _bll.Contratar(contratacion);
+            try
+            {
+                var resultado = await _bll.Contratar(request);
 
-            return Ok(resultado);
+                return Ok(resultado);
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
+
+        [HttpGet("{referencia}/estado")]
+        public IActionResult ConsultarEstado(string referencia)
+        {
+            try
+            {
+                return Ok(_bll.ConsultarEstado(referencia));
+            }
+            catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        [HttpPost("{referencia}/verificar-pago")]
+        public async Task<IActionResult> VerificarPago(string referencia, [FromBody] VerificarPagoRequest request)
+        {
+            try
+            {
+                return Ok(await _bll.VerificarPagoMercadoPago(referencia, request.PaymentId));
+            }
+            catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+    }
+
+    public sealed class VerificarPagoRequest
+    {
+        public string PaymentId { get; init; } = string.Empty;
     }
 }

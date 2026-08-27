@@ -1,24 +1,14 @@
 
-import { Component } from '@angular/core';
-import { LabelComponent } from '../../form/label/label.component';
-import { CheckboxComponent } from '../../form/input/checkbox.component';
-import { ButtonComponent } from '../../ui/button/button.component';
-import { InputFieldComponent } from '../../form/input/input-field.component';
-import { RouterModule } from '@angular/router';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-signin-form',
-  imports: [
-    LabelComponent,
-    CheckboxComponent,
-    ButtonComponent,
-    InputFieldComponent,
-    RouterModule,
-    FormsModule
-],
+  imports: [RouterLink, FormsModule],
   templateUrl: './signin-form.component.html',
-  styles: ``
+  styleUrl: '../auth-form.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SigninFormComponent {
 
@@ -28,13 +18,9 @@ export class SigninFormComponent {
   email = '';
   password = '';
 
-  togglePasswordVisibility() {
+  togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
   }
 
-  onSignIn() {
-    console.log('Email:', this.email);
-    console.log('Password:', this.password);
-    console.log('Remember Me:', this.isChecked);
-  }
+  onSignIn(): void {}
 }

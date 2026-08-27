@@ -1,19 +1,50 @@
-<div class="relative min-h-screen bg-white p-5 sm:p-0">
-  <div class="relative flex min-h-screen w-full flex-col bg-white lg:flex-row">
-    <ng-content></ng-content>
-    <aside class="relative hidden w-full overflow-hidden bg-slate-950 lg:grid lg:w-1/2 lg:place-items-center">
-      <app-grid-shape />
-      <div class="relative z-10 max-w-sm px-10 text-center">
-        <a routerLink="/" class="inline-flex items-center gap-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-300">
-          <span class="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-cyan-400 to-emerald-400">
-            <svg aria-hidden="true" viewBox="0 0 24 24" class="h-7 w-7 fill-none stroke-slate-950" stroke-width="2.2"><path d="M5 15.5V12m5 3.5V8m5 7.5V5m4 13.5H4" stroke-linecap="round"/><path d="M4 5.5h5.5l2.5 2.25L15 4.5h5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </span>
-          <span class="text-2xl font-bold tracking-tight text-white">Team<span class="text-cyan-400">Balance</span></span>
-        </a>
-        <h2 class="mt-8 text-3xl font-bold tracking-tight text-white">Decidí con más claridad.</h2>
-        <p class="mt-4 leading-7 text-slate-300">Organizá personas, proyectos y capacidad desde una misma vista.</p>
+<div class="tb-auth-shell" [class.tb-auth-shell--contrast]="contrastMode()">
+  <main class="tb-auth-main">
+    <div class="tb-auth-main__content">
+      <ng-content></ng-content>
+    </div>
+  </main>
+
+  <aside class="tb-auth-aside" aria-label="Acerca de TeamBalance">
+    <div class="tb-auth-aside__halo tb-auth-aside__halo--cyan"></div>
+    <div class="tb-auth-aside__halo tb-auth-aside__halo--green"></div>
+
+    <div class="tb-auth-aside__content">
+      <p class="tb-auth-aside__eyebrow">Gestión inteligente de equipos</p>
+      <h2>La operación de tu agencia, con más contexto.</h2>
+      <p class="tb-auth-aside__lead">Reuní personas, proyectos y capacidad en una misma vista para tomar mejores decisiones cada día.</p>
+
+      <div class="tb-auth-preview" aria-hidden="true">
+        <div class="tb-auth-preview__header">
+          <span></span><span></span><span></span>
+          <p>Panorama del equipo</p>
+        </div>
+        <div class="tb-auth-preview__metrics">
+          <div><small>Capacidad disponible</small><strong>78%</strong><em>+12% esta semana</em></div>
+          <div><small>Alertas activas</small><strong>03</strong><em>Para revisar hoy</em></div>
+        </div>
+        <div class="tb-auth-preview__load">
+          <div><span>Producto</span><b>82%</b></div><i><span style="width: 82%"></span></i>
+          <div><span>Desarrollo</span><b>64%</b></div><i><span style="width: 64%"></span></i>
+          <div><span>Diseño</span><b>91%</b></div><i><span style="width: 91%"></span></i>
+        </div>
       </div>
-    </aside>
-    <div class="fixed bottom-6 right-6 z-50 hidden sm:block"><app-theme-toggle-two /></div>
-  </div>
+
+      <ul class="tb-auth-aside__list">
+        <li>Disponibilidad y carga visible</li>
+        <li>Skills y seniority para asignar mejor</li>
+        <li>Alertas para anticipar desvíos</li>
+      </ul>
+    </div>
+  </aside>
+
+  <button type="button" class="tb-auth-contrast-toggle" (click)="toggleContrast()" [attr.aria-pressed]="contrastMode()">
+    @if (contrastMode()) {
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v2m0 14v2M5.64 5.64l1.42 1.42m9.88 9.88 1.42 1.42M3 12h2m14 0h2M5.64 18.36l1.42-1.42m9.88-9.88 1.42-1.42M12 7a5 5 0 1 0 0 10Z"/></svg>
+      <span>Modo claro</span>
+    } @else {
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20.8 15.6A8.5 8.5 0 0 1 8.4 3.2 8.5 8.5 0 1 0 20.8 15.6Z"/></svg>
+      <span>Más contraste</span>
+    }
+  </button>
 </div>

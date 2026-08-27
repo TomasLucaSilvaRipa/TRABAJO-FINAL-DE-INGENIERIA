@@ -58,6 +58,12 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "port": 54536,
+            "allowedHosts": [
+              ".trycloudflare.com"
+            ]
+          },
           "configurations": {
             "production": {
               "buildTarget": "team-balance-web:build:production"
