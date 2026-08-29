@@ -11,10 +11,12 @@ public class BLLUsuario
     private const int DuracionSesionNormalHoras = 8;
     private const int DuracionSesionRecordadaDias = 30;
     private readonly MPPUsuario _usuarioMPP;
+    private readonly BLLBitacora _bitacoraBLL;
 
-    public BLLUsuario(MPPUsuario usuarioMPP)
+    public BLLUsuario(MPPUsuario usuarioMPP, BLLBitacora bitacoraBLL)
     {
         _usuarioMPP = usuarioMPP;
+        _bitacoraBLL = bitacoraBLL;
     }
 
     public bool EmailDisponible(string email)
@@ -27,6 +29,7 @@ public class BLLUsuario
         return _usuarioMPP.ConsultarUsuarioPendienteValidacion(email);
     }
 
+    //pasar paramtro objeto
     public void PrepararUsuarioDueño(Usuario usuario, int idRol)
     {
         string password = usuario.PasswordHash;
@@ -90,6 +93,17 @@ public class BLLUsuario
 
         if (usuarioBD is null || !VerificarPassword(usuarioEntrante.PasswordHash, usuarioBD.PasswordHash))
         {
+            _bitacoraBLL.Add(new Bitacora()
+            {
+                Entidad = "Usuario",
+                Accion = "IniciarSesion",
+                Mensaje = "Se rechazó un intento de inicio de sesión por credenciales inválidas.",
+                Resultado = "Denegado",
+                Criticidad = "Advertencia",
+                Modulo = "Seguridad",
+                FechaHora = DateTime.Now,
+            });
+
             throw new UnauthorizedAccessException("El email o la contraseña no son correctos.");
         }
 
@@ -119,6 +133,20 @@ public class BLLUsuario
         };
 
         _usuarioMPP.RegistrarSesion(sesion);
+
+        _bitacoraBLL.Add(new Bitacora()
+        {
+            IdUsuario = usuarioBD.ID,
+            IdAgencia = usuarioBD.IdAgencia,
+            Entidad = "Usuario",
+            IdEntidad = usuarioBD.ID,
+            Accion = "IniciarSesion",
+            Mensaje = "El usuario inició sesión en TeamBalance.",
+            Resultado = "Exitoso",
+            Criticidad = "Informacion",
+            Modulo = "Seguridad",
+            FechaHora = DateTime.Now,
+        });
 
         return (usuarioBD, accessToken, fechaExpiracion);
     }

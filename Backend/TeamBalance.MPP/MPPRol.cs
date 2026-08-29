@@ -16,7 +16,7 @@ public class MPPRol
 
     public Rol ConsultarRolPorNombre(string nombre)
     {
-        var parametros = new List<SqlParameter>()
+        List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new("@Nombre", nombre),
         };

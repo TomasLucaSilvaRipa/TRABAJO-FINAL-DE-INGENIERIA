@@ -25,11 +25,13 @@ builder.Services.AddScoped<MPPContratacion>();
 builder.Services.AddScoped<MPPAgencia>();
 builder.Services.AddScoped<MPPUsuario>();
 builder.Services.AddScoped<MPPRol>();
+builder.Services.AddScoped<MPPBitacora>();
 
 builder.Services.AddScoped<ContratacionBLL>();
 builder.Services.AddScoped<BLLAgencia>();
 builder.Services.AddScoped<BLLUsuario>();
 builder.Services.AddScoped<BLLRol>();
+builder.Services.AddScoped<BLLBitacora>();
 
 var app = builder.Build();
 

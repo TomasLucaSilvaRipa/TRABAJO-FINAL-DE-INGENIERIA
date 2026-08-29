@@ -1,23 +1,174 @@
-<div class="grid grid-cols-12 gap-4 md:gap-6">
-  <div class="col-span-12 space-y-6 xl:col-span-7">
-    <div><app-ecommerce-metrics /></div>
+<section class="space-y-6">
+  <div
+    class="overflow-hidden rounded-2xl border border-[#d7e7ec] bg-[#063d5b] px-5 py-6 shadow-sm sm:px-7 sm:py-7 dark:border-[#1d5068] dark:bg-[#092b40]"
+  >
+    <div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <div class="max-w-2xl">
+        <p class="text-xs font-bold tracking-[0.18em] text-[#67e0ef]">PANEL OPERATIVO</p>
+        <h1 class="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+          La capacidad de tu equipo, en una sola vista.
+        </h1>
+        <p class="mt-2 max-w-xl text-sm leading-6 text-[#c7e4ed] sm:text-base">
+          Revisá disponibilidad, proyectos y alertas para tomar decisiones a tiempo.
+        </p>
+      </div>
 
-    <div><app-monthly-sales-chart /></div>
+      <div class="flex items-center gap-3 rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white">
+        <span class="flex h-2.5 w-2.5 rounded-full bg-[#68c94a]"></span>
+        <span>Operación actualizada</span>
+      </div>
+    </div>
   </div>
 
-  <div class="col-span-12 xl:col-span-5">
-    <app-monthly-target />
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <article class="rounded-2xl border border-[#dbe7e9] bg-white p-5 shadow-sm dark:border-[#1d4051] dark:bg-[#0b2637]">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-sm font-medium text-[#527080] dark:text-[#a3c1cd]">Proyectos activos</p>
+          <p class="mt-2 text-3xl font-semibold tracking-tight text-[#073b5c] dark:text-white">12</p>
+        </div>
+        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e2f5f8] text-[#008fb8] dark:bg-[#0d3b50] dark:text-[#67e0ef]">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M8 4H5a1 1 0 0 0-1 1v3m16 0V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3m8 0h3a1 1 0 0 0 1-1v-3M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+      </div>
+      <p class="mt-4 text-xs font-medium text-[#4a9a34]">4 con entregas esta semana</p>
+    </article>
+
+    <article class="rounded-2xl border border-[#dbe7e9] bg-white p-5 shadow-sm dark:border-[#1d4051] dark:bg-[#0b2637]">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-sm font-medium text-[#527080] dark:text-[#a3c1cd]">Disponibilidad</p>
+          <p class="mt-2 text-3xl font-semibold tracking-tight text-[#073b5c] dark:text-white">74%</p>
+        </div>
+        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e8f6e2] text-[#4b9c36] dark:bg-[#183d31] dark:text-[#78d360]">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 18V8m5 10V5m5 13v-7m5 7V3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </span>
+      </div>
+      <p class="mt-4 text-xs font-medium text-[#527080] dark:text-[#a3c1cd]">Promedio de la agencia</p>
+    </article>
+
+    <article class="rounded-2xl border border-[#dbe7e9] bg-white p-5 shadow-sm dark:border-[#1d4051] dark:bg-[#0b2637]">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-sm font-medium text-[#527080] dark:text-[#a3c1cd]">Personas con alta carga</p>
+          <p class="mt-2 text-3xl font-semibold tracking-tight text-[#073b5c] dark:text-white">3</p>
+        </div>
+        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#fff2db] text-[#c78121] dark:bg-[#46351d] dark:text-[#f2bb65]">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 8v4m0 4h.01M10.29 3.86 2.82 16.34A2 2 0 0 0 4.54 19h14.92a2 2 0 0 0 1.72-2.66L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+      </div>
+      <p class="mt-4 text-xs font-medium text-[#b3741c] dark:text-[#f2bb65]">Requieren seguimiento</p>
+    </article>
+
+    <article class="rounded-2xl border border-[#dbe7e9] bg-white p-5 shadow-sm dark:border-[#1d4051] dark:bg-[#0b2637]">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-sm font-medium text-[#527080] dark:text-[#a3c1cd]">Horas registradas</p>
+          <p class="mt-2 text-3xl font-semibold tracking-tight text-[#073b5c] dark:text-white">128<span class="ml-1 text-lg">h</span></p>
+        </div>
+        <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e2f5f8] text-[#008fb8] dark:bg-[#0d3b50] dark:text-[#67e0ef]">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8" />
+            <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+      </div>
+      <p class="mt-4 text-xs font-medium text-[#527080] dark:text-[#a3c1cd]">En los últimos 7 días</p>
+    </article>
   </div>
 
-  <div class="col-span-12">
-    <app-statics-chart />
+  <div class="grid gap-6 xl:grid-cols-5">
+    <article class="rounded-2xl border border-[#dbe7e9] bg-white p-5 shadow-sm xl:col-span-3 sm:p-6 dark:border-[#1d4051] dark:bg-[#0b2637]">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p class="text-xs font-bold tracking-[0.16em] text-[#009dc7]">CAPACIDAD DEL EQUIPO</p>
+          <h2 class="mt-1 text-lg font-semibold text-[#073b5c] dark:text-white">Distribución semanal</h2>
+        </div>
+        <span class="w-fit rounded-full bg-[#e8f6e2] px-3 py-1 text-xs font-semibold text-[#3b8528] dark:bg-[#183d31] dark:text-[#86d873]">Equilibrada</span>
+      </div>
+
+      <div class="mt-7 grid h-44 grid-cols-7 items-end gap-3 border-b border-[#e4edef] pb-1 dark:border-[#214557]">
+        <div class="flex h-full flex-col justify-end gap-2 text-center">
+          <div class="rounded-t-md bg-[#0d789a]" style="height: 56%"></div><span class="text-xs text-[#667f8d] dark:text-[#a3c1cd]">Lun</span>
+        </div>
+        <div class="flex h-full flex-col justify-end gap-2 text-center">
+          <div class="rounded-t-md bg-[#089ac1]" style="height: 72%"></div><span class="text-xs text-[#667f8d] dark:text-[#a3c1cd]">Mar</span>
+        </div>
+        <div class="flex h-full flex-col justify-end gap-2 text-center">
+          <div class="rounded-t-md bg-[#0d789a]" style="height: 64%"></div><span class="text-xs text-[#667f8d] dark:text-[#a3c1cd]">Mié</span>
+        </div>
+        <div class="flex h-full flex-col justify-end gap-2 text-center">
+          <div class="rounded-t-md bg-[#62b948]" style="height: 78%"></div><span class="text-xs text-[#667f8d] dark:text-[#a3c1cd]">Jue</span>
+        </div>
+        <div class="flex h-full flex-col justify-end gap-2 text-center">
+          <div class="rounded-t-md bg-[#0d789a]" style="height: 68%"></div><span class="text-xs text-[#667f8d] dark:text-[#a3c1cd]">Vie</span>
+        </div>
+        <div class="flex h-full flex-col justify-end gap-2 text-center">
+          <div class="rounded-t-md bg-[#9acfe0] dark:bg-[#1b5971]" style="height: 30%"></div><span class="text-xs text-[#667f8d] dark:text-[#a3c1cd]">Sáb</span>
+        </div>
+        <div class="flex h-full flex-col justify-end gap-2 text-center">
+          <div class="rounded-t-md bg-[#9acfe0] dark:bg-[#1b5971]" style="height: 16%"></div><span class="text-xs text-[#667f8d] dark:text-[#a3c1cd]">Dom</span>
+        </div>
+      </div>
+
+      <div class="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs text-[#587585] dark:text-[#a3c1cd]">
+        <span class="inline-flex items-center gap-2"><i class="h-2.5 w-2.5 rounded-full bg-[#0d789a]"></i>Carga asignada</span>
+        <span class="inline-flex items-center gap-2"><i class="h-2.5 w-2.5 rounded-full bg-[#62b948]"></i>Disponibilidad saludable</span>
+      </div>
+    </article>
+
+    <aside class="rounded-2xl border border-[#dbe7e9] bg-white p-5 shadow-sm xl:col-span-2 sm:p-6 dark:border-[#1d4051] dark:bg-[#0b2637]">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs font-bold tracking-[0.16em] text-[#009dc7]">ATENCIÓN</p>
+          <h2 class="mt-1 text-lg font-semibold text-[#073b5c] dark:text-white">Prioridades de hoy</h2>
+        </div>
+        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-[#fff2db] text-sm font-bold text-[#b3741c] dark:bg-[#46351d] dark:text-[#f2bb65]">3</span>
+      </div>
+
+      <ul class="mt-5 space-y-4">
+        <li class="flex gap-3 border-b border-[#edf2f2] pb-4 dark:border-[#1d4051]">
+          <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#e5a342]"></span>
+          <div><p class="text-sm font-semibold text-[#173f55] dark:text-white">Revisar carga del equipo creativo</p><p class="mt-1 text-xs leading-5 text-[#587585] dark:text-[#a3c1cd]">3 personas superan la disponibilidad recomendada.</p></div>
+        </li>
+        <li class="flex gap-3 border-b border-[#edf2f2] pb-4 dark:border-[#1d4051]">
+          <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#009dc7]"></span>
+          <div><p class="text-sm font-semibold text-[#173f55] dark:text-white">Confirmar responsables</p><p class="mt-1 text-xs leading-5 text-[#587585] dark:text-[#a3c1cd]">Dos tareas todavía no tienen una persona asignada.</p></div>
+        </li>
+        <li class="flex gap-3">
+          <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#62b948]"></span>
+          <div><p class="text-sm font-semibold text-[#173f55] dark:text-white">Seguimiento de horas</p><p class="mt-1 text-xs leading-5 text-[#587585] dark:text-[#a3c1cd]">El registro semanal está al día en un 82%.</p></div>
+        </li>
+      </ul>
+    </aside>
   </div>
 
-  <div class="col-span-12 xl:col-span-5">
-    <app-demographic-card />
-  </div>
+  <article class="overflow-hidden rounded-2xl border border-[#dbe7e9] bg-white shadow-sm dark:border-[#1d4051] dark:bg-[#0b2637]">
+    <div class="flex flex-col gap-3 border-b border-[#e7eeee] px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-[#1d4051]">
+      <div>
+        <p class="text-xs font-bold tracking-[0.16em] text-[#009dc7]">PROYECTOS</p>
+        <h2 class="mt-1 text-lg font-semibold text-[#073b5c] dark:text-white">Estado de los proyectos en curso</h2>
+      </div>
+      <button type="button" class="w-fit rounded-lg border border-[#b9d9e3] px-3.5 py-2 text-sm font-semibold text-[#087fa5] transition hover:bg-[#eaf8fa] dark:border-[#276078] dark:text-[#67e0ef] dark:hover:bg-[#0d3b50]">Ver todos</button>
+    </div>
 
-  <div class="col-span-12 xl:col-span-7">
-    <app-recent-orders/>
-  </div>
-</div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-left text-sm">
+        <thead class="bg-[#f5faf9] text-xs uppercase tracking-wide text-[#547280] dark:bg-[#0a3044] dark:text-[#a3c1cd]">
+          <tr><th class="px-5 py-3.5 font-semibold sm:px-6">Proyecto</th><th class="px-5 py-3.5 font-semibold">Responsable</th><th class="px-5 py-3.5 font-semibold">Avance</th><th class="px-5 py-3.5 font-semibold">Estado</th></tr>
+        </thead>
+        <tbody class="divide-y divide-[#edf2f2] dark:divide-[#1d4051]">
+          <tr><td class="px-5 py-4 font-semibold text-[#173f55] sm:px-6 dark:text-white">Campaña de primavera</td><td class="px-5 py-4 text-[#587585] dark:text-[#a3c1cd]">María López</td><td class="px-5 py-4"><div class="flex items-center gap-3"><div class="h-1.5 w-20 overflow-hidden rounded-full bg-[#dcecef] dark:bg-[#1d5068]"><div class="h-full w-[72%] rounded-full bg-[#009dc7]"></div></div><span class="text-xs font-semibold text-[#527080] dark:text-[#c7e4ed]">72%</span></div></td><td class="px-5 py-4"><span class="rounded-full bg-[#e2f5f8] px-2.5 py-1 text-xs font-semibold text-[#087fa5] dark:bg-[#0d3b50] dark:text-[#67e0ef]">En curso</span></td></tr>
+          <tr><td class="px-5 py-4 font-semibold text-[#173f55] sm:px-6 dark:text-white">Portal de clientes</td><td class="px-5 py-4 text-[#587585] dark:text-[#a3c1cd]">Tomás Vega</td><td class="px-5 py-4"><div class="flex items-center gap-3"><div class="h-1.5 w-20 overflow-hidden rounded-full bg-[#dcecef] dark:bg-[#1d5068]"><div class="h-full w-[48%] rounded-full bg-[#62b948]"></div></div><span class="text-xs font-semibold text-[#527080] dark:text-[#c7e4ed]">48%</span></div></td><td class="px-5 py-4"><span class="rounded-full bg-[#e8f6e2] px-2.5 py-1 text-xs font-semibold text-[#3b8528] dark:bg-[#183d31] dark:text-[#86d873]">En tiempo</span></td></tr>
+          <tr><td class="px-5 py-4 font-semibold text-[#173f55] sm:px-6 dark:text-white">Rediseño de marca</td><td class="px-5 py-4 text-[#587585] dark:text-[#a3c1cd]">Sofía Pérez</td><td class="px-5 py-4"><div class="flex items-center gap-3"><div class="h-1.5 w-20 overflow-hidden rounded-full bg-[#dcecef] dark:bg-[#1d5068]"><div class="h-full w-[86%] rounded-full bg-[#e5a342]"></div></div><span class="text-xs font-semibold text-[#527080] dark:text-[#c7e4ed]">86%</span></div></td><td class="px-5 py-4"><span class="rounded-full bg-[#fff2db] px-2.5 py-1 text-xs font-semibold text-[#b3741c] dark:bg-[#46351d] dark:text-[#f2bb65]">Revisar</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>

@@ -9,12 +9,14 @@ namespace TeamBalance.BLL
     {
         private readonly MercadoPagoService _mercadoPagoService;
         private readonly MPPContratacion _contratacionMPP;
+        private readonly BLLBitacora _bitacoraBLL;
         private readonly EmailService _emailService;
 
-        public ContratacionBLL(MercadoPagoService mercadoPagoService, MPPContratacion contratacionMPP, EmailService emailService)
+        public ContratacionBLL(MercadoPagoService mercadoPagoService, MPPContratacion contratacionMPP, BLLBitacora bitacoraBLL, EmailService emailService)
         {
             _mercadoPagoService = mercadoPagoService;
             _contratacionMPP = contratacionMPP;
+            _bitacoraBLL = bitacoraBLL;
             _emailService = emailService;
         }
 
@@ -34,6 +36,18 @@ namespace TeamBalance.BLL
                 request,
                 referenciaContratacion,
                 referenciaOperacion);
+
+            _bitacoraBLL.Add(new Bitacora()
+            {
+                Entidad = "ContratacionServicio",
+                IdEntidad = contratacion.IdContratacion,
+                Accion = "IniciarContratacion",
+                Mensaje = "Se inició una contratación pendiente de pago.",
+                Resultado = "Pendiente",
+                Criticidad = "Informacion",
+                Modulo = "Contratacion",
+                FechaHora = DateTime.Now,
+            });
 
             string urlPago = await _mercadoPagoService.CrearPago(contratacion);
 

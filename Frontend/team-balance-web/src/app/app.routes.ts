@@ -119,8 +119,7 @@ export const routes: Routes = [
         path: '',
         component: EcommerceComponent,
         pathMatch: 'full',
-        title:
-          'Angular Ecommerce Dashboard | TeamBalance - Admin Dashboard Template',
+        title: 'Dashboard | TeamBalance',
       },
       {
         path:'calendar',

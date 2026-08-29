@@ -16,7 +16,7 @@ public class MPPAgencia
 
     public bool ExisteAgencia(string cuit, string emailContacto)
     {
-        var parametros = new List<SqlParameter>()
+        List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new("@CUIT", cuit),
             new("@EmailContacto", emailContacto),
@@ -27,9 +27,9 @@ public class MPPAgencia
         return resultado.Rows.Count == 1 && Convert.ToBoolean(resultado.Rows[0]["Existe"]);
     }
 
-    public void RegistrarAgencia( Agencia agencia, Usuario usuario, Dueño dueño, ValidacionCuentum validacion, string referenciaContratacion)
+    public (int IdAgencia, int IdUsuario) RegistrarAgencia( Agencia agencia, Usuario usuario, Dueño dueño, ValidacionCuentum validacion, string referenciaContratacion)
     {
-        var parametros = new List<SqlParameter>()
+        List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new("@ReferenciaContratacion", referenciaContratacion),
             new("@NombreComercial", agencia.NombreComercial),
@@ -51,6 +51,15 @@ public class MPPAgencia
             new("@FechaExpiracion", validacion.FechaExpiracion),
         };
 
-        _conexion.Leer("dbo.usp_Agencia_RegistrarDesdeContratacion", parametros);
+        DataTable resultado = _conexion.Leer("dbo.usp_Agencia_RegistrarDesdeContratacion", parametros);
+
+        if (resultado.Rows.Count != 1)
+        {
+            throw new InvalidOperationException("No fue posible registrar la agencia.");
+        }
+
+        DataRow fila = resultado.Rows[0];
+
+        return ( Convert.ToInt32(fila["IdAgencia"]), Convert.ToInt32(fila["IdUsuario"]));
     }
 }

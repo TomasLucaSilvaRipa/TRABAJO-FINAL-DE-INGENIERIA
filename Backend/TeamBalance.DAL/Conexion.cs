@@ -61,9 +61,7 @@ namespace TeamBalance.DAL
             return dataTable;
         }
 
-        public bool Escribir(
-            string procedimiento,
-            List<SqlParameter>? parametros = null)
+        public bool Escribir(string procedimiento, List<SqlParameter>? parametros = null)
         {
             using SqlConnection conn = new SqlConnection(_cadenaConexion);
 
@@ -85,7 +83,7 @@ namespace TeamBalance.DAL
                 }
 
                 cmd.ExecuteNonQuery();
-                transaccion.Commit();
+                transaccion.Commit(); ///TRANSACTION SACAR XQ JODE EN WEB
                 return true;
             }
             catch (SqlException) { transaccion.Rollback(); return false; }

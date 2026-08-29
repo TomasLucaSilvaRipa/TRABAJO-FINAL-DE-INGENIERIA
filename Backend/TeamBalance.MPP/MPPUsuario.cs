@@ -16,7 +16,7 @@ public class MPPUsuario
 
     public bool ExisteUsuarioPorEmail(string email)
     {
-        var parametros = new List<SqlParameter>
+        List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new("@Email", email),
         };
@@ -28,7 +28,7 @@ public class MPPUsuario
 
     public Usuario? ConsultarUsuarioPorEmail(string email)
     {
-        var parametros = new List<SqlParameter>
+        List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new("@Email", email),
         };
@@ -45,7 +45,7 @@ public class MPPUsuario
 
     public Usuario? ConsultarUsuarioPendienteValidacion(string email)
     {
-        var parametros = new List<SqlParameter>
+        List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new("@Email", email),
         };
@@ -62,7 +62,7 @@ public class MPPUsuario
 
     public void RegistrarSesion(SesionUsuario sesion)
     {
-        var parametros = new List<SqlParameter>
+        List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new("@IdUsuario", sesion.IdUsuario),
             new("@TokenHash", sesion.TokenHash),
@@ -77,7 +77,7 @@ public class MPPUsuario
 
     public bool SesionVigente(string tokenHash)
     {
-        var parametros = new List<SqlParameter>
+        List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new("@TokenHash", tokenHash),
         };
@@ -89,7 +89,7 @@ public class MPPUsuario
 
     public void CerrarSesion(string tokenHash)
     {
-        var parametros = new List<SqlParameter>
+        List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new("@TokenHash", tokenHash),
         };
@@ -99,7 +99,7 @@ public class MPPUsuario
 
     public bool ValidarCuenta(string tokenHash)
     {
-        var parametros = new List<SqlParameter>
+        List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new("@TokenHash", tokenHash),
         };
@@ -111,7 +111,7 @@ public class MPPUsuario
 
     public void ReemplazarValidacionEmail(Usuario usuario, ValidacionCuentum validacion)
     {
-        var parametros = new List<SqlParameter>
+        List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new("@IdUsuario", usuario.ID),
             new("@Metodo", validacion.Metodo),

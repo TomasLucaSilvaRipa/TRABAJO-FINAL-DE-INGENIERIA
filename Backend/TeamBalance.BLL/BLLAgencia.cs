@@ -11,13 +11,15 @@ public class BLLAgencia
     private readonly ContratacionBLL _contratacionBLL;
     private readonly BLLUsuario _usuarioBLL;
     private readonly BLLRol _rolBLL;
+    private readonly BLLBitacora _bitacoraBLL;
     private readonly EmailService _emailService;
 
-    public BLLAgencia(MPPAgencia agenciaMPP, ContratacionBLL contratacionBLL, BLLUsuario usuarioBLL, BLLRol rolBLL, EmailService emailService){
+    public BLLAgencia(MPPAgencia agenciaMPP, ContratacionBLL contratacionBLL, BLLUsuario usuarioBLL, BLLRol rolBLL, BLLBitacora bitacoraBLL, EmailService emailService){
         _agenciaMPP = agenciaMPP;
         _contratacionBLL = contratacionBLL;
         _usuarioBLL = usuarioBLL;
         _rolBLL = rolBLL;
+        _bitacoraBLL = bitacoraBLL;
         _emailService = emailService;
     }
 
@@ -53,12 +55,30 @@ public class BLLAgencia
         Dueño dueño = _usuarioBLL.CrearDueño();
         ValidacionCuentum validacion = _usuarioBLL.CrearValidacionEmail(out string token);
 
-        _agenciaMPP.RegistrarAgencia(
+        var registro = _agenciaMPP.RegistrarAgencia(
             agencia,
             usuario,
             dueño,
             validacion,
             contratacion.ReferenciaContratacion);
+
+        agencia.ID = registro.IdAgencia;
+        usuario.ID = registro.IdUsuario;
+        usuario.IdAgencia = registro.IdAgencia;
+
+        _bitacoraBLL.Add(new Bitacora()
+        {
+            IdUsuario = usuario.ID,
+            IdAgencia = agencia.ID,
+            Entidad = "Agencia",
+            IdEntidad = agencia.ID,
+            Accion = "RegistrarAgencia",
+            Mensaje = "Se registró la agencia y el usuario Dueño inicial.",
+            Resultado = "Exitoso",
+            Criticidad = "Informacion",
+            Modulo = "Registro",
+            FechaHora = DateTime.Now,
+        });
 
         return await _emailService.EnviarCorreoValidacion(usuario.Email, usuario.Nombre, token);
     }
@@ -86,6 +106,20 @@ public class BLLAgencia
         _usuarioBLL.ReemplazarValidacionEmail(usuario, validacion);
 
         await _emailService.EnviarCorreoValidacion(usuario.Email, usuario.Nombre, token);
+
+        _bitacoraBLL.Add(new Bitacora()
+        {
+            IdUsuario = usuario.ID,
+            IdAgencia = usuario.IdAgencia,
+            Entidad = "ValidacionCuenta",
+            IdEntidad = usuario.ID,
+            Accion = "ReenviarValidacion",
+            Mensaje = "Se generó un nuevo enlace de validación de correo.",
+            Resultado = "Exitoso",
+            Criticidad = "Informacion",
+            Modulo = "Registro",
+            FechaHora = DateTime.Now,
+        });
     }
 
     private static void ValidarDatosRegistro(Usuario usuario, string referenciaContratacion)

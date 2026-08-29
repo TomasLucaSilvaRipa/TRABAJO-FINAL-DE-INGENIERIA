@@ -14,12 +14,9 @@ public sealed class MPPContratacion
         _conexion = conexion;
     }
 
-    public ContratacionPendiente CrearPendiente(
-        ContratacionRequest request,
-        string referenciaContratacion,
-        string referenciaOperacion)
+    public ContratacionPendiente CrearPendiente(ContratacionRequest request, string referenciaContratacion, string referenciaOperacion)
     {
-        var parametros = new List<SqlParameter>
+        List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new("@ReferenciaContratacion", referenciaContratacion),
             new("@ReferenciaOperacion", referenciaOperacion),
@@ -57,7 +54,7 @@ public sealed class MPPContratacion
 
     public EstadoContratacionPersistido ConsultarEstado(string referenciaContratacion)
     {
-        var parametros = new List<SqlParameter>
+        List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new("@ReferenciaContratacion", referenciaContratacion),
         };
@@ -77,7 +74,7 @@ public sealed class MPPContratacion
 
     public ContratacionServicio ConsultarContratacionParaRegistro(string referenciaContratacion)
     {
-        var parametros = new List<SqlParameter>
+        List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new("@ReferenciaContratacion", referenciaContratacion),
         };
@@ -111,13 +108,9 @@ public sealed class MPPContratacion
         };
     }
 
-    public EstadoContratacionPersistido ActualizarResultadoPago(
-        string referenciaContratacion,
-        string referenciaProveedor,
-        string estadoProveedor,
-        string mensajeRespuesta)
+    public EstadoContratacionPersistido ActualizarResultadoPago(string referenciaContratacion, string referenciaProveedor, string estadoProveedor, string mensajeRespuesta)
     {
-        var parametros = new List<SqlParameter>
+        List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new("@ReferenciaContratacion", referenciaContratacion),
             new("@ReferenciaProveedor", referenciaProveedor),
@@ -142,8 +135,4 @@ public sealed class MPPContratacion
     }
 }
 
-public sealed record EstadoContratacionPersistido(
-    string ReferenciaContratacion,
-    string EstadoContratacion,
-    decimal Importe,
-    string Moneda);
+public sealed record EstadoContratacionPersistido(string ReferenciaContratacion, string EstadoContratacion, decimal Importe,string Moneda);
