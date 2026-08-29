@@ -55,6 +55,36 @@ namespace TeamBalance.Services
             return await EnviarMail("Completá el registro de tu agencia en TeamBalance", descripcion, receptor);
         }
 
+        public async Task<bool> EnviarCorreoRecuperoPassword(string receptor, string nombre, string token)
+        {
+            string? enlace = CrearEnlace("restablecer-contrasena", "token", token);
+
+            if (string.IsNullOrWhiteSpace(enlace))
+            {
+                return false;
+            }
+
+            string descripcion = $@"
+                <p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p>
+                <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta de TeamBalance.</p>
+                <p><a href=""{enlace}"">Restablecer mi contraseña</a></p>
+                <p>El enlace estará disponible durante 30 minutos y sólo podrá utilizarse una vez.</p>
+                <p>Si no solicitaste este cambio, podés ignorar este correo.</p>";
+
+            return await EnviarMail("Restablecé tu contraseña de TeamBalance", descripcion, receptor);
+        }
+
+        public async Task<bool> EnviarCorreoPasswordModificada(string receptor, string nombre)
+        {
+            string descripcion = $@"
+                <p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p>
+                <p>La contraseña de tu cuenta de TeamBalance fue modificada correctamente.</p>
+                <p>Por seguridad, cerramos las sesiones activas. Volvé a iniciar sesión con tu nueva contraseña.</p>
+                <p>Si no realizaste este cambio, contactanos de inmediato.</p>";
+
+            return await EnviarMail("Tu contraseña de TeamBalance fue modificada", descripcion, receptor);
+        }
+
         private async Task<bool> EnviarMail(string tema, string descripcion, string receptor)
         {
             if (string.IsNullOrWhiteSpace(emisor) || string.IsNullOrWhiteSpace(claveAplicacion) || string.IsNullOrWhiteSpace(receptor))
@@ -85,11 +115,7 @@ namespace TeamBalance.Services
 
                 return true;
             }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"[EmailService] Error al enviar correo a {receptor}: {ex.Message}");
-                return false;
-            }
+            catch (Exception ex){ Console.Error.WriteLine($"[EmailService] Error al enviar correo a {receptor}: {ex.Message}"); return false; }
         }
 
         private string? CrearEnlace(string pagina, string parametro, string valor)

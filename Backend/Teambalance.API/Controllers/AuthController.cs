@@ -15,11 +15,11 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public IActionResult IniciarSesion([FromBody] Usuario usuario, [FromQuery] bool mantenerSesion = false)
+    public async Task<IActionResult> IniciarSesion([FromBody] Usuario usuario, [FromQuery] bool mantenerSesion = false)
     {
         try
         {
-            var resultado = _usuarioBLL.IniciarSesion(usuario, mantenerSesion);
+            (Usuario Usuario, string AccessToken, DateTime FechaExpiracion) resultado = await _usuarioBLL.IniciarSesion(usuario, mantenerSesion);
 
             return Ok(new
             {
@@ -36,22 +36,10 @@ public class AuthController : ControllerBase
                 },
             });
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return StatusCode(403, ex.Message);
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, "No fue posible iniciar sesión en este momento.");
-        }
+        catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
+        catch (ArgumentException ex){ return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex){ return StatusCode(500, ex.Message); }
+        catch (Exception){ return StatusCode(500, "No fue posible iniciar sesión en este momento."); }
     }
 
     [HttpGet("sesion")]
@@ -73,6 +61,49 @@ public class AuthController : ControllerBase
         _usuarioBLL.CerrarSesion(ObtenerAccessToken() ?? string.Empty);
 
         return NoContent();
+    }
+
+    [HttpPost("recuperar-password")]
+    public async Task<IActionResult> SolicitarRecuperoPassword([FromBody] Usuario usuario)
+    {
+        try
+        {
+            await _usuarioBLL.SolicitarRecuperoPassword(usuario);
+
+            return Ok(new { mensaje = "Si existe una cuenta activa asociada a ese email, enviamos un enlace para restablecer la contraseña." });
+        }
+        catch (ArgumentException ex){ return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex){ return StatusCode(500, ex.Message); }
+        catch (Exception){ return StatusCode(500, "No fue posible procesar la solicitud de recuperación en este momento."); }
+    }
+
+    [HttpPost("restablecer-password")]
+    public async Task<IActionResult> RestablecerPassword([FromQuery] string token, [FromBody] Usuario usuario)
+    {
+        try
+        {
+            await _usuarioBLL.RestablecerPassword(usuario, token);
+
+            return Ok(new { mensaje = "La contraseña fue restablecida correctamente. Volvé a iniciar sesión." });
+        }
+        catch (ArgumentException ex){ return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex){ return StatusCode(500, ex.Message); }
+        catch (Exception){ return StatusCode(500, "No fue posible restablecer la contraseña en este momento."); }
+    }
+
+    [HttpPost("cambiar-password")]
+    public async Task<IActionResult> CambiarPassword([FromBody] Usuario usuario)
+    {
+        try
+        {
+            await _usuarioBLL.CambiarPassword(usuario, ObtenerAccessToken() ?? string.Empty);
+
+            return Ok(new { mensaje = "La contraseña fue modificada correctamente. Volvé a iniciar sesión." });
+        }
+        catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
+        catch (ArgumentException ex){ return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex){ return StatusCode(500, ex.Message); }
+        catch (Exception){ return StatusCode(500, "No fue posible modificar la contraseña en este momento."); }
     }
 
     private string? ObtenerAccessToken()

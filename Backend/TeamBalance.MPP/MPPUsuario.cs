@@ -60,6 +60,40 @@ public class MPPUsuario
         return CrearUsuario(resultado.Rows[0]);
     }
 
+    public Usuario? ConsultarUsuarioPorSesion(SesionUsuario sesion)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@TokenHash", sesion.TokenHash),
+        };
+
+        DataTable resultado = _conexion.Leer("dbo.usp_Usuario_ConsultarPorSesion", parametros);
+
+        if (resultado.Rows.Count != 1)
+        {
+            return null;
+        }
+
+        return CrearUsuario(resultado.Rows[0]);
+    }
+
+    public Usuario? ConsultarUsuarioPorRecuperacionPassword(ValidacionCuentum validacion)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@TokenHash", validacion.TokenHash),
+        };
+
+        DataTable resultado = _conexion.Leer("dbo.usp_RecuperacionPassword_ConsultarUsuario", parametros);
+
+        if (resultado.Rows.Count != 1)
+        {
+            return null;
+        }
+
+        return CrearUsuario(resultado.Rows[0]);
+    }
+
     public void RegistrarSesion(SesionUsuario sesion)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
@@ -105,7 +139,6 @@ public class MPPUsuario
         };
 
         DataTable resultado = _conexion.Leer("dbo.usp_ValidacionCuenta_Validar", parametros);
-
         return resultado.Rows.Count == 1 && Convert.ToBoolean(resultado.Rows[0]["Validada"]);
     }
 
@@ -123,6 +156,45 @@ public class MPPUsuario
         {
             throw new InvalidOperationException("No fue posible generar una nueva validación de correo.");
         }
+    }
+
+    public void ReemplazarRecuperacionPassword(Usuario usuario, ValidacionCuentum validacion)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@IdUsuario", usuario.ID),
+            new SqlParameter("@Metodo", validacion.Metodo),
+            new SqlParameter("@TokenHash", validacion.TokenHash),
+            new SqlParameter("@FechaExpiracion", validacion.FechaExpiracion),
+        };
+
+        if (!_conexion.Escribir("dbo.usp_ValidacionCuenta_Reenviar", parametros))
+        {
+            throw new InvalidOperationException("No fue posible generar el enlace de recuperación.");
+        }
+    }
+
+    public bool RestablecerPassword(Usuario usuario, ValidacionCuentum validacion)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@IdUsuario", usuario.ID),
+            new SqlParameter("@TokenHash", validacion.TokenHash),
+            new SqlParameter("@PasswordHash", usuario.PasswordHash),
+        };
+
+        return _conexion.Escribir("dbo.usp_RecuperacionPassword_Restablecer", parametros);
+    }
+
+    public bool CambiarPassword(Usuario usuario)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@IdUsuario", usuario.ID),
+            new SqlParameter("@PasswordHash", usuario.PasswordHash),
+        };
+
+        return _conexion.Escribir("dbo.usp_Usuario_CambiarPassword", parametros);
     }
 
     private static Usuario CrearUsuario(DataRow fila)

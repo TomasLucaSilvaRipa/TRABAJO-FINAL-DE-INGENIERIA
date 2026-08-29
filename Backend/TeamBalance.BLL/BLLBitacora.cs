@@ -36,26 +36,8 @@ public class BLLBitacora
         return _bitacoraMPP.LeerBitacora(idAgencia);
     }
 
-    public List<Bitacora> FiltrarBitacora(
-        int? idAgencia,
-        DateTime? desde = null,
-        DateTime? hasta = null,
-        int? idUsuario = null,
-        string? entidad = null,
-        string? accion = null,
-        string? resultado = null,
-        string? criticidad = null,
-        string? modulo = null)
+    public List<Bitacora> FiltrarBitacora(int? idAgencia, DateTime? desde = null, DateTime? hasta = null, int? idUsuario = null, string? entidad = null, string? accion = null, string? resultado = null, string? criticidad = null, string? modulo = null)
     {
-        return _bitacoraMPP.Filtrar(
-            idAgencia,
-            desde,
-            hasta,
-            idUsuario,
-            entidad,
-            accion,
-            resultado,
-            criticidad,
-            modulo);
+        return _bitacoraMPP.Filtrar(idAgencia, desde, hasta, idUsuario, entidad, accion, resultado, criticidad, modulo);
     }
 }

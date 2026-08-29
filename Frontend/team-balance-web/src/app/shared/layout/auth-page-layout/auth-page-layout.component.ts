@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 
 @Component({
   selector: 'app-auth-page-layout',
@@ -6,10 +6,4 @@ import { Component, signal } from '@angular/core';
   templateUrl: './auth-page-layout.component.html',
   styleUrl: './auth-page-layout.component.css',
 })
-export class AuthPageLayoutComponent {
-  protected readonly contrastMode = signal(false);
-
-  protected toggleContrast(): void {
-    this.contrastMode.update((enabled) => !enabled);
-  }
-}
+export class AuthPageLayoutComponent {}

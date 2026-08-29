@@ -27,6 +27,12 @@ public partial class Usuario
 
     public DateTime? FechaBaja { get; set; }
 
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? PasswordActual { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? RecaptchaToken { get; set; }
+
     public virtual ICollection<AceptacionTermino> AceptacionTerminos { get; set; } = new List<AceptacionTermino>();
 
     public virtual ICollection<AsignacionTarea> AsignacionTareas { get; set; } = new List<AsignacionTarea>();

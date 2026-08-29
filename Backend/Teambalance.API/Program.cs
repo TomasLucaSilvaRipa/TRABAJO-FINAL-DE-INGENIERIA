@@ -12,10 +12,13 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddHttpClient<MercadoPagoService>();
+builder.Services.AddHttpClient("Recaptcha");
+builder.Services.AddScoped<RecaptchaService>(serviceProvider => new RecaptchaService(serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("Recaptcha"), builder.Configuration["Recaptcha:SecretKey"], builder.Configuration["Frontend:PublicBaseUrl"]));
 builder.Services.AddSingleton(new EmailService(
     builder.Configuration["Email:Emisor"],
     builder.Configuration["Email:ClaveAplicacion"],
     builder.Configuration["Frontend:PublicBaseUrl"]));
+builder.Services.AddScoped<Seguridad>();
 
 builder.Services.AddScoped<Conexion>(_ =>
     new Conexion(builder.Configuration.GetConnectionString("TeamBalanceDB")

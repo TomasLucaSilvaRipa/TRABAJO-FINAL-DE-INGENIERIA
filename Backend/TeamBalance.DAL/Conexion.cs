@@ -20,26 +20,17 @@ namespace TeamBalance.DAL
             try
             {
                 using SqlConnection conn = new SqlConnection(_cadenaConexion);
-
                 conn.Open();
-
                 return conn.State == ConnectionState.Open;
             }
-            catch (SqlException)
-            {
-                throw;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            catch { return false; }
         }
 
         public DataTable Leer(string procedimiento, List<SqlParameter>? parametros = null)
         {
-            DataTable dataTable = new DataTable();
             try
             {
+                DataTable dataTable = new DataTable();
                 using SqlConnection conn = new SqlConnection(_cadenaConexion);
                 using SqlCommand cmd = new SqlCommand(procedimiento, conn);
                 cmd.CommandType = CommandType.StoredProcedure;
@@ -55,23 +46,18 @@ namespace TeamBalance.DAL
                 conn.Open();
                 using SqlDataAdapter adapter = new SqlDataAdapter(cmd);
                 adapter.Fill(dataTable);
+                return dataTable;
             }
-            catch (SqlException ex){ throw new Exception(ex.Message); }
-            catch (Exception ex){ throw new Exception(ex.Message); }
-            return dataTable;
+            catch(SqlException ex) { throw new Exception(ex.Message); }
+            catch (Exception ex) { throw new Exception(ex.Message); }
         }
 
         public bool Escribir(string procedimiento, List<SqlParameter>? parametros = null)
         {
-            using SqlConnection conn = new SqlConnection(_cadenaConexion);
-
-            conn.Open();
-
-            using SqlTransaction transaccion = conn.BeginTransaction();
-
             try
             {
-                using SqlCommand cmd = new SqlCommand(procedimiento, conn, transaccion);
+                using SqlConnection conn = new SqlConnection(_cadenaConexion);
+                using SqlCommand cmd = new SqlCommand(procedimiento, conn);
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 if (parametros != null)
@@ -82,12 +68,13 @@ namespace TeamBalance.DAL
                     }
                 }
 
+                conn.Open();
                 cmd.ExecuteNonQuery();
-                transaccion.Commit(); ///TRANSACTION SACAR XQ JODE EN WEB
                 return true;
             }
-            catch (SqlException) { transaccion.Rollback(); return false; }
-            catch (Exception) { transaccion.Rollback(); return false; }
+            catch(SqlException ex) { throw new Exception(ex.Message);}
+            catch (Exception ex) { throw new Exception(ex.Message); }
+        
         }
     }
 }

@@ -15,6 +15,7 @@ export interface LogInResponse {
 export interface LogInRequest {
   email: string;
   passwordHash: string;
+  recaptchaToken: string;
 }
 
 export interface EmailValidationResponse {
@@ -54,6 +55,18 @@ export class AuthService {
 
   cerrarSesion(): Observable<void> {
     return this.http.post<void>(`${this.authApiUrl}/logout`, {});
+  }
+
+  solicitarRecuperoPassword(email: string): Observable<EmailValidationResponse> {
+    return this.http.post<EmailValidationResponse>(`${this.authApiUrl}/recuperar-password`, { email });
+  }
+
+  restablecerPassword(token: string, passwordHash: string): Observable<EmailValidationResponse> {
+    return this.http.post<EmailValidationResponse>(`${this.authApiUrl}/restablecer-password?token=${encodeURIComponent(token)}`, { passwordHash });
+  }
+
+  cambiarPassword(passwordActual: string, passwordHash: string): Observable<EmailValidationResponse> {
+    return this.http.post<EmailValidationResponse>(`${this.authApiUrl}/cambiar-password`, { passwordActual, passwordHash });
   }
 
   logOut(): void {

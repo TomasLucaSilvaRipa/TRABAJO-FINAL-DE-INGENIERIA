@@ -30,6 +30,9 @@ import { CheckoutComponent } from './pages/public/checkout/checkout';
 import { PaymentResultComponent } from './pages/public/payment-result/payment-result';
 import { VerifyAccountComponent } from './pages/auth-pages/verify-account/verify-account.component';
 import { ResendValidationComponent } from './pages/auth-pages/resend-validation/resend-validation.component';
+import { ForgotPasswordComponent } from './pages/auth-pages/forgot-password/forgot-password.component';
+import { ResetPasswordComponent } from './pages/auth-pages/reset-password/reset-password.component';
+import { ChangePasswordComponent } from './pages/security/change-password/change-password.component';
 import { authGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -94,6 +97,16 @@ export const routes: Routes = [
         title: 'Iniciar sesión | TeamBalance',
       },
       {
+        path: 'recuperar-contrasena',
+        component: ForgotPasswordComponent,
+        title: 'Recuperar contraseña | TeamBalance',
+      },
+      {
+        path: 'restablecer-contrasena',
+        component: ResetPasswordComponent,
+        title: 'Restablecer contraseña | TeamBalance',
+      },
+      {
         path: 'validar-cuenta',
         component: VerifyAccountComponent,
         title: 'Validar cuenta | TeamBalance',
@@ -130,6 +143,11 @@ export const routes: Routes = [
         path:'profile',
         component:ProfileComponent,
         title:'Angular Profile Dashboard | TeamBalance - Angular Admin Dashboard Template'
+      },
+      {
+        path:'seguridad',
+        component:ChangePasswordComponent,
+        title:'Seguridad de la cuenta | TeamBalance'
       },
       {
         path:'form-elements',

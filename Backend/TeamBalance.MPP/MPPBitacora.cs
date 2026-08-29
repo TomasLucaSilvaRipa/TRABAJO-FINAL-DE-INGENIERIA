@@ -46,16 +46,7 @@ public class MPPBitacora
         return CrearLista(tabla);
     }
 
-    public List<Bitacora> Filtrar(
-        int? idAgencia,
-        DateTime? desde = null,
-        DateTime? hasta = null,
-        int? idUsuario = null,
-        string? entidad = null,
-        string? accion = null,
-        string? resultado = null,
-        string? criticidad = null,
-        string? modulo = null)
+    public List<Bitacora> Filtrar(int? idAgencia, DateTime? desde = null, DateTime? hasta = null, int? idUsuario = null, string? entidad = null, string? accion = null, string? resultado = null, string? criticidad = null, string? modulo = null)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
