@@ -38,6 +38,17 @@ public class BLLBitacora
 
     public List<Bitacora> FiltrarBitacora(int? idAgencia, DateTime? desde = null, DateTime? hasta = null, int? idUsuario = null, string? entidad = null, string? accion = null, string? resultado = null, string? criticidad = null, string? modulo = null)
     {
-        return _bitacoraMPP.Filtrar(idAgencia, desde, hasta, idUsuario, entidad, accion, resultado, criticidad, modulo);
+        try
+        {
+            if (desde.HasValue && hasta.HasValue && desde.Value > hasta.Value)
+            {
+                throw new ArgumentException("La fecha desde no puede ser posterior a la fecha hasta.");
+            }
+            return _bitacoraMPP.Filtrar(idAgencia, desde, hasta, idUsuario, entidad, accion, resultado, criticidad, modulo);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error al filtrar la bitácora: " + ex.Message, ex);
+        }
     }
 }

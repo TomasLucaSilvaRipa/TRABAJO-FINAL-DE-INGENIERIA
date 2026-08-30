@@ -132,7 +132,7 @@ public class BLLUsuario
             ? DateTime.Now.AddDays(DuracionSesionRecordadaDias)
             : DateTime.Now.AddHours(DuracionSesionNormalHoras);
 
-        SesionUsuario sesion = new SesionUsuario
+        SesionUsuario sesion = new SesionUsuario()
         {
             IdUsuario = usuarioBD.ID,
             TokenHash = _seguridad.GenerarHashToken(accessToken),

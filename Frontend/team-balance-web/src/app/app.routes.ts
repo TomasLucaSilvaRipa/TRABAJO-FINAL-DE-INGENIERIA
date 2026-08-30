@@ -213,6 +213,11 @@ export const routes: Routes = [
 
     ]
   },
+  {
+  path: 'logs',
+  loadComponent: () =>
+    import('./pages/logs/logs.component').then(m => m.Logs)
+  },
   // error pages
   {
     path:'**',
