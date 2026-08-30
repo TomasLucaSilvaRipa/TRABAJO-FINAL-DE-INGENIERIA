@@ -48,29 +48,14 @@ export class SigninFormComponent {
 
     try {
       const recaptchaToken = await this.recaptchaService.ejecutarLogin();
-
-      this.authService.logIn(
-        {
-          email: form.email,
-          passwordHash: form.password,
-          recaptchaToken,
-        },
-        form.mantenerSesion,
-      )
-        .pipe(finalize(() => this.submitting.set(false)))
-        .subscribe({
+      this.authService.logIn( { email: form.email, passwordHash: form.password, recaptchaToken, }, form.mantenerSesion,)
+      .pipe(finalize(() => this.submitting.set(false))).subscribe({
           next: (respuesta) => {
             localStorage.setItem('token', respuesta.accessToken);
             localStorage.setItem('tokenExpiresAt', respuesta.expiresAt);
             void this.router.navigate(['/dashboard']);
           },
-          error: (error) => {
-            this.requestError.set(
-              typeof error.error === 'string'
-                ? error.error
-                : 'No fue posible iniciar sesión. Intentá nuevamente.',
-            );
-          },
+          error: (error) => { this.requestError.set( typeof error.error === 'string' ? error.error : 'No fue posible iniciar sesión. Intentá nuevamente.',);},
         });
     } catch (error) {
       this.submitting.set(false);

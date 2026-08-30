@@ -13,15 +13,8 @@
         public string GenerarHashPassword(string password)
         {
             ValidarPassword(password);
-
             byte[] salt = RandomNumberGenerator.GetBytes(TamanoSalt);
-            byte[] hash = Rfc2898DeriveBytes.Pbkdf2(
-                password,
-                salt,
-                IteracionesPassword,
-                HashAlgorithmName.SHA256,
-                TamanoHash);
-
+            byte[] hash = Rfc2898DeriveBytes.Pbkdf2(password,salt,IteracionesPassword,HashAlgorithmName.SHA256,TamanoHash);
             return $"PBKDF2-SHA256${IteracionesPassword}${Convert.ToBase64String(salt)}${Convert.ToBase64String(hash)}";
         }
 

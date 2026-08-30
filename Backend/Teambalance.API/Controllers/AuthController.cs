@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
+using TeamBalance.Services;
+using Teambalance.API.Models;
 
 namespace Teambalance.API.Controllers;
 
@@ -8,17 +10,38 @@ namespace Teambalance.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly BLLUsuario _usuarioBLL;
+    private readonly EncryptionService _encryptionService;
 
-    public AuthController(BLLUsuario usuarioBLL)
+    public AuthController(BLLUsuario usuarioBLL, EncryptionService encryptionService)
     {
         _usuarioBLL = usuarioBLL;
+        _encryptionService = encryptionService;
+    }
+
+    [HttpGet("public-key")]
+    public IActionResult ObtenerClavePublica()
+    {
+        return Content(_encryptionService.ObtenerClavePublica(), "text/plain");
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> IniciarSesion([FromBody] Usuario usuario, [FromQuery] bool mantenerSesion = false)
+    public async Task<IActionResult> IniciarSesion([FromBody] LoginEncryptedRequest request, [FromQuery] bool mantenerSesion = false)
     {
         try
         {
+            if (request is null || string.IsNullOrWhiteSpace(request.EncryptedData) || string.IsNullOrWhiteSpace(request.EncryptedKey) || string.IsNullOrWhiteSpace(request.Iv) || string.IsNullOrWhiteSpace(request.RecaptchaToken))
+            {
+                throw new ArgumentException("No fue posible recibir las credenciales de inicio de sesión.");
+            }
+
+            EncryptionService.LoginDecryptedData datosLogin = _encryptionService.DesencriptarLogin(request.EncryptedData, request.EncryptedKey, request.Iv);
+            Usuario usuario = new Usuario()
+            {
+                Email = datosLogin.Email,
+                PasswordHash = datosLogin.Password,
+                RecaptchaToken = request.RecaptchaToken,
+            };
+
             (Usuario Usuario, string AccessToken, DateTime FechaExpiracion) resultado = await _usuarioBLL.IniciarSesion(usuario, mantenerSesion);
 
             return Ok(new
@@ -36,6 +59,7 @@ public class AuthController : ControllerBase
                 },
             });
         }
+        catch (System.Security.Cryptography.CryptographicException){ return BadRequest("No fue posible descifrar las credenciales recibidas."); }
         catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
         catch (ArgumentException ex){ return BadRequest(ex.Message); }
         catch (InvalidOperationException ex){ return StatusCode(500, ex.Message); }

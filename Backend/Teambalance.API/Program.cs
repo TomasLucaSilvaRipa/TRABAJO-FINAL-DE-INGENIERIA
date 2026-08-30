@@ -35,7 +35,7 @@ builder.Services.AddScoped<BLLAgencia>();
 builder.Services.AddScoped<BLLUsuario>();
 builder.Services.AddScoped<BLLRol>();
 builder.Services.AddScoped<BLLBitacora>();
-
+builder.Services.AddSingleton<EncryptionService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
