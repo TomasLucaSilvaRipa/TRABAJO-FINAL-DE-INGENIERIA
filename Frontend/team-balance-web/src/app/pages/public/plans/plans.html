@@ -14,7 +14,7 @@
       <article class="tb-price-card">
         <p class="tb-price-card__tag">Mensual</p>
         <h2>TeamBalance mensual</h2>
-        <p class="tb-price"><span>USD</span> 89 <small>/ mes</small></p>
+        <p class="tb-price">{{ 89 | appCultureCurrencyPipe:'USD' }} <small>/ mes</small></p>
         <p class="tb-price-card__same-plan">Acceso completo a TeamBalance, hasta 20 usuarios.</p>
         <a class="tb-button tb-button--primary" routerLink="/checkout" [queryParams]="{ period: 'monthly' }">Contratar TeamBalance</a>
       </article>
@@ -22,7 +22,7 @@
       <article class="tb-price-card tb-price-card--featured">
         <p class="tb-price-card__tag">Mejor valor</p>
         <h2>TeamBalance anual</h2>
-        <p class="tb-price"><span>USD</span> 890 <small>/ año</small></p>
+        <p class="tb-price">{{ 890 | appCultureCurrencyPipe:'USD' }} <small>/ año</small></p>
         <p class="tb-price-card__saving">Ahorrás USD 178 · 2 meses sin cargo</p>
         <p class="tb-price-card__same-plan">Las mismas funcionalidades, con una única renovación anual.</p>
         <a class="tb-button tb-button--primary" routerLink="/checkout" [queryParams]="{ period: 'annual' }">Contratar TeamBalance</a>

@@ -32,7 +32,6 @@ export class PaymentResultComponent {
       }
 
       const solicitud = paymentId ? this.contratacionService.verificarPago(referencia, paymentId) : this.contratacionService.consultarEstado(referencia);
-
       solicitud.subscribe({
         next: (resultado) => {
           this.resultado.set(resultado);

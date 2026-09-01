@@ -5,6 +5,6 @@
   <Project Path="Backend/TeamBalance.DAL/TeamBalance.DAL.csproj" />
   <Project Path="Backend/TeamBalance.Interfaces/TeamBalance.Interfaces.csproj" />
   <Project Path="Backend/TeamBalance.MPP/TeamBalance.MPP.csproj" />
-  <Project Path="Backend/TeamBalance.SEG/TeamBalance.SEG.csproj" />
+  <Project Path="Backend/TeamBalance.PasswordSecurity.WebService/TeamBalance.PasswordSecurity.WebService/TeamBalance.PasswordSecurity.WebService.csproj" />
   <Project Path="Backend/TeamBalance.Services/TeamBalance.Services.csproj" />
 </Solution>

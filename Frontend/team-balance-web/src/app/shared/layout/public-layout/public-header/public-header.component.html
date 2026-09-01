@@ -16,8 +16,9 @@
     </nav>
 
     <div class="tb-header__actions">
-      <a routerLink="/signin" class="tb-login">Iniciar sesión</a>
-      <a routerLink="/plans" class="tb-button tb-button--primary">Ver planes</a>
+      <a routerLink="/signin" class="tb-login">  {{ 'signin' | appTranslatePipe: localization.language() }}</a>
+      <a routerLink="/plans" class="tb-button tb-button--primary">  {{ 'view-plans' | appTranslatePipe: localization.language() }}</a>
+      <app-language-selector></app-language-selector>
     </div>
 
     <button type="button" class="tb-menu-button" (click)="toggleMenu()" [attr.aria-expanded]="menuOpen()" aria-controls="mobile-navigation">

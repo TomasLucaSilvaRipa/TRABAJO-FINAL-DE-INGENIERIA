@@ -36,6 +36,11 @@ builder.Services.AddScoped<BLLUsuario>();
 builder.Services.AddScoped<BLLRol>();
 builder.Services.AddScoped<BLLBitacora>();
 builder.Services.AddSingleton<EncryptionService>();
+
+builder.Services.AddHttpClient<PasswordSecurityWebService>( client => { client.BaseAddress = new Uri(builder.Configuration["PasswordSecurityWebService:BaseUrl"]!); });
+
+builder.Services.AddScoped<BLLPasswordSecurity>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

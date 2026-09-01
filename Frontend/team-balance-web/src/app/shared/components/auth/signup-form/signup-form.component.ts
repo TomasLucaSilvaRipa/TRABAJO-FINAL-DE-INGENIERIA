@@ -3,9 +3,10 @@ import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { finalize, debounce,debounceTime, of,switchMap, distinctUntilChanged, catchError, distinct } from 'rxjs';
 import { AuthService } from '../../../../services/auth.service';
 import { ContratacionService } from '../../../../services/contratacion.service';
+import { PasswordSecurityService,PasswordEvaluation } from '../../../../services/security/password-security.service';
 
 @Component({
   selector: 'app-signup-form',
@@ -14,6 +15,7 @@ import { ContratacionService } from '../../../../services/contratacion.service';
   styleUrl: '../auth-form.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
+
 export class SignupFormComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly formBuilder = inject(FormBuilder);
@@ -21,7 +23,8 @@ export class SignupFormComponent {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly contratacionService = inject(ContratacionService);
-
+  private readonly passwordSecurityService = inject(PasswordSecurityService);
+  readonly passwordEvaluation = signal<PasswordEvaluation | null>(null);
   readonly referenciaContratacion = signal('');
   readonly validatingContinuation = signal(true);
   readonly continuationError = signal('');
@@ -42,10 +45,9 @@ export class SignupFormComponent {
   });
 
   constructor() {
-    this.route.queryParamMap
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((params) => this.validarContinuidad(params.get('referencia')));
-  }
+  this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => this.validarContinuidad(params.get('referencia')));
+  this.registryForm.controls.password.valueChanges.pipe(debounceTime(300), distinctUntilChanged(), switchMap(password => password ? this.passwordSecurityService.evaluar(password).pipe(catchError(() => of(null))) : of(null)), takeUntilDestroyed(this.destroyRef)).subscribe(resultado => this.passwordEvaluation.set(resultado));
+}
 
   togglePasswordVisibility(): void {
     this.showPassword.update((visible) => !visible);
