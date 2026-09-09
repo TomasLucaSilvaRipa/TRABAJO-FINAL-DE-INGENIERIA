@@ -16,10 +16,11 @@ public class LoginResponse
 
 public class UsuarioSesionResponse
 {
-    public UsuarioSesionResponse(int id, int? idAgencia, string nombre, string apellido, string email, List<RolResponse> roles, List<PermisoResponse> permisos)
+    public UsuarioSesionResponse(int id, int? idAgencia, RolResponse rol, string nombre, string apellido, string email, List<RolResponse> roles, List<PermisoResponse> permisos)
     {
         Id = id;
         IdAgencia = idAgencia;
+        Rol = rol;
         Nombre = nombre;
         Apellido = apellido;
         Email = email;
@@ -29,9 +30,24 @@ public class UsuarioSesionResponse
 
     public int Id { get; set; }
     public int? IdAgencia { get; set; }
+    public RolResponse Rol { get; set; }
     public string Nombre { get; set; }
     public string Apellido { get; set; }
     public string Email { get; set; }
+    public List<RolResponse> Roles { get; set; }
+    public List<PermisoResponse> Permisos { get; set; }
+}
+
+public class AutorizacionResponse
+{
+    public AutorizacionResponse(UsuarioSesionResponse usuario, List<RolResponse> roles, List<PermisoResponse> permisos)
+    {
+        Usuario = usuario;
+        Roles = roles;
+        Permisos = permisos;
+    }
+
+    public UsuarioSesionResponse Usuario { get; set; }
     public List<RolResponse> Roles { get; set; }
     public List<PermisoResponse> Permisos { get; set; }
 }

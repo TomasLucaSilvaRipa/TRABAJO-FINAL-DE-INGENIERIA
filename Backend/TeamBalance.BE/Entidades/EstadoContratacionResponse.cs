@@ -2,9 +2,16 @@ namespace TeamBalance.BE.Entidades;
 
 public sealed class EstadoContratacionResponse
 {
-    public string Referencia { get; init; } = string.Empty;
+    public EstadoContratacionResponse(string referencia, string estado, bool puedeRegistrar)
+    {
+        Referencia = referencia;
+        Estado = estado;
+        PuedeRegistrar = puedeRegistrar;
+    }
 
-    public string Estado { get; init; } = string.Empty;
+    public string Referencia { get; set; }
 
-    public bool PuedeRegistrar { get; init; }
+    public string Estado { get; set; }
+
+    public bool PuedeRegistrar { get; set; }
 }

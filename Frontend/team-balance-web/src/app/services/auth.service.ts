@@ -20,7 +20,7 @@ export interface UsuarioSesion {
   apellido: string;
   email: string;
   idAgencia: number | null;
-  idRol: number;
+  rol: RolSesion;
   roles: RolSesion[];
   permisos: PermisoSesion[];
 }

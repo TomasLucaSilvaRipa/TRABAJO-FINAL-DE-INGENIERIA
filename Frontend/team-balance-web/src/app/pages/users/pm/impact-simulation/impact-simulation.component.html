@@ -1,23 +1,5 @@
-<section class="mx-auto max-w-5xl space-y-6">
-  <header>
-    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-600">Planificación</p>
-    <h1 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">Simulación de impacto</h1>
-    <p class="mt-2 text-slate-600 dark:text-slate-300">Evaluá cómo una reasignación o un cambio de plazo podría afectar la capacidad del equipo.</p>
-  </header>
-
-  <div class="grid gap-4 md:grid-cols-3">
-    @for (indicador of indicadores; track indicador.nombre) {
-      <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <p class="text-sm text-slate-500 dark:text-slate-400">{{ indicador.nombre }}</p>
-        <p class="mt-2 text-2xl font-bold" [class]="indicador.color">{{ indicador.valor }}</p>
-        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ indicador.detalle }}</p>
-      </article>
-    }
-  </div>
-
-  <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-    <h2 class="text-lg font-bold text-slate-900 dark:text-white">Escenario de planificación</h2>
-    <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">Seleccioná un proyecto y una posible reasignación. El cálculo de impacto se integrará al motor de planificación y Best Fit.</p>
-    <button type="button" class="mt-5 rounded-xl bg-cyan-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-cyan-700">Preparar simulación</button>
-  </article>
+<section class="tb-workspace mx-auto max-w-5xl space-y-6">
+  <header><p class="tb-page-kicker">PLANIFICACIÓN</p><h1 class="tb-page-title">Simulación de impacto</h1><p class="tb-page-description">Evaluá cómo una reasignación o un cambio de plazo podría afectar la capacidad del equipo.</p></header>
+  <section class="tb-panel grid gap-4 md:grid-cols-3"><label class="tb-field-label">Proyecto<select><option value="">Seleccionar proyecto</option></select></label><label class="tb-field-label">Cambio a evaluar<select><option value="">Seleccionar alternativa</option></select></label><div class="flex items-end"><button class="tb-action-button" type="button">Preparar simulación</button></div></section>
+  <article class="tb-panel"><div class="tb-empty-state"><h2>Sin escenario para analizar</h2><p>Al seleccionar un proyecto y una alternativa, la simulación mostrará el impacto sobre la planificación y la capacidad.</p></div></article>
 </section>

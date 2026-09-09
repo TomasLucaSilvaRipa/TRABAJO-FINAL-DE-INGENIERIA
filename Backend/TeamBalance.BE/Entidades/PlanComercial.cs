@@ -1,10 +1,30 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace TeamBalance.BE.Entidades;
 
 public partial class PlanComercial
 {
+    public PlanComercial()
+    {
+    }
+
+    public PlanComercial(int iD, string nombre, string? descripcion, string periodicidad, decimal precioVigente, string moneda, int duracionMeses, string? alcanceFuncional, string? condicionesRenovacion, bool activo, DateTime fechaVigenciaDesde, DateTime? fechaVigenciaHasta)
+    {
+        ID = iD;
+        Nombre = nombre;
+        Descripcion = descripcion;
+        Periodicidad = periodicidad;
+        PrecioVigente = precioVigente;
+        Moneda = moneda;
+        DuracionMeses = duracionMeses;
+        AlcanceFuncional = alcanceFuncional;
+        CondicionesRenovacion = condicionesRenovacion;
+        Activo = activo;
+        FechaVigenciaDesde = fechaVigenciaDesde;
+        FechaVigenciaHasta = fechaVigenciaHasta;
+    }
+
     public int ID { get; set; }
 
     public string Nombre { get; set; } = null!;
@@ -28,8 +48,4 @@ public partial class PlanComercial
     public DateTime FechaVigenciaDesde { get; set; }
 
     public DateTime? FechaVigenciaHasta { get; set; }
-
-    public virtual ICollection<ContratacionServicio> ContratacionServicios { get; set; } = new List<ContratacionServicio>();
-
-    public virtual ICollection<Suscripcion> Suscripcions { get; set; } = new List<Suscripcion>();
 }

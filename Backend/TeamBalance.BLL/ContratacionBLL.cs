@@ -29,33 +29,21 @@ namespace TeamBalance.BLL
                 throw new InvalidOperationException("Por el momento, la contratación está disponible únicamente con Mercado Pago.");
             }
 
-            var referenciaContratacion = Guid.NewGuid().ToString("N");
-            var referenciaOperacion = Guid.NewGuid().ToString("N");
+            string referenciaContratacion = Guid.NewGuid().ToString("N");
+            string referenciaOperacion = Guid.NewGuid().ToString("N");
 
             ContratacionPendiente contratacion = _contratacionMPP.CrearPendiente(
                 request,
                 referenciaContratacion,
                 referenciaOperacion);
 
-            _bitacoraBLL.Add(new Bitacora()
-            {
-                Entidad = "ContratacionServicio",
-                IdEntidad = contratacion.IdContratacion,
-                Accion = "IniciarContratacion",
-                Mensaje = "Se inició una contratación pendiente de pago.",
-                Resultado = "Pendiente",
-                Criticidad = "Informacion",
-                Modulo = "Contratacion",
-                FechaHora = DateTime.Now,
-            });
+            Bitacora bitacora = new Bitacora(0, null, null, "ContratacionServicio", contratacion.IdContratacion, "IniciarContratacion", "Se inició una contratación pendiente de pago.", "Pendiente", "Informacion", "Contratacion", DateTime.Now, null);
+            _bitacoraBLL.Add(bitacora);
 
             string urlPago = await _mercadoPagoService.CrearPago(contratacion);
 
-            return new ContratacionInicioResponse
-            {
-                UrlPago = urlPago,
-                Referencia = contratacion.ReferenciaContratacion,
-            };
+            ContratacionInicioResponse respuesta = new ContratacionInicioResponse(urlPago, contratacion.ReferenciaContratacion);
+            return respuesta;
         }
 
         public EstadoContratacionResponse ConsultarEstado(string referenciaContratacion)
@@ -113,12 +101,9 @@ namespace TeamBalance.BLL
 
         private static EstadoContratacionResponse CrearRespuestaEstado(EstadoContratacionPersistido contratacion)
         {
-            return new EstadoContratacionResponse
-            {
-                Referencia = contratacion.ReferenciaContratacion,
-                Estado = contratacion.EstadoContratacion,
-                PuedeRegistrar = string.Equals(contratacion.EstadoContratacion, "Aprobada", StringComparison.OrdinalIgnoreCase),
-            };
+            bool puedeRegistrar = string.Equals(contratacion.EstadoContratacion, "Aprobada", StringComparison.OrdinalIgnoreCase);
+            EstadoContratacionResponse respuesta = new EstadoContratacionResponse(contratacion.ReferenciaContratacion, contratacion.EstadoContratacion, puedeRegistrar);
+            return respuesta;
         }
 
         private static void ValidarSolicitud(ContratacionRequest request)

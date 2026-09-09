@@ -1,10 +1,34 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace TeamBalance.BE.Entidades;
 
 public partial class SimulacionImpacto
 {
+    public SimulacionImpacto()
+    {
+    }
+
+    public SimulacionImpacto(int iD, int idTarea, int idEmpleadoCandidato, int idUsuarioCreador, decimal? cargaActual, decimal? cargaProyectada, decimal? disponibilidadRestante, decimal? porcentajeOcupacionActual, decimal? porcentajeOcupacionProyectado, bool generaSobrecarga, string? advertenciasJson, string? impactoOperativo, DateTime fechaCreacion, DateTime? fechaUltimaModificacion, DateTime fechaExpiracion, bool activo)
+    {
+        ID = iD;
+        IdTarea = idTarea;
+        IdEmpleadoCandidato = idEmpleadoCandidato;
+        IdUsuarioCreador = idUsuarioCreador;
+        CargaActual = cargaActual;
+        CargaProyectada = cargaProyectada;
+        DisponibilidadRestante = disponibilidadRestante;
+        PorcentajeOcupacionActual = porcentajeOcupacionActual;
+        PorcentajeOcupacionProyectado = porcentajeOcupacionProyectado;
+        GeneraSobrecarga = generaSobrecarga;
+        AdvertenciasJson = advertenciasJson;
+        ImpactoOperativo = impactoOperativo;
+        FechaCreacion = fechaCreacion;
+        FechaUltimaModificacion = fechaUltimaModificacion;
+        FechaExpiracion = fechaExpiracion;
+        Activo = activo;
+    }
+
     public int ID { get; set; }
 
     public int IdTarea { get; set; }
@@ -36,10 +60,4 @@ public partial class SimulacionImpacto
     public DateTime FechaExpiracion { get; set; }
 
     public bool Activo { get; set; }
-
-    public virtual Empleado IdEmpleadoCandidatoNavigation { get; set; } = null!;
-
-    public virtual Tarea IdTareaNavigation { get; set; } = null!;
-
-    public virtual Usuario IdUsuarioCreadorNavigation { get; set; } = null!;
 }

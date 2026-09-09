@@ -18,8 +18,8 @@ public class MPPAgencia
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new("@CUIT", cuit),
-            new("@EmailContacto", emailContacto),
+            new SqlParameter("@CUIT", cuit),
+            new SqlParameter("@EmailContacto", emailContacto),
         };
 
         DataTable resultado = _conexion.Leer("dbo.usp_Agencia_Existe", parametros);
@@ -31,24 +31,24 @@ public class MPPAgencia
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new("@ReferenciaContratacion", referenciaContratacion),
-            new("@NombreComercial", agencia.NombreComercial),
-            new("@RazonSocial", (object?)agencia.RazonSocial ?? DBNull.Value),
-            new("@CUIT", agencia.CUIT),
-            new("@CondicionFiscal", (object?)agencia.CondicionFiscal ?? DBNull.Value),
-            new("@EmailContacto", agencia.EmailContacto),
-            new("@TelefonoContacto", (object?)agencia.TelefonoContacto ?? DBNull.Value),
+            new SqlParameter("@ReferenciaContratacion", referenciaContratacion),
+            new SqlParameter("@NombreComercial", agencia.NombreComercial),
+            new SqlParameter("@RazonSocial", (object?)agencia.RazonSocial ?? DBNull.Value),
+            new SqlParameter("@CUIT", agencia.CUIT),
+            new SqlParameter("@CondicionFiscal", (object?)agencia.CondicionFiscal ?? DBNull.Value),
+            new SqlParameter("@EmailContacto", agencia.EmailContacto),
+            new SqlParameter("@TelefonoContacto", (object?)agencia.TelefonoContacto ?? DBNull.Value),
             new SqlParameter("@IdRol", usuario.Rol.ID),
-            new("@Nombre", usuario.Nombre),
-            new("@Apellido", usuario.Apellido),
-            new("@Email", usuario.Email),
-            new("@PasswordHash", usuario.PasswordHash),
-            new("@EstadoUsuario", usuario.Estado),
-            new("@ActivoUsuario", usuario.Activo),
-            new("@ActivoDueno", dueño.Activo),
-            new("@MetodoValidacion", validacion.Metodo),
-            new("@TokenHash", validacion.TokenHash),
-            new("@FechaExpiracion", validacion.FechaExpiracion),
+            new SqlParameter("@Nombre", usuario.Nombre),
+            new SqlParameter("@Apellido", usuario.Apellido),
+            new SqlParameter("@Email", usuario.Email),
+            new SqlParameter("@PasswordHash", usuario.PasswordHash),
+            new SqlParameter("@EstadoUsuario", usuario.Estado),
+            new SqlParameter("@ActivoUsuario", usuario.Activo),
+            new SqlParameter("@ActivoDueno", dueño.Activo),
+            new SqlParameter("@MetodoValidacion", validacion.Metodo),
+            new SqlParameter("@TokenHash", validacion.TokenHash),
+            new SqlParameter("@FechaExpiracion", validacion.FechaExpiracion),
         };
 
         DataTable resultado = _conexion.Leer("dbo.usp_Agencia_RegistrarDesdeContratacion", parametros);

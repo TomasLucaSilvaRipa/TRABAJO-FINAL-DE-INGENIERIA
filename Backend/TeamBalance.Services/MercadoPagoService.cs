@@ -26,7 +26,7 @@ namespace TeamBalance.Services
 
             if (string.IsNullOrWhiteSpace(accessToken)) throw new Exception("No se configuró el Access Token de Mercado Pago.");
 
-            var preference = new Dictionary<string, object?>
+            Dictionary<string, object?> preference = new Dictionary<string, object?>
             {
                 ["items"] = new[]
                 {
@@ -65,7 +65,7 @@ namespace TeamBalance.Services
                 preference["notification_url"] = notificationUrl;
             }
 
-            using var request = new HttpRequestMessage( HttpMethod.Post, "https://api.mercadopago.com/checkout/preferences");
+            using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "https://api.mercadopago.com/checkout/preferences");
 
             request.Headers.Authorization =
                 new AuthenticationHeaderValue(
@@ -83,7 +83,7 @@ namespace TeamBalance.Services
                 throw new Exception( $"Mercado Pago rechazó la solicitud: {error}" );
             }
 
-            var resultado = await response.Content.ReadFromJsonAsync<MercadoPagoPreferenceResponse>();
+            MercadoPagoPreferenceResponse? resultado = await response.Content.ReadFromJsonAsync<MercadoPagoPreferenceResponse>();
 
             if (resultado == null) throw new Exception( "Mercado Pago no devolvió una respuesta válida." );
 
@@ -97,7 +97,7 @@ namespace TeamBalance.Services
 
             if (string.IsNullOrWhiteSpace(accessToken)) throw new Exception("No se configuró el Access Token de Mercado Pago.");
 
-            using var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.mercadopago.com/v1/payments/{paymentId}");
+            using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, $"https://api.mercadopago.com/v1/payments/{paymentId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
             using HttpResponseMessage response = await _httpClient.SendAsync(request);
@@ -119,12 +119,8 @@ namespace TeamBalance.Services
                 throw new InvalidOperationException("Mercado Pago no devolvió los datos necesarios para verificar el pago.");
             }
 
-            return new MercadoPagoPayment(
-                resultado.Id.ToString(),
-                resultado.Status,
-                resultado.ExternalReference,
-                resultado.TransactionAmount,
-                resultado.CurrencyId);
+            MercadoPagoPayment pago = new MercadoPagoPayment(resultado.Id.ToString(), resultado.Status, resultado.ExternalReference, resultado.TransactionAmount, resultado.CurrencyId);
+            return pago;
         }
     }
 
@@ -158,10 +154,21 @@ namespace TeamBalance.Services
         public string? CurrencyId { get; set; }
     }
 
-    public sealed record MercadoPagoPayment(
-        string Id,
-        string Status,
-        string ExternalReference,
-        decimal TransactionAmount,
-        string CurrencyId);
+    public sealed class MercadoPagoPayment
+    {
+        public MercadoPagoPayment(string id, string status, string externalReference, decimal transactionAmount, string currencyId)
+        {
+            Id = id;
+            Status = status;
+            ExternalReference = externalReference;
+            TransactionAmount = transactionAmount;
+            CurrencyId = currencyId;
+        }
+
+        public string Id { get; set; }
+        public string Status { get; set; }
+        public string ExternalReference { get; set; }
+        public decimal TransactionAmount { get; set; }
+        public string CurrencyId { get; set; }
+    }
 }

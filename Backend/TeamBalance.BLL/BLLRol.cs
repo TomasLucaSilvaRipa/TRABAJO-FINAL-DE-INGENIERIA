@@ -21,6 +21,10 @@ public class BLLRol
     {
         usuario.Roles = _rolMPP.ConsultarRolesUsuario(usuario);
         usuario.Permisos = _rolMPP.ConsultarPermisosUsuario(usuario);
+        if (usuario.Roles.Count > 0)
+        {
+            usuario.Rol = usuario.Roles[0];
+        }
         foreach (Rol rol in usuario.Roles)
         {
             rol.Permisos = _rolMPP.ConsultarPermisosRol(rol);

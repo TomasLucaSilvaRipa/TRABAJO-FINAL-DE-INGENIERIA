@@ -92,19 +92,8 @@ public class BLLAgencia
 
         await _emailService.EnviarCorreoValidacion(usuario.Email, usuario.Nombre, token);
 
-        _bitacoraBLL.Add(new Bitacora()
-        {
-            IdUsuario = usuario.ID,
-            IdAgencia = usuario.IdAgencia,
-            Entidad = "ValidacionCuenta",
-            IdEntidad = usuario.ID,
-            Accion = "ReenviarValidacion",
-            Mensaje = "Se generó un nuevo enlace de validación de correo.",
-            Resultado = "Exitoso",
-            Criticidad = "Informacion",
-            Modulo = "Registro",
-            FechaHora = DateTime.Now,
-        });
+        Bitacora bitacora = new Bitacora(0, usuario.ID, usuario.IdAgencia, "ValidacionCuenta", usuario.ID, "ReenviarValidacion", "Se generó un nuevo enlace de validación de correo.", "Exitoso", "Informacion", "Registro", DateTime.Now, null);
+        _bitacoraBLL.Add(bitacora);
     }
 
     private static void ValidarDatosRegistro(Usuario usuario, string referenciaContratacion)

@@ -3,12 +3,14 @@ using System.Collections.Generic;
 
 namespace TeamBalance.BE.Entidades;
 
-public partial class PM:Usuario
+public partial class PM : Usuario
 {
+    public PM()
+    {
+        Proyectos = new List<Proyecto>();
+    }
 
-    public PM(){}
-
-    public PM(int id, string nombre, string? razonSocial, string? email, string? telefono, bool activo, bool autorizadoGestionRecursos, bool puedeExportarLegajos)
+    public PM(int id, string nombre, string email, bool activo, bool autorizadoGestionRecursos, bool puedeExportarLegajos)
     {
         ID = id;
         Nombre = nombre;
@@ -16,6 +18,7 @@ public partial class PM:Usuario
         Activo = activo;
         AutorizadoGestionRecursos = autorizadoGestionRecursos;
         PuedeExportarLegajos = puedeExportarLegajos;
+        Proyectos = new List<Proyecto>();
     }
 
     public bool AutorizadoGestionRecursos { get; set; }

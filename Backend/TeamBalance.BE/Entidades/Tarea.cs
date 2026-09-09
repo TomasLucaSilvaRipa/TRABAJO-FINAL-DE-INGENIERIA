@@ -1,10 +1,42 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace TeamBalance.BE.Entidades;
 
 public partial class Tarea
 {
+    public Tarea()
+    {
+    }
+
+    public Tarea(int iD, int idProyecto, int? idEmpleadoAsignado, int? idSkillRequerido, int idEstadoTarea, int? idTareaPredecesora, string titulo, string? descripcion, string? estado, string? prioridad, string? complejidad, DateTime? fechaInicio, DateTime? deadline, DateTime? fechaFinReal, string? seniorityRequerido, string? checklistJson, string? comentariosJson, string? archivosAdjuntosJson, bool bloqueada, string? motivoBloqueo, decimal porcentajeAvance, decimal horasEstimadas, bool activo, DateTime? fechaBaja)
+    {
+        ID = iD;
+        IdProyecto = idProyecto;
+        IdEmpleadoAsignado = idEmpleadoAsignado;
+        IdSkillRequerido = idSkillRequerido;
+        IdEstadoTarea = idEstadoTarea;
+        IdTareaPredecesora = idTareaPredecesora;
+        Titulo = titulo;
+        Descripcion = descripcion;
+        Estado = estado;
+        Prioridad = prioridad;
+        Complejidad = complejidad;
+        FechaInicio = fechaInicio;
+        Deadline = deadline;
+        FechaFinReal = fechaFinReal;
+        SeniorityRequerido = seniorityRequerido;
+        ChecklistJson = checklistJson;
+        ComentariosJson = comentariosJson;
+        ArchivosAdjuntosJson = archivosAdjuntosJson;
+        Bloqueada = bloqueada;
+        MotivoBloqueo = motivoBloqueo;
+        PorcentajeAvance = porcentajeAvance;
+        HorasEstimadas = horasEstimadas;
+        Activo = activo;
+        FechaBaja = fechaBaja;
+    }
+
     public int ID { get; set; }
 
     public int IdProyecto { get; set; }
@@ -52,24 +84,4 @@ public partial class Tarea
     public bool Activo { get; set; }
 
     public DateTime? FechaBaja { get; set; }
-
-    public virtual ICollection<AsignacionTarea> AsignacionTareas { get; set; } = new List<AsignacionTarea>();
-
-    public virtual Empleado? IdEmpleadoAsignadoNavigation { get; set; }
-
-    public virtual EstadoTarea IdEstadoTareaNavigation { get; set; } = null!;
-
-    public virtual Proyecto IdProyectoNavigation { get; set; } = null!;
-
-    public virtual Skill? IdSkillRequeridoNavigation { get; set; }
-
-    public virtual Tarea? IdTareaPredecesoraNavigation { get; set; }
-
-    public virtual ICollection<Tarea> InverseIdTareaPredecesoraNavigation { get; set; } = new List<Tarea>();
-
-    public virtual ICollection<RecomendacionBestFit> RecomendacionBestFits { get; set; } = new List<RecomendacionBestFit>();
-
-    public virtual ICollection<RegistroHora> RegistroHoras { get; set; } = new List<RegistroHora>();
-
-    public virtual ICollection<SimulacionImpacto> SimulacionImpactos { get; set; } = new List<SimulacionImpacto>();
 }

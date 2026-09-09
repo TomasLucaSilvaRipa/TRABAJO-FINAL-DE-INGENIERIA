@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace TeamBalance.BE.Entidades;
@@ -18,6 +18,22 @@ public partial class Bitacora
         Criticidad = criticidad;
         Modulo = modulo;
         FechaHora = DateTime.Now;
+    }
+
+    public Bitacora(int id, int? idUsuario, int? idAgencia, string? entidad, int? idEntidad, string accion, string mensaje, string? resultado, string? criticidad, string? modulo, DateTime fechaHora, string? direccionIP)
+    {
+        ID = id;
+        IdUsuario = idUsuario;
+        IdAgencia = idAgencia;
+        Entidad = entidad;
+        IdEntidad = idEntidad;
+        Accion = accion;
+        Mensaje = mensaje;
+        Resultado = resultado;
+        Criticidad = criticidad;
+        Modulo = modulo;
+        FechaHora = fechaHora;
+        DireccionIP = direccionIP;
     }
     public int ID { get; set; }
 
@@ -42,8 +58,4 @@ public partial class Bitacora
     public DateTime FechaHora { get; set; }
 
     public string? DireccionIP { get; set; }
-
-    public virtual Agencia? IdAgenciaNavigation { get; set; }
-
-    public virtual Usuario? IdUsuarioNavigation { get; set; }
 }

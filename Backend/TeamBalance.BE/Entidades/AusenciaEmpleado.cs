@@ -1,10 +1,34 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace TeamBalance.BE.Entidades;
 
 public partial class AusenciaEmpleado
 {
+    public AusenciaEmpleado()
+    {
+    }
+
+    public AusenciaEmpleado(int iD, int idEmpleado, string tipoPeriodo, DateTime fechaInicioSolicitada, DateTime fechaFinSolicitada, DateTime? fechaInicioAprobada, DateTime? fechaFinAprobada, decimal? horasNoDisponiblesSolicitadas, decimal? horasNoDisponiblesAprobadas, string? motivo, int? idUsuarioResolucion, string estado, DateTime fechaSolicitud, DateTime? fechaResolucion, string? motivoResolucion, bool activo)
+    {
+        ID = iD;
+        IdEmpleado = idEmpleado;
+        TipoPeriodo = tipoPeriodo;
+        FechaInicioSolicitada = fechaInicioSolicitada;
+        FechaFinSolicitada = fechaFinSolicitada;
+        FechaInicioAprobada = fechaInicioAprobada;
+        FechaFinAprobada = fechaFinAprobada;
+        HorasNoDisponiblesSolicitadas = horasNoDisponiblesSolicitadas;
+        HorasNoDisponiblesAprobadas = horasNoDisponiblesAprobadas;
+        Motivo = motivo;
+        IdUsuarioResolucion = idUsuarioResolucion;
+        Estado = estado;
+        FechaSolicitud = fechaSolicitud;
+        FechaResolucion = fechaResolucion;
+        MotivoResolucion = motivoResolucion;
+        Activo = activo;
+    }
+
     public int ID { get; set; }
 
     public int IdEmpleado { get; set; }
@@ -36,8 +60,4 @@ public partial class AusenciaEmpleado
     public string? MotivoResolucion { get; set; }
 
     public bool Activo { get; set; }
-
-    public virtual Empleado IdEmpleadoNavigation { get; set; } = null!;
-
-    public virtual Usuario? IdUsuarioResolucionNavigation { get; set; }
 }

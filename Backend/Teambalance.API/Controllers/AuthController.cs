@@ -35,16 +35,15 @@ public class AuthController : ControllerBase
             }
 
             EncryptionService.LoginDecryptedData datosLogin = _encryptionService.DesencriptarLogin(request.EncryptedData, request.EncryptedKey, request.Iv);
-            Usuario usuario = new Usuario();
-            usuario.Email = datosLogin.Email;
-            usuario.PasswordHash = datosLogin.Password;
+            Usuario usuario = new Usuario(0, null, new Rol(), string.Empty, string.Empty, datosLogin.Email, datosLogin.Password, string.Empty, DateTime.MinValue, false);
             usuario.RecaptchaToken = request.RecaptchaToken;
 
-            (Usuario Usuario, string AccessToken, DateTime FechaExpiracion) resultado = await _usuarioBLL.IniciarSesion(usuario, mantenerSesion);
+            InicioSesionResultado resultado = await _usuarioBLL.IniciarSesion(usuario, mantenerSesion);
 
             List<RolResponse> roles = resultado.Usuario.Roles.Select(rol => new RolResponse(rol.ID, rol.Nombre)).ToList();
             List<PermisoResponse> permisos = resultado.Usuario.Permisos.Select(permiso => new PermisoResponse(permiso.ID, permiso.Codigo, permiso.Nombre, permiso.Url)).ToList();
-            UsuarioSesionResponse usuarioResponse = new UsuarioSesionResponse(resultado.Usuario.ID, resultado.Usuario.IdAgencia, resultado.Usuario.Nombre, resultado.Usuario.Apellido, resultado.Usuario.Email, roles, permisos);
+            RolResponse rolPrincipal = new RolResponse(resultado.Usuario.Rol.ID, resultado.Usuario.Rol.Nombre);
+            UsuarioSesionResponse usuarioResponse = new UsuarioSesionResponse(resultado.Usuario.ID, resultado.Usuario.IdAgencia, rolPrincipal, resultado.Usuario.Nombre, resultado.Usuario.Apellido, resultado.Usuario.Email, roles, permisos);
             LoginResponse response = new LoginResponse(resultado.AccessToken, resultado.FechaExpiracion, usuarioResponse);
             return Ok(response);
         }
@@ -76,12 +75,12 @@ public class AuthController : ControllerBase
         {
             return Unauthorized();
         }
-        return Ok(new
-        {
-            usuario = new { id = usuario.ID, nombre = usuario.Nombre, apellido = usuario.Apellido, email = usuario.Email, idAgencia = usuario.IdAgencia },
-            roles = usuario.Roles.Select(rol => new { id = rol.ID, nombre = rol.Nombre }),
-            permisos = usuario.Permisos.Select(permiso => new { id = permiso.ID, codigo = permiso.Codigo, nombre = permiso.Nombre, url = permiso.Url }),
-        });
+        List<RolResponse> roles = usuario.Roles.Select(rol => new RolResponse(rol.ID, rol.Nombre)).ToList();
+        List<PermisoResponse> permisos = usuario.Permisos.Select(permiso => new PermisoResponse(permiso.ID, permiso.Codigo, permiso.Nombre, permiso.Url)).ToList();
+        RolResponse rolPrincipal = new RolResponse(usuario.Rol.ID, usuario.Rol.Nombre);
+        UsuarioSesionResponse usuarioResponse = new UsuarioSesionResponse(usuario.ID, usuario.IdAgencia, rolPrincipal, usuario.Nombre, usuario.Apellido, usuario.Email, roles, permisos);
+        AutorizacionResponse response = new AutorizacionResponse(usuarioResponse, roles, permisos);
+        return Ok(response);
     }
 
     [HttpPost("logout")]

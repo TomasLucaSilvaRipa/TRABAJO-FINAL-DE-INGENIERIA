@@ -1,10 +1,27 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace TeamBalance.BE.Entidades;
 
 public partial class SesionUsuario
 {
+    public SesionUsuario()
+    {
+    }
+
+    public SesionUsuario(int iD, int idUsuario, string tokenHash, DateTime fechaInicio, DateTime? fechaUltimaActividad, DateTime fechaExpiracion, string? direccionIP, bool activa, DateTime? fechaCierre)
+    {
+        ID = iD;
+        IdUsuario = idUsuario;
+        TokenHash = tokenHash;
+        FechaInicio = fechaInicio;
+        FechaUltimaActividad = fechaUltimaActividad;
+        FechaExpiracion = fechaExpiracion;
+        DireccionIP = direccionIP;
+        Activa = activa;
+        FechaCierre = fechaCierre;
+    }
+
     public int ID { get; set; }
 
     public int IdUsuario { get; set; }
@@ -22,6 +39,4 @@ public partial class SesionUsuario
     public bool Activa { get; set; }
 
     public DateTime? FechaCierre { get; set; }
-
-    public virtual Usuario IdUsuarioNavigation { get; set; } = null!;
 }

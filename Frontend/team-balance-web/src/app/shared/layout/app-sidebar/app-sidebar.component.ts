@@ -29,7 +29,6 @@ export class AppSidebarComponent {
     { key: 'menu.reports', path: '/dashboard/reportes', permission: 'ConsultarTableroEjecutivo' },
     { key: 'menu.agency', path: '/dashboard/configuracion-agencia', permission: 'GestionarAgencia' },
     { key: 'menu.subscription', path: '/dashboard/suscripcion', permission: 'GestionarSuscripcion' },
-    { key: 'menu.bestFit', path: '/dashboard/best-fit', permission: 'UsarBestFit' },
     { key: 'menu.teamCalendar', path: '/dashboard/calendario-equipo', permission: 'VerCalendarioEquipo' },
     { key: 'menu.simulation', path: '/dashboard/simulacion-impacto', permission: 'SimularImpacto' },
     { key: 'menu.myTasks', path: '/dashboard/mis-tareas', permission: 'VerDashboard' },
@@ -40,8 +39,6 @@ export class AppSidebarComponent {
     { key: 'menu.roles', path: '/dashboard/roles', permission: 'GestionarRoles' },
     { key: 'menu.plansManagement', path: '/dashboard/planes', permission: 'GestionarPlanes' },
     { key: 'menu.logs', path: '/dashboard/bitacora', permission: 'ConsultarBitacora' },
-    { key: 'menu.profile', path: '/dashboard/profile', permission: 'Perfil' },
-    { key: 'menu.security', path: '/dashboard/seguridad', permission: 'SeguridadCuenta' },
   ];
 
   isActive(path: string): boolean {

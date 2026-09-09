@@ -1,10 +1,30 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace TeamBalance.BE.Entidades;
 
 public partial class Suscripcion
 {
+    public Suscripcion()
+    {
+    }
+
+    public Suscripcion(int iD, int idAgencia, int idPlanComercial, string? referenciaExterna, string estado, DateTime fechaAlta, DateTime fechaVencimiento, DateTime? fechaProximaRenovacion, bool renovacionAutomatica, decimal importeVigente, bool activo, DateTime? fechaBaja)
+    {
+        ID = iD;
+        IdAgencia = idAgencia;
+        IdPlanComercial = idPlanComercial;
+        ReferenciaExterna = referenciaExterna;
+        Estado = estado;
+        FechaAlta = fechaAlta;
+        FechaVencimiento = fechaVencimiento;
+        FechaProximaRenovacion = fechaProximaRenovacion;
+        RenovacionAutomatica = renovacionAutomatica;
+        ImporteVigente = importeVigente;
+        Activo = activo;
+        FechaBaja = fechaBaja;
+    }
+
     public int ID { get; set; }
 
     public int IdAgencia { get; set; }
@@ -28,8 +48,4 @@ public partial class Suscripcion
     public bool Activo { get; set; }
 
     public DateTime? FechaBaja { get; set; }
-
-    public virtual Agencia IdAgenciaNavigation { get; set; } = null!;
-
-    public virtual PlanComercial IdPlanComercialNavigation { get; set; } = null!;
 }

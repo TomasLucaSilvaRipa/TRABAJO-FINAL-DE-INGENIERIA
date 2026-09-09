@@ -78,18 +78,7 @@ public class BLLPlanComercial
 
     private void RegistrarBitacora(PlanComercial plan, Usuario usuario, string accion, string mensaje)
     {
-        _bitacoraBLL.Add(new Bitacora()
-        {
-            IdUsuario = usuario.ID,
-            IdAgencia = usuario.IdAgencia,
-            Entidad = "PlanComercial",
-            IdEntidad = plan.ID,
-            Accion = accion,
-            Mensaje = mensaje,
-            Resultado = "Exitoso",
-            Criticidad = "Informacion",
-            Modulo = "Planes",
-            FechaHora = DateTime.Now,
-        });
+        Bitacora bitacora = new Bitacora(0, usuario.ID, usuario.IdAgencia, "PlanComercial", plan.ID, accion, mensaje, "Exitoso", "Informacion", "Planes", DateTime.Now, null);
+        _bitacoraBLL.Add(bitacora);
     }
 }

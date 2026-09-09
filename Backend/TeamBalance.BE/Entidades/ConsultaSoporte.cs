@@ -1,10 +1,29 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace TeamBalance.BE.Entidades;
 
 public partial class ConsultaSoporte
 {
+    public ConsultaSoporte()
+    {
+    }
+
+    public ConsultaSoporte(int iD, int idUsuario, int? idAgencia, string asunto, string descripcion, string? adjuntosJson, string estado, DateTime fechaCreacion, DateTime? fechaActualizacion, bool activo, DateTime? fechaBaja)
+    {
+        ID = iD;
+        IdUsuario = idUsuario;
+        IdAgencia = idAgencia;
+        Asunto = asunto;
+        Descripcion = descripcion;
+        AdjuntosJson = adjuntosJson;
+        Estado = estado;
+        FechaCreacion = fechaCreacion;
+        FechaActualizacion = fechaActualizacion;
+        Activo = activo;
+        FechaBaja = fechaBaja;
+    }
+
     public int ID { get; set; }
 
     public int IdUsuario { get; set; }
@@ -26,10 +45,4 @@ public partial class ConsultaSoporte
     public bool Activo { get; set; }
 
     public DateTime? FechaBaja { get; set; }
-
-    public virtual Agencia? IdAgenciaNavigation { get; set; }
-
-    public virtual Usuario IdUsuarioNavigation { get; set; } = null!;
-
-    public virtual ICollection<MensajeConsultaSoporte> MensajeConsultaSoportes { get; set; } = new List<MensajeConsultaSoporte>();
 }

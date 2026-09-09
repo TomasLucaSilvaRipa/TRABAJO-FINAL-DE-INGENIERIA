@@ -1,13 +1,19 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace TeamBalance.BE.Entidades;
 
-public partial class Empleado:Usuario
+public partial class Empleado : Usuario
 {
-    public Empleado() { }
+    public Empleado()
+    {
+        AsignacionTareas = new List<AsignacionTarea>();
+        AusenciaEmpleados = new List<AusenciaEmpleado>();
+        Skills = new List<Skill>();
+        Tareas = new List<Tarea>();
+    }
 
-    public Empleado(int id, string nombre, string? email, bool activo, decimal costoHora, decimal horasDisponiblesSemanales, string seniority, string estadoLaboral, DateTime? fechaIngreso, List<Skill> _skills)
+    public Empleado(int id, string nombre, string email, bool activo, decimal costoHora, decimal horasDisponiblesSemanales, string seniority, string estadoLaboral, DateTime? fechaIngreso, List<Skill> skills)
     {
         ID = id;
         Nombre = nombre;
@@ -18,7 +24,10 @@ public partial class Empleado:Usuario
         Seniority = seniority;
         EstadoLaboral = estadoLaboral;
         FechaIngreso = fechaIngreso;
-        skills = _skills;
+        AsignacionTareas = new List<AsignacionTarea>();
+        AusenciaEmpleados = new List<AusenciaEmpleado>();
+        Skills = skills;
+        Tareas = new List<Tarea>();
     }
 
     public decimal CostoHora { get; set; }
@@ -32,19 +41,13 @@ public partial class Empleado:Usuario
     public DateTime? FechaIngreso { get; set; }
 
 
-    public  List<AsignacionTarea> AsignacionTareas { get; set; } = new List<AsignacionTarea>();
+    public List<AsignacionTarea> AsignacionTareas { get; set; }
 
-    public List<AusenciaEmpleado> AusenciaEmpleados { get; set; } = new List<AusenciaEmpleado>();
+    public List<AusenciaEmpleado> AusenciaEmpleados { get; set; }
 
     public DisponibilidadBase? DisponibilidadBase { get; set; }
 
-    public List<Skill> skills { get; set; }
-
-    public virtual ICollection<RecomendacionBestFit> RecomendacionBestFits { get; set; } = new List<RecomendacionBestFit>();
-
-    public virtual ICollection<RegistroHora> RegistroHoras { get; set; } = new List<RegistroHora>();
-
-    public virtual ICollection<SimulacionImpacto> SimulacionImpactos { get; set; } = new List<SimulacionImpacto>();
+    public List<Skill> Skills { get; set; }
 
     public List<Tarea> Tareas { get; set; }
 }

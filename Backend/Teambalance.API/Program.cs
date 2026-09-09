@@ -3,7 +3,7 @@ using TeamBalance.DAL;
 using TeamBalance.MPP;
 using TeamBalance.Services;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
@@ -43,7 +43,7 @@ builder.Services.AddHttpClient<PasswordSecurityWebService>( client => { client.B
 
 builder.Services.AddScoped<BLLPasswordSecurity>();
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

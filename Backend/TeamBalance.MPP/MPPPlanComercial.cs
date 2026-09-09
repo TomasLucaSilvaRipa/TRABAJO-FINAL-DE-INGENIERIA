@@ -18,7 +18,7 @@ public class MPPPlanComercial
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new("@SoloActivos", soloActivos),
+            new SqlParameter("@SoloActivos", soloActivos),
         };
 
         DataTable tabla = _conexion.Leer("dbo.usp_PlanComercial_Consultar", parametros);
@@ -36,7 +36,7 @@ public class MPPPlanComercial
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new("@ID", id),
+            new SqlParameter("@ID", id),
         };
 
         DataTable tabla = _conexion.Leer("dbo.usp_PlanComercial_ConsultarPorId", parametros);
@@ -71,8 +71,8 @@ public class MPPPlanComercial
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new("@ID", id),
-            new("@Activo", activo),
+            new SqlParameter("@ID", id),
+            new SqlParameter("@Activo", activo),
         };
 
         DataTable tabla = _conexion.Leer("dbo.usp_PlanComercial_CambiarEstado", parametros);
@@ -84,38 +84,27 @@ public class MPPPlanComercial
 
     private static List<SqlParameter> CrearParametros(PlanComercial plan)
     {
-        return new List<SqlParameter>()
+        List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new("@Nombre", plan.Nombre),
-            new("@Descripcion", (object?)plan.Descripcion ?? DBNull.Value),
-            new("@Periodicidad", plan.Periodicidad),
-            new("@PrecioVigente", plan.PrecioVigente),
-            new("@Moneda", plan.Moneda),
-            new("@DuracionMeses", plan.DuracionMeses),
-            new("@AlcanceFuncional", (object?)plan.AlcanceFuncional ?? DBNull.Value),
-            new("@CondicionesRenovacion", (object?)plan.CondicionesRenovacion ?? DBNull.Value),
-            new("@Activo", plan.Activo),
-            new("@FechaVigenciaDesde", plan.FechaVigenciaDesde),
-            new("@FechaVigenciaHasta", (object?)plan.FechaVigenciaHasta ?? DBNull.Value),
+            new SqlParameter("@Nombre", plan.Nombre),
+            new SqlParameter("@Descripcion", (object?)plan.Descripcion ?? DBNull.Value),
+            new SqlParameter("@Periodicidad", plan.Periodicidad),
+            new SqlParameter("@PrecioVigente", plan.PrecioVigente),
+            new SqlParameter("@Moneda", plan.Moneda),
+            new SqlParameter("@DuracionMeses", plan.DuracionMeses),
+            new SqlParameter("@AlcanceFuncional", (object?)plan.AlcanceFuncional ?? DBNull.Value),
+            new SqlParameter("@CondicionesRenovacion", (object?)plan.CondicionesRenovacion ?? DBNull.Value),
+            new SqlParameter("@Activo", plan.Activo),
+            new SqlParameter("@FechaVigenciaDesde", plan.FechaVigenciaDesde),
+            new SqlParameter("@FechaVigenciaHasta", (object?)plan.FechaVigenciaHasta ?? DBNull.Value),
         };
+        return parametros;
     }
 
     private static PlanComercial CrearPlan(DataRow fila)
     {
-        return new PlanComercial()
-        {
-            ID = Convert.ToInt32(fila["ID"]),
-            Nombre = Convert.ToString(fila["Nombre"]) ?? string.Empty,
-            Descripcion = Convert.ToString(fila["Descripcion"]),
-            Periodicidad = Convert.ToString(fila["Periodicidad"]) ?? string.Empty,
-            PrecioVigente = Convert.ToDecimal(fila["PrecioVigente"]),
-            Moneda = Convert.ToString(fila["Moneda"]) ?? string.Empty,
-            DuracionMeses = Convert.ToInt32(fila["DuracionMeses"]),
-            AlcanceFuncional = Convert.ToString(fila["AlcanceFuncional"]),
-            CondicionesRenovacion = Convert.ToString(fila["CondicionesRenovacion"]),
-            Activo = Convert.ToBoolean(fila["Activo"]),
-            FechaVigenciaDesde = Convert.ToDateTime(fila["FechaVigenciaDesde"]),
-            FechaVigenciaHasta = fila["FechaVigenciaHasta"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaVigenciaHasta"]),
-        };
+        DateTime? fechaVigenciaHasta = fila["FechaVigenciaHasta"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaVigenciaHasta"]);
+        PlanComercial plan = new PlanComercial(Convert.ToInt32(fila["ID"]), Convert.ToString(fila["Nombre"]) ?? string.Empty, Convert.ToString(fila["Descripcion"]), Convert.ToString(fila["Periodicidad"]) ?? string.Empty, Convert.ToDecimal(fila["PrecioVigente"]), Convert.ToString(fila["Moneda"]) ?? string.Empty, Convert.ToInt32(fila["DuracionMeses"]), Convert.ToString(fila["AlcanceFuncional"]), Convert.ToString(fila["CondicionesRenovacion"]), Convert.ToBoolean(fila["Activo"]), Convert.ToDateTime(fila["FechaVigenciaDesde"]), fechaVigenciaHasta);
+        return plan;
     }
 }

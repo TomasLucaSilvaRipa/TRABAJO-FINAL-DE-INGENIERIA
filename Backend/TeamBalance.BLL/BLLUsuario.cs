@@ -36,7 +36,6 @@ public class BLLUsuario
         return _usuarioMPP.ConsultarUsuarioPendienteValidacion(email);
     }
 
-    //pasar paramtro objeto
     public void PrepararUsuarioDueño(Usuario usuario, Rol rol)
     {
         string password = usuario.PasswordHash;
@@ -56,25 +55,18 @@ public class BLLUsuario
 
     public Dueño CrearDueño()
     {
-        return new Dueño
-        {
-            Activo = true,
-        };
+        Dueño dueño = new Dueño(true);
+        return dueño;
     }
 
     public ValidacionCuentum CrearValidacionEmail(out string token)
     {
         token = Guid.NewGuid().ToString("N");
 
-        return new ValidacionCuentum
-        {
-            Metodo = "Email",
-            TokenHash = _seguridad.GenerarHashToken(token),
-            FechaGeneracion = DateTime.Now,
-            FechaExpiracion = DateTime.Now.AddHours(24),
-            Utilizado = false,
-            Activo = true,
-        };
+        DateTime fechaGeneracion = DateTime.Now;
+        DateTime fechaExpiracion = fechaGeneracion.AddHours(24);
+        ValidacionCuentum validacion = new ValidacionCuentum(0, 0, "Email", _seguridad.GenerarHashToken(token), fechaGeneracion, fechaExpiracion, false, null, true);
+        return validacion;
     }
 
     public bool ValidarCuenta(string token)
@@ -92,7 +84,7 @@ public class BLLUsuario
         _usuarioMPP.ReemplazarValidacionEmail(usuario, validacion);
     }
 
-    public async Task<(Usuario Usuario, string AccessToken, DateTime FechaExpiracion)> IniciarSesion(Usuario usuarioEntrante, bool mantenerSesion)
+    public async Task<InicioSesionResultado> IniciarSesion(Usuario usuarioEntrante, bool mantenerSesion)
     {
         if (string.IsNullOrWhiteSpace(usuarioEntrante.Email) || string.IsNullOrWhiteSpace(usuarioEntrante.PasswordHash) || string.IsNullOrWhiteSpace(usuarioEntrante.RecaptchaToken))
         {
@@ -134,22 +126,16 @@ public class BLLUsuario
             ? DateTime.Now.AddDays(DuracionSesionRecordadaDias)
             : DateTime.Now.AddHours(DuracionSesionNormalHoras);
 
-        SesionUsuario sesion = new SesionUsuario()
-        {
-            IdUsuario = usuarioBD.ID,
-            TokenHash = _seguridad.GenerarHashToken(accessToken),
-            FechaInicio = DateTime.Now,
-            FechaUltimaActividad = DateTime.Now,
-            FechaExpiracion = fechaExpiracion,
-            Activa = true,
-        };
+        DateTime fechaInicio = DateTime.Now;
+        SesionUsuario sesion = new SesionUsuario(0, usuarioBD.ID, _seguridad.GenerarHashToken(accessToken), fechaInicio, fechaInicio, fechaExpiracion, null, true, null);
 
         _usuarioMPP.RegistrarSesion(sesion);
 
         bitacora = new Bitacora(usuarioBD.ID, usuarioBD.IdAgencia, "Usuario",usuarioBD.ID, "IniciarSesion", "El usuario inició sesión en TeamBalance.","Exitoso","Informacion","Seguridad");
         _bitacoraBLL.Add(bitacora);
 
-        return (usuarioBD, accessToken, fechaExpiracion);
+        InicioSesionResultado resultado = new InicioSesionResultado(usuarioBD, accessToken, fechaExpiracion);
+        return resultado;
     }
 
     public bool SesionVigente(string accessToken)
@@ -164,10 +150,7 @@ public class BLLUsuario
             return null;
         }
 
-        SesionUsuario sesion = new SesionUsuario()
-        {
-            TokenHash = _seguridad.GenerarHashToken(accessToken),
-        };
+        SesionUsuario sesion = new SesionUsuario(0, 0, _seguridad.GenerarHashToken(accessToken), DateTime.MinValue, null, DateTime.MinValue, null, false, null);
 
         Usuario? usuario = _usuarioMPP.ConsultarUsuarioPorSesion(sesion);
         if (usuario is not null)
@@ -239,19 +222,8 @@ public class BLLUsuario
         _usuarioMPP.ReemplazarValidacionEmail(usuario, validacion);
         bool correoEnviado = await _emailService.EnviarCorreoValidacion(usuario.Email, usuario.Nombre, token);
 
-        _bitacoraBLL.Add(new Bitacora()
-        {
-            IdUsuario = solicitante.ID,
-            IdAgencia = solicitante.IdAgencia,
-            Entidad = "Usuario",
-            IdEntidad = usuario.ID,
-            Accion = esSoporte ? "RegistrarSoporteInicial" : "RegistrarUsuarioAgencia",
-            Mensaje = esSoporte ? "Se creó el usuario inicial de Soporte de TeamBalance." : "Se registró un usuario para la agencia.",
-            Resultado = correoEnviado ? "Exitoso" : "Parcial",
-            Criticidad = correoEnviado ? "Informacion" : "Advertencia",
-            Modulo = "Usuarios",
-            FechaHora = DateTime.Now,
-        });
+        Bitacora bitacora = new Bitacora(0, solicitante.ID, solicitante.IdAgencia, "Usuario", usuario.ID, esSoporte ? "RegistrarSoporteInicial" : "RegistrarUsuarioAgencia", esSoporte ? "Se creó el usuario inicial de Soporte de TeamBalance." : "Se registró un usuario para la agencia.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia", "Usuarios", DateTime.Now, null);
+        _bitacoraBLL.Add(bitacora);
 
         return usuario;
     }
@@ -369,16 +341,8 @@ public class BLLUsuario
         }
 
         string token = _seguridad.GenerarTokenRecuperacion();
-        ValidacionCuentum validacion = new ValidacionCuentum()
-        {
-            IdUsuario = usuarioBD.ID,
-            Metodo = "RecuperacionPassword",
-            TokenHash = _seguridad.GenerarHashToken(token),
-            FechaGeneracion = DateTime.Now,
-            FechaExpiracion = DateTime.Now.AddMinutes(30),
-            Utilizado = false,
-            Activo = true,
-        };
+        DateTime fechaGeneracion = DateTime.Now;
+        ValidacionCuentum validacion = new ValidacionCuentum(0, usuarioBD.ID, "RecuperacionPassword", _seguridad.GenerarHashToken(token), fechaGeneracion, fechaGeneracion.AddMinutes(30), false, null, true);
 
         _usuarioMPP.ReemplazarRecuperacionPassword(usuarioBD, validacion);
 
@@ -401,11 +365,7 @@ public class BLLUsuario
 
         _seguridad.ValidarPassword(usuario.PasswordHash);
 
-        ValidacionCuentum validacion = new ValidacionCuentum()
-        {
-            Metodo = "RecuperacionPassword",
-            TokenHash = _seguridad.GenerarHashToken(token),
-        };
+        ValidacionCuentum validacion = new ValidacionCuentum(0, 0, "RecuperacionPassword", _seguridad.GenerarHashToken(token), DateTime.MinValue, DateTime.MinValue, false, null, false);
 
         Usuario? usuarioBD = _usuarioMPP.ConsultarUsuarioPorRecuperacionPassword(validacion);
 
@@ -437,10 +397,7 @@ public class BLLUsuario
             throw new ArgumentException("Completá la contraseña actual y la nueva contraseña.");
         }
 
-        SesionUsuario sesion = new SesionUsuario()
-        {
-            TokenHash = _seguridad.GenerarHashToken(accessToken),
-        };
+        SesionUsuario sesion = new SesionUsuario(0, 0, _seguridad.GenerarHashToken(accessToken), DateTime.MinValue, null, DateTime.MinValue, null, false, null);
 
         Usuario? usuarioBD = _usuarioMPP.ConsultarUsuarioPorSesion(sesion);
 
@@ -469,19 +426,7 @@ public class BLLUsuario
 
     private void RegistrarEventoSeguridad(Usuario? usuario, string accion, string mensaje, string resultado, string criticidad)
     {
-        Bitacora bitacora = new Bitacora()
-        {
-            IdUsuario = usuario?.ID,
-            IdAgencia = usuario?.IdAgencia,
-            Entidad = "Usuario",
-            IdEntidad = usuario?.ID,
-            Accion = accion,
-            Mensaje = mensaje,
-            Resultado = resultado,
-            Criticidad = criticidad,
-            Modulo = "Seguridad",
-            FechaHora = DateTime.Now,
-        };
+        Bitacora bitacora = new Bitacora(0, usuario?.ID, usuario?.IdAgencia, "Usuario", usuario?.ID, accion, mensaje, resultado, criticidad, "Seguridad", DateTime.Now, null);
 
         _bitacoraBLL.Add(bitacora);
     }

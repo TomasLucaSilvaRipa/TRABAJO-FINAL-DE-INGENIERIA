@@ -3,11 +3,11 @@ using System.Collections.Generic;
 
 namespace TeamBalance.BE.Entidades;
 
-public partial class Cliente:Usuario
+public partial class Cliente : Usuario
 {
     public Cliente() { }
 
-    public Cliente(int id, string nombre, string? razonSocial, string? email, string? telefono, bool activo, List<Proyecto> _proyectos)
+    public Cliente(int id, string nombre, string? razonSocial, string email, string? telefono, bool activo, List<Proyecto> proyectos)
     {
         ID = id;
         Nombre = nombre;
@@ -15,7 +15,7 @@ public partial class Cliente:Usuario
         Email = email;
         Telefono = telefono;
         Activo = activo;
-        proyectos = _proyectos;
+        Proyectos = proyectos;
     }
 
 
@@ -26,5 +26,5 @@ public partial class Cliente:Usuario
 
 
 
-    public List<Proyecto> proyectos { get; set; } = new List<Proyecto>();
+    public List<Proyecto> Proyectos { get; set; } = new List<Proyecto>();
 }

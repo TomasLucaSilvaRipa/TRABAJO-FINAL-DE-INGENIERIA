@@ -18,20 +18,20 @@ public sealed class MPPContratacion
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new("@ReferenciaContratacion", referenciaContratacion),
-            new("@ReferenciaOperacion", referenciaOperacion),
-            new("@NombreComercialAgencia", request.NombreComercialAgencia),
-            new("@RazonSocial", request.RazonSocial),
-            new("@CUIT", request.CUIT),
-            new("@CondicionFiscal", request.CondicionFiscal),
-            new("@EmailFacturacion", request.EmailFacturacion),
-            new("@TelefonoContacto", request.TelefonoContacto),
-            new("@NombreResponsable", request.NombreResponsable),
-            new("@ApellidoResponsable", request.ApellidoResponsable),
-            new("@EmailLaboralResponsable", request.EmailLaboralResponsable),
-            new("@CargoResponsable", request.CargoResponsable),
-            new("@ProveedorPagoSeleccionado", request.ProveedorPagoSeleccionado),
-            new("@IdPlanComercial", request.IdPlanComercial),
+            new SqlParameter("@ReferenciaContratacion", referenciaContratacion),
+            new SqlParameter("@ReferenciaOperacion", referenciaOperacion),
+            new SqlParameter("@NombreComercialAgencia", request.NombreComercialAgencia),
+            new SqlParameter("@RazonSocial", request.RazonSocial),
+            new SqlParameter("@CUIT", request.CUIT),
+            new SqlParameter("@CondicionFiscal", request.CondicionFiscal),
+            new SqlParameter("@EmailFacturacion", request.EmailFacturacion),
+            new SqlParameter("@TelefonoContacto", request.TelefonoContacto),
+            new SqlParameter("@NombreResponsable", request.NombreResponsable),
+            new SqlParameter("@ApellidoResponsable", request.ApellidoResponsable),
+            new SqlParameter("@EmailLaboralResponsable", request.EmailLaboralResponsable),
+            new SqlParameter("@CargoResponsable", request.CargoResponsable),
+            new SqlParameter("@ProveedorPagoSeleccionado", request.ProveedorPagoSeleccionado),
+            new SqlParameter("@IdPlanComercial", request.IdPlanComercial),
         };
 
         DataTable resultado = _conexion.Leer("dbo.usp_Contratacion_CrearPendiente", parametros);
@@ -43,20 +43,15 @@ public sealed class MPPContratacion
 
         DataRow fila = resultado.Rows[0];
 
-        return new ContratacionPendiente(
-            Convert.ToInt32(fila["IdContratacion"]),
-            Convert.ToInt32(fila["IdPlanComercial"]),
-            Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty,
-            Convert.ToString(fila["ReferenciaOperacion"]) ?? string.Empty,
-            Convert.ToDecimal(fila["Importe"]),
-            Convert.ToString(fila["Moneda"]) ?? string.Empty);
+        ContratacionPendiente contratacion = new ContratacionPendiente(Convert.ToInt32(fila["IdContratacion"]), Convert.ToInt32(fila["IdPlanComercial"]), Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty, Convert.ToString(fila["ReferenciaOperacion"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty);
+        return contratacion;
     }
 
     public EstadoContratacionPersistido ConsultarEstado(string referenciaContratacion)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new("@ReferenciaContratacion", referenciaContratacion),
+            new SqlParameter("@ReferenciaContratacion", referenciaContratacion),
         };
 
         DataTable resultado = _conexion.Leer("dbo.usp_Contratacion_ConsultarEstado", parametros);
@@ -65,18 +60,15 @@ public sealed class MPPContratacion
 
         DataRow fila = resultado.Rows[0];
 
-        return new EstadoContratacionPersistido(
-            Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty,
-            Convert.ToString(fila["EstadoContratacion"]) ?? string.Empty,
-            Convert.ToDecimal(fila["Importe"]),
-            Convert.ToString(fila["Moneda"]) ?? string.Empty);
+        EstadoContratacionPersistido estado = new EstadoContratacionPersistido(Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty, Convert.ToString(fila["EstadoContratacion"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty);
+        return estado;
     }
 
     public ContratacionServicio ConsultarContratacionParaRegistro(string referenciaContratacion)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new("@ReferenciaContratacion", referenciaContratacion),
+            new SqlParameter("@ReferenciaContratacion", referenciaContratacion),
         };
 
         DataTable resultado = _conexion.Leer("dbo.usp_Contratacion_ConsultarParaRegistro", parametros);
@@ -88,34 +80,33 @@ public sealed class MPPContratacion
 
         DataRow fila = resultado.Rows[0];
 
-        return new ContratacionServicio
-        {
-            ID = Convert.ToInt32(fila["ID"]),
-            IdAgencia = fila["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAgencia"]),
-            IdUsuario = fila["IdUsuario"] == DBNull.Value ? null : Convert.ToInt32(fila["IdUsuario"]),
-            ReferenciaContratacion = Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty,
-            NombreComercialAgencia = Convert.ToString(fila["NombreComercialAgencia"]) ?? string.Empty,
-            RazonSocial = Convert.ToString(fila["RazonSocial"]),
-            CUIT = Convert.ToString(fila["CUIT"]) ?? string.Empty,
-            CondicionFiscal = Convert.ToString(fila["CondicionFiscal"]),
-            EmailFacturacion = Convert.ToString(fila["EmailFacturacion"]),
-            TelefonoContacto = Convert.ToString(fila["TelefonoContacto"]),
-            NombreResponsable = Convert.ToString(fila["NombreResponsable"]) ?? string.Empty,
-            ApellidoResponsable = Convert.ToString(fila["ApellidoResponsable"]) ?? string.Empty,
-            EmailLaboralResponsable = Convert.ToString(fila["EmailLaboralResponsable"]) ?? string.Empty,
-            EstadoContratacion = Convert.ToString(fila["EstadoContratacion"]) ?? string.Empty,
-            Activo = Convert.ToBoolean(fila["Activo"]),
-        };
+        ContratacionServicio contratacion = new ContratacionServicio();
+        contratacion.ID = Convert.ToInt32(fila["ID"]);
+        contratacion.IdAgencia = fila["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAgencia"]);
+        contratacion.IdUsuario = fila["IdUsuario"] == DBNull.Value ? null : Convert.ToInt32(fila["IdUsuario"]);
+        contratacion.ReferenciaContratacion = Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty;
+        contratacion.NombreComercialAgencia = Convert.ToString(fila["NombreComercialAgencia"]) ?? string.Empty;
+        contratacion.RazonSocial = Convert.ToString(fila["RazonSocial"]);
+        contratacion.CUIT = Convert.ToString(fila["CUIT"]) ?? string.Empty;
+        contratacion.CondicionFiscal = Convert.ToString(fila["CondicionFiscal"]);
+        contratacion.EmailFacturacion = Convert.ToString(fila["EmailFacturacion"]);
+        contratacion.TelefonoContacto = Convert.ToString(fila["TelefonoContacto"]);
+        contratacion.NombreResponsable = Convert.ToString(fila["NombreResponsable"]) ?? string.Empty;
+        contratacion.ApellidoResponsable = Convert.ToString(fila["ApellidoResponsable"]) ?? string.Empty;
+        contratacion.EmailLaboralResponsable = Convert.ToString(fila["EmailLaboralResponsable"]) ?? string.Empty;
+        contratacion.EstadoContratacion = Convert.ToString(fila["EstadoContratacion"]) ?? string.Empty;
+        contratacion.Activo = Convert.ToBoolean(fila["Activo"]);
+        return contratacion;
     }
 
     public EstadoContratacionPersistido ActualizarResultadoPago(string referenciaContratacion, string referenciaProveedor, string estadoProveedor, string mensajeRespuesta)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new("@ReferenciaContratacion", referenciaContratacion),
-            new("@ReferenciaProveedor", referenciaProveedor),
-            new("@EstadoProveedor", estadoProveedor),
-            new("@MensajeRespuesta", mensajeRespuesta),
+            new SqlParameter("@ReferenciaContratacion", referenciaContratacion),
+            new SqlParameter("@ReferenciaProveedor", referenciaProveedor),
+            new SqlParameter("@EstadoProveedor", estadoProveedor),
+            new SqlParameter("@MensajeRespuesta", mensajeRespuesta),
         };
 
         DataTable resultado = _conexion.Leer("dbo.usp_Contratacion_ActualizarResultadoPago", parametros);
@@ -127,12 +118,23 @@ public sealed class MPPContratacion
 
         DataRow fila = resultado.Rows[0];
 
-        return new EstadoContratacionPersistido(
-            Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty,
-            Convert.ToString(fila["EstadoContratacion"]) ?? string.Empty,
-            Convert.ToDecimal(fila["Importe"]),
-            Convert.ToString(fila["Moneda"]) ?? string.Empty);
+        EstadoContratacionPersistido estado = new EstadoContratacionPersistido(Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty, Convert.ToString(fila["EstadoContratacion"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty);
+        return estado;
     }
 }
 
-public sealed record EstadoContratacionPersistido(string ReferenciaContratacion, string EstadoContratacion, decimal Importe,string Moneda);
+public sealed class EstadoContratacionPersistido
+{
+    public EstadoContratacionPersistido(string referenciaContratacion, string estadoContratacion, decimal importe, string moneda)
+    {
+        ReferenciaContratacion = referenciaContratacion;
+        EstadoContratacion = estadoContratacion;
+        Importe = importe;
+        Moneda = moneda;
+    }
+
+    public string ReferenciaContratacion { get; set; }
+    public string EstadoContratacion { get; set; }
+    public decimal Importe { get; set; }
+    public string Moneda { get; set; }
+}

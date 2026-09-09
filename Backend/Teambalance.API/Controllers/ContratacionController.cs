@@ -20,7 +20,7 @@ namespace Teambalance.API.Controllers
         {
             try
             {
-                var resultado = await _bll.Contratar(request);
+                ContratacionInicioResponse resultado = await _bll.Contratar(request);
 
                 return Ok(resultado);
             }

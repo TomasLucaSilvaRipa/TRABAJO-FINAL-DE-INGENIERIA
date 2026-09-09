@@ -97,27 +97,16 @@ public class MPPRol
 
     private static Rol CrearRol(DataRow fila)
     {
-        return new Rol()
-        {
-            ID = Convert.ToInt32(fila["ID"]),
-            Nombre = Convert.ToString(fila["Nombre"]) ?? string.Empty,
-            Descripcion = Convert.ToString(fila["Descripcion"]),
-            EsRolBase = Convert.ToBoolean(fila["EsRolBase"]),
-            Activo = Convert.ToBoolean(fila["Activo"]),
-            FechaBaja = fila["FechaBaja"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaBaja"]),
-        };
+        Rol rol = new Rol(Convert.ToInt32(fila["ID"]), Convert.ToString(fila["Nombre"]) ?? string.Empty, Convert.ToString(fila["Descripcion"]), Convert.ToBoolean(fila["EsRolBase"]), Convert.ToBoolean(fila["Activo"]), new List<Permiso>());
+        rol.FechaBaja = fila["FechaBaja"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaBaja"]);
+        return rol;
     }
 
     private static Permiso CrearPermiso(DataRow fila)
     {
-        return new Permiso()
-        {
-            ID = Convert.ToInt32(fila["ID"]),
-            Nombre = Convert.ToString(fila["Nombre"]) ?? string.Empty,
-            Descripcion = Convert.ToString(fila["Descripcion"]),
-            Activo = Convert.ToBoolean(fila["Activo"]),
-            Codigo = fila.Table.Columns.Contains("Codigo") ? Convert.ToString(fila["Codigo"]) : null,
-            Url = fila.Table.Columns.Contains("Url") ? Convert.ToString(fila["Url"]) : null,
-        };
+        string? codigo = fila.Table.Columns.Contains("Codigo") ? Convert.ToString(fila["Codigo"]) : null;
+        string? url = fila.Table.Columns.Contains("Url") ? Convert.ToString(fila["Url"]) : null;
+        Permiso permiso = new Permiso(Convert.ToInt32(fila["ID"]), Convert.ToString(fila["Nombre"]) ?? string.Empty, Convert.ToString(fila["Descripcion"]), Convert.ToBoolean(fila["Activo"]), codigo, url);
+        return permiso;
     }
 }

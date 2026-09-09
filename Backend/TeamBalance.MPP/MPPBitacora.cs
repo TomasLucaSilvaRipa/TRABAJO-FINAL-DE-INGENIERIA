@@ -18,17 +18,17 @@ public class MPPBitacora
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new("@IdUsuario", (object?)bitacora.IdUsuario ?? DBNull.Value),
-            new("@IdAgencia", (object?)bitacora.IdAgencia ?? DBNull.Value),
-            new("@Entidad", (object?)bitacora.Entidad ?? DBNull.Value),
-            new("@IdEntidad", (object?)bitacora.IdEntidad ?? DBNull.Value),
-            new("@Accion", bitacora.Accion),
-            new("@Mensaje", bitacora.Mensaje),
-            new("@Resultado", (object?)bitacora.Resultado ?? DBNull.Value),
-            new("@Criticidad", (object?)bitacora.Criticidad ?? DBNull.Value),
-            new("@Modulo", (object?)bitacora.Modulo ?? DBNull.Value),
-            new("@FechaHora", bitacora.FechaHora),
-            new("@DireccionIP", (object?)bitacora.DireccionIP ?? DBNull.Value),
+            new SqlParameter("@IdUsuario", (object?)bitacora.IdUsuario ?? DBNull.Value),
+            new SqlParameter("@IdAgencia", (object?)bitacora.IdAgencia ?? DBNull.Value),
+            new SqlParameter("@Entidad", (object?)bitacora.Entidad ?? DBNull.Value),
+            new SqlParameter("@IdEntidad", (object?)bitacora.IdEntidad ?? DBNull.Value),
+            new SqlParameter("@Accion", bitacora.Accion),
+            new SqlParameter("@Mensaje", bitacora.Mensaje),
+            new SqlParameter("@Resultado", (object?)bitacora.Resultado ?? DBNull.Value),
+            new SqlParameter("@Criticidad", (object?)bitacora.Criticidad ?? DBNull.Value),
+            new SqlParameter("@Modulo", (object?)bitacora.Modulo ?? DBNull.Value),
+            new SqlParameter("@FechaHora", bitacora.FechaHora),
+            new SqlParameter("@DireccionIP", (object?)bitacora.DireccionIP ?? DBNull.Value),
         };
 
         return _conexion.Escribir("dbo.usp_Bitacora_Registrar", parametros);
@@ -38,7 +38,7 @@ public class MPPBitacora
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new("@IdAgencia", (object?)idAgencia ?? DBNull.Value),
+            new SqlParameter("@IdAgencia", (object?)idAgencia ?? DBNull.Value),
         };
 
         DataTable tabla = _conexion.Leer("dbo.usp_Bitacora_Consultar", parametros);
@@ -50,15 +50,15 @@ public class MPPBitacora
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new("@IdAgencia", (object?)idAgencia ?? DBNull.Value),
-            new("@Desde", (object?)desde ?? DBNull.Value),
-            new("@Hasta", (object?)hasta ?? DBNull.Value),
-            new("@IdUsuario", (object?)idUsuario ?? DBNull.Value),
-            new("@Entidad", (object?)entidad ?? DBNull.Value),
-            new("@Accion", (object?)accion ?? DBNull.Value),
-            new("@Resultado", (object?)resultado ?? DBNull.Value),
-            new("@Criticidad", (object?)criticidad ?? DBNull.Value),
-            new("@Modulo", (object?)modulo ?? DBNull.Value),
+            new SqlParameter("@IdAgencia", (object?)idAgencia ?? DBNull.Value),
+            new SqlParameter("@Desde", (object?)desde ?? DBNull.Value),
+            new SqlParameter("@Hasta", (object?)hasta ?? DBNull.Value),
+            new SqlParameter("@IdUsuario", (object?)idUsuario ?? DBNull.Value),
+            new SqlParameter("@Entidad", (object?)entidad ?? DBNull.Value),
+            new SqlParameter("@Accion", (object?)accion ?? DBNull.Value),
+            new SqlParameter("@Resultado", (object?)resultado ?? DBNull.Value),
+            new SqlParameter("@Criticidad", (object?)criticidad ?? DBNull.Value),
+            new SqlParameter("@Modulo", (object?)modulo ?? DBNull.Value),
         };
 
         DataTable tabla = _conexion.Leer("dbo.usp_Bitacora_Consultar", parametros);
@@ -72,21 +72,7 @@ public class MPPBitacora
 
         foreach (DataRow fila in tabla.Rows)
         {
-            Bitacora bitacora = new Bitacora()
-            {
-                ID = Convert.ToInt32(fila["ID"]),
-                IdUsuario = fila["IdUsuario"] == DBNull.Value ? null : Convert.ToInt32(fila["IdUsuario"]),
-                IdAgencia = fila["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAgencia"]),
-                Entidad = Convert.ToString(fila["Entidad"]),
-                IdEntidad = fila["IdEntidad"] == DBNull.Value ? null : Convert.ToInt32(fila["IdEntidad"]),
-                Accion = Convert.ToString(fila["Accion"]) ?? string.Empty,
-                Mensaje = Convert.ToString(fila["Mensaje"]) ?? string.Empty,
-                Resultado = Convert.ToString(fila["Resultado"]),
-                Criticidad = Convert.ToString(fila["Criticidad"]),
-                Modulo = Convert.ToString(fila["Modulo"]),
-                FechaHora = Convert.ToDateTime(fila["FechaHora"]),
-                DireccionIP = Convert.ToString(fila["DireccionIP"]),
-            };
+            Bitacora bitacora = new Bitacora(Convert.ToInt32(fila["ID"]), fila["IdUsuario"] == DBNull.Value ? null : Convert.ToInt32(fila["IdUsuario"]), fila["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAgencia"]), Convert.ToString(fila["Entidad"]), fila["IdEntidad"] == DBNull.Value ? null : Convert.ToInt32(fila["IdEntidad"]), Convert.ToString(fila["Accion"]) ?? string.Empty, Convert.ToString(fila["Mensaje"]) ?? string.Empty, Convert.ToString(fila["Resultado"]), Convert.ToString(fila["Criticidad"]), Convert.ToString(fila["Modulo"]), Convert.ToDateTime(fila["FechaHora"]), Convert.ToString(fila["DireccionIP"]));
 
             lista.Add(bitacora);
         }

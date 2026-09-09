@@ -5,9 +5,11 @@ namespace TeamBalance.BE.Entidades;
 
 public partial class Dueño:Usuario
 {
-    public Dueño()
-    {
+    public Dueño() { }
 
+    public Dueño(bool activo)
+    {
+        Activo = activo;
     }
 
 }

@@ -1,10 +1,25 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace TeamBalance.BE.Entidades;
 
 public partial class EstadoTarea
 {
+    public EstadoTarea()
+    {
+    }
+
+    public EstadoTarea(int iD, int idAgencia, string nombre, int orden, bool esBase, bool esFinal, bool activo)
+    {
+        ID = iD;
+        IdAgencia = idAgencia;
+        Nombre = nombre;
+        Orden = orden;
+        EsBase = esBase;
+        EsFinal = esFinal;
+        Activo = activo;
+    }
+
     public int ID { get; set; }
 
     public int IdAgencia { get; set; }
@@ -18,8 +33,4 @@ public partial class EstadoTarea
     public bool EsFinal { get; set; }
 
     public bool Activo { get; set; }
-
-    public virtual Agencia IdAgenciaNavigation { get; set; } = null!;
-
-    public virtual ICollection<Tarea> Tareas { get; set; } = new List<Tarea>();
 }

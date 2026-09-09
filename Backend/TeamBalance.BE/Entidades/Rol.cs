@@ -32,10 +32,6 @@ public partial class Rol
 
     public DateTime? FechaBaja { get; set; }
 
-    //public virtual ICollection<RolPermiso> RolPermisos { get; set; } = new List<RolPermiso>();
-
-    //public virtual ICollection<Usuario> Usuarios { get; set; } = new List<Usuario>();
-
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public List<Permiso> Permisos { get; set; }
 }
