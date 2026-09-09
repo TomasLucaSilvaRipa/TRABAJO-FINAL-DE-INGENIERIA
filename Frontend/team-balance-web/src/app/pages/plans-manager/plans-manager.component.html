@@ -1,0 +1,47 @@
+<div class="space-y-6">
+  <header>
+    <p class="text-sm font-bold uppercase tracking-widest text-cyan-700 dark:text-cyan-300">{{ localization.traducir('planManager.eyebrow') }}</p>
+    <h1 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{{ localization.traducir('planManager.title') }}</h1>
+    <p class="mt-2 max-w-3xl text-slate-600 dark:text-slate-300">{{ localization.traducir('planManager.subtitle') }}</p>
+  </header>
+
+  <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white">{{ selectedId() ? localization.traducir('common.edit') : localization.traducir('planManager.new') }}</h2>
+      @if (selectedId()) { <button type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold dark:border-slate-600 dark:text-white" (click)="newPlan()">{{ localization.traducir('planManager.new') }}</button> }
+    </div>
+    <form [formGroup]="form" (ngSubmit)="save()" class="grid gap-5 md:grid-cols-2">
+      <label class="grid gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ localization.traducir('planManager.name') }}<input class="rounded-lg border border-slate-300 bg-transparent px-3 py-2 dark:border-slate-600" formControlName="nombre" /></label>
+      <label class="grid gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ localization.traducir('planManager.description') }}<input class="rounded-lg border border-slate-300 bg-transparent px-3 py-2 dark:border-slate-600" formControlName="descripcion" /></label>
+      <label class="grid gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ localization.traducir('planManager.price') }}<input class="rounded-lg border border-slate-300 bg-transparent px-3 py-2 dark:border-slate-600" type="number" min="0.01" step="0.01" formControlName="precioVigente" /></label>
+      <label class="grid gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ localization.traducir('planManager.currency') }}<input class="rounded-lg border border-slate-300 bg-transparent px-3 py-2 uppercase dark:border-slate-600" formControlName="moneda" /></label>
+      <label class="grid gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ localization.traducir('planManager.periodicity') }}<input class="rounded-lg border border-slate-300 bg-transparent px-3 py-2 dark:border-slate-600" formControlName="periodicidad" /></label>
+      <label class="grid gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ localization.traducir('planManager.duration') }}<input class="rounded-lg border border-slate-300 bg-transparent px-3 py-2 dark:border-slate-600" type="number" min="1" formControlName="duracionMeses" /></label>
+      <label class="grid gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ localization.traducir('planManager.start') }}<input class="rounded-lg border border-slate-300 bg-transparent px-3 py-2 dark:border-slate-600" type="date" formControlName="fechaVigenciaDesde" /></label>
+      <label class="grid gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ localization.traducir('planManager.end') }}<input class="rounded-lg border border-slate-300 bg-transparent px-3 py-2 dark:border-slate-600" type="date" formControlName="fechaVigenciaHasta" /></label>
+      <label class="grid gap-2 text-sm font-semibold text-slate-700 md:col-span-2 dark:text-slate-200">{{ localization.traducir('planManager.features') }}<textarea class="min-h-28 rounded-lg border border-slate-300 bg-transparent px-3 py-2 font-normal dark:border-slate-600" formControlName="alcanceFuncional"></textarea><small class="font-normal text-slate-500">{{ localization.traducir('planManager.featuresHelp') }}</small></label>
+      <label class="grid gap-2 text-sm font-semibold text-slate-700 md:col-span-2 dark:text-slate-200">{{ localization.traducir('planManager.renewal') }}<input class="rounded-lg border border-slate-300 bg-transparent px-3 py-2 dark:border-slate-600" formControlName="condicionesRenovacion" /></label>
+      <label class="flex items-center gap-3 text-sm font-semibold text-slate-700 dark:text-slate-200"><input type="checkbox" formControlName="activo" />{{ localization.traducir('common.active') }}</label>
+      <div class="flex justify-end md:col-span-2"><button class="rounded-lg bg-cyan-600 px-5 py-3 font-bold text-white hover:bg-cyan-700 disabled:opacity-50" type="submit" [disabled]="saving()">{{ localization.traducir(selectedId() ? 'common.update' : 'common.create') }}</button></div>
+    </form>
+    @if (message()) { <p class="mt-4 rounded-lg bg-emerald-50 p-3 text-sm font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">{{ message() }}</p> }
+    @if (error()) { <p class="mt-4 rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-700 dark:bg-red-950 dark:text-red-300">{{ error() }}</p> }
+  </section>
+
+  <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div class="mb-5 flex flex-wrap items-center justify-between gap-3"><h2 class="text-xl font-bold text-slate-900 dark:text-white">{{ localization.traducir('planManager.list') }}</h2><button class="rounded-lg border border-cyan-600 px-4 py-2 text-sm font-bold text-cyan-700 dark:text-cyan-300" type="button" (click)="comparison.set(!comparison())">{{ localization.traducir(comparison() ? 'plans.hideComparison' : 'plans.compare') }}</button></div>
+    @if (loading()) { <p>{{ localization.traducir('common.loading') }}</p> } @else {
+      <div class="grid gap-4 lg:grid-cols-3">
+        @for (plan of plans(); track plan.id) {
+          <article class="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+            <div class="flex items-start justify-between gap-3"><div><h3 class="text-lg font-bold text-slate-900 dark:text-white">{{ plan.nombre }}</h3><p class="text-sm text-slate-500">{{ plan.moneda }} {{ plan.precioVigente }} / {{ plan.periodicidad }}</p></div><span class="rounded-full px-2 py-1 text-xs font-bold" [class.bg-emerald-100]="plan.activo" [class.text-emerald-700]="plan.activo" [class.bg-slate-100]="!plan.activo">{{ localization.traducir(plan.activo ? 'common.active' : 'common.inactive') }}</span></div>
+            <p class="mt-3 min-h-12 text-sm text-slate-600 dark:text-slate-300">{{ plan.descripcion }}</p>
+            <div class="mt-4 flex gap-2"><button class="rounded-lg bg-cyan-600 px-3 py-2 text-sm font-bold text-white" type="button" (click)="edit(plan)">{{ localization.traducir('common.edit') }}</button><button class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold dark:border-slate-600 dark:text-white" type="button" (click)="changeStatus(plan)">{{ localization.traducir(plan.activo ? 'common.deactivate' : 'common.activate') }}</button></div>
+          </article>
+        }
+      </div>
+    }
+  </section>
+
+  @if (comparison() && plans().length) { <app-plan-comparison [plans]="plans()"></app-plan-comparison> }
+</div>

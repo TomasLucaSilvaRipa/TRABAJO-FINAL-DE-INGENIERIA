@@ -31,7 +31,7 @@ public sealed class MPPContratacion
             new("@EmailLaboralResponsable", request.EmailLaboralResponsable),
             new("@CargoResponsable", request.CargoResponsable),
             new("@ProveedorPagoSeleccionado", request.ProveedorPagoSeleccionado),
-            new("@Periodicidad", request.Periodicidad),
+            new("@IdPlanComercial", request.IdPlanComercial),
         };
 
         DataTable resultado = _conexion.Leer("dbo.usp_Contratacion_CrearPendiente", parametros);

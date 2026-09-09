@@ -201,6 +201,16 @@
 .tb-contrast .tb-plan-scale { background: var(--tb-soft); }
 .tb-contrast .tb-price-card__saving, .tb-contrast .tb-included__list li::before { color: var(--tb-green); }
 
+.tb-pricing-grid.tb-pricing-grid--three { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: none; }
+.tb-empty-state { margin: 2rem auto; max-width: 42rem; border: 1px solid var(--tb-line); border-radius: var(--tb-radius-sm); background: var(--tb-surface); padding: 2rem; color: var(--tb-muted); text-align: center; }
+.tb-empty-state .tb-button { margin-top: 1rem; }
+.tb-comparison-action { display: flex; justify-content: center; margin-top: 2rem; }
+.tb-comparison { margin-top: 3rem; }
+.tb-comparison .tb-section-heading { max-width: 46rem; margin-bottom: 1.5rem; }
+.tb-comparison .tb-section-heading h2 { margin: .6rem 0; color: var(--tb-ink); font-size: clamp(1.7rem, 3vw, 2.4rem); }
+.tb-price-card h2 { min-height: 3.4rem; }
+.tb-price-card .tb-plan-list { flex: 1; }
+
 /* Customer reviews on the public home page. */
 .tb-reviews-section { background: var(--tb-surface); }
 .tb-reviews-heading { max-width: 48rem; margin: 0 auto; text-align: center; }.tb-reviews-heading .tb-title, .tb-reviews-heading .tb-lead { margin-right: auto; margin-left: auto; }
@@ -263,7 +273,7 @@
   .tb-mobile-nav { display: block; }
   .tb-hero__grid, .tb-two-column, .tb-contact-grid { grid-template-columns: 1fr; gap: 2.2rem; }
   .tb-hero__grid { min-height: 0; padding: 4rem 0; }.tb-hero__title { font-size: clamp(2.35rem, 11vw, 3.45rem); }
-  .tb-card-grid, .tb-pricing-grid { grid-template-columns: 1fr; }.tb-price-card--featured { transform: none; }
+  .tb-card-grid, .tb-pricing-grid, .tb-pricing-grid.tb-pricing-grid--three { grid-template-columns: 1fr; }.tb-price-card--featured { transform: none; }
   .tb-review-card { padding: 1.4rem; }.tb-reviews-action { flex-direction: column; align-items: flex-start; padding: 1.4rem; }.tb-reviews-action .tb-button { width: 100%; }.tb-dialog { padding: 1.6rem; }.tb-dialog__actions { display: grid; grid-template-columns: 1fr; }.tb-dialog__actions .tb-button { width: 100%; }
   .tb-checkout-grid { grid-template-columns: 1fr; gap: 1.25rem; }.tb-checkout-form__section { padding: 1.5rem; }.tb-checkout-form .tb-form__row { grid-template-columns: 1fr; gap: 1rem; }.tb-checkout-form .tb-form__row + .tb-form__row { margin-top: 1rem; }.tb-payment-options { grid-template-columns: 1fr; }.tb-order-summary { position: static; }.tb-order-summary__top, .tb-order-summary__included { padding: 1.5rem; }
   .tb-included { padding: 1.5rem; }.tb-included__list { grid-template-columns: 1fr; gap: .75rem; }

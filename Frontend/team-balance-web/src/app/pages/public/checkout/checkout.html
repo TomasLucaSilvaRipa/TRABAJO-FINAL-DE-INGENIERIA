@@ -1,8 +1,8 @@
 <section class="tb-page-hero tb-page-hero--navy tb-checkout-hero">
   <div class="tb-container tb-page-hero__content">
-    <p class="tb-eyebrow">Contratación TeamBalance</p>
-    <h1>Completá tu contratación.</h1>
-    <p>Ingresá los datos de tu agencia y revisá tu suscripción antes de continuar al pago.</p>
+    <p class="tb-eyebrow">{{ localization.traducir('checkout.eyebrow') }}</p>
+    <h1>{{ localization.traducir('checkout.title') }}</h1>
+    <p>{{ localization.traducir('checkout.subtitle') }}</p>
   </div>
 </section>
 
@@ -149,13 +149,13 @@
           <p class="tb-field__error">Necesitás aceptar los Términos y Condiciones para continuar.</p>
         }
 
-        <button class="tb-button tb-button--primary tb-checkout-submit" type="submit" [disabled]="checkoutForm.invalid || paymentIntegrationPending()">
-          Continuar al pago
+        <button class="tb-button tb-button--primary tb-checkout-submit" type="submit" [disabled]="checkoutForm.invalid || !plan() || paymentIntegrationPending()">
+          {{ localization.traducir('checkout.continue') }}
         </button>
 
         @if (paymentIntegrationPending()) {
           <p class="tb-checkout-pending" role="status">
-            Estamos redirigiéndote al sitio seguro de pago.
+            {{ localization.traducir('checkout.redirecting') }}
           </p>
         }
       </section>
@@ -163,34 +163,25 @@
 
     <aside class="tb-order-summary" aria-labelledby="order-summary-title">
       <div class="tb-order-summary__top">
-        <p class="tb-eyebrow">Resumen de compra</p>
-        <h2 id="order-summary-title">TeamBalance</h2>
-        @if (period() === 'annual') {
-          <p class="tb-order-summary__plan">Plan anual</p>
-          <p class="tb-order-summary__price"><span>USD</span> 890 <small>/ año</small></p>
-          <p class="tb-order-summary__saving">Ahorrás USD 178 · Equivale a 2 meses sin cargo</p>
+        <p class="tb-eyebrow">{{ localization.traducir('checkout.summary') }}</p>
+        @if (planLoading()) {
+          <p>{{ localization.traducir('common.loading') }}</p>
+        } @else if (planError() || !plan()) {
+          <p class="tb-field__error">{{ localization.traducir('checkout.noPlan') }}</p>
         } @else {
-          <p class="tb-order-summary__plan">Plan mensual</p>
-          <p class="tb-order-summary__price"><span>USD</span> 89 <small>/ mes</small></p>
+          <h2 id="order-summary-title">TeamBalance {{ plan()!.nombre }}</h2>
+          <p class="tb-order-summary__plan">{{ plan()!.descripcion }}</p>
+          <p class="tb-order-summary__price"><span>{{ plan()!.moneda }}</span> {{ plan()!.precioVigente }} <small>/ {{ localization.traducir('plans.month') }}</small></p>
         }
-        <a class="tb-order-summary__change" routerLink="/plans">Cambiar plan</a>
+        <a class="tb-order-summary__change" routerLink="/plans">{{ localization.traducir('checkout.changePlan') }}</a>
       </div>
 
       <div class="tb-order-summary__included">
-        <p>La misma plataforma completa en ambas modalidades:</p>
+        <p>{{ localization.traducir('plans.comparison.title') }}:</p>
         <ul>
-          <li>Hasta 20 usuarios</li>
-          <li>Acceso completo a TeamBalance</li>
-          <li>Gestión de proyectos y tareas</li>
-          <li>Gestión de empleados</li>
-          <li>Motor Best Fit</li>
-          <li>Disponibilidad y carga de trabajo</li>
-          <li>Dashboards y alertas</li>
-          <li>Seguimiento de horas y reportes</li>
-          <li>Soporte estándar</li>
-          <li>Actualizaciones del sistema</li>
-          <li>Configuración inicial básica</li>
-          <li>Capacitación inicial básica</li>
+          @for (feature of features(); track feature) {
+            <li>{{ featureLabel(feature) }}</li>
+          }
         </ul>
       </div>
     </aside>

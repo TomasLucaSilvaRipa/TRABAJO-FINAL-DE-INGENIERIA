@@ -34,6 +34,7 @@ import { ForgotPasswordComponent } from './pages/auth-pages/forgot-password/forg
 import { ResetPasswordComponent } from './pages/auth-pages/reset-password/reset-password.component';
 import { ChangePasswordComponent } from './pages/security/change-password/change-password.component';
 import { authGuard } from './guards/auth.guard';
+import { PlansManager } from './pages/plans-manager/plans-manager.component';
 
 export const routes: Routes = [
   {
@@ -150,6 +151,16 @@ export const routes: Routes = [
         title:'Seguridad de la cuenta | TeamBalance'
       },
       {
+        path:'planes',
+        component:PlansManager,
+        title:'Gestión de planes | TeamBalance'
+      },
+      {
+        path: 'bitacora',
+        loadComponent: () => import('./pages/logs/logs.component').then(m => m.Logs),
+        title: 'Bitácora | TeamBalance'
+      },
+      {
         path:'form-elements',
         component:FormElementsComponent,
         title:'Angular Form Elements Dashboard | TeamBalance - Angular Admin Dashboard Template'
@@ -213,11 +224,7 @@ export const routes: Routes = [
 
     ]
   },
-  {
-  path: 'logs',
-  loadComponent: () =>
-    import('./pages/logs/logs.component').then(m => m.Logs)
-  },
+  { path: 'logs', redirectTo: 'dashboard/bitacora', pathMatch: 'full' },
   // error pages
   {
     path:'**',

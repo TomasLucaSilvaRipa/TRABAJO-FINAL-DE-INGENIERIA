@@ -5,15 +5,15 @@ import { LocalizationService } from '../services/localization.service';
 @Pipe({
   name: 'appCultureDatePipe',
   standalone: true,
-  pure: true,
+  pure: false,
 })
 
-export class CultureDatePipePipe implements PipeTransform {
+export class CultureDatePipe implements PipeTransform {
   private readonly localization = inject(LocalizationService);
-  transform(value: Date | string | null | undefined): string {
+  transform(value: Date | string | null | undefined, includeTime = false): string {
     if (!value) {
       return '-';
     }
-    return this.localization.formatearFechaHora(value);
+    return includeTime ? this.localization.formatearFechaHora(value) : this.localization.formatearFecha(value);
   }
 }

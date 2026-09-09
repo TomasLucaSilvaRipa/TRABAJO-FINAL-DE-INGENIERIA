@@ -1,63 +1,63 @@
 <section class="tb-hero">
   <div class="tb-container tb-hero__grid">
     <div class="tb-hero__copy">
-      <p class="tb-eyebrow">Gestión inteligente de equipos</p>
-      <h1 class="tb-hero__title">Asigná con datos.<br /><span>Trabajá en equilibrio.</span></h1>
-      <p class="tb-lead">TeamBalance ayuda a agencias y consultoras a planificar proyectos según la disponibilidad, los skills, el seniority y la carga real de cada persona.</p>
+      <p class="tb-eyebrow">{{ content().heroEyebrow }}</p>
+      <h1 class="tb-hero__title">{{ content().heroTitle }}<br /><span>{{ content().heroAccent }}</span></h1>
+      <p class="tb-lead">{{ content().heroLead }}</p>
       <div class="tb-hero__actions">
-        <a routerLink="/plans" class="tb-button tb-button--light">Conocer planes</a>
-        <a routerLink="/about-us" class="tb-button tb-button--secondary">Cómo funciona</a>
+        <a routerLink="/plans" class="tb-button tb-button--light">{{ content().discoverPlans }}</a>
+        <a routerLink="/about-us" class="tb-button tb-button--secondary">{{ content().howItWorks }}</a>
       </div>
       <ul class="tb-hero__proof">
-        <li>Menos asignaciones “a ojo”</li>
-        <li>Más visibilidad operativa</li>
-        <li>Decisiones con contexto</li>
+        @for (proof of content().proof; track proof) {
+          <li>{{ proof }}</li>
+        }
       </ul>
     </div>
 
-    <div class="tb-product-preview" aria-label="Vista ilustrativa del tablero de capacidad">
+    <div class="tb-product-preview" [attr.aria-label]="content().previewAvailable">
       <div class="tb-product-preview__bar"><span></span><span></span><span></span></div>
       <div class="tb-product-preview__body">
         <article class="tb-preview-card">
-          <p class="tb-preview-label">Capacidad disponible</p>
+          <p class="tb-preview-label">{{ content().previewAvailable }}</p>
           <p class="tb-preview-value">78<small>%</small></p>
-          <p class="tb-preview-note">12% más que la semana anterior</p>
+          <p class="tb-preview-note">{{ content().previewIncrease }}</p>
           <div class="tb-bars" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
         </article>
 
         <article class="tb-preview-card tb-preview-card--blue">
-          <p class="tb-preview-label">Carga del equipo</p>
-          <div class="tb-load"><div class="tb-load__row"><span>Producto</span><span>82%</span></div><div class="tb-load__track"><span style="width: 82%"></span></div></div>
-          <div class="tb-load"><div class="tb-load__row"><span>Desarrollo</span><span>64%</span></div><div class="tb-load__track"><span style="width: 64%"></span></div></div>
-          <div class="tb-load"><div class="tb-load__row"><span>Diseño</span><span>91%</span></div><div class="tb-load__track"><span style="width: 91%"></span></div></div>
+          <p class="tb-preview-label">{{ content().previewWorkload }}</p>
+          <div class="tb-load"><div class="tb-load__row"><span>{{ content().previewProduct }}</span><span>82%</span></div><div class="tb-load__track"><span style="width: 82%"></span></div></div>
+          <div class="tb-load"><div class="tb-load__row"><span>{{ content().previewDevelopment }}</span><span>64%</span></div><div class="tb-load__track"><span style="width: 64%"></span></div></div>
+          <div class="tb-load"><div class="tb-load__row"><span>{{ content().previewDesign }}</span><span>91%</span></div><div class="tb-load__track"><span style="width: 91%"></span></div></div>
         </article>
       </div>
-      <div class="tb-preview-alert"><span>i</span><p><strong>3 personas</strong> liberan capacidad esta semana.</p></div>
+      <div class="tb-preview-alert"><span>i</span><p><strong>{{ content().previewPeople }}</strong> {{ content().previewAlert }}</p></div>
     </div>
   </div>
 </section>
 
 <section class="tb-section">
   <div class="tb-container">
-    <p class="tb-eyebrow">Más que gestión de proyectos</p>
-    <h2 class="tb-title">La capacidad de tu equipo deja de ser una intuición.</h2>
-    <p class="tb-lead">La plataforma centraliza las variables que impactan en la planificación para que el líder pueda anticipar desvíos antes de que se conviertan en horas extra, retrasos o pérdida de margen.</p>
+    <p class="tb-eyebrow">{{ content().overviewEyebrow }}</p>
+    <h2 class="tb-title">{{ content().overviewTitle }}</h2>
+    <p class="tb-lead">{{ content().overviewLead }}</p>
 
     <div class="tb-card-grid">
       <article class="tb-card tb-card--feature">
         <span class="tb-card__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3M3 21h18"/></svg></span>
-        <h3 class="tb-card__title">Capacidad visible</h3>
-        <p class="tb-card__text">Visualizá disponibilidad, licencias y ocupación para evitar sobrecarga o subutilización.</p>
+        <h3 class="tb-card__title">{{ content().cards[0].title }}</h3>
+        <p class="tb-card__text">{{ content().cards[0].text }}</p>
       </article>
       <article class="tb-card tb-card--feature">
         <span class="tb-card__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m5 18 5-5 3 3 6-7M15 9h4v4"/></svg></span>
-        <h3 class="tb-card__title">Mejor asignación</h3>
-        <p class="tb-card__text">Contrastá skill, seniority, carga y plazo para encontrar el perfil más conveniente para cada tarea.</p>
+        <h3 class="tb-card__title">{{ content().cards[1].title }}</h3>
+        <p class="tb-card__text">{{ content().cards[1].text }}</p>
       </article>
       <article class="tb-card tb-card--feature">
         <span class="tb-card__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M5 20c.7-3.6 3-5.5 7-5.5s6.3 1.9 7 5.5M4 5h3m10 0h3"/></svg></span>
-        <h3 class="tb-card__title">Equipos sostenibles</h3>
-        <p class="tb-card__text">Detectá riesgos de ocupación y tomá decisiones que cuiden el ritmo y la rentabilidad.</p>
+        <h3 class="tb-card__title">{{ content().cards[2].title }}</h3>
+        <p class="tb-card__text">{{ content().cards[2].text }}</p>
       </article>
     </div>
   </div>
@@ -66,9 +66,9 @@
 <section class="tb-section tb-section--soft">
   <div class="tb-container">
     <div class="tb-stats">
-      <div><p class="tb-stat__value">Skills + seniority</p><p class="tb-stat__label">para evaluar cada asignación</p></div>
-      <div><p class="tb-stat__value">Riesgo proyectado</p><p class="tb-stat__label">para anticipar desvíos de plazos</p></div>
-      <div><p class="tb-stat__value">Carga consolidada</p><p class="tb-stat__label">para decidir con la misma información</p></div>
+      @for (stat of content().stats; track stat.value) {
+        <div><p class="tb-stat__value">{{ stat.value }}</p><p class="tb-stat__label">{{ stat.label }}</p></div>
+      }
     </div>
   </div>
 </section>
@@ -76,15 +76,15 @@
 <section class="tb-section tb-reviews-section" aria-labelledby="reviews-title">
   <div class="tb-container">
     <div class="tb-reviews-heading">
-      <p class="tb-eyebrow">Opiniones</p>
-      <h2 class="tb-title" id="reviews-title">La experiencia de quienes ya trabajan con TeamBalance.</h2>
-      <p class="tb-lead">Conocé cómo agencias y consultoras usan la plataforma para organizar mejor la operación de sus equipos.</p>
+      <p class="tb-eyebrow">{{ content().reviewsEyebrow }}</p>
+      <h2 class="tb-title" id="reviews-title">{{ content().reviewsTitle }}</h2>
+      <p class="tb-lead">{{ content().reviewsLead }}</p>
     </div>
 
     <div class="tb-reviews-list">
-      @for (review of reviews; track review.name) {
+      @for (review of reviews(); track review.name) {
         <article class="tb-review-card">
-          <div class="tb-review-stars" [attr.aria-label]="review.rating + ' de 5 estrellas'">
+          <div class="tb-review-stars" [attr.aria-label]="review.rating + ' ' + content().stars">
             @for (star of stars; track star) {
               <span [class.tb-review-stars__star--filled]="star <= review.rating" aria-hidden="true">★</span>
             }
@@ -102,10 +102,10 @@
 
     <div class="tb-reviews-action">
       <div>
-        <h3>¿Ya usás TeamBalance?</h3>
-        <p>Compartí tu experiencia para ayudar a otras agencias a conocer la plataforma.</p>
+        <h3>{{ content().reviewPromptTitle }}</h3>
+        <p>{{ content().reviewPromptText }}</p>
       </div>
-      <button class="tb-button tb-button--secondary" type="button" (click)="openReviewNotice()">Dejar mi opinión</button>
+      <button class="tb-button tb-button--secondary" type="button" (click)="openReviewNotice()">{{ content().leaveReview }}</button>
     </div>
   </div>
 </section>
@@ -114,11 +114,11 @@
   <div class="tb-container">
     <div class="tb-cta">
       <div>
-        <p class="tb-eyebrow">Un mejor punto de partida</p>
-        <h2 class="tb-title">Hacé que cada proyecto tenga el equipo que necesita.</h2>
-        <p class="tb-lead">Elegí la modalidad de suscripción que acompañe a tu agencia.</p>
+        <p class="tb-eyebrow">{{ content().ctaEyebrow }}</p>
+        <h2 class="tb-title">{{ content().ctaTitle }}</h2>
+        <p class="tb-lead">{{ content().ctaLead }}</p>
       </div>
-      <div class="tb-cta__actions"><a routerLink="/plans" class="tb-button tb-button--light">Ver planes</a></div>
+      <div class="tb-cta__actions"><a routerLink="/plans" class="tb-button tb-button--light">{{ content().discoverPlans }}</a></div>
     </div>
   </div>
 </section>
@@ -126,13 +126,13 @@
 @if (reviewNoticeOpen()) {
   <div class="tb-dialog-backdrop" role="presentation" (click)="closeReviewNotice()">
     <section class="tb-dialog" role="dialog" aria-modal="true" aria-labelledby="review-dialog-title" (click)="$event.stopPropagation()">
-      <button class="tb-dialog__close" type="button" aria-label="Cerrar" (click)="closeReviewNotice()">×</button>
-      <p class="tb-eyebrow">Opiniones de clientes</p>
-      <h2 id="review-dialog-title">Tu opinión se publica desde tu cuenta.</h2>
-      <p>Para dejar una opinión necesitás estar registrado y contar con una suscripción activa de TeamBalance.</p>
+      <button class="tb-dialog__close" type="button" [attr.aria-label]="content().close" (click)="closeReviewNotice()">×</button>
+      <p class="tb-eyebrow">{{ content().reviewDialogEyebrow }}</p>
+      <h2 id="review-dialog-title">{{ content().reviewDialogTitle }}</h2>
+      <p>{{ content().reviewDialogText }}</p>
       <div class="tb-dialog__actions">
-        <a class="tb-button tb-button--primary" routerLink="/plans" (click)="closeReviewNotice()">Elegir un plan</a>
-        <a class="tb-button tb-button--secondary" routerLink="/plans" (click)="closeReviewNotice()">Conocer planes</a>
+        <a class="tb-button tb-button--primary" routerLink="/plans" (click)="closeReviewNotice()">{{ content().choosePlan }}</a>
+        <a class="tb-button tb-button--secondary" routerLink="/plans" (click)="closeReviewNotice()">{{ content().discoverPlans }}</a>
       </div>
     </section>
   </div>

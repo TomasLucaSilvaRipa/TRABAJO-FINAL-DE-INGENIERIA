@@ -132,10 +132,7 @@ namespace TeamBalance.BLL
                 throw new ArgumentException("Completá los datos obligatorios de la contratación.");
             }
 
-            if (request.Periodicidad is not ("Mensual" or "Anual"))
-            {
-                throw new ArgumentException("Seleccioná una periodicidad mensual o anual.");
-            }
+            if (request.IdPlanComercial <= 0){ throw new ArgumentException("Seleccioná un plan comercial válido."); }
         }
     }
 }

@@ -18,36 +18,29 @@ CREATE OR ALTER PROCEDURE dbo.usp_Contratacion_CrearPendiente
     @EmailLaboralResponsable NVARCHAR(150),
     @CargoResponsable NVARCHAR(100),
     @ProveedorPagoSeleccionado NVARCHAR(100),
-    @Periodicidad NVARCHAR(50)
+    @IdPlanComercial INT
 AS
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    IF @Periodicidad NOT IN (N'Mensual', N'Anual')
-        THROW 50001, 'La periodicidad seleccionada no está disponible.', 1;
-
-    DECLARE @IdPlanComercial INT;
     DECLARE @Importe DECIMAL(18, 2);
     DECLARE @Moneda NVARCHAR(10);
 
     SELECT TOP (1)
-        @IdPlanComercial = ID,
         @Importe = PrecioVigente,
         @Moneda = Moneda
     FROM dbo.PlanComercial
-    WHERE Periodicidad = @Periodicidad
+    WHERE ID = @IdPlanComercial
       AND Activo = 1
-    ORDER BY ID;
 
-    IF @IdPlanComercial IS NULL
-        THROW 50002, 'No existe un plan activo para la periodicidad seleccionada.', 1;
+    IF @Importe IS NULL
+        THROW 50002, 'No existe un plan comercial activo con el identificador indicado.', 1;
 
     -- Checkout Pro TEST: mantener el importe temporal dentro del límite de las
     -- cuentas de prueba. El plan comercial real se aplicará al pasar a producción.
     SET @Importe = 1000.00;
-
-    BEGIN TRANSACTION;
+    SET @Moneda = N'ARS';
 
     INSERT INTO dbo.ContratacionServicio
     (
@@ -111,8 +104,6 @@ BEGIN
         SYSDATETIME()
     );
 
-    COMMIT TRANSACTION;
-
     SELECT
         @IdContratacion AS IdContratacion,
         @IdPlanComercial AS IdPlanComercial,
@@ -168,8 +159,6 @@ BEGIN
         ELSE N'Pendiente'
     END;
 
-    BEGIN TRANSACTION;
-
     UPDATE dbo.OperacionPago
     SET ReferenciaProveedor = @ReferenciaProveedor,
         Estado = @EstadoProveedor,
@@ -187,8 +176,6 @@ BEGIN
         FechaRespuesta = SYSDATETIME(),
         MensajeRespuesta = @MensajeRespuesta
     WHERE ID = @IdContratacion;
-
-    COMMIT TRANSACTION;
 
     EXEC dbo.usp_Contratacion_ConsultarEstado @ReferenciaContratacion;
 END;

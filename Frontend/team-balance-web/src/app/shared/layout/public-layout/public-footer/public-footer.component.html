@@ -4,37 +4,37 @@
       <a routerLink="/" fragment="top" aria-label="TeamBalance, volver al inicio">
         <img class="tb-footer__brand" src="/brand/teambalance-logo.png" alt="TeamBalance" />
       </a>
-      <p class="tb-footer__description">Planificación de capacidad para agencias y consultoras que trabajan por proyectos.</p>
+      <p class="tb-footer__description">{{ localization.traducir('footer.description') }}</p>
     </div>
 
     <div>
-      <h2>Producto</h2>
+      <h2>{{ localization.traducir('menu.product') }}</h2>
       <nav aria-label="Producto">
-        <a routerLink="/" fragment="top">Inicio</a>
-        <a routerLink="/plans">Planes</a>
+        <a routerLink="/" fragment="top">{{ localization.traducir('menu.home') }}</a>
+        <a routerLink="/plans">{{ localization.traducir('menu.plans') }}</a>
       </nav>
     </div>
 
     <div>
-      <h2>Empresa</h2>
+      <h2>{{ localization.traducir('menu.company') }}</h2>
       <nav aria-label="Empresa">
-        <a routerLink="/about-us">Nosotros</a>
-        <a routerLink="/contact">Contacto</a>
+        <a routerLink="/about-us">{{ localization.traducir('menu.about') }}</a>
+        <a routerLink="/contact">{{ localization.traducir('menu.contact') }}</a>
       </nav>
     </div>
 
     <div>
-      <h2>Legal</h2>
+      <h2>{{ localization.traducir('menu.legal') }}</h2>
       <nav aria-label="Legal">
-        <a routerLink="/terms-and-conditions">Términos y condiciones</a>
-        <a routerLink="/privacy-policy">Política de privacidad</a>
-        <a routerLink="/security-policy">Política de seguridad</a>
+        <a routerLink="/terms-and-conditions">{{ localization.traducir('menu.terms') }}</a>
+        <a routerLink="/privacy-policy">{{ localization.traducir('menu.privacy') }}</a>
+        <a routerLink="/security-policy">{{ localization.traducir('menu.securityPolicy') }}</a>
       </nav>
     </div>
   </div>
 
   <div class="tb-container tb-footer__bottom">
-    <span>© 2026 TeamBalance. Todos los derechos reservados.</span>
-    <span>Gestión inteligente de equipos.</span>
+    <span>{{ localization.traducir('footer.rights') }}</span>
+    <span>{{ localization.traducir('footer.tagline') }}</span>
   </div>
 </footer>

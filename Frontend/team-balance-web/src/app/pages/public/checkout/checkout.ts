@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ContratacionRequest, ContratacionService } from '../../../services/contratacion.service';
-
-type BillingPeriod = 'monthly' | 'annual';
+import { LocalizationService } from '../../../services/localization.service';
+import { PlanComercial, PlanComercialService } from '../../../services/plan-comercial.service';
 
 @Component({
   selector: 'app-checkout',
@@ -16,8 +16,12 @@ export class CheckoutComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly contratacionService = inject(ContratacionService);
+  private readonly planService = inject(PlanComercialService);
+  readonly localization = inject(LocalizationService);
 
-  readonly period = signal<BillingPeriod>('monthly');
+  readonly plan = signal<PlanComercial | null>(null);
+  readonly planLoading = signal(true);
+  readonly planError = signal(false);
   readonly paymentIntegrationPending = signal(false);
 
   readonly checkoutForm = this.formBuilder.nonNullable.group({
@@ -36,9 +40,42 @@ export class CheckoutComponent {
   });
 
   constructor() {
-    this.route.queryParamMap.subscribe((params) => {
-      this.period.set(params.get('period') === 'annual' ? 'annual' : 'monthly');
+    this.route.queryParamMap.subscribe((params) => this.loadPlan(Number(params.get('planId'))));
+  }
+
+  private loadPlan(id: number): void {
+    this.planLoading.set(true);
+    this.planError.set(false);
+
+    if (id <= 0) {
+      this.planService.consultarPlanesActivos().subscribe({
+        next: (plans) => {
+          this.plan.set(plans[0] ?? null);
+          this.planError.set(!this.plan());
+          this.planLoading.set(false);
+        },
+        error: () => { this.planError.set(true); this.planLoading.set(false); },
+      });
+      return;
+    }
+
+    this.planService.consultarPlan(id).subscribe({
+      next: (plan) => {
+        this.plan.set(plan);
+        this.planError.set(!this.plan());
+        this.planLoading.set(false);
+      },
+      error: () => { this.planError.set(true); this.planLoading.set(false); },
     });
+  }
+
+  features(): string[] {
+    const plan = this.plan();
+    return plan ? this.planService.obtenerFuncionalidades(plan) : [];
+  }
+
+  featureLabel(feature: string): string {
+    return this.localization.traducir(`plans.feature.${feature}`, undefined, feature);
   }
 
   continueToPayment(): void {
@@ -48,7 +85,7 @@ export class CheckoutComponent {
 
     this.checkoutForm.markAllAsTouched();
 
-    if (this.checkoutForm.invalid) {
+    if (this.checkoutForm.invalid || !this.plan()) {
       return;
     }
 
@@ -69,7 +106,7 @@ export class CheckoutComponent {
       emailLaboralResponsable: form.workEmail,
       cargoResponsable: form.role,
       proveedorPagoSeleccionado: form.paymentProvider,
-      periodicidad: this.period() === 'annual' ? 'Anual' : 'Mensual',
+      idPlanComercial: this.plan()!.id,
     };
 
     this.contratacionService.contratar(contratacion)

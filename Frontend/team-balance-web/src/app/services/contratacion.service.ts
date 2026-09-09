@@ -19,7 +19,7 @@ export interface ContratacionRequest {
   emailLaboralResponsable: string;
   cargoResponsable: string;
   proveedorPagoSeleccionado: string;
-  periodicidad: 'Mensual' | 'Anual';
+  idPlanComercial: number;
 }
 
 export interface EstadoContratacionResponse {

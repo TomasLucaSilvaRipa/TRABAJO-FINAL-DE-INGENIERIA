@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../../../services/auth.service';
 import { RecaptchaService } from '../../../../services/recaptcha.service';
+import { LocalizationService } from '../../../../services/localization.service';
 
 @Component({
   selector: 'app-signin-form',
@@ -18,6 +19,7 @@ export class SigninFormComponent {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly recaptchaService = inject(RecaptchaService);
+  readonly localization = inject(LocalizationService);
 
   showPassword = false;
   readonly submitting = signal(false);
@@ -39,7 +41,7 @@ export class SigninFormComponent {
 
     if (this.signInForm.invalid)
     {
-      this.requestError.set('Ingresá un email válido y tu contraseña.');
+      this.requestError.set(this.localization.traducir('login.invalid'));
       return;
     }
 
@@ -53,6 +55,7 @@ export class SigninFormComponent {
           next: (respuesta) => {
             localStorage.setItem('token', respuesta.accessToken);
             localStorage.setItem('tokenExpiresAt', respuesta.expiresAt);
+            this.authService.guardarUsuario(respuesta.usuario);
             void this.router.navigate(['/dashboard']);
           },
           error: (error) => { this.requestError.set( typeof error.error === 'string' ? error.error : 'No fue posible iniciar sesión. Intentá nuevamente.',);},

@@ -1,66 +1,56 @@
 <section class="tb-page-hero tb-page-hero--navy">
   <div class="tb-container tb-page-hero__content">
-    <p class="tb-eyebrow">Suscripción TeamBalance</p>
-    <h1>Planes simples para gestionar mejor tu equipo.</h1>
-    <p>
-      Todas las funcionalidades de TeamBalance están incluidas. Elegí la modalidad de pago que mejor se adapte a tu agencia.
-    </p>
+    <p class="tb-eyebrow">{{ localization.traducir('plans.eyebrow') }}</p>
+    <h1>{{ localization.traducir('plans.title') }}</h1>
+    <p>{{ localization.traducir('plans.subtitle') }}</p>
   </div>
 </section>
 
 <section class="tb-section tb-plans-section">
   <div class="tb-container">
-    <div class="tb-pricing-grid">
-      <article class="tb-price-card">
-        <p class="tb-price-card__tag">Mensual</p>
-        <h2>TeamBalance mensual</h2>
-        <p class="tb-price">{{ 89 | appCultureCurrencyPipe:'USD' }} <small>/ mes</small></p>
-        <p class="tb-price-card__same-plan">Acceso completo a TeamBalance, hasta 20 usuarios.</p>
-        <a class="tb-button tb-button--primary" routerLink="/checkout" [queryParams]="{ period: 'monthly' }">Contratar TeamBalance</a>
-      </article>
-
-      <article class="tb-price-card tb-price-card--featured">
-        <p class="tb-price-card__tag">Mejor valor</p>
-        <h2>TeamBalance anual</h2>
-        <p class="tb-price">{{ 890 | appCultureCurrencyPipe:'USD' }} <small>/ año</small></p>
-        <p class="tb-price-card__saving">Ahorrás USD 178 · 2 meses sin cargo</p>
-        <p class="tb-price-card__same-plan">Las mismas funcionalidades, con una única renovación anual.</p>
-        <a class="tb-button tb-button--primary" routerLink="/checkout" [queryParams]="{ period: 'annual' }">Contratar TeamBalance</a>
-      </article>
-    </div>
-
-    <section class="tb-included" aria-labelledby="included-title">
-      <div class="tb-included__intro">
-        <p class="tb-eyebrow">Una única versión, sin niveles funcionales</p>
-        <h2 id="included-title">Todo lo que tu equipo necesita para operar con claridad.</h2>
-        <p>
-          La suscripción incluye acceso completo a la plataforma, configuración inicial básica, capacitación inicial y soporte estándar.
-        </p>
+    @if (loading()) {
+      <p class="tb-empty-state" role="status">{{ localization.traducir('common.loading') }}</p>
+    } @else if (error()) {
+      <div class="tb-empty-state" role="alert">
+        <p>{{ localization.traducir('plans.loadError') }}</p>
+        <button class="tb-button tb-button--secondary" type="button" (click)="loadPlans()">{{ localization.traducir('common.retry') }}</button>
+      </div>
+    } @else if (plans().length === 0) {
+      <p class="tb-empty-state">{{ localization.traducir('plans.empty') }}</p>
+    } @else {
+      <div class="tb-pricing-grid tb-pricing-grid--three">
+        @for (plan of plans(); track plan.id) {
+          <article class="tb-price-card" [class.tb-price-card--featured]="plan.nombre.toLowerCase() === 'business'">
+            <p class="tb-price-card__tag">{{ plan.nombre }}</p>
+            <h2>{{ description(plan) }}</h2>
+            <p class="tb-price"><span>{{ plan.moneda }}</span> {{ plan.precioVigente }} <small>/ {{ localization.traducir('plans.month') }}</small></p>
+            <ul class="tb-plan-list">
+              @for (feature of features(plan); track feature) {
+                <li>{{ featureLabel(feature) }}</li>
+              }
+            </ul>
+            <a class="tb-button tb-button--primary" routerLink="/checkout" [queryParams]="{ planId: plan.id }">{{ localization.traducir('plans.hire') }}</a>
+          </article>
+        }
       </div>
 
-      <ul class="tb-included__list">
-        <li>Hasta 20 usuarios</li>
-        <li>Gestión de proyectos y tareas</li>
-        <li>Gestión de empleados</li>
-        <li>Disponibilidad y carga de trabajo</li>
-        <li>Motor Best Fit para sugerir recursos</li>
-        <li>Skills y seniority</li>
-        <li>Dashboards operativos y alertas</li>
-        <li>Seguimiento de horas y reportes</li>
-        <li>Soporte estándar y actualizaciones</li>
-        <li>Configuración inicial básica</li>
-        <li>Capacitación inicial básica</li>
-      </ul>
-    </section>
-
-    <aside class="tb-plan-scale">
-      <div>
-        <p class="tb-eyebrow">Equipos en expansión</p>
-        <h2>¿Necesitás más de 20 usuarios?</h2>
-        <p>Contanos cómo está conformada tu agencia y preparemos una cotización personalizada.</p>
+      <div class="tb-comparison-action">
+        <button class="tb-button tb-button--secondary" type="button" (click)="toggleComparison()">
+          {{ localization.traducir(comparisonVisible() ? 'plans.hideComparison' : 'plans.compare') }}
+        </button>
       </div>
-      <a class="tb-button tb-button--secondary" routerLink="/contact">Solicitar cotización personalizada</a>
-    </aside>
+
+      @if (comparisonVisible()) {
+        <section class="tb-comparison" aria-labelledby="comparison-title">
+          <div class="tb-section-heading">
+            <p class="tb-eyebrow">{{ localization.traducir('plans.compare') }}</p>
+            <h2 id="comparison-title">{{ localization.traducir('plans.comparison.title') }}</h2>
+            <p>{{ localization.traducir('plans.comparison.subtitle') }}</p>
+          </div>
+          <app-plan-comparison [plans]="plans()"></app-plan-comparison>
+        </section>
+      }
+    }
   </div>
 </section>
 
@@ -68,21 +58,14 @@
   <div class="tb-container">
     <div class="tb-implementation">
       <div>
-        <p class="tb-eyebrow">¿Necesitás ayuda para comenzar?</p>
-        <h2>Implementación y capacitación</h2>
-        <p>
-          Configuramos TeamBalance para tu agencia, acompañamos la puesta en marcha y capacitamos a tu equipo para comenzar a utilizar la plataforma con confianza.
-        </p>
+        <p class="tb-eyebrow">{{ localization.traducir('plans.onboarding.eyebrow') }}</p>
+        <h2>{{ localization.traducir('plans.onboarding.title') }}</h2>
+        <p>{{ localization.traducir('plans.onboarding.text') }}</p>
       </div>
-
       <div class="tb-implementation__details">
-        <ul class="tb-plan-list">
-          <li>Configuración y puesta en marcha</li>
-          <li>Capacitación inicial del equipo</li>
-          <li>Capacitación adaptada a Dueño, PM y Empleado</li>
-          <li>Acompañamiento durante la adopción</li>
-        </ul>
-        <a class="tb-button tb-button--primary" routerLink="/contact">Consultar servicio</a>
+        <h3>{{ localization.traducir('plans.custom.title') }}</h3>
+        <p>{{ localization.traducir('plans.custom.text') }}</p>
+        <a class="tb-button tb-button--primary" routerLink="/contact">{{ localization.traducir('plans.custom.cta') }}</a>
       </div>
     </div>
   </div>

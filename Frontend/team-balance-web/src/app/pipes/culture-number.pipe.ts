@@ -5,10 +5,10 @@ import { LocalizationService } from '../services/localization.service';
 @Pipe({
   name: 'appCultureNumberPipe',
   standalone: true,
-  pure: true,
+  pure: false,
 })
 
-export class CultureNumberPipePipe implements PipeTransform {
+export class CultureNumberPipe implements PipeTransform {
   private readonly localization = inject(LocalizationService);
   transform(value: number | null | undefined): string {
     if (value === null || value === undefined) {

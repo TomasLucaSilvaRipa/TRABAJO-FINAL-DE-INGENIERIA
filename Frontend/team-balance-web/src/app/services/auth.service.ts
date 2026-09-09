@@ -11,6 +11,16 @@ export interface RegistryResponse {
 export interface LogInResponse {
   accessToken: string;
   expiresAt: string;
+  usuario: UsuarioSesion;
+}
+
+export interface UsuarioSesion {
+  id: number;
+  nombre: string;
+  apellido: string;
+  email: string;
+  idAgencia: number;
+  idRol: number;
 }
 
 export interface LogInRequest {
@@ -90,5 +100,17 @@ export class AuthService {
   logOut(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('tokenExpiresAt');
+    localStorage.removeItem('usuario');
+  }
+
+  guardarUsuario(usuario: UsuarioSesion): void {
+    localStorage.setItem('usuario', JSON.stringify(usuario));
+  }
+
+  usuarioActual(): UsuarioSesion | null {
+    const usuario = localStorage.getItem('usuario');
+    if (!usuario){ return null; }
+    try { return JSON.parse(usuario) as UsuarioSesion; }
+    catch { return null; }
   }
 }

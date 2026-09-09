@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { LocalizationService } from '../../../services/localization.service';
 
 @Component({
   selector: 'app-auth-page-layout',
@@ -6,4 +7,6 @@ import { Component } from '@angular/core';
   templateUrl: './auth-page-layout.component.html',
   styleUrl: './auth-page-layout.component.css',
 })
-export class AuthPageLayoutComponent {}
+export class AuthPageLayoutComponent {
+  readonly localization = inject(LocalizationService);
+}

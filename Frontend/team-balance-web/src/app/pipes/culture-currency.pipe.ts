@@ -5,7 +5,7 @@ import { LocalizationService } from '../services/localization.service';
 @Pipe({
   name: 'appCultureCurrencyPipe',
   standalone: true,
-  pure: true,
+  pure: false,
 })
 
 export class CultureCurrencyPipe implements PipeTransform {

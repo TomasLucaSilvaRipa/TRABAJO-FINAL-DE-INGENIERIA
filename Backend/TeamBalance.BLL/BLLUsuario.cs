@@ -166,6 +166,21 @@ public class BLLUsuario
         return !string.IsNullOrWhiteSpace(accessToken) && _usuarioMPP.SesionVigente(_seguridad.GenerarHashToken(accessToken));
     }
 
+    public Usuario? ConsultarUsuarioSesion(string accessToken)
+    {
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            return null;
+        }
+
+        SesionUsuario sesion = new SesionUsuario()
+        {
+            TokenHash = _seguridad.GenerarHashToken(accessToken),
+        };
+
+        return _usuarioMPP.ConsultarUsuarioPorSesion(sesion);
+    }
+
     public void CerrarSesion(string accessToken)
     {
         if (!string.IsNullOrWhiteSpace(accessToken))

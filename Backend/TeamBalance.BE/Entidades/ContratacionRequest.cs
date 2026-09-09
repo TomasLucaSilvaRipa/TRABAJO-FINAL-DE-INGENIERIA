@@ -20,6 +20,6 @@ namespace TeamBalance.BE.Entidades
 
         public string ProveedorPagoSeleccionado { get; set; } = string.Empty;
 
-        public string Periodicidad { get; set; } = string.Empty;
+        public int IdPlanComercial { get; set; }
     }
 }

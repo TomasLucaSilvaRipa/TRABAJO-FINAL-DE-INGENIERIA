@@ -9,10 +9,10 @@
     </a>
 
     <nav class="tb-nav" aria-label="Navegación principal">
-      <a routerLink="/" fragment="top" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" [routerLinkActiveOptions]="{ exact: true }" class="tb-nav__link">Inicio</a>
-      <a routerLink="/plans" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">Planes</a>
-      <a routerLink="/about-us" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">Nosotros</a>
-      <a routerLink="/contact" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">Contacto</a>
+      <a routerLink="/" fragment="top" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" [routerLinkActiveOptions]="{ exact: true }" class="tb-nav__link">{{ 'menu.home' | appTranslatePipe: localization.language() }}</a>
+      <a routerLink="/plans" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">{{ 'menu.plans' | appTranslatePipe: localization.language() }}</a>
+      <a routerLink="/about-us" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">{{ 'menu.about' | appTranslatePipe: localization.language() }}</a>
+      <a routerLink="/contact" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">{{ 'menu.contact' | appTranslatePipe: localization.language() }}</a>
     </nav>
 
     <div class="tb-header__actions">
@@ -35,14 +35,14 @@
     <nav id="mobile-navigation" class="tb-mobile-nav" aria-label="Navegación móvil">
       <div class="tb-container">
         <div class="tb-mobile-nav__links">
-          <a routerLink="/" fragment="top" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" [routerLinkActiveOptions]="{ exact: true }" class="tb-nav__link">Inicio</a>
-          <a routerLink="/plans" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">Planes</a>
-          <a routerLink="/about-us" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">Nosotros</a>
-          <a routerLink="/contact" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">Contacto</a>
+          <a routerLink="/" fragment="top" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" [routerLinkActiveOptions]="{ exact: true }" class="tb-nav__link">{{ 'menu.home' | appTranslatePipe: localization.language() }}</a>
+          <a routerLink="/plans" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">{{ 'menu.plans' | appTranslatePipe: localization.language() }}</a>
+          <a routerLink="/about-us" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">{{ 'menu.about' | appTranslatePipe: localization.language() }}</a>
+          <a routerLink="/contact" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">{{ 'menu.contact' | appTranslatePipe: localization.language() }}</a>
         </div>
         <div class="tb-mobile-nav__actions">
-          <a routerLink="/signin" (click)="closeMenu()" class="tb-button tb-button--secondary">Iniciar sesión</a>
-          <a routerLink="/plans" (click)="closeMenu()" class="tb-button tb-button--primary">Ver planes</a>
+          <a routerLink="/signin" (click)="closeMenu()" class="tb-button tb-button--secondary">{{ 'signin' | appTranslatePipe: localization.language() }}</a>
+          <a routerLink="/plans" (click)="closeMenu()" class="tb-button tb-button--primary">{{ 'view-plans' | appTranslatePipe: localization.language() }}</a>
         </div>
       </div>
     </nav>
