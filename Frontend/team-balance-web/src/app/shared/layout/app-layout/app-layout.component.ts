@@ -5,6 +5,7 @@ import { AppSidebarComponent } from '../app-sidebar/app-sidebar.component';
 import { BackdropComponent } from '../backdrop/backdrop.component';
 import { RouterModule } from '@angular/router';
 import { AppHeaderComponent } from '../app-header/app-header.component';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-layout',
@@ -23,10 +24,14 @@ export class AppLayoutComponent {
   readonly isHovered$;
   readonly isMobileOpen$;
 
-  constructor(public sidebarService: SidebarService) {
+  constructor(public sidebarService: SidebarService, private readonly authService: AuthService) {
     this.isExpanded$ = this.sidebarService.isExpanded$;
     this.isHovered$ = this.sidebarService.isHovered$;
     this.isMobileOpen$ = this.sidebarService.isMobileOpen$;
+  }
+
+  ngOnInit() {
+    this.authService.actualizarAutorizacionSesion();
   }
 
   get containerClasses() {

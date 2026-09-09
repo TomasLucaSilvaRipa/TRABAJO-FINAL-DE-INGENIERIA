@@ -1,0 +1,21 @@
+<section class="mx-auto max-w-4xl space-y-6">
+  <header>
+    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-600">Mi operación</p>
+    <h1 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">Mi disponibilidad</h1>
+    <p class="mt-2 text-slate-600 dark:text-slate-300">Mantené visible tu disponibilidad para mejorar la planificación del equipo.</p>
+  </header>
+
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+    @for (dia of dias; track dia.nombre) {
+      <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <p class="font-bold text-slate-900 dark:text-white">{{ dia.nombre }}</p>
+        <p class="mt-3 text-sm font-medium text-emerald-600">Disponible</p>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Horario habitual</p>
+      </article>
+    }
+  </div>
+
+  <div class="rounded-2xl border border-cyan-100 bg-cyan-50 p-5 text-sm text-slate-700 dark:border-cyan-900/60 dark:bg-slate-900 dark:text-slate-200">
+    La edición de horarios, ausencias y licencias se conectará con la planificación de tareas en el siguiente módulo operativo.
+  </div>
+</section>

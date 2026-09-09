@@ -19,9 +19,14 @@ export interface UsuarioSesion {
   nombre: string;
   apellido: string;
   email: string;
-  idAgencia: number;
+  idAgencia: number | null;
   idRol: number;
+  roles: RolSesion[];
+  permisos: PermisoSesion[];
 }
+
+export interface RolSesion { id: number; nombre: string; }
+export interface PermisoSesion { id: number; codigo: string; nombre: string; url: string; }
 
 export interface LogInRequest {
   email: string;
@@ -81,6 +86,16 @@ export class AuthService {
     return this.http.get<{ vigente: boolean }>(`${this.authApiUrl}/sesion`);
   }
 
+  consultarAutorizacion(): Observable<{ usuario: UsuarioSesion; roles: RolSesion[]; permisos: PermisoSesion[] }> {
+    return this.http.get<{ usuario: UsuarioSesion; roles: RolSesion[]; permisos: PermisoSesion[] }>(`${this.authApiUrl}/autorizacion`);
+  }
+
+  actualizarAutorizacionSesion(): void {
+    this.consultarAutorizacion().subscribe({
+      next: respuesta => this.guardarUsuario({ ...respuesta.usuario, roles: respuesta.roles, permisos: respuesta.permisos }),
+    });
+  }
+
   cerrarSesion(): Observable<void> {
     return this.http.post<void>(`${this.authApiUrl}/logout`, {});
   }
@@ -112,5 +127,9 @@ export class AuthService {
     if (!usuario){ return null; }
     try { return JSON.parse(usuario) as UsuarioSesion; }
     catch { return null; }
+  }
+
+  tienePermiso(codigoPermiso: string): boolean {
+    return this.usuarioActual()?.permisos?.some(permiso => permiso.codigo === codigoPermiso) ?? false;
   }
 }

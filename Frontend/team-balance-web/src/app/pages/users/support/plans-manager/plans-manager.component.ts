@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { LocalizationService } from '../../services/localization.service';
-import { PlanComercial, PlanComercialService } from '../../services/plan-comercial.service';
-import { PlanComparisonComponent } from '../../shared/components/plans/plan-comparison/plan-comparison.component';
+import { LocalizationService } from '../../../../services/localization.service';
+import { PlanComercial, PlanComercialService } from '../../../../services/plan-comercial.service';
+import { PlanComparisonComponent } from '../../../../shared/components/plans/plan-comparison/plan-comparison.component';
 
 @Component({
   selector: 'app-plans-manager',

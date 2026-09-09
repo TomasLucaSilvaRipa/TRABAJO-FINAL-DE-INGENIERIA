@@ -13,7 +13,7 @@ import { finalize } from 'rxjs';
   imports:[CommonModule,RouterModule,DropdownComponent,DropdownItemTwoComponent]
 })
 export class UserDropdownComponent {
-  private readonly authService = inject(AuthService);
+  readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   readonly localization = inject(LocalizationService);
   readonly user = this.authService.usuarioActual();

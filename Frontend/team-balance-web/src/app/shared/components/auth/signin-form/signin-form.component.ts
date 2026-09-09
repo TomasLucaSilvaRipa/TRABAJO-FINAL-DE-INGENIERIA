@@ -1,7 +1,7 @@
 
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../../../services/auth.service';
 import { RecaptchaService } from '../../../../services/recaptcha.service';
@@ -16,7 +16,6 @@ import { LocalizationService } from '../../../../services/localization.service';
 })
 export class SigninFormComponent {
   private readonly formBuilder = inject(FormBuilder);
-  private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly recaptchaService = inject(RecaptchaService);
   readonly localization = inject(LocalizationService);
@@ -56,7 +55,7 @@ export class SigninFormComponent {
             localStorage.setItem('token', respuesta.accessToken);
             localStorage.setItem('tokenExpiresAt', respuesta.expiresAt);
             this.authService.guardarUsuario(respuesta.usuario);
-            void this.router.navigate(['/dashboard']);
+            window.location.assign('/dashboard');
           },
           error: (error) => { this.requestError.set( typeof error.error === 'string' ? error.error : 'No fue posible iniciar sesión. Intentá nuevamente.',);},
         });

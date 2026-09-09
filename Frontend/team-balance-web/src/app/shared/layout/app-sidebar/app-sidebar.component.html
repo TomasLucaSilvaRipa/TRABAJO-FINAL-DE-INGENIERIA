@@ -23,6 +23,7 @@
     </p>
     <ul class="space-y-1">
       @for (item of navItems; track item.path) {
+        @if (puedeVer(item)) {
         <li>
           <a [routerLink]="item.path" (click)="closeMobile()" class="menu-item group" [class.menu-item-active]="isActive(item.path)" [class.menu-item-inactive]="!isActive(item.path)">
             <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-current text-xs font-black">{{ localization.traducir(item.key).slice(0, 2).toUpperCase() }}</span>
@@ -31,6 +32,7 @@
             }
           </a>
         </li>
+        }
       }
     </ul>
   </nav>
