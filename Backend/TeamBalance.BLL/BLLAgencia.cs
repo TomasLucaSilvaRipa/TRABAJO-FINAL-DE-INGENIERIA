@@ -51,34 +51,19 @@ public class BLLAgencia
         }
 
         Rol rolDueño = _rolBLL.ConsultarRolPorNombre("Dueño");
-        _usuarioBLL.PrepararUsuarioDueño(usuario, rolDueño.ID);
+        _usuarioBLL.PrepararUsuarioDueño(usuario, rolDueño);
         Dueño dueño = _usuarioBLL.CrearDueño();
         ValidacionCuentum validacion = _usuarioBLL.CrearValidacionEmail(out string token);
 
-        var registro = _agenciaMPP.RegistrarAgencia(
-            agencia,
-            usuario,
-            dueño,
-            validacion,
-            contratacion.ReferenciaContratacion);
+        RegistroAgenciaResultado registro = _agenciaMPP.RegistrarAgencia(agencia, usuario, dueño, validacion, contratacion.ReferenciaContratacion);
 
         agencia.ID = registro.IdAgencia;
         usuario.ID = registro.IdUsuario;
         usuario.IdAgencia = registro.IdAgencia;
 
-        _bitacoraBLL.Add(new Bitacora()
-        {
-            IdUsuario = usuario.ID,
-            IdAgencia = agencia.ID,
-            Entidad = "Agencia",
-            IdEntidad = agencia.ID,
-            Accion = "RegistrarAgencia",
-            Mensaje = "Se registró la agencia y el usuario Dueño inicial.",
-            Resultado = "Exitoso",
-            Criticidad = "Informacion",
-            Modulo = "Registro",
-            FechaHora = DateTime.Now,
-        });
+        Bitacora bitacora = new Bitacora(usuario.ID, agencia.ID,"Agencia",agencia.ID,"RegistrarAgecnia", "Se registró la agencia y el usuario Dueño inicial.","Exitoso","Informacion","Registro");
+        _bitacoraBLL.Add(bitacora);
+        
 
         return await _emailService.EnviarCorreoValidacion(usuario.Email, usuario.Nombre, token);
     }

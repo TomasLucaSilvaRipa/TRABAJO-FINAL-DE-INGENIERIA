@@ -5,6 +5,21 @@ namespace TeamBalance.BE.Entidades;
 
 public partial class Agencia
 {
+    public Agencia() { }
+    public Agencia(int id,string nombreComercial,string razonSocial,string cuit,string emailContacto,string telefonoContacto,DateTime fechaAlta,string estado,bool activo,List<Proyecto> _proyectos, List<Usuario> _usuarios)
+    {
+        ID = id;
+        NombreComercial = nombreComercial;
+        RazonSocial = razonSocial;
+        CUIT = cuit;
+        EmailContacto = emailContacto;
+        TelefonoContacto = telefonoContacto;
+        FechaAlta = fechaAlta;
+        Estado = estado;
+        Activo = activo;
+        Proyectos = _proyectos;
+        Usuarios = _usuarios;
+    }
     public int ID { get; set; }
 
     public string NombreComercial { get; set; } = null!;
@@ -28,9 +43,9 @@ public partial class Agencia
     public DateTime? FechaBaja { get; set; }
 
 
-    public virtual ICollection<Proyecto> Proyectos { get; set; } = new List<Proyecto>();
+    public  List<Proyecto> Proyectos { get; set; } = new List<Proyecto>();
 
-    public virtual ICollection<Suscripcion> Suscripcions { get; set; } = new List<Suscripcion>();
+    public List<Suscripcion> Suscripciones { get; set; } = new List<Suscripcion>();
 
-    public virtual ICollection<Usuario> Usuarios { get; set; } = new List<Usuario>();
+    public List<Usuario> Usuarios { get; set; } = new List<Usuario>();
 }

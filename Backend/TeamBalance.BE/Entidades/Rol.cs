@@ -5,6 +5,21 @@ namespace TeamBalance.BE.Entidades;
 
 public partial class Rol
 {
+    public Rol()
+    {
+        Permisos = new List<Permiso>();
+    }
+
+    public Rol(int id, string nombre, string? descripcion, bool esRolBase, bool activo, List<Permiso> permisos)
+    {
+        ID = id;
+        Nombre = nombre;
+        Descripcion = descripcion;
+        EsRolBase = esRolBase;
+        Activo = activo;
+        Permisos = permisos;
+    }
+
     public int ID { get; set; }
 
     public string Nombre { get; set; } = null!;
@@ -17,7 +32,10 @@ public partial class Rol
 
     public DateTime? FechaBaja { get; set; }
 
-    public virtual ICollection<RolPermiso> RolPermisos { get; set; } = new List<RolPermiso>();
+    //public virtual ICollection<RolPermiso> RolPermisos { get; set; } = new List<RolPermiso>();
 
-    public virtual ICollection<Usuario> Usuarios { get; set; } = new List<Usuario>();
+    //public virtual ICollection<Usuario> Usuarios { get; set; } = new List<Usuario>();
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public List<Permiso> Permisos { get; set; }
 }

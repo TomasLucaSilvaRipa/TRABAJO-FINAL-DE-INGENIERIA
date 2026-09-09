@@ -35,29 +35,18 @@ public class AuthController : ControllerBase
             }
 
             EncryptionService.LoginDecryptedData datosLogin = _encryptionService.DesencriptarLogin(request.EncryptedData, request.EncryptedKey, request.Iv);
-            Usuario usuario = new Usuario()
-            {
-                Email = datosLogin.Email,
-                PasswordHash = datosLogin.Password,
-                RecaptchaToken = request.RecaptchaToken,
-            };
+            Usuario usuario = new Usuario();
+            usuario.Email = datosLogin.Email;
+            usuario.PasswordHash = datosLogin.Password;
+            usuario.RecaptchaToken = request.RecaptchaToken;
 
             (Usuario Usuario, string AccessToken, DateTime FechaExpiracion) resultado = await _usuarioBLL.IniciarSesion(usuario, mantenerSesion);
 
-            return Ok(new
-            {
-                accessToken = resultado.AccessToken,
-                expiresAt = resultado.FechaExpiracion,
-                usuario = new
-                {
-                    id = resultado.Usuario.ID,
-                    nombre = resultado.Usuario.Nombre,
-                    apellido = resultado.Usuario.Apellido,
-                    email = resultado.Usuario.Email,
-                    idAgencia = resultado.Usuario.IdAgencia,
-                    idRol = resultado.Usuario.IdRol,
-                },
-            });
+            List<RolResponse> roles = resultado.Usuario.Roles.Select(rol => new RolResponse(rol.ID, rol.Nombre)).ToList();
+            List<PermisoResponse> permisos = resultado.Usuario.Permisos.Select(permiso => new PermisoResponse(permiso.ID, permiso.Codigo, permiso.Nombre, permiso.Url)).ToList();
+            UsuarioSesionResponse usuarioResponse = new UsuarioSesionResponse(resultado.Usuario.ID, resultado.Usuario.IdAgencia, resultado.Usuario.Nombre, resultado.Usuario.Apellido, resultado.Usuario.Email, roles, permisos);
+            LoginResponse response = new LoginResponse(resultado.AccessToken, resultado.FechaExpiracion, usuarioResponse);
+            return Ok(response);
         }
         catch (System.Security.Cryptography.CryptographicException){ return BadRequest("No fue posible descifrar las credenciales recibidas."); }
         catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
@@ -77,6 +66,22 @@ public class AuthController : ControllerBase
         }
 
         return Ok(new { vigente = true });
+    }
+
+    [HttpGet("autorizacion")]
+    public IActionResult ConsultarAutorizacion()
+    {
+        Usuario? usuario = _usuarioBLL.ConsultarUsuarioSesion(ObtenerAccessToken() ?? string.Empty);
+        if (usuario is null)
+        {
+            return Unauthorized();
+        }
+        return Ok(new
+        {
+            usuario = new { id = usuario.ID, nombre = usuario.Nombre, apellido = usuario.Apellido, email = usuario.Email, idAgencia = usuario.IdAgencia },
+            roles = usuario.Roles.Select(rol => new { id = rol.ID, nombre = rol.Nombre }),
+            permisos = usuario.Permisos.Select(permiso => new { id = permiso.ID, codigo = permiso.Codigo, nombre = permiso.Nombre, url = permiso.Url }),
+        });
     }
 
     [HttpPost("logout")]

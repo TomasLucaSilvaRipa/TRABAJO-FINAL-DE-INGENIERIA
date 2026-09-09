@@ -1,3 +1,4 @@
+using System.Net.Mail;
 using TeamBalance.BE.Entidades;
 using TeamBalance.MPP;
 using TeamBalance.Services;
@@ -13,14 +14,16 @@ public class BLLUsuario
     private readonly Seguridad _seguridad;
     private readonly EmailService _emailService;
     private readonly RecaptchaService _recaptchaService;
+    private readonly BLLRol _rolBLL;
 
-    public BLLUsuario(MPPUsuario usuarioMPP, BLLBitacora bitacoraBLL, Seguridad seguridad, EmailService emailService, RecaptchaService recaptchaService)
+    public BLLUsuario(MPPUsuario usuarioMPP, BLLBitacora bitacoraBLL, Seguridad seguridad, EmailService emailService, RecaptchaService recaptchaService, BLLRol rolBLL)
     {
         _usuarioMPP = usuarioMPP;
         _bitacoraBLL = bitacoraBLL;
         _seguridad = seguridad;
         _emailService = emailService;
         _recaptchaService = recaptchaService;
+        _rolBLL = rolBLL;
     }
 
     public bool EmailDisponible(string email)
@@ -34,11 +37,14 @@ public class BLLUsuario
     }
 
     //pasar paramtro objeto
-    public void PrepararUsuarioDueño(Usuario usuario, int idRol)
+    public void PrepararUsuarioDueño(Usuario usuario, Rol rol)
     {
         string password = usuario.PasswordHash;
 
-        usuario.IdRol = idRol;
+        usuario.Rol = rol;
+        List<Rol> roles = new List<Rol>();
+        roles.Add(rol);
+        usuario.Roles = roles;
         usuario.Nombre = usuario.Nombre.Trim();
         usuario.Apellido = usuario.Apellido.Trim();
         usuario.Email = usuario.Email.Trim().ToLowerInvariant();
@@ -101,18 +107,12 @@ public class BLLUsuario
 
         Usuario? usuarioBD = _usuarioMPP.ConsultarUsuarioPorEmail(usuarioEntrante.Email.Trim().ToLowerInvariant());
 
+        Bitacora bitacora;
+
         if (usuarioBD is null || !_seguridad.VerificarPassword(usuarioEntrante.PasswordHash, usuarioBD.PasswordHash))
         {
-            _bitacoraBLL.Add(new Bitacora()
-            {
-                Entidad = "Usuario",
-                Accion = "IniciarSesion",
-                Mensaje = "Se rechazó un intento de inicio de sesión por credenciales inválidas.",
-                Resultado = "Denegado",
-                Criticidad = "Advertencia",
-                Modulo = "Seguridad",
-                FechaHora = DateTime.Now,
-            });
+            bitacora = new Bitacora(null,null,"Usuario",null, "IniciarSesion", "Se rechazó un intento de inicio de sesión por credenciales inválidas.", "Denegado", "Advertencia","Seguridad");
+            _bitacoraBLL.Add(bitacora);
 
             throw new UnauthorizedAccessException("El email o la contraseña no son correctos.");
         }
@@ -126,6 +126,8 @@ public class BLLUsuario
         {
             throw new InvalidOperationException("Confirmá tu correo electrónico antes de iniciar sesión.");
         }
+
+        _rolBLL.CargarAutorizacion(usuarioBD);
 
         string accessToken = _seguridad.GenerarTokenSeguro();
         DateTime fechaExpiracion = mantenerSesion
@@ -144,19 +146,8 @@ public class BLLUsuario
 
         _usuarioMPP.RegistrarSesion(sesion);
 
-        _bitacoraBLL.Add(new Bitacora()
-        {
-            IdUsuario = usuarioBD.ID,
-            IdAgencia = usuarioBD.IdAgencia,
-            Entidad = "Usuario",
-            IdEntidad = usuarioBD.ID,
-            Accion = "IniciarSesion",
-            Mensaje = "El usuario inició sesión en TeamBalance.",
-            Resultado = "Exitoso",
-            Criticidad = "Informacion",
-            Modulo = "Seguridad",
-            FechaHora = DateTime.Now,
-        });
+        bitacora = new Bitacora(usuarioBD.ID, usuarioBD.IdAgencia, "Usuario",usuarioBD.ID, "IniciarSesion", "El usuario inició sesión en TeamBalance.","Exitoso","Informacion","Seguridad");
+        _bitacoraBLL.Add(bitacora);
 
         return (usuarioBD, accessToken, fechaExpiracion);
     }
@@ -178,7 +169,12 @@ public class BLLUsuario
             TokenHash = _seguridad.GenerarHashToken(accessToken),
         };
 
-        return _usuarioMPP.ConsultarUsuarioPorSesion(sesion);
+        Usuario? usuario = _usuarioMPP.ConsultarUsuarioPorSesion(sesion);
+        if (usuario is not null)
+        {
+            _rolBLL.CargarAutorizacion(usuario);
+        }
+        return usuario;
     }
 
     public void CerrarSesion(string accessToken)
@@ -186,6 +182,175 @@ public class BLLUsuario
         if (!string.IsNullOrWhiteSpace(accessToken))
         {
             _usuarioMPP.CerrarSesion(_seguridad.GenerarHashToken(accessToken));
+        }
+    }
+
+    public List<Usuario> ConsultarUsuariosAgencia(Usuario solicitante)
+    {
+        ValidarPermiso(solicitante, "GestionarUsuarios");
+        if (solicitante.IdAgencia is null)
+        {
+            throw new UnauthorizedAccessException("El usuario no pertenece a una agencia.");
+        }
+
+        List<Usuario> usuarios = _usuarioMPP.ConsultarUsuariosAgencia(solicitante);
+        foreach (Usuario usuario in usuarios)
+        {
+            _rolBLL.CargarAutorizacion(usuario);
+        }
+        return usuarios;
+    }
+
+    public bool SoporteInicialDisponible(Usuario solicitante)
+    {
+        ValidarPermiso(solicitante, "GestionarUsuarios");
+        return !_usuarioMPP.ExisteSoporte();
+    }
+
+    public async Task<Usuario> RegistrarUsuarioAgencia(Usuario usuario, Usuario solicitante)
+    {
+        ValidarPermiso(solicitante, "GestionarUsuarios");
+        PrepararUsuarioGestion(usuario, solicitante);
+
+        bool esSoporte = usuario.Roles.Any(rol => string.Equals(rol.Nombre, "Soporte", StringComparison.OrdinalIgnoreCase));
+        if (esSoporte)
+        {
+            if (usuario.Roles.Count != 1)
+            {
+                throw new ArgumentException("El usuario inicial de Soporte sólo puede tener el rol Soporte.");
+            }
+            if (_usuarioMPP.ExisteSoporte())
+            {
+                throw new InvalidOperationException("El usuario inicial de Soporte ya fue creado. La gestión posterior se realiza desde Soporte.");
+            }
+            usuario.IdAgencia = null;
+        }
+        else
+        {
+            usuario.IdAgencia = solicitante.IdAgencia;
+        }
+
+        usuario.ID = _usuarioMPP.RegistrarUsuario(usuario);
+        _usuarioMPP.ReemplazarRoles(usuario);
+        RegistrarPerfiles(usuario);
+        _rolBLL.CargarAutorizacion(usuario);
+
+        ValidacionCuentum validacion = CrearValidacionEmail(out string token);
+        _usuarioMPP.ReemplazarValidacionEmail(usuario, validacion);
+        bool correoEnviado = await _emailService.EnviarCorreoValidacion(usuario.Email, usuario.Nombre, token);
+
+        _bitacoraBLL.Add(new Bitacora()
+        {
+            IdUsuario = solicitante.ID,
+            IdAgencia = solicitante.IdAgencia,
+            Entidad = "Usuario",
+            IdEntidad = usuario.ID,
+            Accion = esSoporte ? "RegistrarSoporteInicial" : "RegistrarUsuarioAgencia",
+            Mensaje = esSoporte ? "Se creó el usuario inicial de Soporte de TeamBalance." : "Se registró un usuario para la agencia.",
+            Resultado = correoEnviado ? "Exitoso" : "Parcial",
+            Criticidad = correoEnviado ? "Informacion" : "Advertencia",
+            Modulo = "Usuarios",
+            FechaHora = DateTime.Now,
+        });
+
+        return usuario;
+    }
+
+    public void ModificarUsuarioAgencia(Usuario usuario, Usuario solicitante)
+    {
+        ValidarPermiso(solicitante, "GestionarUsuarios");
+        if (!_usuarioMPP.ConsultarUsuariosAgencia(solicitante).Any(item => item.ID == usuario.ID))
+        {
+            throw new KeyNotFoundException("No existe el usuario dentro de la agencia.");
+        }
+        List<int> rolesSolicitados = usuario.Roles.Select(rol => rol.ID).Distinct().ToList();
+        usuario.Roles = _rolBLL.ConsultarRolesActivos().Where(rol => rolesSolicitados.Contains(rol.ID)).ToList();
+        if (usuario.Roles.Count != rolesSolicitados.Count)
+        {
+            throw new ArgumentException("Uno o más roles seleccionados no están disponibles.");
+        }
+        ValidarUsuarioGestion(usuario, false);
+        Usuario? existente = _usuarioMPP.ConsultarUsuarioPorEmail(usuario.Email.Trim().ToLowerInvariant());
+        if (existente is not null && existente.ID != usuario.ID)
+        {
+            throw new InvalidOperationException("Ya existe un usuario con ese email.");
+        }
+        usuario.IdAgencia = solicitante.IdAgencia;
+        usuario.Rol = usuario.Roles.First();
+        _usuarioMPP.ModificarUsuario(usuario);
+        _usuarioMPP.ReemplazarRoles(usuario);
+        RegistrarPerfiles(usuario);
+    }
+
+    public void CambiarEstadoUsuarioAgencia(int idUsuario, bool activo, Usuario solicitante)
+    {
+        ValidarPermiso(solicitante, "GestionarUsuarios");
+        Usuario usuario = _usuarioMPP.ConsultarUsuariosAgencia(solicitante).FirstOrDefault(item => item.ID == idUsuario) ?? throw new KeyNotFoundException("No existe el usuario dentro de la agencia.");
+        _usuarioMPP.CambiarEstado(usuario, activo);
+        _bitacoraBLL.Add(new Bitacora() { IdUsuario = solicitante.ID, IdAgencia = solicitante.IdAgencia, Entidad = "Usuario", IdEntidad = idUsuario, Accion = activo ? "ActivarUsuario" : "DarBajaUsuario", Mensaje = activo ? "Se activó un usuario de la agencia." : "Se dio de baja un usuario de la agencia.", Resultado = "Exitoso", Criticidad = "Informacion", Modulo = "Usuarios", FechaHora = DateTime.Now });
+    }
+
+    private void PrepararUsuarioGestion(Usuario usuario, Usuario solicitante)
+    {
+        if (!_rolBLL.TienePermiso(solicitante, "GestionarUsuarios"))
+        {
+            throw new UnauthorizedAccessException("No tenés permiso para gestionar usuarios.");
+        }
+        List<int> rolesSolicitados = usuario.Roles.Select(rol => rol.ID).Distinct().ToList();
+        List<Rol> rolesActivos = _rolBLL.ConsultarRolesActivos();
+        usuario.Roles = rolesActivos.Where(rol => rolesSolicitados.Contains(rol.ID)).ToList();
+        if (usuario.Roles.Count != rolesSolicitados.Count)
+        {
+            throw new ArgumentException("Uno o más roles seleccionados no están disponibles.");
+        }
+        ValidarUsuarioGestion(usuario, true);
+        usuario.Nombre = usuario.Nombre.Trim();
+        usuario.Apellido = usuario.Apellido.Trim();
+        usuario.Email = usuario.Email.Trim().ToLowerInvariant();
+        usuario.PasswordHash = _seguridad.GenerarHashPassword(usuario.PasswordHash);
+        usuario.Estado = "PendienteValidacion";
+        usuario.FechaAlta = DateTime.Now;
+        usuario.Activo = true;
+        usuario.Rol = usuario.Roles.First();
+    }
+
+    private static void ValidarUsuarioGestion(Usuario usuario, bool passwordObligatoria)
+    {
+        if (string.IsNullOrWhiteSpace(usuario.Nombre) || string.IsNullOrWhiteSpace(usuario.Apellido) || string.IsNullOrWhiteSpace(usuario.Email) || usuario.Roles.Count == 0)
+        {
+            throw new ArgumentException("Completá nombre, apellido, email y al menos un rol.");
+        }
+        if (!MailAddress.TryCreate(usuario.Email.Trim(), out _))
+        {
+            throw new ArgumentException("Ingresá un email válido.");
+        }
+        if (passwordObligatoria && string.IsNullOrWhiteSpace(usuario.PasswordHash))
+        {
+            throw new ArgumentException("Ingresá una contraseña temporal.");
+        }
+        if (usuario.Roles.Any(rol => string.Equals(rol.Nombre, "Empleado", StringComparison.OrdinalIgnoreCase)) && usuario.Empleado is null)
+        {
+            throw new ArgumentException("Completá los datos laborales del empleado.");
+        }
+    }
+
+    private void RegistrarPerfiles(Usuario usuario)
+    {
+        if (usuario.Roles.Any(rol => string.Equals(rol.Nombre, "Empleado", StringComparison.OrdinalIgnoreCase)))
+        {
+            _usuarioMPP.RegistrarEmpleado(usuario);
+        }
+        if (usuario.Roles.Any(rol => string.Equals(rol.Nombre, "PM", StringComparison.OrdinalIgnoreCase)))
+        {
+            _usuarioMPP.RegistrarPM(usuario);
+        }
+    }
+
+    private void ValidarPermiso(Usuario usuario, string codigoPermiso)
+    {
+        if (!_rolBLL.TienePermiso(usuario, codigoPermiso))
+        {
+            throw new UnauthorizedAccessException("No tenés permiso para realizar esta operación.");
         }
     }
 

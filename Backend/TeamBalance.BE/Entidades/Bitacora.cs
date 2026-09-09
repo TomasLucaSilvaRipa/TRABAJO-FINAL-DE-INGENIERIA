@@ -5,6 +5,20 @@ namespace TeamBalance.BE.Entidades;
 
 public partial class Bitacora
 {
+    public Bitacora() { }
+    public Bitacora(int? idUsuario, int? idAgencia, string? entidad, int? idEntidad, string accion, string mensaje, string? resultado, string? criticidad, string? modulo)
+    {
+        IdUsuario = idUsuario;
+        IdAgencia = idAgencia;
+        Entidad = entidad;
+        IdEntidad = idEntidad;
+        Accion = accion;
+        Mensaje = mensaje;
+        Resultado = resultado;
+        Criticidad = criticidad;
+        Modulo = modulo;
+        FechaHora = DateTime.Now;
+    }
     public int ID { get; set; }
 
     public int? IdUsuario { get; set; }

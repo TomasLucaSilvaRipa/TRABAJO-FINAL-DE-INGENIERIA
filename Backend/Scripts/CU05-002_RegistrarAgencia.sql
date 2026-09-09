@@ -190,6 +190,17 @@ BEGIN
 
     SET @IdUsuario = CONVERT(INT, SCOPE_IDENTITY());
 
+    INSERT INTO dbo.UsuarioRol
+    (
+        IdUsuario,
+        IdRol
+    )
+    VALUES
+    (
+        @IdUsuario,
+        @IdRol
+    );
+
     INSERT INTO dbo.[Dueño]
     (
         IdUsuario,

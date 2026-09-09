@@ -27,7 +27,7 @@ public class MPPAgencia
         return resultado.Rows.Count == 1 && Convert.ToBoolean(resultado.Rows[0]["Existe"]);
     }
 
-    public (int IdAgencia, int IdUsuario) RegistrarAgencia( Agencia agencia, Usuario usuario, Dueño dueño, ValidacionCuentum validacion, string referenciaContratacion)
+    public RegistroAgenciaResultado RegistrarAgencia(Agencia agencia, Usuario usuario, Dueño dueño, ValidacionCuentum validacion, string referenciaContratacion)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
@@ -38,7 +38,7 @@ public class MPPAgencia
             new("@CondicionFiscal", (object?)agencia.CondicionFiscal ?? DBNull.Value),
             new("@EmailContacto", agencia.EmailContacto),
             new("@TelefonoContacto", (object?)agencia.TelefonoContacto ?? DBNull.Value),
-            new("@IdRol", usuario.IdRol),
+            new SqlParameter("@IdRol", usuario.Rol.ID),
             new("@Nombre", usuario.Nombre),
             new("@Apellido", usuario.Apellido),
             new("@Email", usuario.Email),
@@ -60,6 +60,9 @@ public class MPPAgencia
 
         DataRow fila = resultado.Rows[0];
 
-        return ( Convert.ToInt32(fila["IdAgencia"]), Convert.ToInt32(fila["IdUsuario"]));
+        int idAgencia = Convert.ToInt32(fila["IdAgencia"]);
+        int idUsuario = Convert.ToInt32(fila["IdUsuario"]);
+        RegistroAgenciaResultado resultadoRegistro = new RegistroAgenciaResultado(idAgencia, idUsuario);
+        return resultadoRegistro;
     }
 }

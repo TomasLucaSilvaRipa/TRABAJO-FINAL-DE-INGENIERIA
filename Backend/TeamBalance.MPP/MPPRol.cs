@@ -18,7 +18,7 @@ public class MPPRol
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new("@Nombre", nombre),
+            new SqlParameter("@Nombre", nombre),
         };
 
         DataTable resultado = _conexion.Leer("dbo.usp_Rol_ConsultarPorNombre", parametros);
@@ -27,16 +27,97 @@ public class MPPRol
         {
             DataRow fila = resultado.Rows[0];
 
-            return new Rol()
-            {
-                ID = Convert.ToInt32(fila["ID"]),
-                Nombre = Convert.ToString(fila["Nombre"]) ?? string.Empty,
-                Descripcion = Convert.ToString(fila["Descripcion"]),
-                EsRolBase = Convert.ToBoolean(fila["EsRolBase"]),
-                Activo = Convert.ToBoolean(fila["Activo"]),
-                FechaBaja = fila["FechaBaja"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaBaja"]),
-            };
+            return CrearRol(fila);
         }
         else{ throw new KeyNotFoundException("No existe un rol activo con el nombre indicado."); }
+    }
+
+    public List<Rol> ConsultarRolesActivos()
+    {
+        DataTable resultado = _conexion.Leer("dbo.usp_Rol_ConsultarActivos");
+        return resultado.Rows.Cast<DataRow>().Select(CrearRol).ToList();
+    }
+
+    public List<Rol> ConsultarRolesUsuario(Usuario usuario)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", usuario.ID) };
+        DataTable resultado = _conexion.Leer("dbo.usp_Rol_ConsultarPorUsuario", parametros);
+        return resultado.Rows.Cast<DataRow>().Select(CrearRol).ToList();
+    }
+
+    public List<Permiso> ConsultarPermisosUsuario(Usuario usuario)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", usuario.ID) };
+        DataTable resultado = _conexion.Leer("dbo.usp_Permiso_ConsultarPorUsuario", parametros);
+        return resultado.Rows.Cast<DataRow>().Select(CrearPermiso).ToList();
+    }
+
+    public List<Permiso> ConsultarPermisosActivos()
+    {
+        DataTable resultado = _conexion.Leer("dbo.usp_Permiso_ConsultarActivos");
+        return resultado.Rows.Cast<DataRow>().Select(CrearPermiso).ToList();
+    }
+
+    public List<Permiso> ConsultarPermisosRol(Rol rol)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdRol", rol.ID) };
+        DataTable resultado = _conexion.Leer("dbo.usp_Permiso_ConsultarPorRol", parametros);
+        return resultado.Rows.Cast<DataRow>().Select(CrearPermiso).ToList();
+    }
+
+    public int RegistrarRol(Rol rol)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@Nombre", rol.Nombre), new SqlParameter("@Descripcion", (object?)rol.Descripcion ?? DBNull.Value) };
+        DataTable resultado = _conexion.Leer("dbo.usp_Rol_Registrar", parametros);
+        return resultado.Rows.Count == 1 ? Convert.ToInt32(resultado.Rows[0]["ID"]) : throw new InvalidOperationException("No fue posible registrar el rol.");
+    }
+
+    public void ModificarRol(Rol rol)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdRol", rol.ID), new SqlParameter("@Nombre", rol.Nombre), new SqlParameter("@Descripcion", (object?)rol.Descripcion ?? DBNull.Value) };
+        if (!_conexion.Escribir("dbo.usp_Rol_Modificar", parametros)){ throw new InvalidOperationException("No fue posible modificar el rol."); }
+    }
+
+    public void CambiarEstado(Rol rol, bool activo)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdRol", rol.ID), new SqlParameter("@Activo", activo) };
+        if (!_conexion.Escribir("dbo.usp_Rol_CambiarEstado", parametros)){ throw new InvalidOperationException("No fue posible actualizar el rol."); }
+    }
+
+    public void ReemplazarPermisos(Rol rol)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdRol", rol.ID) };
+        _conexion.Escribir("dbo.usp_Rol_LimpiarPermisos", parametros);
+        foreach (Permiso permiso in rol.Permisos)
+        {
+            List<SqlParameter> parametrosPermiso = new List<SqlParameter>() { new SqlParameter("@IdRol", rol.ID), new SqlParameter("@IdPermiso", permiso.ID) };
+            _conexion.Escribir("dbo.usp_Rol_AsignarPermiso", parametrosPermiso);
+        }
+    }
+
+    private static Rol CrearRol(DataRow fila)
+    {
+        return new Rol()
+        {
+            ID = Convert.ToInt32(fila["ID"]),
+            Nombre = Convert.ToString(fila["Nombre"]) ?? string.Empty,
+            Descripcion = Convert.ToString(fila["Descripcion"]),
+            EsRolBase = Convert.ToBoolean(fila["EsRolBase"]),
+            Activo = Convert.ToBoolean(fila["Activo"]),
+            FechaBaja = fila["FechaBaja"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaBaja"]),
+        };
+    }
+
+    private static Permiso CrearPermiso(DataRow fila)
+    {
+        return new Permiso()
+        {
+            ID = Convert.ToInt32(fila["ID"]),
+            Nombre = Convert.ToString(fila["Nombre"]) ?? string.Empty,
+            Descripcion = Convert.ToString(fila["Descripcion"]),
+            Activo = Convert.ToBoolean(fila["Activo"]),
+            Codigo = fila.Table.Columns.Contains("Codigo") ? Convert.ToString(fila["Codigo"]) : null,
+            Url = fila.Table.Columns.Contains("Url") ? Convert.ToString(fila["Url"]) : null,
+        };
     }
 }

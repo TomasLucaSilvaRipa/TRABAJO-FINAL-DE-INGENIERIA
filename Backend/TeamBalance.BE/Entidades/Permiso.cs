@@ -13,5 +13,9 @@ public partial class Permiso
 
     public bool Activo { get; set; }
 
+    public string? Codigo { get; set; }
+
+    public string? Url { get; set; }
+
     public virtual ICollection<RolPermiso> RolPermisos { get; set; } = new List<RolPermiso>();
 }
