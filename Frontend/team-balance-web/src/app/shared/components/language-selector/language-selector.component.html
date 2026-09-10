@@ -1,9 +1,18 @@
-<div class="flex items-center gap-2 rounded-lg border border-current/20 bg-white/10 px-2 py-1 text-sm text-slate-700 shadow-sm dark:text-slate-100">
-  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-cyan-700 dark:text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+<div
+  class="flex items-center gap-2 rounded-lg border px-2 py-1 text-sm shadow-sm"
+  [class.border-slate-300]="variant() === 'light'"
+  [class.bg-white]="variant() === 'light'"
+  [class.text-slate-700]="variant() === 'light'"
+  [class.border-cyan-700]="variant() === 'dark'"
+  [class.bg-cyan-950]="variant() === 'dark'"
+  [class.text-white]="variant() === 'dark'"
+>
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" [class.text-cyan-700]="variant() === 'light'" [class.text-cyan-300]="variant() === 'dark'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M16 14l4 7m-4-7l-4 7"/>
   </svg>
+
   <select [value]="localization.language()" (change)="cambiarIdioma($event)" class="cursor-pointer bg-transparent font-semibold text-current outline-none">
-    <option value="es"> Español </option>
-    <option value="en"> English</option>
+    <option value="es" class="bg-white text-slate-900">Español</option>
+    <option value="en" class="bg-white text-slate-900">English</option>
   </select>
 </div>

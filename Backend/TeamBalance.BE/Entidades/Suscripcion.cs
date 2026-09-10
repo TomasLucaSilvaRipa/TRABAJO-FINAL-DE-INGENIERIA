@@ -48,4 +48,13 @@ public partial class Suscripcion
     public bool Activo { get; set; }
 
     public DateTime? FechaBaja { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? NombrePlan { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? PeriodicidadPlan { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? Moneda { get; set; }
 }

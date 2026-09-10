@@ -52,6 +52,7 @@ import { MyWorkload } from './pages/users/employee/MyWorkload/MyWorkload.compone
 import { RolManagement } from './pages/users/support/roles-management/roles-management.component';
 import { RegisterHoursComponent } from './pages/users/employee/register-hours/register-hours.component';
 import { AvailabilityComponent } from './pages/users/employee/availability/availability.component';
+import { LicensesComponent } from './pages/users/employee/licenses/licenses.component';
 import { ImpactSimulationComponent } from './pages/users/pm/impact-simulation/impact-simulation.component';
 import { NotificationsComponent } from './pages/global/notifications/notifications.component';
 import { HelpComponent } from './pages/global/help/help.component';
@@ -184,7 +185,7 @@ export const routes: Routes = [
       {
         path: 'bitacora',
         loadComponent: () => import('./pages/users/support/logs/logs.component').then(m => m.Logs),
-        canActivate: [permissionGuard, supportGuard],
+        canActivate: [permissionGuard],
         data: { permission: 'ConsultarBitacora' },
         title: 'Bitácora | TeamBalance'
       },
@@ -202,6 +203,7 @@ export const routes: Routes = [
       { path: 'kanban', component: KanbanBoard, canActivate: [permissionGuard], data: { permission: 'VerKanban' }, title: 'Tablero Kanban | TeamBalance' },
       { path: 'registrar-horas', component: RegisterHoursComponent, canActivate: [permissionGuard], data: { permission: 'RegistrarHoras' }, title: 'Registrar horas | TeamBalance' },
       { path: 'disponibilidad', component: AvailabilityComponent, canActivate: [permissionGuard], data: { permission: 'GestionarDisponibilidad' }, title: 'Mi disponibilidad | TeamBalance' },
+      { path: 'licencias', component: LicensesComponent, canActivate: [permissionGuard], data: { permission: 'GestionarDisponibilidad' }, title: 'Licencias y ausencias | TeamBalance' },
       { path: 'carga-operativa', component: MyWorkload, canActivate: [permissionGuard], data: { permission: 'VerCargaOperativa' }, title: 'Carga operativa | TeamBalance' },
       { path: 'roles', component: RolManagement, canActivate: [permissionGuard], data: { permission: 'GestionarRoles' }, title: 'Gestión de roles | TeamBalance' },
       { path: 'notificaciones', component: NotificationsComponent, canActivate: [permissionGuard], data: { permission: 'ConsultarNotificaciones' }, title: 'Notificaciones | TeamBalance' },

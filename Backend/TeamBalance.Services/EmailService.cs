@@ -85,6 +85,12 @@ namespace TeamBalance.Services
             return await EnviarMail("Tu contraseña de TeamBalance fue modificada", descripcion, receptor);
         }
 
+        public async Task<bool> EnviarCorreoContacto(string nombre, string? organizacion, string email, string mensaje)
+        {
+            string descripcion = $@"<p><strong>Nombre:</strong> {System.Net.WebUtility.HtmlEncode(nombre)}</p><p><strong>Organización:</strong> {System.Net.WebUtility.HtmlEncode(organizacion ?? "-")}</p><p><strong>Email:</strong> {System.Net.WebUtility.HtmlEncode(email)}</p><p><strong>Consulta:</strong></p><p>{System.Net.WebUtility.HtmlEncode(mensaje).Replace(Environment.NewLine, "<br />")}</p>";
+            return await EnviarMail("Nueva consulta desde el sitio público de TeamBalance", descripcion, emisor ?? string.Empty);
+        }
+
         private async Task<bool> EnviarMail(string tema, string descripcion, string receptor)
         {
             if (string.IsNullOrWhiteSpace(emisor) || string.IsNullOrWhiteSpace(claveAplicacion) || string.IsNullOrWhiteSpace(receptor))

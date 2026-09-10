@@ -3,12 +3,14 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { Permiso, Rol, RolesService, TipoUsuarioRol } from '../../../../services/roles.service';
 import { AuthService } from '../../../../services/auth.service';
+import { LocalizationService } from '../../../../services/localization.service';
 
 @Component({ selector: 'app-rol-management', imports: [ReactiveFormsModule], templateUrl: './roles-management.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
 export class RolManagement {
   private readonly formBuilder = inject(FormBuilder);
   private readonly rolesService = inject(RolesService);
   private readonly authService = inject(AuthService);
+  readonly localization = inject(LocalizationService);
   readonly roles = signal<Rol[]>([]);
   readonly permisos = signal<Permiso[]>([]);
   readonly permisosSeleccionados = signal<number[]>([]);
@@ -17,10 +19,10 @@ export class RolManagement {
   readonly mensaje = signal('');
   readonly form = this.formBuilder.group({ nombre: ['', Validators.required], descripcion: [''], tipoUsuario: ['', Validators.required] });
   readonly tiposUsuario: { value: TipoUsuarioRol; label: string; description: string }[] = [
-    { value: 'Dueno', label: 'Dueño', description: 'Administración general de una agencia.' },
-    { value: 'PM', label: 'Project Manager', description: 'Planificación y gestión operativa.' },
-    { value: 'Empleado', label: 'Empleado', description: 'Ejecución de tareas y registro operativo.' },
-    { value: 'Soporte', label: 'Soporte TeamBalance', description: 'Operación interna de TeamBalance.' },
+    { value: 'Dueno', label: 'roles.owner', description: 'roles.ownerHelp' },
+    { value: 'PM', label: 'roles.pm', description: 'roles.pmHelp' },
+    { value: 'Empleado', label: 'roles.employee', description: 'roles.employeeHelp' },
+    { value: 'Soporte', label: 'roles.support', description: 'roles.supportHelp' },
   ];
   readonly tiposUsuarioVisibles = computed(() => this.authService.esSoporte() ? this.tiposUsuario : this.tiposUsuario.filter(tipo => tipo.value !== 'Soporte'));
 

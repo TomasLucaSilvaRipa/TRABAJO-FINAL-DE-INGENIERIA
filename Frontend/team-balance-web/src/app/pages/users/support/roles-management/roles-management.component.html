@@ -1,6 +1,145 @@
 <div class="mx-auto max-w-6xl space-y-7">
-  <header><p class="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-600">Soporte TeamBalance</p><h1 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">Gestión de roles</h1><p class="mt-2 text-slate-600 dark:text-slate-300">Los permisos son rutas estáticas de la plataforma. Los roles agrupan esos permisos y pueden asignarse a uno o varios usuarios.</p></header>
-  @if (error()) { <p class="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{{ error() }}</p> } @if (mensaje()) { <p class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700">{{ mensaje() }}</p> }
-  <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900"><h2 class="text-xl font-bold text-slate-900 dark:text-white">{{ editando() ? 'Editar rol' : 'Nuevo rol' }}</h2><form class="mt-5 space-y-4" [formGroup]="form" (ngSubmit)="guardar()"><label class="block text-sm font-medium">Nombre<input class="mt-1 w-full rounded-lg border p-2 dark:bg-slate-800" formControlName="nombre" /></label><label class="block text-sm font-medium">Descripción<textarea class="mt-1 w-full rounded-lg border p-2 dark:bg-slate-800" formControlName="descripcion" rows="2"></textarea></label><fieldset><legend class="text-sm font-semibold">Tipo de usuario <span class="text-red-600">*</span></legend><p class="mt-1 text-sm text-slate-500 dark:text-slate-300">Clasifica el rol para que TeamBalance cree el perfil correspondiente al asignarlo.</p><div class="mt-3 grid gap-2 md:grid-cols-2">@for (tipo of tiposUsuarioVisibles(); track tipo.value) { <label class="cursor-pointer rounded-lg border p-3 text-sm" [class.border-cyan-500]="form.controls.tipoUsuario.value === tipo.value"><input class="mr-2" type="radio" formControlName="tipoUsuario" [value]="tipo.value" (change)="cambiarTipoUsuario(tipo.value)" /><strong>{{ tipo.label }}</strong><span class="mt-1 block text-slate-500 dark:text-slate-300">{{ tipo.description }}</span></label> }</div></fieldset><fieldset><legend class="text-sm font-semibold">Permisos estáticos</legend><div class="mt-3 grid gap-2 md:grid-cols-2">@for (permiso of permisos(); track permiso.id) { @if (puedeAsignarPermiso(permiso)) { <label class="rounded-lg border p-3 text-sm"><input class="mr-2" type="checkbox" [checked]="permisosSeleccionados().includes(permiso.id)" (change)="cambiarPermiso(permiso.id, $any($event.target).checked)" /><strong>{{ permiso.nombre }}</strong><span class="ml-2 text-slate-500">{{ permiso.url }}</span></label> } }</div></fieldset><div class="flex gap-3"><button class="rounded-lg bg-cyan-600 px-4 py-2 font-semibold text-white" type="submit">Guardar rol</button>@if (editando()) { <button class="rounded-lg border px-4 py-2" type="button" (click)="cancelar()">Cancelar</button> }</div></form></section>
-  <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="border-b p-5"><h2 class="text-xl font-bold text-slate-900 dark:text-white">Roles configurados</h2></div><div class="divide-y dark:divide-slate-700">@for (rol of roles(); track rol.id) { <article class="flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between"><div><h3 class="font-bold text-slate-900 dark:text-white">{{ rol.nombre }} @if (rol.esRolBase) { <span class="ml-2 text-xs font-medium text-slate-500">Rol base</span> }</h3><p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ rol.descripcion }}</p><p class="mt-2 text-xs text-slate-500">{{ rol.permisos.length }} permisos asignados</p></div><div class="flex gap-3">@if (!rol.esRolBase) { <button class="text-cyan-700" (click)="editar(rol)">Editar</button><button [class.text-red-600]="rol.activo" (click)="cambiarEstado(rol)">{{ rol.activo ? 'Dar de baja' : 'Activar' }}</button> }</div></article> }</div></section>
+
+  <header class="text-slate-900 dark:text-white">
+  <p class="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-600">
+    {{localization.traducir('roles.eyebrow')}}
+  </p>
+
+  <h1 class="tb-page-title">
+    {{localization.traducir('roles.title')}}
+  </h1>
+
+  <p class="tb-page-description">
+    {{localization.traducir('roles.subtitle')}}
+  </p>
+</header>
+
+  @if (error()) {
+    <p class="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">{{ error() }}</p>
+  }
+
+  @if (mensaje()) {
+    <p class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700">{{ mensaje() }}</p>
+  }
+
+  <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+
+    <h2 class="text-xl font-bold text-slate-900 dark:text-white">
+      {{ editando() ? localization.traducir('roles.edit') : localization.traducir('roles.new') }}
+    </h2>
+
+    <form class="mt-5 space-y-4" [formGroup]="form" (ngSubmit)="guardar()">
+
+      <label class="block text-sm font-medium">
+        {{localization.traducir('roles.name')}}
+        <input class="mt-1 w-full rounded-lg border p-2 dark:bg-slate-800" formControlName="nombre" />
+      </label>
+
+      <label class="block text-sm font-medium">
+        {{localization.traducir('roles.description')}}
+        <textarea class="mt-1 w-full rounded-lg border p-2 dark:bg-slate-800" formControlName="descripcion" rows="2"></textarea>
+      </label>
+
+      <fieldset>
+        <legend class="text-sm font-semibold">
+          {{localization.traducir('roles.userType')}} <span class="text-red-600">*</span>
+        </legend>
+
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-300">
+          {{localization.traducir('roles.userTypeHelp')}}
+        </p>
+
+        <div class="mt-3 grid gap-2 md:grid-cols-2">
+          @for (tipo of tiposUsuarioVisibles(); track tipo.value) {
+            <label class="cursor-pointer rounded-lg border p-3 text-sm" [class.border-cyan-500]="form.controls.tipoUsuario.value === tipo.value">
+              <input class="mr-2" type="radio" formControlName="tipoUsuario" [value]="tipo.value" (change)="cambiarTipoUsuario(tipo.value)" />
+              <strong>{{localization.traducir(tipo.label)}}</strong>
+              <span class="mt-1 block text-slate-500 dark:text-slate-300">{{localization.traducir(tipo.description)}}</span>
+            </label>
+          }
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend class="text-sm font-semibold">{{localization.traducir('roles.permissions')}}</legend>
+
+        <div class="mt-3 grid gap-2 md:grid-cols-2">
+          @for (permiso of permisos(); track permiso.id) {
+            @if (puedeAsignarPermiso(permiso)) {
+              <label class="rounded-lg border p-3 text-sm">
+                <input class="mr-2" type="checkbox" [checked]="permisosSeleccionados().includes(permiso.id)" (change)="cambiarPermiso(permiso.id, $any($event.target).checked)" />
+                <strong>{{ permiso.nombre }}</strong>
+                <span class="ml-2 text-slate-500">{{ permiso.url }}</span>
+              </label>
+            }
+          }
+        </div>
+      </fieldset>
+
+      <div class="flex gap-3">
+        <button class="rounded-lg bg-cyan-600 px-4 py-2 font-semibold text-white" type="submit">
+          {{localization.traducir('roles.save')}}
+        </button>
+
+        @if (editando()) {
+          <button class="rounded-lg border px-4 py-2" type="button" (click)="cancelar()">
+            {{localization.traducir('common.cancel')}}
+          </button>
+        }
+      </div>
+
+    </form>
+  </section>
+
+  <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+
+    <div class="border-b p-5">
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white">
+        {{localization.traducir('roles.list')}}
+      </h2>
+    </div>
+
+    <div class="divide-y dark:divide-slate-700">
+
+      @for (rol of roles(); track rol.id) {
+        <article class="flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between">
+
+          <div>
+            <h3 class="font-bold text-slate-900 dark:text-white">
+              {{ rol.nombre }}
+
+              @if (rol.esRolBase) {
+                <span class="ml-2 text-xs font-medium text-slate-500">
+                  {{localization.traducir('roles.base')}}
+                </span>
+              }
+            </h3>
+
+            <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              {{ rol.descripcion }}
+            </p>
+
+            <p class="mt-2 text-xs text-slate-500">
+              {{ rol.permisos.length }} {{localization.traducir('roles.assignedPermissions')}}
+            </p>
+          </div>
+
+          <div class="flex gap-3">
+            @if (!rol.esRolBase) {
+              <button class="text-cyan-700" (click)="editar(rol)">
+                {{localization.traducir('common.edit')}}
+              </button>
+
+              <button [class.text-red-600]="rol.activo" (click)="cambiarEstado(rol)">
+                {{ rol.activo ? localization.traducir('common.deactivate') : localization.traducir('common.activate') }}
+              </button>
+            }
+          </div>
+
+        </article>
+      }
+
+    </div>
+  </section>
+
 </div>

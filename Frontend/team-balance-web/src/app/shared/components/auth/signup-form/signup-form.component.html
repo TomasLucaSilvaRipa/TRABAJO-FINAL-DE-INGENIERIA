@@ -1,80 +1,80 @@
 <section class="tb-auth-form" aria-labelledby="signup-title">
   @if (validatingContinuation()) {
     <div class="tb-auth-status" role="status">
-      <p class="tb-auth-form__eyebrow">Registro de agencia</p>
-      <h1 id="signup-title">Verificando tu contratación.</h1>
-      <p>Estamos comprobando que el pago esté aprobado antes de habilitar el acceso inicial.</p>
+      <p class="tb-auth-form__eyebrow">{{localization.traducir('signup.eyebrow')}}</p>
+      <h1 id="signup-title">{{localization.traducir('signup.verifying')}}</h1>
+      <p>{{localization.traducir('signup.verifyingText')}}</p>
     </div>
   } @else if (continuationError()) {
     <div class="tb-auth-status tb-auth-status--error" role="alert">
-      <p class="tb-auth-form__eyebrow">No podemos continuar</p>
-      <h1 id="signup-title">El registro necesita una contratación aprobada.</h1>
+      <p class="tb-auth-form__eyebrow">{{localization.traducir('signup.cannotContinue')}}</p>
+      <h1 id="signup-title">{{localization.traducir('signup.needsApproved')}}</h1>
       <p>{{ continuationError() }}</p>
-      <a class="tb-auth-submit tb-auth-submit--link" routerLink="/plans">Elegir un plan</a>
+      <a class="tb-auth-submit tb-auth-submit--link" routerLink="/plans">{{localization.traducir('signup.choosePlan')}}</a>
     </div>
   } @else if (registrationCompleted()) {
     <div class="tb-auth-status tb-auth-status--success" role="status">
-      <p class="tb-auth-form__eyebrow">Registro iniciado</p>
-      <h1 id="signup-title">Tu agencia fue registrada.</h1>
+      <p class="tb-auth-form__eyebrow">{{localization.traducir('signup.started')}}</p>
+      <h1 id="signup-title">{{localization.traducir('signup.completed')}}</h1>
       @if (emailValidacionEnviado()) {
-        <p>El acceso inicial quedó asociado al rol de Dueño. Te enviamos un enlace para confirmar tu correo antes de iniciar sesión.</p>
-        <a class="tb-auth-submit tb-auth-submit--link" routerLink="/signin">Ir a iniciar sesión</a>
+        <p>{{localization.traducir('signup.emailSent')}}</p>
+        <a class="tb-auth-submit tb-auth-submit--link" routerLink="/signin">{{localization.traducir('signup.goSignin')}}</a>
       } @else {
-        <p>El acceso inicial quedó asociado al rol de Dueño, pero no pudimos enviar el correo de validación. Podés solicitar un nuevo enlace desde el inicio de sesión.</p>
-        <a class="tb-auth-submit tb-auth-submit--link" routerLink="/reenviar-validacion">Reenviar validación</a>
+        <p>{{localization.traducir('signup.emailNotSent')}}</p>
+        <a class="tb-auth-submit tb-auth-submit--link" routerLink="/reenviar-validacion">{{localization.traducir('signup.resend')}}</a>
       }
     </div>
   } @else {
     <a class="tb-auth-form__back" routerLink="/plans">
       <svg aria-hidden="true" viewBox="0 0 20 20"><path d="m12.5 4.5-5 5 5 5" /></svg>
-      Volver a los planes
+      {{localization.traducir('signup.backPlans')}}
     </a>
 
     <div class="tb-auth-form__heading">
-      <p class="tb-auth-form__eyebrow">Registro de agencia</p>
-      <h1 id="signup-title">Completá los datos de acceso.</h1>
-      <p>Tu contratación fue aprobada. Crearemos el acceso inicial de TeamBalance con el rol de Dueño.</p>
+      <p class="tb-auth-form__eyebrow">{{localization.traducir('signup.eyebrow')}}</p>
+      <h1 id="signup-title">{{localization.traducir('signup.title')}}</h1>
+      <p>{{localization.traducir('signup.subtitle')}}</p>
     </div>
 
     <form class="tb-auth-form__fields" [formGroup]="registryForm" (ngSubmit)="onSignUp()" novalidate>
       <div class="tb-auth-form__row">
         <div class="tb-auth-field">
-          <label for="signup-first-name">Nombre</label>
-          <input id="signup-first-name" type="text" formControlName="firstName" autocomplete="given-name" placeholder="Tu nombre" />
+          <label for="signup-first-name">{{localization.traducir('signup.firstName')}}</label>
+          <input id="signup-first-name" type="text" formControlName="firstName" autocomplete="given-name" [placeholder]="localization.traducir('signup.yourName')" />
           @if (hasError('firstName')) {
-            <small class="tb-auth-field__error">Ingresá al menos 2 caracteres.</small>
+            <small class="tb-auth-field__error">{{localization.traducir('signup.minName')}}</small>
           }
         </div>
         <div class="tb-auth-field">
-          <label for="signup-last-name">Apellido</label>
-          <input id="signup-last-name" type="text" formControlName="lastName" autocomplete="family-name" placeholder="Tu apellido" />
+          <label for="signup-last-name">{{localization.traducir('signup.lastName')}}</label>
+          <input id="signup-last-name" type="text" formControlName="lastName" autocomplete="family-name" [placeholder]="localization.traducir('signup.yourLastName')" />
           @if (hasError('lastName')) {
-            <small class="tb-auth-field__error">Ingresá al menos 2 caracteres.</small>
+            <small class="tb-auth-field__error">{{localization.traducir('signup.minName')}}</small>
           }
         </div>
       </div>
 
       <div class="tb-auth-field">
-        <label for="signup-email">Email laboral</label>
+        <label for="signup-email">{{localization.traducir('signup.workEmail')}}</label>
         <input id="signup-email" type="email" formControlName="workEmail" autocomplete="email" placeholder="nombre@agencia.com" />
         @if (hasError('workEmail')) {
-          <small class="tb-auth-field__error">Ingresá un email laboral válido.</small>
+          <small class="tb-auth-field__error">{{localization.traducir('signup.invalidEmail')}}</small>
         }
       </div>
 
       <div class="tb-auth-field">
-        <label for="signup-phone">Teléfono de contacto</label>
+        <label for="signup-phone">{{localization.traducir('signup.phone')}}</label>
         <input id="signup-phone" type="tel" formControlName="phone" autocomplete="tel" placeholder="Ej.: +54 9 11 1234 5678" />
         @if (hasError('phone')) {
-          <small class="tb-auth-field__error">Ingresá un teléfono de contacto válido.</small>
+          <small class="tb-auth-field__error">{{localization.traducir('signup.invalidPhone')}}</small>
         }
       </div>
 
       <div class="tb-auth-field">
-        <label for="signup-password">Contraseña</label>
+        <label for="signup-password">{{localization.traducir('signup.password')}}</label>
         <div class="tb-auth-password">
-          <input id="signup-password" [type]="showPassword() ? 'text' : 'password'" formControlName="password" autocomplete="new-password" placeholder="Creá una contraseña" />
-          <button type="button" (click)="togglePasswordVisibility()" [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+          <input id="signup-password" [type]="showPassword() ? 'text' : 'password'" formControlName="password" autocomplete="new-password" [placeholder]="localization.traducir('signup.createPassword')" />
+          <button type="button" (click)="togglePasswordVisibility()" [attr.aria-label]="showPassword() ? localization.traducir('login.hidePassword') : localization.traducir('login.showPassword')">
             @if (showPassword()) {
               <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2.7 10s2.4-4.1 7.3-4.1S17.3 10 17.3 10 14.9 14.1 10 14.1 2.7 10 2.7 10Z" /><circle cx="10" cy="10" r="2.2" /></svg>
             } @else {
@@ -82,17 +82,17 @@
             }
           </button>
         </div>
-        <small class="tb-auth-field__hint">Usá al menos 8 caracteres, combinando letras y números.</small>
+        <small class="tb-auth-field__hint">{{localization.traducir('signup.passwordHint')}}</small>
         @if (hasError('password')) {
-          <small class="tb-auth-field__error">La contraseña debe cumplir los requisitos indicados.</small>
+          <small class="tb-auth-field__error">{{localization.traducir('signup.passwordError')}}</small>
         }
       </div>
 
       <div class="tb-auth-field">
-        <label for="signup-confirm-password">Confirmar contraseña</label>
+        <label for="signup-confirm-password">{{localization.traducir('signup.confirmPassword')}}</label>
         <div class="tb-auth-password">
-          <input id="signup-confirm-password" [type]="showConfirmPassword() ? 'text' : 'password'" formControlName="confirmPassword" autocomplete="new-password" placeholder="Repetí tu contraseña" />
-          <button type="button" (click)="toggleConfirmPasswordVisibility()" [attr.aria-label]="showConfirmPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'">
+          <input id="signup-confirm-password" [type]="showConfirmPassword() ? 'text' : 'password'" formControlName="confirmPassword" autocomplete="new-password" [placeholder]="localization.traducir('signup.repeatPassword')" />
+          <button type="button" (click)="toggleConfirmPasswordVisibility()" [attr.aria-label]="showConfirmPassword() ? localization.traducir('login.hidePassword') : localization.traducir('login.showPassword')">
             @if (showConfirmPassword()) {
               <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M2.7 10s2.4-4.1 7.3-4.1S17.3 10 17.3 10 14.9 14.1 10 14.1 2.7 10 2.7 10Z" /><circle cx="10" cy="10" r="2.2" /></svg>
             } @else {
@@ -101,7 +101,7 @@
           </button>
         </div>
         @if (hasError('confirmPassword')) {
-          <small class="tb-auth-field__error">Confirmá la contraseña elegida.</small>
+          <small class="tb-auth-field__error">{{localization.traducir('signup.confirmError')}}</small>
         }
       </div>
 
@@ -110,13 +110,13 @@
       }
 
       <button class="tb-auth-submit" type="submit" [disabled]="submitting()">
-        {{ submitting() ? 'Creando acceso…' : 'Crear acceso inicial' }}
+        {{ submitting() ? localization.traducir('signup.creating') : localization.traducir('signup.create') }}
       </button>
     </form>
 
     <div class="tb-auth-form__alternate">
-      <span>¿Ya tenés una cuenta?</span>
-      <a routerLink="/signin">Iniciar sesión</a>
+      <span>{{localization.traducir('signup.haveAccount')}}</span>
+      <a routerLink="/signin">{{localization.traducir('signin')}}</a>
     </div>
   }
 </section>

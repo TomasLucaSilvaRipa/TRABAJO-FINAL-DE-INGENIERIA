@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 import { PageBreadcrumbComponent } from '../../../shared/components/common/page-breadcrumb/page-breadcrumb.component';
+import { LocalizationService } from '../../../services/localization.service';
 
 @Component({
   selector: 'app-change-password',
@@ -14,6 +15,7 @@ import { PageBreadcrumbComponent } from '../../../shared/components/common/page-
 export class ChangePasswordComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  readonly localization = inject(LocalizationService);
 
   readonly submitting = signal(false);
   readonly requestError = signal('');

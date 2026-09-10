@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component,inject } from '@angular/core';
-import { LocalizationService, LanguageCode } from '../../../services/localization.service';
+import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
+import { LanguageCode, LocalizationService } from '../../../services/localization.service';
 
 @Component({
   selector: 'app-language-selector',
@@ -8,10 +8,12 @@ import { LocalizationService, LanguageCode } from '../../../services/localizatio
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LanguageSelector {
+  readonly variant = input<'light' | 'dark'>('light');
+
   readonly localization = inject(LocalizationService);
-  cambiarIdioma(event: Event):void {
+
+  cambiarIdioma(event: Event): void {
     const select = event.target as HTMLSelectElement;
     this.localization.cambiarIdioma(select.value as LanguageCode);
   }
-
 }

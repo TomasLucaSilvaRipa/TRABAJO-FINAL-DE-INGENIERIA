@@ -115,10 +115,14 @@ BEGIN
     DECLARE @IdContratacion INT;
     DECLARE @IdAgencia INT;
     DECLARE @IdUsuario INT;
+    DECLARE @IdPlanComercial INT;
+    DECLARE @ImporteVigente DECIMAL(18, 2);
+    DECLARE @DuracionMeses INT;
+    DECLARE @ReferenciaExterna NVARCHAR(250);
 
     BEGIN TRANSACTION;
 
-    SELECT @IdContratacion = ID
+    SELECT @IdContratacion = ID, @IdPlanComercial = IdPlanComercial
     FROM dbo.ContratacionServicio WITH (UPDLOCK, HOLDLOCK)
     WHERE ReferenciaContratacion = @ReferenciaContratacion
       AND EstadoContratacion = N'Aprobada'
@@ -128,6 +132,18 @@ BEGIN
 
     IF @IdContratacion IS NULL
         THROW 51001, 'La contratación no está aprobada o ya fue utilizada para registrar una agencia.', 1;
+
+    SELECT @ImporteVigente = PrecioVigente, @DuracionMeses = DuracionMeses
+    FROM dbo.PlanComercial
+    WHERE ID = @IdPlanComercial;
+
+    IF @ImporteVigente IS NULL OR @DuracionMeses IS NULL
+        THROW 51005, 'No existe el plan comercial asociado a la contratación.', 1;
+
+    SELECT TOP (1) @ReferenciaExterna = COALESCE(ReferenciaProveedor, ReferenciaInterna)
+    FROM dbo.OperacionPago
+    WHERE IdContratacionServicio = @IdContratacion
+    ORDER BY ID DESC;
 
     IF NOT EXISTS (SELECT 1 FROM dbo.Rol WHERE ID = @IdRol AND Nombre = N'Dueño' AND Activo = 1)
         THROW 51002, 'No existe un rol Dueño activo para crear el usuario inicial.', 1;
@@ -232,6 +248,33 @@ BEGIN
         SYSDATETIME(),
         @FechaExpiracion,
         0,
+        1
+    );
+
+    INSERT INTO dbo.Suscripcion
+    (
+        IdAgencia,
+        IdPlanComercial,
+        ReferenciaExterna,
+        Estado,
+        FechaAlta,
+        FechaVencimiento,
+        FechaProximaRenovacion,
+        RenovacionAutomatica,
+        ImporteVigente,
+        Activo
+    )
+    VALUES
+    (
+        @IdAgencia,
+        @IdPlanComercial,
+        @ReferenciaExterna,
+        N'Activa',
+        SYSDATETIME(),
+        DATEADD(MONTH, @DuracionMeses, SYSDATETIME()),
+        DATEADD(MONTH, @DuracionMeses, SYSDATETIME()),
+        1,
+        @ImporteVigente,
         1
     );
 

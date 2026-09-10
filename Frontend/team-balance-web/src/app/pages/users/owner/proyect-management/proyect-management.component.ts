@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Cliente, ProjectsService, Proyecto, ProyectoOpciones } from '../../../../services/projects.service';
+import { LocalizationService } from '../../../../services/localization.service';
 
 @Component({
   selector: 'app-proyect-management',
@@ -9,10 +10,13 @@ import { Cliente, ProjectsService, Proyecto, ProyectoOpciones } from '../../../.
 })
 export class ProyectManagement {
   private readonly service = inject(ProjectsService); private readonly fb = inject(FormBuilder);
+  readonly localization = inject(LocalizationService);
   readonly proyectos = signal<Proyecto[]>([]); readonly opciones = signal<ProyectoOpciones>({ clientes: [], responsables: [] }); readonly mostrarFormulario = signal(false); readonly mostrarCliente = signal(false); readonly clienteEditando = signal<Cliente | null>(null); readonly error = signal('');
   readonly form = this.fb.group({ id: [0], idCliente: [0, Validators.min(1)], idPMResponsable: [0, Validators.min(1)], nombre: ['', Validators.required], descripcion: [''], fechaInicio: [''], deadline: [''], horasEstimadasTotales: [0, Validators.min(0)], estado: ['Planificado'] });
   readonly clienteForm = this.fb.group({ nombre: ['', Validators.required], razonSocial: [''], email: [''], telefono: [''] });
+
   constructor() { this.cargar(); }
+
   cargar(): void { this.service.consultar().subscribe((x: Proyecto[]) => this.proyectos.set(x)); this.service.opciones().subscribe((x: ProyectoOpciones) => this.opciones.set(x)); }
   nuevo(): void { this.form.reset({ id: 0, idCliente: 0, idPMResponsable: 0, nombre: '', descripcion: '', fechaInicio: '', deadline: '', horasEstimadasTotales: 0, estado: 'Planificado' }); this.error.set(''); this.mostrarFormulario.set(true); }
   editar(p: Proyecto): void { this.form.patchValue(p); this.mostrarFormulario.set(true); }

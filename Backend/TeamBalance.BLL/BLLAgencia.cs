@@ -76,6 +76,28 @@ public class BLLAgencia
         return _usuarioBLL.ValidarCuenta(token);
     }
 
+    public Agencia ConsultarAgencia(Usuario solicitante)
+    {
+        ValidarPermiso(solicitante, "GestionarAgencia");
+        return _agenciaMPP.ConsultarAgencia(ObtenerIdAgencia(solicitante));
+    }
+
+    public Agencia ModificarAgencia(Agencia agencia, Usuario solicitante)
+    {
+        ValidarPermiso(solicitante, "GestionarAgencia");
+        if (string.IsNullOrWhiteSpace(agencia.NombreComercial) || string.IsNullOrWhiteSpace(agencia.EmailContacto) || !MailAddress.TryCreate(agencia.EmailContacto.Trim(), out _)) { throw new ArgumentException("Completá un nombre comercial y un email de contacto válido."); }
+        agencia.ID = ObtenerIdAgencia(solicitante);
+        agencia.NombreComercial = agencia.NombreComercial.Trim();
+        agencia.EmailContacto = agencia.EmailContacto.Trim().ToLowerInvariant();
+        return _agenciaMPP.ModificarAgencia(agencia);
+    }
+
+    public Suscripcion? ConsultarSuscripcionActual(Usuario solicitante)
+    {
+        ValidarPermiso(solicitante, "GestionarSuscripcion");
+        return _agenciaMPP.ConsultarSuscripcionActual(ObtenerIdAgencia(solicitante));
+    }
+
     public async Task ReenviarValidacion(string email)
     {
         if (string.IsNullOrWhiteSpace(email) || !MailAddress.TryCreate(email.Trim(), out _))
@@ -116,4 +138,7 @@ public class BLLAgencia
             throw new ArgumentException("La contraseña debe tener al menos 8 caracteres e incluir letras y números.");
         }
     }
+
+    private int ObtenerIdAgencia(Usuario usuario) { if (!usuario.IdAgencia.HasValue) { throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."); } return usuario.IdAgencia.Value; }
+    private void ValidarPermiso(Usuario usuario, string permiso) { if (!_rolBLL.TienePermiso(usuario, permiso)) { throw new UnauthorizedAccessException("No tenés permiso para realizar esta acción."); } }
 }

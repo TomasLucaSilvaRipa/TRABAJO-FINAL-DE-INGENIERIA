@@ -122,9 +122,7 @@ public class BLLUsuario
         _rolBLL.CargarAutorizacion(usuarioBD);
 
         string accessToken = _seguridad.GenerarTokenSeguro();
-        DateTime fechaExpiracion = mantenerSesion
-            ? DateTime.Now.AddDays(DuracionSesionRecordadaDias)
-            : DateTime.Now.AddHours(DuracionSesionNormalHoras);
+        DateTime fechaExpiracion = mantenerSesion ? DateTime.Now.AddDays(DuracionSesionRecordadaDias) : DateTime.Now.AddHours(DuracionSesionNormalHoras);
 
         DateTime fechaInicio = DateTime.Now;
         SesionUsuario sesion = new SesionUsuario(0, usuarioBD.ID, _seguridad.GenerarHashToken(accessToken), fechaInicio, fechaInicio, fechaExpiracion, null, true, null);

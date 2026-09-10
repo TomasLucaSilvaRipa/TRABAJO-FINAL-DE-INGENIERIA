@@ -1,14 +1,16 @@
 <section class="tb-workspace space-y-6">
   <header><p class="tb-page-kicker">CONFIGURACIÓN</p><h1 class="tb-page-title">Datos de la agencia</h1><p class="tb-page-description">Mantené actualizada la información institucional que identifica a tu agencia en TeamBalance.</p></header>
   <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-    <form class="tb-panel grid gap-5 md:grid-cols-2" aria-label="Configuración de la agencia">
-      <div class="md:col-span-2"><label class="tb-field-label" for="nombre-comercial">Nombre comercial</label><input id="nombre-comercial" type="text" placeholder="Nombre de tu agencia" /></div>
-      <div><label class="tb-field-label" for="razon-social">Razón social</label><input id="razon-social" type="text" placeholder="Razón social" /></div>
-      <div><label class="tb-field-label" for="cuit">CUIT</label><input id="cuit" type="text" inputmode="numeric" placeholder="00-00000000-0" /></div>
-      <div><label class="tb-field-label" for="condicion-fiscal">Condición fiscal</label><select id="condicion-fiscal"><option value="">Seleccionar condición</option><option>Responsable inscripto</option><option>Monotributo</option><option>Exento</option></select></div>
-      <div><label class="tb-field-label" for="email-facturacion">Email de facturación</label><input id="email-facturacion" type="email" placeholder="facturacion@agencia.com" /></div>
-      <div><label class="tb-field-label" for="telefono-contacto">Teléfono de contacto</label><input id="telefono-contacto" type="tel" placeholder="Código de país y número" /></div>
-      <div class="flex items-end md:col-span-2"><button class="tb-action-button" type="button">Guardar cambios</button></div>
+    <form class="tb-panel grid gap-5 md:grid-cols-2" aria-label="Configuración de la agencia" [formGroup]="form" (ngSubmit)="guardar()">
+      @if(cargando()){<p class="md:col-span-2 text-sm text-slate-500">Cargando datos de la agencia…</p>}@else{<div class="md:col-span-2"><label class="tb-field-label" for="nombre-comercial">Nombre comercial</label><input id="nombre-comercial" type="text" formControlName="nombreComercial" /></div>
+      <div><label class="tb-field-label" for="razon-social">Razón social</label><input id="razon-social" type="text" formControlName="razonSocial" /></div>
+      <div><label class="tb-field-label" for="cuit">CUIT <span class="text-xs font-normal text-slate-500">(no editable)</span></label><input id="cuit" type="text" formControlName="cuit" /></div>
+      <div><label class="tb-field-label" for="condicion-fiscal">Condición fiscal</label><select id="condicion-fiscal" formControlName="condicionFiscal"><option value="">Seleccionar condición</option><option>Responsable inscripto</option><option>Monotributo</option><option>Exento</option></select></div>
+      <div><label class="tb-field-label" for="email-facturacion">Email de facturación</label><input id="email-facturacion" type="email" formControlName="emailContacto" /></div>
+      <div><label class="tb-field-label" for="telefono-contacto">Teléfono de contacto</label><input id="telefono-contacto" type="tel" formControlName="telefonoContacto" /></div>
+      <div><label class="tb-field-label" for="fecha-alta">Fecha de alta <span class="text-xs font-normal text-slate-500">(no editable)</span></label><input id="fecha-alta" type="text" formControlName="fechaAlta" /></div>
+      <div><label class="tb-field-label" for="estado">Estado <span class="text-xs font-normal text-slate-500">(no editable)</span></label><input id="estado" type="text" formControlName="estado" /></div>
+      @if(error()){<p class="text-sm text-red-600 md:col-span-2">{{error()}}</p>}@if(mensaje()){<p class="text-sm text-emerald-700 md:col-span-2">{{mensaje()}}</p>}<div class="flex items-end md:col-span-2"><button class="tb-action-button" type="submit">Guardar cambios</button></div>}
     </form>
     <aside class="tb-panel--navy"><p class="tb-page-kicker text-cyan-200">ORGANIZACIÓN</p><h2 class="mt-2 text-xl font-semibold text-white">Una base ordenada para operar</h2><p class="mt-3 text-sm leading-6 text-slate-200">Estos datos se usan como referencia institucional en las gestiones administrativas de TeamBalance.</p></aside>
   </div>

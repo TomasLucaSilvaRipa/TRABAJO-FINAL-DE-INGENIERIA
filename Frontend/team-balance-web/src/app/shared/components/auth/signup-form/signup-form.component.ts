@@ -7,6 +7,7 @@ import { finalize, debounce,debounceTime, of,switchMap, distinctUntilChanged, ca
 import { AuthService } from '../../../../services/auth.service';
 import { ContratacionService } from '../../../../services/contratacion.service';
 import { PasswordSecurityService,PasswordEvaluation } from '../../../../services/security/password-security.service';
+import { LocalizationService } from '../../../../services/localization.service';
 
 @Component({
   selector: 'app-signup-form',
@@ -24,6 +25,7 @@ export class SignupFormComponent {
   private readonly authService = inject(AuthService);
   private readonly contratacionService = inject(ContratacionService);
   private readonly passwordSecurityService = inject(PasswordSecurityService);
+  readonly localization = inject(LocalizationService);
   readonly passwordEvaluation = signal<PasswordEvaluation | null>(null);
   readonly referenciaContratacion = signal('');
   readonly validatingContinuation = signal(true);

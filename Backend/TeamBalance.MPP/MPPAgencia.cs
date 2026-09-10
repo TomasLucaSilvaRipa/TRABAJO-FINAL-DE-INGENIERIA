@@ -27,6 +27,42 @@ public class MPPAgencia
         return resultado.Rows.Count == 1 && Convert.ToBoolean(resultado.Rows[0]["Existe"]);
     }
 
+    public Agencia ConsultarAgencia(int idAgencia)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", idAgencia) };
+        DataTable resultado = _conexion.Leer("dbo.usp_Agencia_Consultar", parametros);
+        if (resultado.Rows.Count != 1) { throw new KeyNotFoundException("No existe la agencia solicitada."); }
+        DataRow fila = resultado.Rows[0];
+        Agencia agencia = new Agencia(Convert.ToInt32(fila["ID"]), Convert.ToString(fila["NombreComercial"]) ?? string.Empty, Convert.ToString(fila["RazonSocial"]) ?? string.Empty, Convert.ToString(fila["CUIT"]) ?? string.Empty, Convert.ToString(fila["EmailContacto"]) ?? string.Empty, Convert.ToString(fila["TelefonoContacto"]) ?? string.Empty, Convert.ToDateTime(fila["FechaAlta"]), Convert.ToString(fila["Estado"]) ?? string.Empty, Convert.ToBoolean(fila["Activo"]), new List<Proyecto>(), new List<Usuario>());
+        agencia.CondicionFiscal = Convert.ToString(fila["CondicionFiscal"]);
+        agencia.FechaBaja = fila["FechaBaja"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaBaja"]);
+        return agencia;
+    }
+
+    public Agencia ModificarAgencia(Agencia agencia)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", agencia.ID), new SqlParameter("@NombreComercial", agencia.NombreComercial), new SqlParameter("@RazonSocial", (object?)agencia.RazonSocial ?? DBNull.Value), new SqlParameter("@CondicionFiscal", (object?)agencia.CondicionFiscal ?? DBNull.Value), new SqlParameter("@EmailContacto", agencia.EmailContacto), new SqlParameter("@TelefonoContacto", (object?)agencia.TelefonoContacto ?? DBNull.Value) };
+        DataTable resultado = _conexion.Leer("dbo.usp_Agencia_Modificar", parametros);
+        if (resultado.Rows.Count != 1) { throw new KeyNotFoundException("No existe la agencia solicitada."); }
+        DataRow fila = resultado.Rows[0];
+        Agencia agenciaActualizada = new Agencia(Convert.ToInt32(fila["ID"]), Convert.ToString(fila["NombreComercial"]) ?? string.Empty, Convert.ToString(fila["RazonSocial"]) ?? string.Empty, Convert.ToString(fila["CUIT"]) ?? string.Empty, Convert.ToString(fila["EmailContacto"]) ?? string.Empty, Convert.ToString(fila["TelefonoContacto"]) ?? string.Empty, Convert.ToDateTime(fila["FechaAlta"]), Convert.ToString(fila["Estado"]) ?? string.Empty, Convert.ToBoolean(fila["Activo"]), new List<Proyecto>(), new List<Usuario>());
+        agenciaActualizada.CondicionFiscal = Convert.ToString(fila["CondicionFiscal"]);
+        return agenciaActualizada;
+    }
+
+    public Suscripcion? ConsultarSuscripcionActual(int idAgencia)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", idAgencia) };
+        DataTable resultado = _conexion.Leer("dbo.usp_Suscripcion_ConsultarActualPorAgencia", parametros);
+        if (resultado.Rows.Count == 0) { return null; }
+        DataRow fila = resultado.Rows[0];
+        Suscripcion suscripcion = new Suscripcion(Convert.ToInt32(fila["ID"]), Convert.ToInt32(fila["IdAgencia"]), Convert.ToInt32(fila["IdPlanComercial"]), Convert.ToString(fila["ReferenciaExterna"]), Convert.ToString(fila["Estado"]) ?? string.Empty, Convert.ToDateTime(fila["FechaAlta"]), Convert.ToDateTime(fila["FechaVencimiento"]), fila["FechaProximaRenovacion"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaProximaRenovacion"]), Convert.ToBoolean(fila["RenovacionAutomatica"]), Convert.ToDecimal(fila["ImporteVigente"]), Convert.ToBoolean(fila["Activo"]), fila["FechaBaja"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaBaja"]));
+        suscripcion.NombrePlan = Convert.ToString(fila["NombrePlan"]);
+        suscripcion.PeriodicidadPlan = Convert.ToString(fila["PeriodicidadPlan"]);
+        suscripcion.Moneda = Convert.ToString(fila["Moneda"]);
+        return suscripcion;
+    }
+
     public RegistroAgenciaResultado RegistrarAgencia(Agencia agencia, Usuario usuario, Dueño dueño, ValidacionCuentum validacion, string referenciaContratacion)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
