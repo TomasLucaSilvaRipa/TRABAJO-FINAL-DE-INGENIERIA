@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { LocalizationService } from '../../../../services/localization.service';
 
 @Component({
   selector: 'app-availability',
@@ -7,4 +8,4 @@ import { RouterModule } from '@angular/router';
   templateUrl: './availability.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AvailabilityComponent {}
+export class AvailabilityComponent { readonly localization = inject(LocalizationService); }

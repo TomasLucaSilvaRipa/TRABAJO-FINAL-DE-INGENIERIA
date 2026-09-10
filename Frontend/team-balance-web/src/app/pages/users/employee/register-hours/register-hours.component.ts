@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { LocalizationService } from '../../../../services/localization.service';
 
 @Component({
   selector: 'app-register-hours',
@@ -9,6 +10,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RegisterHoursComponent {
+  readonly localization = inject(LocalizationService);
   readonly form = new FormBuilder().nonNullable.group({
     tarea: ['', Validators.required],
     fecha: [new Date().toISOString().slice(0, 10), Validators.required],

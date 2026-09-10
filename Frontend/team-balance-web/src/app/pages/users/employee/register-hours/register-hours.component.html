@@ -1,28 +1,28 @@
 <section class="tb-workspace mx-auto max-w-4xl space-y-6">
   <header>
-    <p class="tb-page-kicker">Mi operación</p>
-    <h1 class="tb-page-title mt-2">Registrar horas</h1>
-    <p class="tb-page-description mt-2">Informá el tiempo dedicado a una tarea para mantener actualizada la carga operativa.</p>
+    <p class="tb-page-kicker">{{localization.traducir('hours.eyebrow')}}</p>
+    <h1 class="tb-page-title mt-2">{{localization.traducir('hours.title')}}</h1>
+    <p class="tb-page-description mt-2">{{localization.traducir('hours.subtitle')}}</p>
   </header>
 
   <form [formGroup]="form" (ngSubmit)="registrar()" class="tb-panel--navy p-6 shadow-sm">
     <div class="grid gap-5 md:grid-cols-2">
-      <label class="tb-navy-field-label">Tarea
-        <input formControlName="tarea" placeholder="Seleccioná o ingresá una tarea" />
+      <label class="tb-navy-field-label">{{localization.traducir('hours.task')}}
+        <input formControlName="tarea" [placeholder]="localization.traducir('hours.taskPlaceholder')" />
       </label>
-      <label class="tb-navy-field-label">Fecha
+      <label class="tb-navy-field-label">{{localization.traducir('hours.date')}}
         <input type="date" formControlName="fecha" />
       </label>
-      <label class="tb-navy-field-label">Horas
+      <label class="tb-navy-field-label">{{localization.traducir('hours.hours')}}
         <input type="number" min="0.25" step="0.25" formControlName="horas" />
       </label>
-      <label class="tb-navy-field-label">Descripción opcional
-        <input formControlName="descripcion" placeholder="Ej.: revisión de entregable" />
+      <label class="tb-navy-field-label">{{localization.traducir('hours.optionalDescription')}}
+        <input formControlName="descripcion" [placeholder]="localization.traducir('hours.descriptionPlaceholder')" />
       </label>
     </div>
     <div class="mt-6 flex items-center gap-4">
-      <button type="submit" class="rounded-xl bg-cyan-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-cyan-700">Guardar registro</button>
-      @if (enviado) { <p class="text-sm font-medium text-emerald-600">El registro quedó listo para integrarse con la gestión de tareas.</p> }
+      <button type="submit" class="rounded-xl bg-cyan-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-cyan-700">{{localization.traducir('hours.save')}}</button>
+      @if (enviado) { <p class="text-sm font-medium text-emerald-600">{{localization.traducir('hours.success')}}</p> }
     </div>
   </form>
 </section>

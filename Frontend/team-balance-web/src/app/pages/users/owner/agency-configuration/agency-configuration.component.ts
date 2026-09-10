@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AgencyService, Agencia } from '../../../../services/agency.service';
+import { LocalizationService } from '../../../../services/localization.service';
 
 @Component({
   selector: 'app-agency-configuration',
@@ -10,6 +11,7 @@ import { AgencyService, Agencia } from '../../../../services/agency.service';
 })
 export class AgencyConfiguration {
   private readonly formBuilder = inject(FormBuilder); private readonly agencyService = inject(AgencyService);
+  readonly localization = inject(LocalizationService);
   readonly cargando = signal(true); readonly error = signal(''); readonly mensaje = signal('');
   readonly form = this.formBuilder.group({ id: [0], nombreComercial: ['', Validators.required], razonSocial: [''], cuit: [{ value: '', disabled: true }], condicionFiscal: [''], emailContacto: ['', [Validators.required, Validators.email]], telefonoContacto: [''], fechaAlta: [{ value: '', disabled: true }], estado: [{ value: '', disabled: true }] });
 
