@@ -1,28 +1,28 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { AuthService } from '../../../services/auth.service';
+import { AuthService, UsuarioSesion } from '../../../services/auth.service';
+import { Proyecto, ProjectsService } from '../../../services/projects.service';
+import { LocalizationService } from '../../../services/localization.service';
 
-@Component({
-  selector: 'app-ecommerce',
-  imports: [CommonModule, RouterModule],
-  templateUrl: './ecommerce.component.html',
-})
+@Component({ selector: 'app-ecommerce', standalone: true, imports: [CommonModule, RouterModule], templateUrl: './ecommerce.component.html' })
 export class EcommerceComponent {
-  readonly authService = inject(AuthService);
-
+  readonly authService = inject(AuthService); private readonly projectsService = inject(ProjectsService);
+  readonly localization = inject(LocalizationService);
+  readonly proyectos = signal<Proyecto[]>([]); readonly proyectosAbiertos = signal(true); readonly cargandoProyectos = signal(false);
+  readonly usuario: UsuarioSesion | null = this.authService.usuarioActual();
   readonly accesos = [
-    { permiso: 'GestionarUsuarios', titulo: 'Gestionar empleados', descripcion: 'Creá usuarios, asigná roles y actualizá perfiles laborales.', ruta: '/dashboard/empleados', accion: 'Abrir gestión' },
-    { permiso: 'GestionarProyectos', titulo: 'Gestionar proyectos', descripcion: 'Revisá el avance, responsables y prioridades de cada proyecto.', ruta: '/dashboard/proyectos', accion: 'Ver proyectos' },
-    { permiso: 'GestionarTareas', titulo: 'Planificar tareas', descripcion: 'Organizá el trabajo, asigná responsables y seguí el estado.', ruta: '/dashboard/tareas', accion: 'Ir a tareas' },
-    { permiso: 'UsarBestFit', titulo: 'Sugerir mejor recurso', descripcion: 'Usá Best Fit dentro de la planificación para comparar alternativas.', ruta: '/dashboard/best-fit', accion: 'Abrir Best Fit' },
-    { permiso: 'RegistrarHoras', titulo: 'Registrar horas', descripcion: 'Actualizá el tiempo dedicado a tus tareas de esta semana.', ruta: '/dashboard/registrar-horas', accion: 'Registrar horas' },
-    { permiso: 'GestionarDisponibilidad', titulo: 'Actualizar disponibilidad', descripcion: 'Mantené visible tu capacidad para una mejor planificación.', ruta: '/dashboard/disponibilidad', accion: 'Ver disponibilidad' },
-    { permiso: 'GestionarRoles', titulo: 'Gestionar roles', descripcion: 'Definí roles y asignales los permisos estáticos de la plataforma.', ruta: '/dashboard/roles', accion: 'Gestionar roles' },
-    { permiso: 'ConsultarBitacora', titulo: 'Revisar bitácora', descripcion: 'Consultá los eventos de seguridad y actividad del sistema.', ruta: '/dashboard/bitacora', accion: 'Ver actividad' },
+    { permiso: 'GestionarUsuarios', titulo: 'Gestionar empleados', descripcion: 'Usuarios, roles y perfiles laborales.', ruta: '/dashboard/empleados', accion: 'Abrir' },
+    { permiso: 'GestionarTareas', titulo: 'Planificar tareas', descripcion: 'Priorizá y asigná el trabajo.', ruta: '/dashboard/tareas', accion: 'Planificar' },
+    { permiso: 'UsarBestFit', titulo: 'Best Fit', descripcion: 'Compará alternativas de asignación.', ruta: '/dashboard/best-fit', accion: 'Analizar' },
+    { permiso: 'RegistrarHoras', titulo: 'Registrar horas', descripcion: 'Actualizá tu dedicación semanal.', ruta: '/dashboard/registrar-horas', accion: 'Registrar' },
+    { permiso: 'GestionarDisponibilidad', titulo: 'Disponibilidad', descripcion: 'Mantené visible tu capacidad.', ruta: '/dashboard/disponibilidad', accion: 'Actualizar' },
+    { permiso: 'GestionarRoles', titulo: 'Gestionar roles', descripcion: 'Definí accesos de la agencia.', ruta: '/dashboard/roles', accion: 'Gestionar' },
+    { permiso: 'ConsultarBitacora', titulo: 'Bitácora', descripcion: 'Actividad y controles de seguridad.', ruta: '/dashboard/bitacora', accion: 'Revisar' },
   ];
-
-  puedeVer(permiso: string): boolean {
-    return this.authService.tienePermiso(permiso);
-  }
+  constructor() { if (this.puedeVer('GestionarProyectos')) { this.cargarProyectos(); } }
+  puedeVer(permiso: string): boolean { return this.authService.tienePermiso(permiso); }
+  totalAccesos(): number { return this.accesos.filter(acceso => this.puedeVer(acceso.permiso)).length; }
+  cargarProyectos(): void { this.cargandoProyectos.set(true); this.projectsService.consultar().subscribe({ next: (proyectos: Proyecto[]) => { this.proyectos.set(proyectos.filter(proyecto => proyecto.activo)); this.cargandoProyectos.set(false); }, error: () => this.cargandoProyectos.set(false) }); }
+  proyectosEnCurso(): number { return this.proyectos().filter(proyecto => proyecto.estado === 'En curso').length; }
 }

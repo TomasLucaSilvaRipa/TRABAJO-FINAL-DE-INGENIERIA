@@ -23,7 +23,7 @@ public class RolController : ControllerBase
         {
             Usuario solicitante = ObtenerSolicitante();
             if (!_rolBLL.TienePermiso(solicitante, "GestionarUsuarios")){ return Unauthorized("No tenés permiso para gestionar usuarios."); }
-            return Ok(_rolBLL.ConsultarRolesActivos().Where(rol => !string.Equals(rol.Nombre, "Soporte", StringComparison.OrdinalIgnoreCase)));
+            return Ok(_rolBLL.ConsultarRolesAsignablesAgencia(solicitante));
         }
         catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
     }
@@ -31,7 +31,7 @@ public class RolController : ControllerBase
     [HttpGet]
     public IActionResult ConsultarRoles()
     {
-        try { ValidarGestionRoles(); return Ok(_rolBLL.ConsultarRolesActivos()); }
+        try { return Ok(_rolBLL.ConsultarRolesGestion(ObtenerSolicitante())); }
         catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
     }
 
@@ -45,7 +45,7 @@ public class RolController : ControllerBase
     [HttpPost]
     public IActionResult RegistrarRol([FromBody] Rol rol)
     {
-        try { ValidarGestionRoles(); return Ok(_rolBLL.RegistrarRol(rol)); }
+        try { return Ok(_rolBLL.RegistrarRol(rol, ObtenerSolicitante())); }
         catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
         catch (ArgumentException ex){ return BadRequest(ex.Message); }
         catch (Exception){ return StatusCode(500, "No fue posible registrar el rol."); }
@@ -54,7 +54,7 @@ public class RolController : ControllerBase
     [HttpPut("{idRol:int}")]
     public IActionResult ModificarRol(int idRol, [FromBody] Rol rol)
     {
-        try { ValidarGestionRoles(); rol.ID = idRol; _rolBLL.ModificarRol(rol); return NoContent(); }
+        try { rol.ID = idRol; _rolBLL.ModificarRol(rol, ObtenerSolicitante()); return NoContent(); }
         catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
         catch (ArgumentException ex){ return BadRequest(ex.Message); }
         catch (Exception){ return StatusCode(500, "No fue posible modificar el rol."); }

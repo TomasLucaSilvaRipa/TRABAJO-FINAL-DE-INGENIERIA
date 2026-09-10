@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { DropdownItemTwoComponent } from '../../ui/dropdown/dropdown-item/dropdown-item.component-two';
 import { AuthService } from '../../../../services/auth.service';
-import { LocalizationService } from '../../../../services/localization.service';
+import { LanguageCode, LocalizationService } from '../../../../services/localization.service';
 import { finalize } from 'rxjs';
 
 @Component({
@@ -25,6 +25,11 @@ export class UserDropdownComponent {
 
   closeDropdown() {
     this.isOpen = false;
+  }
+
+  cambiarIdioma(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    this.localization.cambiarIdioma(select.value as LanguageCode);
   }
 
   signOut(): void {

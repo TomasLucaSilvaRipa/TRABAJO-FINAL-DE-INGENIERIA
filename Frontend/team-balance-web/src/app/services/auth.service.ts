@@ -25,7 +25,7 @@ export interface UsuarioSesion {
   permisos: PermisoSesion[];
 }
 
-export interface RolSesion { id: number; nombre: string; }
+export interface RolSesion { id: number; nombre: string; tipoUsuario: string; }
 export interface PermisoSesion { id: number; codigo: string; nombre: string; url: string; }
 
 export interface LogInRequest {
@@ -131,5 +131,9 @@ export class AuthService {
 
   tienePermiso(codigoPermiso: string): boolean {
     return this.usuarioActual()?.permisos?.some(permiso => permiso.codigo === codigoPermiso) ?? false;
+  }
+
+  esSoporte(): boolean {
+    return this.usuarioActual()?.roles?.some(rol => rol.tipoUsuario === 'Soporte') ?? false;
   }
 }

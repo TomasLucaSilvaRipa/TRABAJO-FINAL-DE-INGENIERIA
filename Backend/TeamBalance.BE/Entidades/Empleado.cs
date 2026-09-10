@@ -9,6 +9,7 @@ public partial class Empleado : Usuario
     {
         AsignacionTareas = new List<AsignacionTarea>();
         AusenciaEmpleados = new List<AusenciaEmpleado>();
+        EmpleadoSkills = new List<EmpleadoSkill>();
         Skills = new List<Skill>();
         Tareas = new List<Tarea>();
     }
@@ -26,6 +27,7 @@ public partial class Empleado : Usuario
         FechaIngreso = fechaIngreso;
         AsignacionTareas = new List<AsignacionTarea>();
         AusenciaEmpleados = new List<AusenciaEmpleado>();
+        EmpleadoSkills = new List<EmpleadoSkill>();
         Skills = skills;
         Tareas = new List<Tarea>();
     }
@@ -44,6 +46,8 @@ public partial class Empleado : Usuario
     public List<AsignacionTarea> AsignacionTareas { get; set; }
 
     public List<AusenciaEmpleado> AusenciaEmpleados { get; set; }
+
+    public List<EmpleadoSkill> EmpleadoSkills { get; set; }
 
     public DisponibilidadBase? DisponibilidadBase { get; set; }
 

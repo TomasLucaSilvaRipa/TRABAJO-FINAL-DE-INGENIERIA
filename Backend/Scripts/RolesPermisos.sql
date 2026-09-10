@@ -18,6 +18,30 @@ BEGIN
 END;
 GO
 
+IF COL_LENGTH(N'dbo.Rol', N'IdAgencia') IS NULL
+    ALTER TABLE dbo.Rol ADD IdAgencia INT NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = N'FK_Rol_Agencia')
+    ALTER TABLE dbo.Rol ADD CONSTRAINT FK_Rol_Agencia FOREIGN KEY(IdAgencia) REFERENCES dbo.Agencia(ID);
+GO
+
+IF COL_LENGTH(N'dbo.Rol', N'TipoUsuario') IS NULL
+    ALTER TABLE dbo.Rol ADD TipoUsuario NVARCHAR(20) NULL;
+GO
+
+UPDATE dbo.Rol
+SET TipoUsuario = CASE
+    WHEN Nombre LIKE N'Due%' THEN N'Dueno'
+    WHEN Nombre = N'PM' THEN N'PM'
+    WHEN Nombre = N'Empleado' THEN N'Empleado'
+    WHEN Nombre = N'Soporte' THEN N'Soporte'
+    WHEN TipoUsuario IS NULL OR TipoUsuario = N'' THEN N'Empleado'
+    ELSE TipoUsuario
+END
+WHERE EsRolBase = 1 OR TipoUsuario IS NULL OR TipoUsuario = N'';
+GO
+
 IF COL_LENGTH(N'dbo.Permiso', N'Codigo') IS NULL
     ALTER TABLE dbo.Permiso ADD Codigo NVARCHAR(100) NULL;
 GO
@@ -89,17 +113,25 @@ GO
 DELETE rolPermiso
 FROM dbo.RolPermiso rolPermiso
 INNER JOIN dbo.Rol rol ON rol.ID = rolPermiso.IdRol
-WHERE rol.Nombre IN (N'Dueño', N'PM', N'Empleado', N'Soporte');
+INNER JOIN dbo.Permiso permiso ON permiso.ID = rolPermiso.IdPermiso
+WHERE rol.TipoUsuario <> N'Soporte' AND permiso.Codigo = N'ConsultarBitacora';
+GO
+
+DELETE rolPermiso
+FROM dbo.RolPermiso rolPermiso
+INNER JOIN dbo.Rol rol ON rol.ID = rolPermiso.IdRol
+WHERE rol.EsRolBase = 1;
 GO
 
 INSERT INTO dbo.RolPermiso(IdRol, IdPermiso)
 SELECT rol.ID, permiso.ID
 FROM dbo.Rol rol
 INNER JOIN dbo.Permiso permiso ON
-    (rol.Nombre = N'Dueño' AND permiso.Codigo IN (N'VerDashboard', N'GestionarAgencia', N'GestionarUsuarios', N'GestionarProyectos', N'GestionarTareas', N'ConsultarTableroEjecutivo', N'ConsultarBitacora', N'GestionarSuscripcion', N'Perfil', N'SeguridadCuenta', N'ConsultarNotificaciones', N'ConsultarAyuda'))
-    OR (rol.Nombre = N'PM' AND permiso.Codigo IN (N'VerDashboard', N'GestionarProyectos', N'GestionarTareas', N'UsarBestFit', N'GestionarDisponibilidad', N'VerCalendarioEquipo', N'SimularImpacto', N'Perfil', N'SeguridadCuenta', N'ConsultarNotificaciones', N'ConsultarAyuda'))
-    OR (rol.Nombre = N'Empleado' AND permiso.Codigo IN (N'VerDashboard', N'RegistrarHoras', N'GestionarDisponibilidad', N'VerKanban', N'VerCargaOperativa', N'Perfil', N'SeguridadCuenta', N'ConsultarNotificaciones', N'ConsultarAyuda'))
-    OR (rol.Nombre = N'Soporte' AND permiso.Codigo IN (N'VerDashboard', N'GestionarRoles', N'GestionarPlanes', N'ConsultarBitacora', N'Perfil', N'SeguridadCuenta', N'ConsultarNotificaciones', N'ConsultarAyuda'));
+    (rol.TipoUsuario = N'Dueno' AND permiso.Codigo IN (N'VerDashboard', N'GestionarAgencia', N'GestionarUsuarios', N'GestionarProyectos', N'GestionarTareas', N'ConsultarTableroEjecutivo', N'GestionarSuscripcion', N'GestionarRoles', N'Perfil', N'SeguridadCuenta', N'ConsultarNotificaciones', N'ConsultarAyuda'))
+    OR (rol.TipoUsuario = N'PM' AND permiso.Codigo IN (N'VerDashboard', N'GestionarProyectos', N'GestionarTareas', N'UsarBestFit', N'GestionarDisponibilidad', N'VerCalendarioEquipo', N'SimularImpacto', N'Perfil', N'SeguridadCuenta', N'ConsultarNotificaciones', N'ConsultarAyuda'))
+    OR (rol.TipoUsuario = N'Empleado' AND permiso.Codigo IN (N'VerDashboard', N'RegistrarHoras', N'GestionarDisponibilidad', N'VerKanban', N'VerCargaOperativa', N'Perfil', N'SeguridadCuenta', N'ConsultarNotificaciones', N'ConsultarAyuda'))
+    OR (rol.TipoUsuario = N'Soporte' AND permiso.Codigo IN (N'VerDashboard', N'GestionarRoles', N'GestionarPlanes', N'ConsultarBitacora', N'Perfil', N'SeguridadCuenta', N'ConsultarNotificaciones', N'ConsultarAyuda'))
+WHERE rol.EsRolBase = 1;
 GO
 
 INSERT INTO dbo.UsuarioRol(IdUsuario, IdRol)
@@ -116,7 +148,7 @@ CREATE OR ALTER PROCEDURE dbo.usp_Rol_ConsultarActivos
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT ID, Nombre, Descripcion, EsRolBase, Activo, FechaBaja
+    SELECT ID, IdAgencia, Nombre, Descripcion, TipoUsuario, EsRolBase, Activo, FechaBaja
     FROM dbo.Rol
     WHERE Activo = 1
     ORDER BY EsRolBase DESC, Nombre;
@@ -128,7 +160,7 @@ CREATE OR ALTER PROCEDURE dbo.usp_Rol_ConsultarPorUsuario
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT rol.ID, rol.Nombre, rol.Descripcion, rol.EsRolBase, rol.Activo, rol.FechaBaja
+    SELECT rol.ID, rol.IdAgencia, rol.Nombre, rol.Descripcion, rol.TipoUsuario, rol.EsRolBase, rol.Activo, rol.FechaBaja
     FROM dbo.UsuarioRol usuarioRol
     INNER JOIN dbo.Rol rol ON rol.ID = usuarioRol.IdRol
     WHERE usuarioRol.IdUsuario = @IdUsuario AND rol.Activo = 1
@@ -175,14 +207,16 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Rol_Registrar
+    @IdAgencia INT = NULL,
     @Nombre NVARCHAR(100),
-    @Descripcion NVARCHAR(500)
+    @Descripcion NVARCHAR(500),
+    @TipoUsuario NVARCHAR(20)
 AS
 BEGIN
     SET NOCOUNT ON;
     IF EXISTS(SELECT 1 FROM dbo.Rol WHERE Nombre = @Nombre)
         THROW 52001, 'Ya existe un rol con ese nombre.', 1;
-    INSERT INTO dbo.Rol(Nombre, Descripcion, EsRolBase, Activo) VALUES(@Nombre, NULLIF(@Descripcion, N''), 0, 1);
+    INSERT INTO dbo.Rol(IdAgencia, Nombre, Descripcion, TipoUsuario, EsRolBase, Activo) VALUES(@IdAgencia, @Nombre, NULLIF(@Descripcion, N''), @TipoUsuario, 0, 1);
     SELECT CONVERT(INT, SCOPE_IDENTITY()) AS ID;
 END;
 GO
@@ -190,13 +224,14 @@ GO
 CREATE OR ALTER PROCEDURE dbo.usp_Rol_Modificar
     @IdRol INT,
     @Nombre NVARCHAR(100),
-    @Descripcion NVARCHAR(500)
+    @Descripcion NVARCHAR(500),
+    @TipoUsuario NVARCHAR(20)
 AS
 BEGIN
     SET NOCOUNT ON;
     IF EXISTS(SELECT 1 FROM dbo.Rol WHERE Nombre = @Nombre AND ID <> @IdRol)
         THROW 52002, 'Ya existe otro rol con ese nombre.', 1;
-    UPDATE dbo.Rol SET Nombre = @Nombre, Descripcion = NULLIF(@Descripcion, N'') WHERE ID = @IdRol AND EsRolBase = 0;
+    UPDATE dbo.Rol SET Nombre = @Nombre, Descripcion = NULLIF(@Descripcion, N''), TipoUsuario = @TipoUsuario WHERE ID = @IdRol AND EsRolBase = 0;
     IF @@ROWCOUNT = 0 THROW 52003, 'El rol no existe o es un rol base no modificable.', 1;
 END;
 GO

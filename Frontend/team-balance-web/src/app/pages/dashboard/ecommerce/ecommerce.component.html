@@ -1,23 +1,6 @@
-<section class="tb-workspace space-y-6">
-  <header class="overflow-hidden rounded-2xl border border-[#d7e7ec] bg-[#063d5b] px-5 py-6 shadow-sm sm:px-7 sm:py-7 dark:border-[#1d5068] dark:bg-[#092b40]">
-    <p class="text-xs font-bold tracking-[0.18em] text-[#67e0ef]">PANEL OPERATIVO</p>
-    <h1 class="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">Tu espacio de trabajo en TeamBalance.</h1>
-    <p class="mt-2 max-w-2xl text-sm leading-6 text-[#c7e4ed] sm:text-base">Accedé a las herramientas habilitadas para tu rol y mantené el trabajo de la agencia organizado.</p>
-  </header>
-
-  <section class="tb-panel">
-    <div><p class="tb-page-kicker">ACCESOS DE TRABAJO</p><h2 class="mt-1 text-lg font-semibold">Acciones según tu rol</h2><p class="tb-muted-text">Solo se muestran las funciones para las que tenés permisos.</p></div>
-    <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-      @for (acceso of accesos; track acceso.ruta) {
-        @if (puedeVer(acceso.permiso)) {
-          <a [routerLink]="acceso.ruta" class="tb-action-card"><h3>{{ acceso.titulo }}</h3><p>{{ acceso.descripcion }}</p><span>{{ acceso.accion }} <b>→</b></span></a>
-        }
-      }
-    </div>
-  </section>
-
-  <section class="tb-panel grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
-    <div><p class="tb-page-kicker">ESTADO OPERATIVO</p><h2 class="mt-1 text-lg font-semibold">Información de la agencia</h2><div class="tb-empty-state mt-4"><h3>Preparado para empezar</h3><p>Los indicadores, proyectos y alertas aparecerán aquí a medida que se registren datos operativos en TeamBalance.</p></div></div>
-    <aside class="rounded-xl bg-[#eaf6f7] p-5 dark:bg-[#0d3b50]"><h3 class="font-semibold text-[#173f55] dark:text-white">Acceso seguro</h3><p class="mt-2 text-sm leading-6 text-[#527080] dark:text-[#c7e4ed]">La navegación y las acciones disponibles se ajustan a los permisos asignados a tu usuario.</p></aside>
-  </section>
+<section class="tb-workspace space-y-8">
+  <header class="tb-dashboard-hero"><div><p class="tb-page-kicker">{{localization.traducir('dashboard.eyebrow')}}</p><h1>{{localization.traducir('dashboard.greeting')}}{{usuario ? ', ' + usuario.nombre : ''}}.</h1><p>{{localization.traducir('dashboard.summary')}}</p></div><div class="tb-dashboard-hero__meta"><span>TeamBalance</span><strong>{{usuario?.rol?.nombre || localization.traducir('dashboard.session')}}</strong></div></header>
+  <section class="tb-metrics-strip" [attr.aria-label]="localization.traducir('dashboard.eyebrow')"><div><span>{{localization.traducir('dashboard.accesses')}}</span><strong>{{totalAccesos()}}</strong></div>@if(puedeVer('GestionarProyectos')){<div><span>{{localization.traducir('dashboard.activeProjects')}}</span><strong>{{proyectos().length}}</strong></div><div><span>{{localization.traducir('dashboard.inProgress')}}</span><strong>{{proyectosEnCurso()}}</strong></div>}<div><span>{{localization.traducir('dashboard.sessionStatus')}}</span><strong class="text-emerald-600 dark:text-emerald-300">{{localization.traducir('dashboard.protected')}}</strong></div></section>
+  @if(puedeVer('GestionarProyectos')){<section class="tb-projects-overview"><div class="tb-list-section__header"><div><p class="tb-page-kicker">{{localization.traducir('dashboard.projects')}}</p><h2>{{localization.traducir('dashboard.manageProjects')}}</h2><p class="tb-muted-text">{{localization.traducir('dashboard.projectsSubtitle')}}</p></div><div class="flex items-center gap-2"><a class="tb-action-button" routerLink="/dashboard/proyectos">+ {{localization.traducir('dashboard.newProject')}}</a><button class="tb-button tb-button--secondary" type="button" (click)="proyectosAbiertos.set(!proyectosAbiertos())">{{proyectosAbiertos() ? localization.traducir('dashboard.hide') : localization.traducir('dashboard.viewProjects')}}</button></div></div>@if(proyectosAbiertos()){<div class="tb-data-list">@if(cargandoProyectos()){<p class="py-5 text-sm text-slate-500">{{localization.traducir('dashboard.loadingProjects')}}</p>}@else{@for(proyecto of proyectos();track proyecto.id){<a class="tb-data-row" routerLink="/dashboard/proyectos"><div><h3>{{proyecto.nombre}}</h3><p>{{proyecto.descripcion || localization.traducir('dashboard.noDescription')}}</p></div><span class="tb-status-badge">{{proyecto.estado}}</span><div class="tb-progress"><span [style.width.%]="proyecto.estado === 'Finalizado' ? 100 : proyecto.estado === 'En curso' ? 60 : 15"></span></div><span class="tb-button tb-button--ghost">{{localization.traducir('dashboard.view')}} →</span></a>}@empty{<div class="tb-empty-state"><h3>{{localization.traducir('dashboard.emptyProjectsTitle')}}</h3><p>{{localization.traducir('dashboard.emptyProjectsText')}}</p></div>}}</div>}</section>}
+  <section class="tb-work-queue"><div class="tb-list-section__header"><div><p class="tb-page-kicker">{{localization.traducir('dashboard.nextSteps')}}</p><h2>{{localization.traducir('dashboard.tools')}}</h2><p class="tb-muted-text">{{localization.traducir('dashboard.toolsSubtitle')}}</p></div></div><div class="tb-quick-actions">@for(acceso of accesos;track acceso.ruta){@if(puedeVer(acceso.permiso)){<a [routerLink]="acceso.ruta"><div><h3>{{acceso.titulo}}</h3><p>{{acceso.descripcion}}</p></div><span>{{acceso.accion}} →</span></a>}}</div></section>
 </section>

@@ -13,14 +13,16 @@ public class BLLAgencia
     private readonly BLLRol _rolBLL;
     private readonly BLLBitacora _bitacoraBLL;
     private readonly EmailService _emailService;
+    private readonly BLLProyecto _proyectoBLL;
 
-    public BLLAgencia(MPPAgencia agenciaMPP, ContratacionBLL contratacionBLL, BLLUsuario usuarioBLL, BLLRol rolBLL, BLLBitacora bitacoraBLL, EmailService emailService){
+    public BLLAgencia(MPPAgencia agenciaMPP, ContratacionBLL contratacionBLL, BLLUsuario usuarioBLL, BLLRol rolBLL, BLLBitacora bitacoraBLL, EmailService emailService, BLLProyecto proyectoBLL){
         _agenciaMPP = agenciaMPP;
         _contratacionBLL = contratacionBLL;
         _usuarioBLL = usuarioBLL;
         _rolBLL = rolBLL;
         _bitacoraBLL = bitacoraBLL;
         _emailService = emailService;
+        _proyectoBLL = proyectoBLL;
     }
 
     public async Task<bool> RegistrarAgencia( Agencia agencia, Usuario usuario, string referenciaContratacion)
@@ -60,6 +62,7 @@ public class BLLAgencia
         agencia.ID = registro.IdAgencia;
         usuario.ID = registro.IdUsuario;
         usuario.IdAgencia = registro.IdAgencia;
+        _proyectoBLL.CrearEstadosBase(registro.IdAgencia);
 
         Bitacora bitacora = new Bitacora(usuario.ID, agencia.ID,"Agencia",agencia.ID,"RegistrarAgecnia", "Se registró la agencia y el usuario Dueño inicial.","Exitoso","Informacion","Registro");
         _bitacoraBLL.Add(bitacora);

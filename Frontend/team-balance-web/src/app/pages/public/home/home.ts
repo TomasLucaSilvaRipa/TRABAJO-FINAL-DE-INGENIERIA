@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LocalizationService, type LanguageCode } from '../../../services/localization.service';
+import { CustomerReview, ReviewsService } from '../../../services/reviews.service';
 
-interface HomeReview { rating: number; title: string; description: string; name: string; role: string; date: string; }
+interface HomeReview extends CustomerReview {}
 interface HomeContent {
   heroEyebrow: string; heroTitle: string; heroAccent: string; heroLead: string; discoverPlans: string; howItWorks: string; proof: string[];
   previewAvailable: string; previewIncrease: string; previewWorkload: string; previewPeople: string; previewAlert: string; previewProduct: string; previewDevelopment: string; previewDesign: string;
@@ -52,10 +53,11 @@ const REVIEWS: Record<LanguageCode, HomeReview[]> = {
 })
 export class HomeComponent {
   private readonly localization = inject(LocalizationService);
+  private readonly reviewsService = inject(ReviewsService);
   readonly stars = [1, 2, 3, 4, 5];
   readonly reviewNoticeOpen = signal(false);
   readonly content = computed(() => HOME_CONTENT[this.localization.language()]);
-  readonly reviews = computed(() => REVIEWS[this.localization.language()]);
+  readonly reviews = computed(() => [...this.reviewsService.reviews(), ...REVIEWS[this.localization.language()]]);
 
   openReviewNotice(): void {
     this.reviewNoticeOpen.set(true);

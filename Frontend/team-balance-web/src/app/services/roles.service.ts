@@ -3,7 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface Permiso { id: number; nombre: string; descripcion: string | null; codigo: string; url: string; activo: boolean; }
-export interface Rol { id: number; nombre: string; descripcion: string | null; esRolBase: boolean; activo: boolean; permisos: Permiso[]; }
+export type TipoUsuarioRol = 'Dueno' | 'PM' | 'Empleado' | 'Soporte';
+export interface Rol { id: number; idAgencia: number | null; nombre: string; descripcion: string | null; tipoUsuario: TipoUsuarioRol; esRolBase: boolean; activo: boolean; permisos: Permiso[]; }
 
 @Injectable({ providedIn: 'root' })
 export class RolesService {

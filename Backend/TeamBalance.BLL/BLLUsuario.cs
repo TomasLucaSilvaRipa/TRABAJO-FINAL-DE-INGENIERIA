@@ -195,7 +195,7 @@ public class BLLUsuario
         ValidarPermiso(solicitante, "GestionarUsuarios");
         PrepararUsuarioGestion(usuario, solicitante);
 
-        bool esSoporte = usuario.Roles.Any(rol => string.Equals(rol.Nombre, "Soporte", StringComparison.OrdinalIgnoreCase));
+        bool esSoporte = usuario.Roles.Any(rol => string.Equals(rol.TipoUsuario, "Soporte", StringComparison.OrdinalIgnoreCase));
         if (esSoporte)
         {
             if (usuario.Roles.Count != 1)
@@ -236,7 +236,7 @@ public class BLLUsuario
             throw new KeyNotFoundException("No existe el usuario dentro de la agencia.");
         }
         List<int> rolesSolicitados = usuario.Roles.Select(rol => rol.ID).Distinct().ToList();
-        usuario.Roles = _rolBLL.ConsultarRolesActivos().Where(rol => rolesSolicitados.Contains(rol.ID)).ToList();
+        usuario.Roles = _rolBLL.ConsultarRolesAsignablesAgencia(solicitante).Where(rol => rolesSolicitados.Contains(rol.ID)).ToList();
         if (usuario.Roles.Count != rolesSolicitados.Count)
         {
             throw new ArgumentException("Uno o más roles seleccionados no están disponibles.");
@@ -269,7 +269,12 @@ public class BLLUsuario
             throw new UnauthorizedAccessException("No tenés permiso para gestionar usuarios.");
         }
         List<int> rolesSolicitados = usuario.Roles.Select(rol => rol.ID).Distinct().ToList();
-        List<Rol> rolesActivos = _rolBLL.ConsultarRolesActivos();
+        List<Rol> rolesActivos = _rolBLL.ConsultarRolesAsignablesAgencia(solicitante);
+        Rol rolSoporte = _rolBLL.ConsultarRolPorNombre("Soporte");
+        if (!_usuarioMPP.ExisteSoporte() && rolesSolicitados.Contains(rolSoporte.ID))
+        {
+            rolesActivos.Add(rolSoporte);
+        }
         usuario.Roles = rolesActivos.Where(rol => rolesSolicitados.Contains(rol.ID)).ToList();
         if (usuario.Roles.Count != rolesSolicitados.Count)
         {
@@ -300,7 +305,7 @@ public class BLLUsuario
         {
             throw new ArgumentException("Ingresá una contraseña temporal.");
         }
-        if (usuario.Roles.Any(rol => string.Equals(rol.Nombre, "Empleado", StringComparison.OrdinalIgnoreCase)) && usuario.Empleado is null)
+        if (usuario.Roles.Any(rol => string.Equals(rol.TipoUsuario, "Empleado", StringComparison.OrdinalIgnoreCase)) && usuario.Empleado is null)
         {
             throw new ArgumentException("Completá los datos laborales del empleado.");
         }
@@ -308,11 +313,11 @@ public class BLLUsuario
 
     private void RegistrarPerfiles(Usuario usuario)
     {
-        if (usuario.Roles.Any(rol => string.Equals(rol.Nombre, "Empleado", StringComparison.OrdinalIgnoreCase)))
+        if (usuario.Roles.Any(rol => string.Equals(rol.TipoUsuario, "Empleado", StringComparison.OrdinalIgnoreCase)))
         {
             _usuarioMPP.RegistrarEmpleado(usuario);
         }
-        if (usuario.Roles.Any(rol => string.Equals(rol.Nombre, "PM", StringComparison.OrdinalIgnoreCase)))
+        if (usuario.Roles.Any(rol => string.Equals(rol.TipoUsuario, "PM", StringComparison.OrdinalIgnoreCase)))
         {
             _usuarioMPP.RegistrarPM(usuario);
         }

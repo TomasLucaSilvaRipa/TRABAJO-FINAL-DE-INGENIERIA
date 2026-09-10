@@ -67,14 +67,14 @@ public class MPPRol
 
     public int RegistrarRol(Rol rol)
     {
-        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@Nombre", rol.Nombre), new SqlParameter("@Descripcion", (object?)rol.Descripcion ?? DBNull.Value) };
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", (object?)rol.IdAgencia ?? DBNull.Value), new SqlParameter("@Nombre", rol.Nombre), new SqlParameter("@Descripcion", (object?)rol.Descripcion ?? DBNull.Value), new SqlParameter("@TipoUsuario", rol.TipoUsuario) };
         DataTable resultado = _conexion.Leer("dbo.usp_Rol_Registrar", parametros);
         return resultado.Rows.Count == 1 ? Convert.ToInt32(resultado.Rows[0]["ID"]) : throw new InvalidOperationException("No fue posible registrar el rol.");
     }
 
     public void ModificarRol(Rol rol)
     {
-        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdRol", rol.ID), new SqlParameter("@Nombre", rol.Nombre), new SqlParameter("@Descripcion", (object?)rol.Descripcion ?? DBNull.Value) };
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdRol", rol.ID), new SqlParameter("@Nombre", rol.Nombre), new SqlParameter("@Descripcion", (object?)rol.Descripcion ?? DBNull.Value), new SqlParameter("@TipoUsuario", rol.TipoUsuario) };
         if (!_conexion.Escribir("dbo.usp_Rol_Modificar", parametros)){ throw new InvalidOperationException("No fue posible modificar el rol."); }
     }
 
@@ -97,7 +97,9 @@ public class MPPRol
 
     private static Rol CrearRol(DataRow fila)
     {
-        Rol rol = new Rol(Convert.ToInt32(fila["ID"]), Convert.ToString(fila["Nombre"]) ?? string.Empty, Convert.ToString(fila["Descripcion"]), Convert.ToBoolean(fila["EsRolBase"]), Convert.ToBoolean(fila["Activo"]), new List<Permiso>());
+        int? idAgencia = fila.Table.Columns.Contains("IdAgencia") && fila["IdAgencia"] != DBNull.Value ? Convert.ToInt32(fila["IdAgencia"]) : null;
+        string tipoUsuario = fila.Table.Columns.Contains("TipoUsuario") ? Convert.ToString(fila["TipoUsuario"]) ?? string.Empty : string.Empty;
+        Rol rol = new Rol(Convert.ToInt32(fila["ID"]), idAgencia, Convert.ToString(fila["Nombre"]) ?? string.Empty, Convert.ToString(fila["Descripcion"]), tipoUsuario, Convert.ToBoolean(fila["EsRolBase"]), Convert.ToBoolean(fila["Activo"]), new List<Permiso>());
         rol.FechaBaja = fila["FechaBaja"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaBaja"]);
         return rol;
     }

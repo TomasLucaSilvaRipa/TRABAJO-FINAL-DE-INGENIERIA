@@ -35,6 +35,7 @@ import { ResetPasswordComponent } from './pages/auth-pages/reset-password/reset-
 import { ChangePasswordComponent } from './pages/security/change-password/change-password.component';
 import { authGuard } from './guards/auth.guard';
 import { permissionGuard } from './guards/permission.guard';
+import { supportGuard } from './guards/support.guard';
 import { PlansManager } from './pages/users/support/plans-manager/plans-manager.component';
 import { EmployeeManagement } from './pages/users/owner/employee-management/employee-management.component';
 import { ProyectManagement } from './pages/users/owner/proyect-management/proyect-management.component';
@@ -183,7 +184,7 @@ export const routes: Routes = [
       {
         path: 'bitacora',
         loadComponent: () => import('./pages/users/support/logs/logs.component').then(m => m.Logs),
-        canActivate: [permissionGuard],
+        canActivate: [permissionGuard, supportGuard],
         data: { permission: 'ConsultarBitacora' },
         title: 'Bitácora | TeamBalance'
       },

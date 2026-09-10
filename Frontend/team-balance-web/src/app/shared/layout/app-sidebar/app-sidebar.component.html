@@ -36,4 +36,28 @@
       }
     </ul>
   </nav>
+  <div class="border-t border-white/15 py-4">
+    <button type="button" class="team-balance-review-button" (click)="openOpinion()" [attr.aria-label]="'Dejar mi opinión'">
+      <span aria-hidden="true">★</span>
+      @if ((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async)) { <span>Dejar mi opinión</span> }
+    </button>
+  </div>
 </aside>
+
+@if (opinionOpen()) {
+  <div class="tb-dialog-backdrop" role="presentation" (click)="closeOpinion()">
+    <section class="tb-dialog tb-review-dialog" role="dialog" aria-modal="true" aria-labelledby="review-form-title" (click)="$event.stopPropagation()">
+      <button class="tb-dialog__close" type="button" aria-label="Cerrar" (click)="closeOpinion()">×</button>
+      <p class="tb-eyebrow">TU EXPERIENCIA</p>
+      <h2 id="review-form-title">Dejá tu opinión sobre TeamBalance</h2>
+      <p>Tu comentario se guardará en TeamBalance y aparecerá en la sección pública de opiniones.</p>
+      <form class="mt-5 space-y-4" [formGroup]="opinionForm" (ngSubmit)="saveOpinion()">
+        <fieldset><legend class="text-sm font-semibold">¿Cómo calificarías tu experiencia?</legend><div class="mt-2 flex gap-1">@for (star of stars; track star) { <button type="button" class="tb-rating-star" [class.tb-rating-star--selected]="star <= (opinionForm.controls.rating.value ?? 0)" [attr.aria-label]="star + ' estrellas'" (click)="selectRating(star)">★</button> }</div></fieldset>
+        <label class="tb-field-label">Título<input type="text" formControlName="title" maxlength="100" placeholder="Ej.: Más claridad para planificar" /></label>
+        <label class="tb-field-label">Tu opinión<textarea rows="4" formControlName="description" maxlength="1000" placeholder="Contanos cómo fue tu experiencia usando TeamBalance."></textarea></label>
+        @if (opinionError()) { <p class="tb-review-form-error">{{ opinionError() }}</p> }
+        <div class="flex gap-3"><button class="tb-button tb-button--primary" type="submit" [disabled]="savingOpinion()">{{ savingOpinion() ? 'Publicando…' : 'Publicar opinión' }}</button><button class="tb-button tb-button--secondary" type="button" (click)="closeOpinion()">Cerrar</button></div>
+      </form>
+    </section>
+  </div>
+}

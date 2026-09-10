@@ -43,8 +43,10 @@ BEGIN
 
     SELECT TOP (1)
         ID,
+        IdAgencia,
         Nombre,
         Descripcion,
+        TipoUsuario,
         EsRolBase,
         Activo,
         FechaBaja

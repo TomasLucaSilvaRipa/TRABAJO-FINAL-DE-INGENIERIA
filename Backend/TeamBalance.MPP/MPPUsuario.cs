@@ -265,7 +265,7 @@ public class MPPUsuario
     private static Usuario CrearUsuario(DataRow fila)
     {
         int idRol = Convert.ToInt32(fila["IdRol"]);
-        Rol rol = new Rol(idRol, string.Empty, null, false, true, new List<Permiso>());
+        Rol rol = new Rol(idRol, null, string.Empty, null, string.Empty, false, true, new List<Permiso>());
         Usuario usuario = new Usuario(Convert.ToInt32(fila["ID"]), fila["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAgencia"]), rol, Convert.ToString(fila["Nombre"]) ?? string.Empty, Convert.ToString(fila["Apellido"]) ?? string.Empty, Convert.ToString(fila["Email"]) ?? string.Empty, Convert.ToString(fila["PasswordHash"]) ?? string.Empty, Convert.ToString(fila["Estado"]) ?? string.Empty, Convert.ToDateTime(fila["FechaAlta"]), Convert.ToBoolean(fila["Activo"]));
         usuario.FechaBaja = fila["FechaBaja"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaBaja"]);
         return usuario;
