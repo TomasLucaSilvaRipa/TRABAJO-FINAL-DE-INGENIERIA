@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { finalize, debounce,debounceTime, of,switchMap, distinctUntilChanged, catchError, distinct } from 'rxjs';
+import { catchError, debounceTime, EMPTY, finalize, of, switchMap, tap, distinctUntilChanged } from 'rxjs';
 import { AuthService } from '../../../../services/auth.service';
 import { ContratacionService } from '../../../../services/contratacion.service';
 import { PasswordSecurityService,PasswordEvaluation } from '../../../../services/security/password-security.service';
@@ -94,8 +94,19 @@ export class SignupFormComponent {
 
     this.submitting.set(true);
 
-    this.authService.registrarAgencia(referenciaContratacion, agencia)
-      .pipe(finalize(() => this.submitting.set(false)))
+    this.passwordSecurityService.evaluar(form.password)
+      .pipe(
+        tap((evaluacion) => this.passwordEvaluation.set(evaluacion)),
+        switchMap((evaluacion) => {
+          if (!evaluacion.valida) {
+            this.requestError.set('La contraseña no cumple los requisitos de seguridad.');
+            return EMPTY;
+          }
+
+          return this.authService.registrarAgencia(referenciaContratacion, agencia);
+        }),
+        finalize(() => this.submitting.set(false)),
+      )
       .subscribe({
         next: (respuesta) => {
           this.emailValidacionEnviado.set(respuesta.emailValidacionEnviado);

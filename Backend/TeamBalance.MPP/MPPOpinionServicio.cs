@@ -23,7 +23,10 @@ public class MPPOpinionServicio
     {
         DataTable tabla = _conexion.Leer("dbo.usp_OpinionServicio_ConsultarPublicas");
         List<OpinionServicio> opiniones = new List<OpinionServicio>();
-        foreach (DataRow fila in tabla.Rows) { OpinionServicio opinion = CrearOpinion(fila); opiniones.Add(opinion); }
+        foreach (DataRow fila in tabla.Rows) { 
+            OpinionServicio opinion = CrearOpinion(fila); 
+            opiniones.Add(opinion); 
+        }
         return opiniones;
     }
 
