@@ -29,12 +29,13 @@
   </section>
 
   <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-    <div class="mb-5 flex flex-wrap items-center justify-between gap-3"><h2 class="text-xl font-bold text-slate-900 dark:text-white">{{ localization.traducir('planManager.list') }}</h2><button class="rounded-lg border border-cyan-600 px-4 py-2 text-sm font-bold text-cyan-700 dark:text-cyan-300" type="button" (click)="comparison.set(!comparison())">{{ localization.traducir(comparison() ? 'plans.hideComparison' : 'plans.compare') }}</button></div>
+    <div class="mb-5 flex flex-wrap items-center justify-between gap-3"><div><h2 class="text-xl font-bold text-slate-900 dark:text-white">{{ localization.traducir('planManager.list') }}</h2><p class="mt-1 text-sm text-slate-500">{{ localization.traducir('plans.comparison.selected') }} {{selectedPlanIds().length}}/4. {{ localization.traducir('plans.comparison.selectionHelp') }}</p></div><button class="rounded-lg border border-cyan-600 px-4 py-2 text-sm font-bold text-cyan-700 dark:text-cyan-300" type="button" (click)="alternarComparacion()">{{ localization.traducir(comparison() ? 'plans.hideComparison' : 'plans.compare') }}</button></div>
+    @if(comparisonError()){<p class="mb-4 text-sm font-semibold text-red-600">{{comparisonError()}}</p>}
     @if (loading()) { <p>{{ localization.traducir('common.loading') }}</p> } @else {
       <div class="grid gap-4 lg:grid-cols-3">
         @for (plan of plans(); track plan.id) {
-          <article class="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
-            <div class="flex items-start justify-between gap-3"><div><h3 class="text-lg font-bold text-slate-900 dark:text-white">{{ plan.nombre }}</h3><p class="text-sm text-slate-500">{{ plan.moneda }} {{ plan.precioVigente }} / {{ plan.periodicidad }}</p></div><span class="rounded-full px-2 py-1 text-xs font-bold" [class.bg-emerald-100]="plan.activo" [class.text-emerald-700]="plan.activo" [class.bg-slate-100]="!plan.activo">{{ localization.traducir(plan.activo ? 'common.active' : 'common.inactive') }}</span></div>
+          <article class="relative rounded-xl border border-slate-200 p-4 dark:border-slate-700" [class.ring-2]="planSeleccionado(plan.id)" [class.ring-cyan-500]="planSeleccionado(plan.id)"><button class="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-full border border-cyan-600 text-sm font-bold text-cyan-700 dark:text-cyan-300" type="button" [class.bg-cyan-600]="planSeleccionado(plan.id)" [class.text-white]="planSeleccionado(plan.id)" (click)="togglePlanSelection(plan.id)">{{planSeleccionado(plan.id) ? '✓' : ''}}</button>
+            <div class="flex items-start justify-between gap-3 pr-10"><div><h3 class="text-lg font-bold text-slate-900 dark:text-white">{{ plan.nombre }}</h3><p class="text-sm text-slate-500">{{ plan.moneda }} {{ plan.precioVigente }} / {{ plan.periodicidad }}</p></div><span class="rounded-full px-2 py-1 text-xs font-bold" [class.bg-emerald-100]="plan.activo" [class.text-emerald-700]="plan.activo" [class.bg-slate-100]="!plan.activo">{{ localization.traducir(plan.activo ? 'common.active' : 'common.inactive') }}</span></div>
             <p class="mt-3 min-h-12 text-sm text-slate-600 dark:text-slate-300">{{ plan.descripcion }}</p>
             <div class="mt-4 flex gap-2"><button class="rounded-lg bg-cyan-600 px-3 py-2 text-sm font-bold text-white" type="button" (click)="edit(plan)">{{ localization.traducir('common.edit') }}</button><button class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold dark:border-slate-600 dark:text-white" type="button" (click)="changeStatus(plan)">{{ localization.traducir(plan.activo ? 'common.deactivate' : 'common.activate') }}</button></div>
           </article>
@@ -43,5 +44,5 @@
     }
   </section>
 
-  @if (comparison() && plans().length) { <app-plan-comparison [plans]="plans()"></app-plan-comparison> }
+  @if (comparison() && planesSeleccionados().length >= 2) { <app-plan-comparison [plans]="planesSeleccionados()"></app-plan-comparison> }
 </div>

@@ -24,14 +24,14 @@ public class BLLPlanComercial
         return _planMPP.ConsultarPlanes(false);
     }
 
-    public PlanComercial ConsultarPlan(int id)
+    public PlanComercial ConsultarPlan(PlanComercial planComercial)
     {
-        return _planMPP.ConsultarPlan(id);
+        return _planMPP.ConsultarPlan(planComercial);
     }
 
-    public PlanComercial ConsultarPlanDisponible(int id)
+    public PlanComercial ConsultarPlanDisponible(PlanComercial planComercial)
     {
-        PlanComercial plan = _planMPP.ConsultarPlan(id);
+        PlanComercial plan = _planMPP.ConsultarPlan(planComercial);
         if (!plan.Activo){ throw new KeyNotFoundException("El plan comercial indicado no se encuentra disponible."); }
         return plan;
     }
@@ -40,7 +40,8 @@ public class BLLPlanComercial
     {
         PrepararPlan(plan);
         PlanComercial resultado = _planMPP.RegistrarPlan(plan);
-        RegistrarBitacora(resultado, usuario, "RegistrarPlan", "Se registró un nuevo plan comercial.");
+        Bitacora bitacora = new Bitacora("RegistrarPlan", "Se registró un nuevo plan comercial.");
+        RegistrarBitacora(resultado, usuario,bitacora);
         return resultado;
     }
 
@@ -50,20 +51,24 @@ public class BLLPlanComercial
 
         PrepararPlan(plan);
         PlanComercial resultado = _planMPP.ModificarPlan(plan);
-        RegistrarBitacora(resultado, usuario, "ModificarPlan", "Se modificó un plan comercial.");
+        Bitacora bitacora = new Bitacora("ModificarPlan", "Se modificó un plan comercial.");
+        RegistrarBitacora(resultado, usuario, bitacora);
         return resultado;
     }
 
-    public PlanComercial CambiarEstado(int id, bool activo, Usuario usuario)
+    public PlanComercial CambiarEstado(int id, PlanComercial planComercial, Usuario usuario)
     {
-        PlanComercial resultado = _planMPP.CambiarEstado(id, activo);
-        RegistrarBitacora(resultado, usuario, activo ? "ActivarPlan" : "DesactivarPlan", activo ? "Se activó un plan comercial." : "Se desactivó un plan comercial.");
+        PlanComercial resultado = _planMPP.CambiarEstado(id, planComercial.Activo);
+        Bitacora bitacora = new Bitacora(planComercial.Activo ? "ActivarPlan" : "DesactivarPlan", planComercial.Activo ? "Se activó un plan comercial." : "Se desactivó un plan comercial.");
+        RegistrarBitacora(resultado, usuario, bitacora);
         return resultado;
     }
 
     private static void PrepararPlan(PlanComercial plan)
     {
-        if (string.IsNullOrWhiteSpace(plan.Nombre) || string.IsNullOrWhiteSpace(plan.Periodicidad) || string.IsNullOrWhiteSpace(plan.Moneda)){ throw new ArgumentException("Completá los datos obligatorios del plan."); }
+        if (string.IsNullOrWhiteSpace(plan.Nombre) || string.IsNullOrWhiteSpace(plan.Periodicidad) || string.IsNullOrWhiteSpace(plan.Moneda)){ 
+            throw new ArgumentException("Completá los datos obligatorios del plan."); 
+        }
         if (plan.PrecioVigente <= 0){ throw new ArgumentException("El precio del plan debe ser mayor a cero."); }
         if (plan.DuracionMeses <= 0){ throw new ArgumentException("La duración del plan debe ser mayor a cero."); }
 
@@ -76,9 +81,9 @@ public class BLLPlanComercial
         plan.FechaVigenciaDesde = plan.FechaVigenciaDesde == default ? DateTime.Now : plan.FechaVigenciaDesde;
     }
 
-    private void RegistrarBitacora(PlanComercial plan, Usuario usuario, string accion, string mensaje)
+    private void RegistrarBitacora(PlanComercial plan, Usuario usuario, Bitacora bitacora)
     {
-        Bitacora bitacora = new Bitacora(0, usuario.ID, usuario.IdAgencia, "PlanComercial", plan.ID, accion, mensaje, "Exitoso", "Informacion", "Planes", DateTime.Now, null);
+        bitacora = new Bitacora(0, usuario.ID, usuario.IdAgencia, "PlanComercial", plan.ID, bitacora.Accion, bitacora.Mensaje, "Exitoso", "Informacion", "Planes", DateTime.Now, null);
         _bitacoraBLL.Add(bitacora);
     }
 }

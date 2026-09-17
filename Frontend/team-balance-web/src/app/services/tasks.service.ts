@@ -7,4 +7,33 @@ export interface EstadoTarea { id: number; nombre: string; orden: number; }
 export interface Tarea { id: number; idProyecto: number; idEmpleadoAsignado?: number | null; idSkillRequerido?: number | null; idEstadoTarea: number; titulo: string; descripcion?: string; estado?: string; prioridad?: string; complejidad?: string; fechaInicio?: string; deadline?: string; seniorityRequerido?: string; porcentajeAvance: number; horasEstimadas: number; comentariosJson?: string | null; archivosAdjuntosJson?: string | null; activo: boolean; }
 export interface TareaOpciones { proyectos: Proyecto[]; estados: EstadoTarea[]; empleados: UsuarioOpcion[]; skills: Skill[]; }
 @Injectable({ providedIn: 'root' })
-export class TasksService { private readonly http = inject(HttpClient); private readonly url='/api/tareas'; consultar(): Observable<Tarea[]> { return this.http.get<Tarea[]>(this.url); } consultarMias(): Observable<Tarea[]> { return this.http.get<Tarea[]>(`${this.url}/mias`); } guardarComentarios(id: number, comentariosJson: string): Observable<boolean> { return this.http.patch<boolean>(`${this.url}/mias/${id}/comentarios`, { comentariosJson }); } opciones(): Observable<TareaOpciones> { return this.http.get<TareaOpciones>(`${this.url}/opciones`); } guardar(tarea: Partial<Tarea>): Observable<Tarea> { return tarea.id ? this.http.put<Tarea>(`${this.url}/${tarea.id}`, tarea) : this.http.post<Tarea>(this.url, tarea); } cambiarEstado(id: number, activo: boolean): Observable<boolean> { return this.http.patch<boolean>(`${this.url}/${id}/estado?activo=${activo}`, {}); } crearSkill(skill: Partial<Skill>): Observable<Skill> { return this.http.post<Skill>(`${this.url}/skills`, skill); } cambiarEstadoSkill(id: number, activo: boolean): Observable<boolean> { return this.http.patch<boolean>(`${this.url}/skills/${id}/estado?activo=${activo}`, {}); } }
+export class TasksService {
+  private readonly http = inject(HttpClient);
+  private readonly url='/api/tareas';
+
+  consultar(): Observable<Tarea[]> { return this.http.get<Tarea[]>(this.url); }
+
+  consultarMias(): Observable<Tarea[]> {  return this.http.get<Tarea[]>(`${this.url}/mias`); }
+
+  guardarComentarios(tarea: Partial<Tarea>): Observable<boolean> {
+    return this.http.patch<boolean>(`${this.url}/mias/comentarios`, tarea);
+  }
+
+  opciones(): Observable<TareaOpciones> { return this.http.get<TareaOpciones>(`${this.url}/opciones`); }
+
+  guardar(tarea: Partial<Tarea>): Observable<Tarea> {
+    return tarea.id ? this.http.put<Tarea>(`${this.url}/${tarea.id}`, tarea) : this.http.post<Tarea>(this.url, tarea);
+  }
+
+  cambiarEstado(tarea: Partial<Tarea>): Observable<boolean> {
+    return this.http.patch<boolean>(`${this.url}/estado`, tarea);
+  }
+
+  crearSkill(skill: Partial<Skill>): Observable<Skill> {
+    return this.http.post<Skill>(`${this.url}/skills`, skill);
+  }
+
+  cambiarEstadoSkill(skill: Partial<Skill>): Observable<boolean>{
+    return this.http.patch<boolean>(`${this.url}/skills/estado`, skill);
+  }
+}

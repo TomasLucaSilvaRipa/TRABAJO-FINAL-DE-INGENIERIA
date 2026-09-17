@@ -17,27 +17,49 @@ public class AgenciaController : ControllerBase
     }
 
     [HttpGet("actual")]
-    public IActionResult ConsultarActual() { try { Agencia agencia = _agenciaBLL.ConsultarAgencia(ObtenerSolicitante()); return Ok(agencia); } catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); } catch (KeyNotFoundException ex) { return NotFound(ex.Message); } }
+    public IActionResult ConsultarActual() { 
+        try 
+        {
+            Agencia agencia = _agenciaBLL.ConsultarAgencia(ObtenerSolicitante()); 
+            return Ok(agencia); 
+        } 
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); } 
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); } 
+    }
 
     [HttpPut("actual")]
-    public IActionResult ModificarActual([FromBody] Agencia agencia) { try { Agencia agenciaActualizada = _agenciaBLL.ModificarAgencia(agencia, ObtenerSolicitante()); return Ok(agenciaActualizada); } catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); } catch (ArgumentException ex) { return BadRequest(ex.Message); } }
+    public IActionResult ModificarActual([FromBody] Agencia agencia) { 
+        try 
+        { 
+            Agencia agenciaActualizada = _agenciaBLL.ModificarAgencia(agencia, ObtenerSolicitante()); 
+            return Ok(agenciaActualizada); 
+        } 
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); } 
+        catch (ArgumentException ex) { return BadRequest(ex.Message); } 
+    }
 
     [HttpGet("suscripcion")]
-    public IActionResult ConsultarSuscripcion() { try { Suscripcion? suscripcion = _agenciaBLL.ConsultarSuscripcionActual(ObtenerSolicitante()); return Ok(suscripcion); } catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); } }
+    public IActionResult ConsultarSuscripcion() { 
+        try 
+        { 
+            Suscripcion? suscripcion = _agenciaBLL.ConsultarSuscripcionActual(ObtenerSolicitante()); 
+            return Ok(suscripcion); 
+        } 
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); } }
 
     [HttpPost("{referenciaContratacion}/registro")]
-    public async Task<IActionResult> RegistrarAgencia(string referenciaContratacion, [FromBody] Agencia agencia)
+    public async Task<IActionResult> RegistrarAgencia([FromRoute] string referenciaContratacion, [FromBody] Agencia agencia)
     {
         try
         {
             Usuario? usuario = agencia.Usuarios.FirstOrDefault();
-
+            ContratacionServicio contratacionSericio = new ContratacionServicio(referenciaContratacion);
             if (usuario is null)
             {
                 return BadRequest("No se recibieron los datos del dueño.");
             }
 
-            bool emailValidacionEnviado = await _agenciaBLL.RegistrarAgencia(agencia, usuario, referenciaContratacion);
+            bool emailValidacionEnviado = await _agenciaBLL.RegistrarAgencia(agencia, usuario, contratacionSericio);
 
             return Ok(new
             {
@@ -45,22 +67,10 @@ public class AgenciaController : ControllerBase
                 emailValidacionEnviado,
             });
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, "No fue posible completar el registro de la agencia.");
-        }
+        catch (KeyNotFoundException ex){return NotFound(ex.Message);}
+        catch (ArgumentException ex){ return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex){ return BadRequest(ex.Message);}
+        catch (Exception){ return StatusCode(500, "No fue posible completar el registro de la agencia.");}
     }
 
     [HttpPost("validar-cuenta")]
@@ -86,7 +96,7 @@ public class AgenciaController : ControllerBase
     {
         try
         {
-            await _agenciaBLL.ReenviarValidacion(usuario.Email ?? string.Empty);
+            await _agenciaBLL.ReenviarValidacion(usuario);
 
             return Ok(new { mensaje = "Si existe una cuenta pendiente asociada a ese email, enviamos un nuevo enlace de validación." });
         }

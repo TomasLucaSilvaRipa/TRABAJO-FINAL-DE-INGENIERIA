@@ -16,63 +16,26 @@ public class BitacoraController : ControllerBase
     }
 
     [HttpGet]
-    public IActionResult LeerBitacora(
-        [FromQuery] int? idAgencia = null,
-        [FromQuery] DateTime? desde = null,
-        [FromQuery] DateTime? hasta = null,
-        [FromQuery] int? idUsuario = null,
-        [FromQuery] string? entidad = null,
-        [FromQuery] string? accion = null,
-        [FromQuery] string? resultado = null,
-        [FromQuery] string? criticidad = null,
-        [FromQuery] string? modulo = null)
+    public IActionResult LeerBitacora([FromQuery] FiltroBitacora filtro)
     {
         try
         {
-            bool tieneFiltros =
-                desde.HasValue ||
-                hasta.HasValue ||
-                idUsuario.HasValue ||
-                !string.IsNullOrWhiteSpace(entidad) ||
-                !string.IsNullOrWhiteSpace(accion) ||
-                !string.IsNullOrWhiteSpace(resultado) ||
-                !string.IsNullOrWhiteSpace(criticidad) ||
-                !string.IsNullOrWhiteSpace(modulo);
+            bool tieneFiltros = filtro.Desde.HasValue || filtro.Hasta.HasValue || filtro.IdUsuario.HasValue || !string.IsNullOrWhiteSpace(filtro.Entidad) || !string.IsNullOrWhiteSpace(filtro.Accion) || !string.IsNullOrWhiteSpace(filtro.Resultado) || !string.IsNullOrWhiteSpace(filtro.Criticidad) || !string.IsNullOrWhiteSpace(filtro.Modulo);
 
             List<Bitacora> bitacora;
 
             if (tieneFiltros)
             {
-                bitacora = _bllBitacora.FiltrarBitacora(
-                    idAgencia,
-                    desde,
-                    hasta,
-                    idUsuario,
-                    entidad,
-                    accion,
-                    resultado,
-                    criticidad,
-                    modulo
-                );
+                bitacora = _bllBitacora.FiltrarBitacora(filtro);
             }
             else
             {
-                bitacora =
-                    _bllBitacora.LeerBitacora(idAgencia);
+                bitacora =_bllBitacora.LeerBitacora(filtro);
             }
 
             return Ok(bitacora);
         }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (Exception)
-        {
-            return StatusCode(
-                500,
-                "No fue posible consultar la bitácora."
-            );
-        }
+        catch (ArgumentException ex){return BadRequest(ex.Message);}
+        catch (Exception){return StatusCode(500,"No fue posible consultar la bitácora.");}
     }
 }

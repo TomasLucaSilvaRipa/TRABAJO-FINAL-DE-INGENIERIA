@@ -19,8 +19,8 @@ public class MPPRecursos
         List<Skill> skills = CrearSkills(tabla); 
         return skills.Single(); 
     }
-    public bool CambiarEstadoSkill(int idSkill, bool activo) { 
-        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@ID", idSkill), new SqlParameter("@Activo", activo) }; 
+    public bool CambiarEstadoSkill(Skill skill) { 
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@ID", skill.ID), new SqlParameter("@Activo", skill.Activo) }; 
         return _conexion.Escribir("dbo.usp_Skill_CambiarEstado", parametros); 
     }
     public Empleado ConsultarFichaEmpleado(int idUsuario, int idAgencia)

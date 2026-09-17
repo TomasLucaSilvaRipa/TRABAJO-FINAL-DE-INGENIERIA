@@ -47,11 +47,11 @@ public sealed class MPPContratacion
         return contratacion;
     }
 
-    public EstadoContratacionPersistido ConsultarEstado(string referenciaContratacion)
+    public EstadoContratacionPersistido ConsultarEstado(ContratacionServicio contratacionServicio)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@ReferenciaContratacion", referenciaContratacion),
+            new SqlParameter("@ReferenciaContratacion", contratacionServicio.ReferenciaContratacion),
         };
 
         DataTable resultado = _conexion.Leer("dbo.usp_Contratacion_ConsultarEstado", parametros);
@@ -64,11 +64,11 @@ public sealed class MPPContratacion
         return estado;
     }
 
-    public ContratacionServicio ConsultarContratacionParaRegistro(string referenciaContratacion)
+    public ContratacionServicio ConsultarContratacionParaRegistro(ContratacionServicio contratacionServicio)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@ReferenciaContratacion", referenciaContratacion),
+            new SqlParameter("@ReferenciaContratacion", contratacionServicio.ReferenciaContratacion),
         };
 
         DataTable resultado = _conexion.Leer("dbo.usp_Contratacion_ConsultarParaRegistro", parametros);
@@ -99,11 +99,11 @@ public sealed class MPPContratacion
         return contratacion;
     }
 
-    public EstadoContratacionPersistido ActualizarResultadoPago(string referenciaContratacion, string referenciaProveedor, string estadoProveedor, string mensajeRespuesta)
+    public EstadoContratacionPersistido ActualizarResultadoPago(ContratacionServicio contratacionServicio, string referenciaProveedor, string estadoProveedor, string mensajeRespuesta)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@ReferenciaContratacion", referenciaContratacion),
+            new SqlParameter("@ReferenciaContratacion", contratacionServicio.ReferenciaContratacion),
             new SqlParameter("@ReferenciaProveedor", referenciaProveedor),
             new SqlParameter("@EstadoProveedor", estadoProveedor),
             new SqlParameter("@MensajeRespuesta", mensajeRespuesta),

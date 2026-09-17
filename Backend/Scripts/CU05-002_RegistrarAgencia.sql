@@ -103,6 +103,7 @@ CREATE OR ALTER PROCEDURE dbo.usp_Agencia_RegistrarDesdeContratacion
     @PasswordHash NVARCHAR(500),
     @EstadoUsuario NVARCHAR(50),
     @ActivoUsuario BIT,
+    @AceptaTerminos BIT,
     @ActivoDueno BIT,
     @MetodoValidacion NVARCHAR(30),
     @TokenHash NVARCHAR(500),
@@ -147,6 +148,9 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM dbo.Rol WHERE ID = @IdRol AND Nombre = N'Dueño' AND Activo = 1)
         THROW 51002, 'No existe un rol Dueño activo para crear el usuario inicial.', 1;
+
+    IF @AceptaTerminos = 0
+        THROW 51006, 'Necesitás aceptar los Términos y Condiciones para completar el registro.', 1;
 
     IF EXISTS (SELECT 1 FROM dbo.Agencia WHERE CUIT = @CUIT OR EmailContacto = @EmailContacto)
         THROW 51003, 'Ya existe una agencia con el CUIT o email de contacto indicado.', 1;
@@ -229,6 +233,14 @@ BEGIN
         @IdUsuario,
         @ActivoDueno
     );
+
+    DECLARE @IdTerminosCondiciones INT;
+    SELECT TOP (1) @IdTerminosCondiciones = ID FROM dbo.TerminosCondiciones WHERE Vigente = 1 ORDER BY FechaVigenciaDesde DESC, ID DESC;
+    IF @IdTerminosCondiciones IS NULL
+        THROW 51007, 'No existe una versión vigente de Términos y Condiciones.', 1;
+
+    INSERT INTO dbo.AceptacionTerminos(IdUsuario, IdTerminosCondiciones, FechaAceptacion, DireccionIP)
+    VALUES(@IdUsuario, @IdTerminosCondiciones, SYSDATETIME(), NULL);
 
     INSERT INTO dbo.ValidacionCuenta
     (

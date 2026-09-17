@@ -3,13 +3,13 @@ using System.Collections.Generic;
 
 namespace TeamBalance.BE.Entidades;
 
-public partial class ValidacionCuentum
+public partial class ValidacionCuenta
 {
-    public ValidacionCuentum()
+    public ValidacionCuenta()
     {
     }
 
-    public ValidacionCuentum(int iD, int idUsuario, string metodo, string tokenHash, DateTime fechaGeneracion, DateTime fechaExpiracion, bool utilizado, DateTime? fechaUtilizacion, bool activo)
+    public ValidacionCuenta(int iD, int idUsuario, string metodo, string tokenHash, DateTime fechaGeneracion, DateTime fechaExpiracion, bool utilizado, DateTime? fechaUtilizacion, bool activo)
     {
         ID = iD;
         IdUsuario = idUsuario;

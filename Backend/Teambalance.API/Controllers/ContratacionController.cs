@@ -28,11 +28,11 @@ namespace Teambalance.API.Controllers
         }
 
         [HttpGet("{referencia}/estado")]
-        public IActionResult ConsultarEstado(string referencia)
+        public IActionResult ConsultarEstado(ContratacionServicio contratacionServicio)
         {
             try
             {
-                return Ok(_bll.ConsultarEstado(referencia));
+                return Ok(_bll.ConsultarEstado(contratacionServicio));
             }
             catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
             catch (Exception ex) { return BadRequest(ex.Message); }
@@ -41,9 +41,11 @@ namespace Teambalance.API.Controllers
         [HttpPost("{referencia}/verificar-pago")]
         public async Task<IActionResult> VerificarPago(string referencia, [FromBody] VerificarPagoRequest request)
         {
+
             try
             {
-                return Ok(await _bll.VerificarPagoMercadoPago(referencia, request.PaymentId));
+                ContratacionServicio contratacionServicio = new ContratacionServicio(referencia);
+                return Ok(await _bll.VerificarPagoMercadoPago(contratacionServicio, request.PaymentId));
             }
             catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
             catch (Exception ex) { return BadRequest(ex.Message); }

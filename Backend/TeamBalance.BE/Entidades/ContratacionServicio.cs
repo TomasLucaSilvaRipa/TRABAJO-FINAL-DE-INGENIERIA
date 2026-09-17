@@ -9,6 +9,10 @@ public partial class ContratacionServicio
     {
     }
 
+    public ContratacionServicio(string referenciaContratacion)
+    {
+        ReferenciaContratacion = referenciaContratacion;
+    }
     public ContratacionServicio(int iD, int? idAgencia, int idPlanComercial, int? idUsuario, string referenciaContratacion, string nombreComercialAgencia, string? razonSocial, string cUIT, string? condicionFiscal, string? emailFacturacion, string? telefonoContacto, string nombreResponsable, string apellidoResponsable, string emailLaboralResponsable, string? cargoResponsable, string? proveedorPagoSeleccionado, string estadoContratacion, DateTime fechaSolicitud, DateTime? fechaRespuesta, string? mensajeRespuesta, bool activo, DateTime? fechaBaja)
     {
         ID = iD;

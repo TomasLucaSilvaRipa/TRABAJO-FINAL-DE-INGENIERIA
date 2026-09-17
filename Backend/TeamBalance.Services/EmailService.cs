@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using TeamBalance.BE.Entidades;
 
 namespace TeamBalance.Services
 {
@@ -17,8 +18,10 @@ namespace TeamBalance.Services
             this.urlPublicaFrontend = urlPublicaFrontend;
         }
 
-        public async Task<bool> EnviarCorreoValidacion(string receptor, string nombre, string token)
+        public async Task<bool> EnviarCorreoValidacion(Usuario usuario, string token)
         {
+            string receptor = usuario.Email.Trim().ToLowerInvariant();
+            string nombre = string.IsNullOrWhiteSpace(usuario.Nombre) ? "Usuario" : usuario.Nombre.Trim();  
             string? enlace = CrearEnlace("validar-cuenta", "token", token);
 
             if (string.IsNullOrWhiteSpace(enlace))
@@ -36,9 +39,9 @@ namespace TeamBalance.Services
             return await EnviarMail("Confirmá tu cuenta de TeamBalance", descripcion, receptor);
         }
 
-        public async Task<bool> EnviarCorreoContinuarRegistro(string receptor, string nombre, string referenciaContratacion)
+        public async Task<bool> EnviarCorreoContinuarRegistro(ContratacionServicio contratacionServicio)
         {
-            string? enlace = CrearEnlace("registrar-agencia", "referencia", referenciaContratacion);
+            string? enlace = CrearEnlace("registrar-agencia", "referencia", contratacionServicio.ReferenciaContratacion);
 
             if (string.IsNullOrWhiteSpace(enlace))
             {
@@ -46,13 +49,13 @@ namespace TeamBalance.Services
             }
 
             string descripcion = $@"
-                <p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p>
+                <p>Hola {System.Net.WebUtility.HtmlEncode(contratacionServicio.NombreResponsable)},</p>
                 <p>Confirmamos el pago de tu contratación de TeamBalance.</p>
                 <p>Cuando quieras, podés completar el registro inicial de tu agencia desde este enlace:</p>
                 <p><a href=""{enlace}"">Completar registro de mi agencia</a></p>
                 <p>Por seguridad, este enlace sólo funciona mientras la contratación no haya sido utilizada para crear la agencia.</p>";
 
-            return await EnviarMail("Completá el registro de tu agencia en TeamBalance", descripcion, receptor);
+            return await EnviarMail("Completá el registro de tu agencia en TeamBalance", descripcion, contratacionServicio.EmailLaboralResponsable);
         }
 
         public async Task<bool> EnviarCorreoRecuperoPassword(string receptor, string nombre, string token)

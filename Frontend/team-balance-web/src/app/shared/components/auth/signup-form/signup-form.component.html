@@ -105,6 +105,12 @@
         }
       </div>
 
+      <label class="tb-terms-check">
+        <input type="checkbox" formControlName="acceptsTerms" />
+        <span>{{localization.traducir('signup.termsPrefix')}} <a routerLink="/terms-and-conditions" target="_blank">{{localization.traducir('signup.termsLink')}}</a> {{localization.traducir('signup.termsSuffix')}}</span>
+      </label>
+      @if (hasError('acceptsTerms')) { <small class="tb-auth-field__error">{{localization.traducir('signup.termsError')}}</small> }
+
       @if (requestError()) {
         <p class="tb-auth-request-error" role="alert">{{ requestError() }}</p>
       }

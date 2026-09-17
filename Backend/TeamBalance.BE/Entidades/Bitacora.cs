@@ -6,6 +6,13 @@ namespace TeamBalance.BE.Entidades;
 public partial class Bitacora
 {
     public Bitacora() { }
+
+    public Bitacora(string accion, string mensaje)
+    {
+        Accion = accion;
+        Mensaje = mensaje;
+        FechaHora = DateTime.Now;
+    }
     public Bitacora(int? idUsuario, int? idAgencia, string? entidad, int? idEntidad, string accion, string mensaje, string? resultado, string? criticidad, string? modulo)
     {
         IdUsuario = idUsuario;

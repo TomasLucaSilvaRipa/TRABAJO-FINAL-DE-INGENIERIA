@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using TeamBalance.BE.Entidades;
 
 namespace TeamBalance.Services;
 
@@ -16,9 +17,9 @@ public class RecaptchaService
         _urlPublicaFrontend = urlPublicaFrontend;
     }
 
-    public async Task ValidarLogin(string recaptchaToken)
+    public async Task ValidarLogin(Usuario usuario)
     {
-        if (string.IsNullOrWhiteSpace(recaptchaToken))
+        if (string.IsNullOrWhiteSpace(usuario.RecaptchaToken))
         {
             throw new UnauthorizedAccessException("No fue posible validar la verificación de seguridad.");
         }
@@ -36,7 +37,7 @@ public class RecaptchaService
         List<KeyValuePair<string, string>> datos = new List<KeyValuePair<string, string>>()
         {
             new KeyValuePair<string, string>("secret", _secretKey),
-            new KeyValuePair<string, string>("response", recaptchaToken),
+            new KeyValuePair<string, string>("response", usuario.RecaptchaToken),
         };
 
         using FormUrlEncodedContent contenido = new FormUrlEncodedContent(datos);

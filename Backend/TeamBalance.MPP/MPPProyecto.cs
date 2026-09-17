@@ -35,6 +35,8 @@ public class MPPProyecto
         GestionProyectoOpciones opciones = new GestionProyectoOpciones(clientes, responsables); 
         return opciones;
     }
+
+    //PASAR OBJETO AGENCIA
     public Cliente RegistrarCliente(Cliente cliente, int idAgencia) { 
         List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@Nombre", cliente.Nombre), new SqlParameter("@RazonSocial", (object?)cliente.RazonSocial ?? DBNull.Value), new SqlParameter("@Email", (object?)cliente.Email ?? DBNull.Value), new SqlParameter("@Telefono", (object?)cliente.Telefono ?? DBNull.Value), new SqlParameter("@IdAgencia", idAgencia) }; 
         DataTable tabla = _conexion.Leer("dbo.usp_Cliente_Registrar", parametros); 

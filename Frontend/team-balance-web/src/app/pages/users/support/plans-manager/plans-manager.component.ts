@@ -19,6 +19,8 @@ export class PlansManager {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly comparison = signal(false);
+  readonly selectedPlanIds = signal<number[]>([]);
+  readonly comparisonError = signal('');
   readonly message = signal('');
   readonly error = signal('');
 
@@ -43,7 +45,7 @@ export class PlansManager {
   loadPlans(): void {
     this.loading.set(true);
     this.planService.consultarPlanes().subscribe({
-      next: (plans) => { this.plans.set(plans); this.loading.set(false); },
+      next: (plans) => { this.plans.set(plans); this.selectedPlanIds.update((ids) => ids.filter((id) => plans.some((plan) => plan.id === id))); this.loading.set(false); },
       error: (error) => { this.error.set(this.errorMessage(error)); this.loading.set(false); },
     });
   }
@@ -111,6 +113,11 @@ export class PlansManager {
       error: (error) => this.error.set(this.errorMessage(error)),
     });
   }
+
+  togglePlanSelection(idPlan: number): void { const seleccionados = this.selectedPlanIds(); if (seleccionados.includes(idPlan)) { this.selectedPlanIds.set(seleccionados.filter((id) => id !== idPlan)); this.comparison.set(false); this.comparisonError.set(''); return; } if (seleccionados.length >= 4) { this.comparisonError.set(this.localization.traducir('plans.comparison.maximum')); return; } this.selectedPlanIds.set([...seleccionados, idPlan]); this.comparisonError.set(''); }
+  planSeleccionado(idPlan: number): boolean { return this.selectedPlanIds().includes(idPlan); }
+  planesSeleccionados(): PlanComercial[] { return this.plans().filter((plan) => this.selectedPlanIds().includes(plan.id)); }
+  alternarComparacion(): void { if (this.selectedPlanIds().length < 2) { this.comparisonError.set(this.localization.traducir('plans.comparison.minimum')); return; } this.comparisonError.set(''); this.comparison.update((visible) => !visible); }
 
   private errorMessage(error: { error?: string }): string {
     return typeof error?.error === 'string' ? error.error : this.localization.traducir('planManager.error');

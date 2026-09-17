@@ -9,6 +9,12 @@ public partial class Skill
     {
     }
 
+    public Skill(int id, bool activo)
+    {
+        ID = id;
+        Activo = activo;
+    }
+
     public Skill(int iD, string nombre, string? categoria, bool activo)
     {
         ID = iD;

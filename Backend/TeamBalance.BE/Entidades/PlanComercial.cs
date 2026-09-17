@@ -9,6 +9,10 @@ public partial class PlanComercial
     {
     }
 
+    public PlanComercial(int iD)
+    {
+        ID = iD;
+    }
     public PlanComercial(int iD, string nombre, string? descripcion, string periodicidad, decimal precioVigente, string moneda, int duracionMeses, string? alcanceFuncional, string? condicionesRenovacion, bool activo, DateTime fechaVigenciaDesde, DateTime? fechaVigenciaHasta)
     {
         ID = iD;

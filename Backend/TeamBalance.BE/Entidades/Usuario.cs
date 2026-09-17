@@ -50,6 +50,9 @@ public partial class Usuario
 
     public bool Activo { get; set; }
 
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public bool AceptaTerminos { get; set; }
+
     public DateTime? FechaBaja { get; set; }
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]

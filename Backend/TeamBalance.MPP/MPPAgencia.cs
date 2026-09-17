@@ -14,12 +14,12 @@ public class MPPAgencia
         _conexion = conexion;
     }
 
-    public bool ExisteAgencia(string cuit, string emailContacto)
+    public bool ExisteAgencia(Agencia agencia)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@CUIT", cuit),
-            new SqlParameter("@EmailContacto", emailContacto),
+            new SqlParameter("@CUIT", agencia.CUIT),
+            new SqlParameter("@EmailContacto", agencia.EmailContacto),
         };
 
         DataTable resultado = _conexion.Leer("dbo.usp_Agencia_Existe", parametros);
@@ -27,9 +27,9 @@ public class MPPAgencia
         return resultado.Rows.Count == 1 && Convert.ToBoolean(resultado.Rows[0]["Existe"]);
     }
 
-    public Agencia ConsultarAgencia(int idAgencia)
+    public Agencia ConsultarAgencia(Usuario usuario)
     {
-        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", idAgencia) };
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia) };
         DataTable resultado = _conexion.Leer("dbo.usp_Agencia_Consultar", parametros);
         if (resultado.Rows.Count != 1) { throw new KeyNotFoundException("No existe la agencia solicitada."); }
         DataRow fila = resultado.Rows[0];
@@ -50,9 +50,9 @@ public class MPPAgencia
         return agenciaActualizada;
     }
 
-    public Suscripcion? ConsultarSuscripcionActual(int idAgencia)
+    public Suscripcion? ConsultarSuscripcionActual(Usuario usuario)
     {
-        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", idAgencia) };
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia ) };
         DataTable resultado = _conexion.Leer("dbo.usp_Suscripcion_ConsultarActualPorAgencia", parametros);
         if (resultado.Rows.Count == 0) { return null; }
         DataRow fila = resultado.Rows[0];
@@ -63,11 +63,11 @@ public class MPPAgencia
         return suscripcion;
     }
 
-    public RegistroAgenciaResultado RegistrarAgencia(Agencia agencia, Usuario usuario, Dueño dueño, ValidacionCuentum validacion, string referenciaContratacion)
+    public RegistroAgenciaResultado RegistrarAgencia(Agencia agencia, Usuario usuario, Dueño dueño, ValidacionCuenta validacion, ContratacionServicio contratacionServicio)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@ReferenciaContratacion", referenciaContratacion),
+            new SqlParameter("@ReferenciaContratacion", contratacionServicio.ReferenciaContratacion),
             new SqlParameter("@NombreComercial", agencia.NombreComercial),
             new SqlParameter("@RazonSocial", (object?)agencia.RazonSocial ?? DBNull.Value),
             new SqlParameter("@CUIT", agencia.CUIT),
@@ -81,6 +81,7 @@ public class MPPAgencia
             new SqlParameter("@PasswordHash", usuario.PasswordHash),
             new SqlParameter("@EstadoUsuario", usuario.Estado),
             new SqlParameter("@ActivoUsuario", usuario.Activo),
+            new SqlParameter("@AceptaTerminos", usuario.AceptaTerminos),
             new SqlParameter("@ActivoDueno", dueño.Activo),
             new SqlParameter("@MetodoValidacion", validacion.Metodo),
             new SqlParameter("@TokenHash", validacion.TokenHash),

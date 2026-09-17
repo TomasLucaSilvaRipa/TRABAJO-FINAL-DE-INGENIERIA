@@ -44,6 +44,7 @@ export class SignupFormComponent {
     phone: ['', [Validators.required, Validators.minLength(6)]],
     password: ['', [Validators.required, Validators.minLength(8), Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d).+$/)]],
     confirmPassword: ['', Validators.required],
+    acceptsTerms: [false, Validators.requiredTrue],
   });
 
   constructor() {
@@ -88,6 +89,7 @@ export class SignupFormComponent {
           apellido: form.lastName,
           email: form.workEmail,
           passwordHash: form.password,
+          aceptaTerminos: form.acceptsTerms,
         },
       ],
     };

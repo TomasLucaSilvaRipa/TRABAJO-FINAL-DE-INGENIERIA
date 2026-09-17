@@ -34,6 +34,7 @@ builder.Services.AddScoped<MPPProyecto>();
 builder.Services.AddScoped<MPPTarea>();
 builder.Services.AddScoped<MPPRecursos>();
 builder.Services.AddScoped<MPPOpinionServicio>();
+builder.Services.AddScoped<MPPConsultaPlan>();
 
 builder.Services.AddScoped<ContratacionBLL>();
 builder.Services.AddScoped<BLLAgencia>();
@@ -45,6 +46,7 @@ builder.Services.AddScoped<BLLProyecto>();
 builder.Services.AddScoped<BLLTarea>();
 builder.Services.AddScoped<BLLRecursos>();
 builder.Services.AddScoped<BLLOpinionServicio>();
+builder.Services.AddScoped<BLLConsultaPlan>();
 builder.Services.AddSingleton<EncryptionService>();
 
 builder.Services.AddHttpClient<PasswordSecurityWebService>( client => { client.BaseAddress = new Uri(builder.Configuration["PasswordSecurityWebService:BaseUrl"]!); });

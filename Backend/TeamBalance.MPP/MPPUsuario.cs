@@ -14,11 +14,11 @@ public class MPPUsuario
         _conexion = conexion;
     }
 
-    public bool ExisteUsuarioPorEmail(string email)
+    public bool ExisteUsuarioPorEmail(Usuario usuario)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@Email", email),
+            new SqlParameter("@Email", usuario.Email.Trim().ToLowerInvariant()),
         };
 
         DataTable resultado = _conexion.Leer("dbo.usp_Usuario_ExisteEmail", parametros);
@@ -26,11 +26,11 @@ public class MPPUsuario
         return resultado.Rows.Count == 1 && Convert.ToBoolean(resultado.Rows[0]["Existe"]);
     }
 
-    public Usuario? ConsultarUsuarioPorEmail(string email)
+    public Usuario? ConsultarUsuarioPorEmail(Usuario usuario)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@Email", email),
+            new SqlParameter("@Email", usuario.Email),
         };
 
         DataTable resultado = _conexion.Leer("dbo.usp_Usuario_ConsultarPorEmail", parametros);
@@ -43,11 +43,11 @@ public class MPPUsuario
         return CrearUsuario(resultado.Rows[0]);
     }
 
-    public Usuario? ConsultarUsuarioPendienteValidacion(string email)
+    public Usuario? ConsultarUsuarioPendienteValidacion(Usuario usuario)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@Email", email),
+            new SqlParameter("@Email", usuario.Email.Trim().ToLowerInvariant()),
         };
 
         DataTable resultado = _conexion.Leer("dbo.usp_Usuario_ConsultarPendienteValidacion", parametros);
@@ -77,7 +77,7 @@ public class MPPUsuario
         return CrearUsuario(resultado.Rows[0]);
     }
 
-    public Usuario? ConsultarUsuarioPorRecuperacionPassword(ValidacionCuentum validacion)
+    public Usuario? ConsultarUsuarioPorRecuperacionPassword(ValidacionCuenta validacion)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
@@ -142,7 +142,7 @@ public class MPPUsuario
         return resultado.Rows.Count == 1 && Convert.ToBoolean(resultado.Rows[0]["Validada"]);
     }
 
-    public void ReemplazarValidacionEmail(Usuario usuario, ValidacionCuentum validacion)
+    public void ReemplazarValidacionEmail(Usuario usuario, ValidacionCuenta validacion)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
@@ -158,7 +158,7 @@ public class MPPUsuario
         }
     }
 
-    public void ReemplazarRecuperacionPassword(Usuario usuario, ValidacionCuentum validacion)
+    public void ReemplazarRecuperacionPassword(Usuario usuario, ValidacionCuenta validacion)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
@@ -174,7 +174,7 @@ public class MPPUsuario
         }
     }
 
-    public bool RestablecerPassword(Usuario usuario, ValidacionCuentum validacion)
+    public bool RestablecerPassword(Usuario usuario, ValidacionCuenta validacion)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {

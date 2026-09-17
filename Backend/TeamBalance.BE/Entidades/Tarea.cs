@@ -9,9 +9,15 @@ public partial class Tarea
     {
     }
 
-    public Tarea(int iD, int idProyecto, int? idEmpleadoAsignado, int? idSkillRequerido, int idEstadoTarea, int? idTareaPredecesora, string titulo, string? descripcion, string? estado, string? prioridad, string? complejidad, DateTime? fechaInicio, DateTime? deadline, DateTime? fechaFinReal, string? seniorityRequerido, string? checklistJson, string? comentariosJson, string? archivosAdjuntosJson, bool bloqueada, string? motivoBloqueo, decimal porcentajeAvance, decimal horasEstimadas, bool activo, DateTime? fechaBaja)
+    public Tarea(int id, bool activo)
     {
-        ID = iD;
+        ID = id;
+        Activo = activo;
+    }
+
+    public Tarea(int id, int idProyecto, int? idEmpleadoAsignado, int? idSkillRequerido, int idEstadoTarea, int? idTareaPredecesora, string titulo, string? descripcion, string? estado, string? prioridad, string? complejidad, DateTime? fechaInicio, DateTime? deadline, DateTime? fechaFinReal, string? seniorityRequerido, string? checklistJson, string? comentariosJson, string? archivosAdjuntosJson, bool bloqueada, string? motivoBloqueo, decimal porcentajeAvance, decimal horasEstimadas, bool activo, DateTime? fechaBaja)
+    {
+        ID = id;
         IdProyecto = idProyecto;
         IdEmpleadoAsignado = idEmpleadoAsignado;
         IdSkillRequerido = idSkillRequerido;

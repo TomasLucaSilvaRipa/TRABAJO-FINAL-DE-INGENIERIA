@@ -34,11 +34,11 @@ public class MPPBitacora
         return _conexion.Escribir("dbo.usp_Bitacora_Registrar", parametros);
     }
 
-    public List<Bitacora> LeerBitacora(int? idAgencia = null)
+    public List<Bitacora> LeerBitacora(FiltroBitacora filtro)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@IdAgencia", (object?)idAgencia ?? DBNull.Value),
+            new SqlParameter("@IdAgencia", (object?)filtro.IdAgencia ?? DBNull.Value),
         };
 
         DataTable tabla = _conexion.Leer("dbo.usp_Bitacora_Consultar", parametros);
@@ -46,19 +46,19 @@ public class MPPBitacora
         return CrearLista(tabla);
     }
 
-    public List<Bitacora> Filtrar(int? idAgencia, DateTime? desde = null, DateTime? hasta = null, int? idUsuario = null, string? entidad = null, string? accion = null, string? resultado = null, string? criticidad = null, string? modulo = null)
+    public List<Bitacora> Filtrar(FiltroBitacora filtro)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@IdAgencia", (object?)idAgencia ?? DBNull.Value),
-            new SqlParameter("@Desde", (object?)desde ?? DBNull.Value),
-            new SqlParameter("@Hasta", (object?)hasta ?? DBNull.Value),
-            new SqlParameter("@IdUsuario", (object?)idUsuario ?? DBNull.Value),
-            new SqlParameter("@Entidad", (object?)entidad ?? DBNull.Value),
-            new SqlParameter("@Accion", (object?)accion ?? DBNull.Value),
-            new SqlParameter("@Resultado", (object?)resultado ?? DBNull.Value),
-            new SqlParameter("@Criticidad", (object?)criticidad ?? DBNull.Value),
-            new SqlParameter("@Modulo", (object?)modulo ?? DBNull.Value),
+            new SqlParameter("@IdAgencia", (object?)filtro.IdAgencia ?? DBNull.Value),
+            new SqlParameter("@Desde", (object?)filtro.Desde ?? DBNull.Value),
+            new SqlParameter("@Hasta", (object?)filtro.Hasta ?? DBNull.Value),
+            new SqlParameter("@IdUsuario", (object?)filtro.IdUsuario ?? DBNull.Value),
+            new SqlParameter("@Entidad", (object?)filtro.Entidad ?? DBNull.Value),
+            new SqlParameter("@Accion", (object?)filtro.Accion ?? DBNull.Value),
+            new SqlParameter("@Resultado", (object?)filtro.Resultado ?? DBNull.Value),
+            new SqlParameter("@Criticidad", (object?)filtro.Criticidad ?? DBNull.Value),
+            new SqlParameter("@Modulo", (object?)filtro.Modulo ?? DBNull.Value),
         };
 
         DataTable tabla = _conexion.Leer("dbo.usp_Bitacora_Consultar", parametros);

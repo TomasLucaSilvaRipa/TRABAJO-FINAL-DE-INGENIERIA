@@ -294,9 +294,15 @@ BEGIN
     SET NOCOUNT ON;
     IF EXISTS(SELECT 1 FROM dbo.Usuario WHERE Email = @Email)
         THROW 52005, 'Ya existe un usuario con ese email.', 1;
+    DECLARE @IdUsuario INT;
+    DECLARE @IdTerminosCondiciones INT;
     INSERT INTO dbo.Usuario(IdAgencia, IdRol, Nombre, Apellido, Email, PasswordHash, Estado, FechaAlta, Activo)
     VALUES(@IdAgencia, @IdRolPrincipal, @Nombre, @Apellido, @Email, @PasswordHash, @Estado, SYSDATETIME(), 1);
-    SELECT CONVERT(INT, SCOPE_IDENTITY()) AS ID;
+    SET @IdUsuario = CONVERT(INT, SCOPE_IDENTITY());
+    SELECT TOP (1) @IdTerminosCondiciones = ID FROM dbo.TerminosCondiciones WHERE Vigente = 1 ORDER BY FechaVigenciaDesde DESC, ID DESC;
+    IF @IdTerminosCondiciones IS NOT NULL
+        INSERT INTO dbo.AceptacionTerminos(IdUsuario, IdTerminosCondiciones, FechaAceptacion, DireccionIP) VALUES(@IdUsuario, @IdTerminosCondiciones, SYSDATETIME(), NULL);
+    SELECT @IdUsuario AS ID;
 END;
 GO
 

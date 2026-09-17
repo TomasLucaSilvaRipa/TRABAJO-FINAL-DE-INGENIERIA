@@ -10,11 +10,13 @@ public class PlanComercialController : ControllerBase
 {
     private readonly BLLPlanComercial _planBLL;
     private readonly BLLUsuario _usuarioBLL;
+    private readonly BLLConsultaPlan _consultaBLL;
 
-    public PlanComercialController(BLLPlanComercial planBLL, BLLUsuario usuarioBLL)
+    public PlanComercialController(BLLPlanComercial planBLL, BLLUsuario usuarioBLL, BLLConsultaPlan consultaBLL)
     {
         _planBLL = planBLL;
         _usuarioBLL = usuarioBLL;
+        _consultaBLL = consultaBLL;
     }
 
     [HttpGet]
@@ -35,23 +37,60 @@ public class PlanComercialController : ControllerBase
     [HttpGet("{id:int}")]
     public IActionResult ConsultarPlan(int id)
     {
-        try { return Ok(_planBLL.ConsultarPlanDisponible(id)); }
+        try 
+        { 
+            PlanComercial planComercial = new PlanComercial(id);
+            return Ok(_planBLL.ConsultarPlanDisponible(planComercial)); 
+        }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
+    }
+
+    [HttpGet("{idPlan:int}/consultas")]
+    public IActionResult ConsultarConsultas(int idPlan)
+    {
+        try {
+            PlanComercial planComercial = new PlanComercial(idPlan);
+            List<ConsultaPlan> consultas = _consultaBLL.Consultar(planComercial); 
+            return Ok(consultas); 
+        }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (Exception ex) { return BadRequest(ex.Message); }
+    }
+
+    [HttpPost("{idPlan:int}/consultas")]
+    public IActionResult RegistrarConsulta(int idPlan, [FromBody] ConsultaPlan consulta)
+    {
+        try 
+        {
+            PlanComercial planComercial = new PlanComercial(idPlan);
+            ConsultaPlan resultado = _consultaBLL.Registrar(planComercial, consulta); 
+            return Ok(resultado); 
+        }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
     [HttpPost]
     public IActionResult RegistrarPlan([FromBody] PlanComercial plan)
     {
-        try { Usuario usuario = ValidarSesion(); return Ok(_planBLL.RegistrarPlan(plan, usuario)); }
+        try 
+        { 
+            Usuario usuario = ValidarSesion(); 
+            return Ok(_planBLL.RegistrarPlan(plan, usuario)); 
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
 
     [HttpPut("{id:int}")]
-    public IActionResult ModificarPlan(int id, [FromBody] PlanComercial plan)
+    public IActionResult ModificarPlan([FromBody] PlanComercial plan)
     {
-        try { Usuario usuario = ValidarSesion(); plan.ID = id; return Ok(_planBLL.ModificarPlan(plan, usuario)); }
+        try { 
+            Usuario usuario = ValidarSesion(); 
+            return Ok(_planBLL.ModificarPlan(plan, usuario)); 
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
@@ -60,7 +99,11 @@ public class PlanComercialController : ControllerBase
     [HttpPatch("{id:int}/estado")]
     public IActionResult CambiarEstado(int id, [FromBody] PlanComercial plan)
     {
-        try { Usuario usuario = ValidarSesion(); return Ok(_planBLL.CambiarEstado(id, plan.Activo, usuario)); }
+        try 
+        { 
+            Usuario usuario = ValidarSesion(); 
+            return Ok(_planBLL.CambiarEstado(id, plan, usuario)); 
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }

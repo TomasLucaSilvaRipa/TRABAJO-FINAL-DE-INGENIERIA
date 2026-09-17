@@ -20,7 +20,9 @@
     } @else {
       <div class="tb-pricing-grid tb-pricing-grid--three">
         @for (plan of plans(); track plan.id) {
-          <article class="tb-price-card" [class.tb-price-card--featured]="plan.nombre.toLowerCase() === 'business'">
+          <article class="tb-price-card" [class.tb-price-card--featured]="plan.nombre.toLowerCase() === 'business'" [class.tb-price-card--selected]="planSeleccionado(plan.id)">
+            <button class="tb-plan-selector" type="button" [class.tb-plan-selector--selected]="planSeleccionado(plan.id)" [attr.aria-label]="localization.traducir('plans.comparison.select') + ' ' + plan.nombre" (click)="togglePlanSelection(plan.id)">{{planSeleccionado(plan.id) ? '✓' : ''}}</button>
+            <button class="tb-plan-questions" type="button" [attr.aria-label]="localization.traducir('plans.questions.open') + ' ' + plan.nombre" (click)="abrirConsultas(plan)">⋯</button>
             <p class="tb-price-card__tag">{{ plan.nombre }}</p>
             <h2>{{ description(plan) }}</h2>
             <p class="tb-price"><span>{{ plan.moneda }}</span> {{ plan.precioVigente }} <small>/ {{ localization.traducir('plans.month') }}</small></p>
@@ -34,11 +36,11 @@
         }
       </div>
 
-      <div class="tb-comparison-action">
-        <button class="tb-button tb-button--secondary" type="button" (click)="toggleComparison()">
+      <div class="tb-comparison-action"><div>
+        <p class="tb-comparison-selection">{{ localization.traducir('plans.comparison.selected') }} {{ selectedPlanIds().length }}/4. {{ localization.traducir('plans.comparison.selectionHelp') }}</p><button class="tb-button tb-button--secondary" type="button" (click)="toggleComparison()">
           {{ localization.traducir(comparisonVisible() ? 'plans.hideComparison' : 'plans.compare') }}
-        </button>
-      </div>
+        </button></div></div>
+      @if (comparisonError()) { <p class="tb-comparison-error" role="alert">{{ comparisonError() }}</p> }
 
       @if (comparisonVisible()) {
         <section class="tb-comparison" aria-labelledby="comparison-title">
@@ -47,12 +49,24 @@
             <h2 id="comparison-title">{{ localization.traducir('plans.comparison.title') }}</h2>
             <p>{{ localization.traducir('plans.comparison.subtitle') }}</p>
           </div>
-          <app-plan-comparison [plans]="plans()"></app-plan-comparison>
+          <app-plan-comparison [plans]="planesSeleccionados()"></app-plan-comparison>
         </section>
       }
     }
   </div>
 </section>
+
+@if (planConsultado()) {
+  <div class="tb-dialog-backdrop" role="presentation" (click)="cerrarConsultas()">
+    <section class="tb-dialog tb-plan-questions-dialog" role="dialog" aria-modal="true" [attr.aria-label]="localization.traducir('plans.questions.title')" (click)="$event.stopPropagation()">
+      <button class="tb-dialog__close" type="button" [attr.aria-label]="localization.traducir('common.close')" (click)="cerrarConsultas()">×</button>
+      <p class="tb-eyebrow">{{ planConsultado()!.nombre }}</p><h2>{{ localization.traducir('plans.questions.title') }}</h2><p>{{ localization.traducir('plans.questions.description') }}</p>
+      <form class="mt-5 grid gap-3" [formGroup]="consultaForm" (ngSubmit)="guardarConsulta()"><label>{{ localization.traducir('plans.questions.name') }}<input formControlName="nombre" /></label><label>{{ localization.traducir('plans.questions.email') }}<input type="email" formControlName="email" /></label><label>{{ localization.traducir('plans.questions.question') }}<textarea rows="3" formControlName="consulta"></textarea></label><button class="tb-button tb-button--primary" type="submit" [disabled]="guardandoConsulta()">{{ guardandoConsulta() ? localization.traducir('plans.questions.saving') : localization.traducir('plans.questions.send') }}</button></form>
+      @if (consultaError()) { <p class="tb-review-form-error">{{ consultaError() }}</p> }
+      <div class="mt-6 border-t border-slate-200 pt-4 dark:border-slate-700"><h3>{{ localization.traducir('plans.questions.previous') }}</h3>@if(cargandoConsultas()){<p>{{ localization.traducir('common.loading') }}</p>}@else if(!consultas().length){<p class="tb-muted-text">{{ localization.traducir('plans.questions.empty') }}</p>}@else{@for(consulta of consultas();track consulta.id){<article class="tb-plan-question"><div><strong>{{consulta.nombre}}</strong><time>{{ localization.formatearFecha(consulta.fechaAlta) }}</time></div><p>{{consulta.consulta}}</p></article>}}</div>
+    </section>
+  </div>
+}
 
 <section class="tb-section tb-section--soft">
   <div class="tb-container">

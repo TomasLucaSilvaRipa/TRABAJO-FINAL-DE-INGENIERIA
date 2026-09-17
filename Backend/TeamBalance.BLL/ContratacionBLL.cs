@@ -46,25 +46,25 @@ namespace TeamBalance.BLL
             return respuesta;
         }
 
-        public EstadoContratacionResponse ConsultarEstado(string referenciaContratacion)
+        public EstadoContratacionResponse ConsultarEstado(ContratacionServicio contratacionServicio)
         {
-            EstadoContratacionPersistido contratacion = _contratacionMPP.ConsultarEstado(referenciaContratacion);
+            EstadoContratacionPersistido contratacion = _contratacionMPP.ConsultarEstado(contratacionServicio);
             return CrearRespuestaEstado(contratacion);
         }
 
-        public ContratacionServicio ConsultarContratacionParaRegistro(string referenciaContratacion)
+        public ContratacionServicio ConsultarContratacionParaRegistro(ContratacionServicio contratacionServicio)
         {
-            return _contratacionMPP.ConsultarContratacionParaRegistro(referenciaContratacion);
+            return _contratacionMPP.ConsultarContratacionParaRegistro(contratacionServicio);
         }
 
-        public async Task<EstadoContratacionResponse> VerificarPagoMercadoPago(string referenciaContratacion, string paymentId)
+        public async Task<EstadoContratacionResponse> VerificarPagoMercadoPago(ContratacionServicio contratacionServicio, string paymentId)
         {
             if (string.IsNullOrWhiteSpace(paymentId))
             {
                 throw new ArgumentException("Mercado Pago no informó el identificador del pago.", nameof(paymentId));
             }
 
-            EstadoContratacionPersistido contratacion = _contratacionMPP.ConsultarEstado(referenciaContratacion);
+            EstadoContratacionPersistido contratacion = _contratacionMPP.ConsultarEstado(contratacionServicio);
 
             if (string.Equals(contratacion.EstadoContratacion, "Aprobada", StringComparison.OrdinalIgnoreCase))
             {
@@ -73,27 +73,23 @@ namespace TeamBalance.BLL
 
             MercadoPagoPayment payment = await _mercadoPagoService.ConsultarPago(paymentId);
 
-            if (!string.Equals(payment.ExternalReference, referenciaContratacion, StringComparison.Ordinal))
+            if (!string.Equals(payment.ExternalReference, contratacionServicio.ReferenciaContratacion, StringComparison.Ordinal))
             {
                 throw new InvalidOperationException("El pago no corresponde a la contratación indicada.");
             }
 
-            if (payment.TransactionAmount != contratacion.Importe ||
-                !string.Equals(payment.CurrencyId, contratacion.Moneda, StringComparison.OrdinalIgnoreCase))
+            if (payment.TransactionAmount != contratacion.Importe || !string.Equals(payment.CurrencyId, contratacion.Moneda, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException("El importe o la moneda informados por Mercado Pago no coinciden con la contratación.");
             }
 
-            EstadoContratacionPersistido resultado = _contratacionMPP.ActualizarResultadoPago( referenciaContratacion, payment.Id, payment.Status, $"Mercado Pago informó el estado '{payment.Status}'.");
+            EstadoContratacionPersistido resultado = _contratacionMPP.ActualizarResultadoPago( contratacionServicio, payment.Id, payment.Status, $"Mercado Pago informó el estado '{payment.Status}'.");
 
             if (string.Equals(resultado.EstadoContratacion, "Aprobada", StringComparison.OrdinalIgnoreCase))
             {
-                ContratacionServicio contratacionParaRegistro = _contratacionMPP.ConsultarContratacionParaRegistro(referenciaContratacion);
+                ContratacionServicio contratacionParaRegistro = _contratacionMPP.ConsultarContratacionParaRegistro(contratacionServicio);
 
-                await _emailService.EnviarCorreoContinuarRegistro(
-                    contratacionParaRegistro.EmailLaboralResponsable,
-                    contratacionParaRegistro.NombreResponsable,
-                    contratacionParaRegistro.ReferenciaContratacion);
+                await _emailService.EnviarCorreoContinuarRegistro(contratacionParaRegistro);
             }
 
             return CrearRespuestaEstado(resultado);

@@ -25,10 +25,10 @@ public class BLLAgencia
         _proyectoBLL = proyectoBLL;
     }
 
-    public async Task<bool> RegistrarAgencia( Agencia agencia, Usuario usuario, string referenciaContratacion)
+    public async Task<bool> RegistrarAgencia( Agencia agencia, Usuario usuario, ContratacionServicio contratacionServicio)
     {
-        ValidarDatosRegistro(usuario, referenciaContratacion);
-        ContratacionServicio contratacion = _contratacionBLL.ConsultarContratacionParaRegistro(referenciaContratacion);
+        ValidarDatosRegistro(usuario, contratacionServicio);
+        ContratacionServicio contratacion = _contratacionBLL.ConsultarContratacionParaRegistro(contratacionServicio);
 
         agencia.NombreComercial = contratacion.NombreComercialAgencia;
         agencia.RazonSocial = contratacion.RazonSocial;
@@ -40,24 +40,25 @@ public class BLLAgencia
         agencia.Estado = "Activa";
         agencia.Activo = true;
 
-        if (_agenciaMPP.ExisteAgencia(agencia.CUIT, agencia.EmailContacto))
+        if (_agenciaMPP.ExisteAgencia(agencia))
         {
             throw new InvalidOperationException("Ya existe una agencia registrada con el CUIT o email de contacto indicado.");
         }
 
         string email = usuario.Email.Trim().ToLowerInvariant();
 
-        if (!_usuarioBLL.EmailDisponible(email))
+        if (!_usuarioBLL.EmailDisponible(usuario))
         {
             throw new InvalidOperationException("Ya existe un usuario registrado con ese email laboral.");
         }
 
         Rol rolDueño = _rolBLL.ConsultarRolPorNombre("Dueño");
+        if (!usuario.AceptaTerminos) { throw new ArgumentException("Necesitás aceptar los Términos y Condiciones para completar el registro."); }
         _usuarioBLL.PrepararUsuarioDueño(usuario, rolDueño);
         Dueño dueño = _usuarioBLL.CrearDueño();
-        ValidacionCuentum validacion = _usuarioBLL.CrearValidacionEmail(out string token);
+        ValidacionCuenta validacion = _usuarioBLL.CrearValidacionEmail(out string token);
 
-        RegistroAgenciaResultado registro = _agenciaMPP.RegistrarAgencia(agencia, usuario, dueño, validacion, contratacion.ReferenciaContratacion);
+        RegistroAgenciaResultado registro = _agenciaMPP.RegistrarAgencia(agencia, usuario, dueño, validacion, contratacion);
 
         agencia.ID = registro.IdAgencia;
         usuario.ID = registro.IdUsuario;
@@ -68,7 +69,7 @@ public class BLLAgencia
         _bitacoraBLL.Add(bitacora);
         
 
-        return await _emailService.EnviarCorreoValidacion(usuario.Email, usuario.Nombre, token);
+        return await _emailService.EnviarCorreoValidacion(usuario, token);
     }
 
     public bool ValidarCuenta(string token)
@@ -79,14 +80,14 @@ public class BLLAgencia
     public Agencia ConsultarAgencia(Usuario solicitante)
     {
         ValidarPermiso(solicitante, "GestionarAgencia");
-        return _agenciaMPP.ConsultarAgencia(ObtenerIdAgencia(solicitante));
+        return _agenciaMPP.ConsultarAgencia(ValidarUsuarioConAgencia(solicitante));
     }
 
     public Agencia ModificarAgencia(Agencia agencia, Usuario solicitante)
     {
         ValidarPermiso(solicitante, "GestionarAgencia");
         if (string.IsNullOrWhiteSpace(agencia.NombreComercial) || string.IsNullOrWhiteSpace(agencia.EmailContacto) || !MailAddress.TryCreate(agencia.EmailContacto.Trim(), out _)) { throw new ArgumentException("Completá un nombre comercial y un email de contacto válido."); }
-        agencia.ID = ObtenerIdAgencia(solicitante);
+        agencia.ID = ValidarUsuarioConAgencia(solicitante).IdAgencia.Value;
         agencia.NombreComercial = agencia.NombreComercial.Trim();
         agencia.EmailContacto = agencia.EmailContacto.Trim().ToLowerInvariant();
         return _agenciaMPP.ModificarAgencia(agencia);
@@ -95,35 +96,36 @@ public class BLLAgencia
     public Suscripcion? ConsultarSuscripcionActual(Usuario solicitante)
     {
         ValidarPermiso(solicitante, "GestionarSuscripcion");
-        return _agenciaMPP.ConsultarSuscripcionActual(ObtenerIdAgencia(solicitante));
+        return _agenciaMPP.ConsultarSuscripcionActual(ValidarUsuarioConAgencia(solicitante));
     }
 
-    public async Task ReenviarValidacion(string email)
+    public async Task ReenviarValidacion(Usuario usuario)
     {
+        string email = usuario.Email ?? string.Empty;
         if (string.IsNullOrWhiteSpace(email) || !MailAddress.TryCreate(email.Trim(), out _))
         {
             return;
         }
 
-        Usuario? usuario = _usuarioBLL.ConsultarUsuarioPendienteValidacion(email.Trim().ToLowerInvariant());
+        usuario = _usuarioBLL.ConsultarUsuarioPendienteValidacion(usuario);
 
         if (usuario is null)
         {
             return;
         }
 
-        ValidacionCuentum validacion = _usuarioBLL.CrearValidacionEmail(out string token);
+        ValidacionCuenta validacion = _usuarioBLL.CrearValidacionEmail(out string token);
         _usuarioBLL.ReemplazarValidacionEmail(usuario, validacion);
 
-        await _emailService.EnviarCorreoValidacion(usuario.Email, usuario.Nombre, token);
+        await _emailService.EnviarCorreoValidacion(usuario, token);
 
         Bitacora bitacora = new Bitacora(0, usuario.ID, usuario.IdAgencia, "ValidacionCuenta", usuario.ID, "ReenviarValidacion", "Se generó un nuevo enlace de validación de correo.", "Exitoso", "Informacion", "Registro", DateTime.Now, null);
         _bitacoraBLL.Add(bitacora);
     }
 
-    private static void ValidarDatosRegistro(Usuario usuario, string referenciaContratacion)
+    private static void ValidarDatosRegistro(Usuario usuario, ContratacionServicio contratacionServicio)
     {
-        if (string.IsNullOrWhiteSpace(referenciaContratacion) || string.IsNullOrWhiteSpace(usuario.Nombre) || string.IsNullOrWhiteSpace(usuario.Apellido) || string.IsNullOrWhiteSpace(usuario.Email) || string.IsNullOrWhiteSpace(usuario.PasswordHash))
+        if (string.IsNullOrWhiteSpace(contratacionServicio.ReferenciaContratacion) || string.IsNullOrWhiteSpace(usuario.Nombre) || string.IsNullOrWhiteSpace(usuario.Apellido) || string.IsNullOrWhiteSpace(usuario.Email) || string.IsNullOrWhiteSpace(usuario.PasswordHash))
         {
             throw new ArgumentException("Completá todos los datos obligatorios del registro.");
         }
@@ -139,6 +141,15 @@ public class BLLAgencia
         }
     }
 
-    private int ObtenerIdAgencia(Usuario usuario) { if (!usuario.IdAgencia.HasValue) { throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."); } return usuario.IdAgencia.Value; }
-    private void ValidarPermiso(Usuario usuario, string permiso) { if (!_rolBLL.TienePermiso(usuario, permiso)) { throw new UnauthorizedAccessException("No tenés permiso para realizar esta acción."); } }
+    private Usuario ValidarUsuarioConAgencia(Usuario usuario) { 
+        if (!usuario.IdAgencia.HasValue) { 
+            throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."); 
+        } 
+        return usuario; 
+    }
+    private void ValidarPermiso(Usuario usuario, string permiso) { 
+        if (!_rolBLL.TienePermiso(usuario, permiso)) { 
+            throw new UnauthorizedAccessException("No tenés permiso para realizar esta acción."); 
+        } 
+    }
 }

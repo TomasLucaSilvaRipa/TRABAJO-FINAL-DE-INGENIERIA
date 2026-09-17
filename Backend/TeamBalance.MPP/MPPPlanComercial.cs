@@ -32,11 +32,11 @@ public class MPPPlanComercial
         return planes;
     }
 
-    public PlanComercial ConsultarPlan(int id)
+    public PlanComercial ConsultarPlan(PlanComercial planComercial)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@ID", id),
+            new SqlParameter("@ID", planComercial.ID),
         };
 
         DataTable tabla = _conexion.Leer("dbo.usp_PlanComercial_ConsultarPorId", parametros);

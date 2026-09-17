@@ -26,14 +26,14 @@ public class BLLUsuario
         _rolBLL = rolBLL;
     }
 
-    public bool EmailDisponible(string email)
+    public bool EmailDisponible(Usuario usuario)
     {
-        return !_usuarioMPP.ExisteUsuarioPorEmail(email);
+        return !_usuarioMPP.ExisteUsuarioPorEmail(usuario);
     }
 
-    public Usuario? ConsultarUsuarioPendienteValidacion(string email)
+    public Usuario? ConsultarUsuarioPendienteValidacion(Usuario usuario)
     {
-        return _usuarioMPP.ConsultarUsuarioPendienteValidacion(email);
+        return _usuarioMPP.ConsultarUsuarioPendienteValidacion(usuario);
     }
 
     public void PrepararUsuarioDueño(Usuario usuario, Rol rol)
@@ -59,13 +59,13 @@ public class BLLUsuario
         return dueño;
     }
 
-    public ValidacionCuentum CrearValidacionEmail(out string token)
+    public ValidacionCuenta CrearValidacionEmail(out string token)
     {
         token = Guid.NewGuid().ToString("N");
 
         DateTime fechaGeneracion = DateTime.Now;
         DateTime fechaExpiracion = fechaGeneracion.AddHours(24);
-        ValidacionCuentum validacion = new ValidacionCuentum(0, 0, "Email", _seguridad.GenerarHashToken(token), fechaGeneracion, fechaExpiracion, false, null, true);
+        ValidacionCuenta validacion = new ValidacionCuenta(0, 0, "Email", _seguridad.GenerarHashToken(token), fechaGeneracion, fechaExpiracion, false, null, true);
         return validacion;
     }
 
@@ -79,7 +79,7 @@ public class BLLUsuario
         return _usuarioMPP.ValidarCuenta(_seguridad.GenerarHashToken(token));
     }
 
-    public void ReemplazarValidacionEmail(Usuario usuario, ValidacionCuentum validacion)
+    public void ReemplazarValidacionEmail(Usuario usuario, ValidacionCuenta validacion)
     {
         _usuarioMPP.ReemplazarValidacionEmail(usuario, validacion);
     }
@@ -93,15 +93,15 @@ public class BLLUsuario
 
         try
         {
-            await _recaptchaService.ValidarLogin(usuarioEntrante.RecaptchaToken);
+            await _recaptchaService.ValidarLogin(usuarioEntrante);
         }
         catch (UnauthorizedAccessException ex){ RegistrarEventoSeguridad(null, "IniciarSesion", "Se rechazó un intento de inicio de sesión por una verificación reCAPTCHA inválida.", "Denegado", "Advertencia"); throw new UnauthorizedAccessException("No fue posible validar la verificación de seguridad.", ex); }
 
-        Usuario? usuarioBD = _usuarioMPP.ConsultarUsuarioPorEmail(usuarioEntrante.Email.Trim().ToLowerInvariant());
+        Usuario? usuario = _usuarioMPP.ConsultarUsuarioPorEmail(usuarioEntrante);
 
         Bitacora bitacora;
 
-        if (usuarioBD is null || !_seguridad.VerificarPassword(usuarioEntrante.PasswordHash, usuarioBD.PasswordHash))
+        if (usuario is null || !_seguridad.VerificarPassword(usuarioEntrante.PasswordHash, usuario.PasswordHash))
         {
             bitacora = new Bitacora(null,null,"Usuario",null, "IniciarSesion", "Se rechazó un intento de inicio de sesión por credenciales inválidas.", "Denegado", "Advertencia","Seguridad");
             _bitacoraBLL.Add(bitacora);
@@ -109,30 +109,30 @@ public class BLLUsuario
             throw new UnauthorizedAccessException("El email o la contraseña no son correctos.");
         }
 
-        if (!usuarioBD.Activo)
+        if (!usuario.Activo)
         {
             throw new InvalidOperationException("La cuenta se encuentra inactiva.");
         }
 
-        if (!string.Equals(usuarioBD.Estado, "Activo", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(usuario.Estado, "Activo", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("Confirmá tu correo electrónico antes de iniciar sesión.");
         }
 
-        _rolBLL.CargarAutorizacion(usuarioBD);
+        _rolBLL.CargarAutorizacion(usuario);
 
         string accessToken = _seguridad.GenerarTokenSeguro();
         DateTime fechaExpiracion = mantenerSesion ? DateTime.Now.AddDays(DuracionSesionRecordadaDias) : DateTime.Now.AddHours(DuracionSesionNormalHoras);
 
         DateTime fechaInicio = DateTime.Now;
-        SesionUsuario sesion = new SesionUsuario(0, usuarioBD.ID, _seguridad.GenerarHashToken(accessToken), fechaInicio, fechaInicio, fechaExpiracion, null, true, null);
+        SesionUsuario sesion = new SesionUsuario(0, usuario.ID, _seguridad.GenerarHashToken(accessToken), fechaInicio, fechaInicio, fechaExpiracion, null, true, null);
 
         _usuarioMPP.RegistrarSesion(sesion);
 
-        bitacora = new Bitacora(usuarioBD.ID, usuarioBD.IdAgencia, "Usuario",usuarioBD.ID, "IniciarSesion", "El usuario inició sesión en TeamBalance.","Exitoso","Informacion","Seguridad");
+        bitacora = new Bitacora(usuario.ID, usuario.IdAgencia, "Usuario",usuario.ID, "IniciarSesion", "El usuario inició sesión en TeamBalance.","Exitoso","Informacion","Seguridad");
         _bitacoraBLL.Add(bitacora);
 
-        InicioSesionResultado resultado = new InicioSesionResultado(usuarioBD, accessToken, fechaExpiracion);
+        InicioSesionResultado resultado = new InicioSesionResultado(usuario, accessToken, fechaExpiracion);
         return resultado;
     }
 
@@ -216,9 +216,9 @@ public class BLLUsuario
         RegistrarPerfiles(usuario);
         _rolBLL.CargarAutorizacion(usuario);
 
-        ValidacionCuentum validacion = CrearValidacionEmail(out string token);
+        ValidacionCuenta validacion = CrearValidacionEmail(out string token);
         _usuarioMPP.ReemplazarValidacionEmail(usuario, validacion);
-        bool correoEnviado = await _emailService.EnviarCorreoValidacion(usuario.Email, usuario.Nombre, token);
+        bool correoEnviado = await _emailService.EnviarCorreoValidacion(usuario, token);
 
         Bitacora bitacora = new Bitacora(0, solicitante.ID, solicitante.IdAgencia, "Usuario", usuario.ID, esSoporte ? "RegistrarSoporteInicial" : "RegistrarUsuarioAgencia", esSoporte ? "Se creó el usuario inicial de Soporte de TeamBalance." : "Se registró un usuario para la agencia.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia", "Usuarios", DateTime.Now, null);
         _bitacoraBLL.Add(bitacora);
@@ -240,7 +240,7 @@ public class BLLUsuario
             throw new ArgumentException("Uno o más roles seleccionados no están disponibles.");
         }
         ValidarUsuarioGestion(usuario, false);
-        Usuario? existente = _usuarioMPP.ConsultarUsuarioPorEmail(usuario.Email.Trim().ToLowerInvariant());
+        Usuario? existente = _usuarioMPP.ConsultarUsuarioPorEmail(usuario);
         if (existente is not null && existente.ID != usuario.ID)
         {
             throw new InvalidOperationException("Ya existe un usuario con ese email.");
@@ -254,10 +254,15 @@ public class BLLUsuario
 
     public void CambiarEstadoUsuarioAgencia(int idUsuario, bool activo, Usuario solicitante)
     {
-        ValidarPermiso(solicitante, "GestionarUsuarios");
-        Usuario usuario = _usuarioMPP.ConsultarUsuariosAgencia(solicitante).FirstOrDefault(item => item.ID == idUsuario) ?? throw new KeyNotFoundException("No existe el usuario dentro de la agencia.");
-        _usuarioMPP.CambiarEstado(usuario, activo);
-        _bitacoraBLL.Add(new Bitacora() { IdUsuario = solicitante.ID, IdAgencia = solicitante.IdAgencia, Entidad = "Usuario", IdEntidad = idUsuario, Accion = activo ? "ActivarUsuario" : "DarBajaUsuario", Mensaje = activo ? "Se activó un usuario de la agencia." : "Se dio de baja un usuario de la agencia.", Resultado = "Exitoso", Criticidad = "Informacion", Modulo = "Usuarios", FechaHora = DateTime.Now });
+        try
+        {
+            ValidarPermiso(solicitante, "GestionarUsuarios");
+            Usuario usuario = _usuarioMPP.ConsultarUsuariosAgencia(solicitante).FirstOrDefault(item => item.ID == idUsuario) ?? throw new KeyNotFoundException("No existe el usuario dentro de la agencia.");
+            _usuarioMPP.CambiarEstado(usuario, activo);
+            Bitacora bitacora = new Bitacora(solicitante.ID, solicitante.IdAgencia, "Usuario", idUsuario, activo ? "ActivarUsuario" : "DarBajaUsuario", activo ? "Se activó un usuario de la agencia." : "Se dio de baja un usuario de la agencia.", "Exitoso", "Informacion", "Usuarios");
+            _bitacoraBLL.Add(bitacora);
+        }
+        catch(Exception ex) { throw new Exception(ex.Message); }
     }
 
     private void PrepararUsuarioGestion(Usuario usuario, Usuario solicitante)
@@ -286,6 +291,7 @@ public class BLLUsuario
         usuario.Estado = "PendienteValidacion";
         usuario.FechaAlta = DateTime.Now;
         usuario.Activo = true;
+        usuario.AceptaTerminos = true;
         usuario.Rol = usuario.Roles.First();
     }
 
@@ -331,32 +337,32 @@ public class BLLUsuario
 
     public async Task SolicitarRecuperoPassword(Usuario usuario)
     {
-        if (string.IsNullOrWhiteSpace(usuario.Email))
+        try
         {
-            throw new ArgumentException("Ingresá un email válido.");
+            if (!string.IsNullOrWhiteSpace(usuario.Email))
+            {
+                usuario = _usuarioMPP.ConsultarUsuarioPorEmail(usuario);
+
+                if (usuario is null || !usuario.Activo || !string.Equals(usuario.Estado, "Activo", StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                string token = _seguridad.GenerarTokenRecuperacion();
+                DateTime fechaGeneracion = DateTime.Now;
+                ValidacionCuenta validacion = new ValidacionCuenta(0, usuario.ID, "RecuperacionPassword", _seguridad.GenerarHashToken(token), fechaGeneracion, fechaGeneracion.AddMinutes(30), false, null, true);
+
+                _usuarioMPP.ReemplazarRecuperacionPassword(usuario, validacion);
+
+                bool correoEnviado = await _emailService.EnviarCorreoRecuperoPassword(usuario.Email, usuario.Nombre, token);
+
+                if (!correoEnviado){ throw new InvalidOperationException("No fue posible enviar el correo de recuperación."); }
+
+                RegistrarEventoSeguridad(usuario, "SolicitarRecuperoPassword", "Se generó un enlace temporal para recuperar la contraseña.", "Exitoso", "Informacion");
+            }
+            else { throw new ArgumentException("Ingresá un email válido.");  }  
         }
-
-        Usuario? usuarioBD = _usuarioMPP.ConsultarUsuarioPorEmail(usuario.Email.Trim().ToLowerInvariant());
-
-        if (usuarioBD is null || !usuarioBD.Activo || !string.Equals(usuarioBD.Estado, "Activo", StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        string token = _seguridad.GenerarTokenRecuperacion();
-        DateTime fechaGeneracion = DateTime.Now;
-        ValidacionCuentum validacion = new ValidacionCuentum(0, usuarioBD.ID, "RecuperacionPassword", _seguridad.GenerarHashToken(token), fechaGeneracion, fechaGeneracion.AddMinutes(30), false, null, true);
-
-        _usuarioMPP.ReemplazarRecuperacionPassword(usuarioBD, validacion);
-
-        bool correoEnviado = await _emailService.EnviarCorreoRecuperoPassword(usuarioBD.Email, usuarioBD.Nombre, token);
-
-        if (!correoEnviado)
-        {
-            throw new InvalidOperationException("No fue posible enviar el correo de recuperación.");
-        }
-
-        RegistrarEventoSeguridad(usuarioBD, "SolicitarRecuperoPassword", "Se generó un enlace temporal para recuperar la contraseña.", "Exitoso", "Informacion");
+        catch(Exception ex) { throw new Exception(ex.Message); }
     }
 
     public async Task RestablecerPassword(Usuario usuario, string token)
@@ -368,7 +374,7 @@ public class BLLUsuario
 
         _seguridad.ValidarPassword(usuario.PasswordHash);
 
-        ValidacionCuentum validacion = new ValidacionCuentum(0, 0, "RecuperacionPassword", _seguridad.GenerarHashToken(token), DateTime.MinValue, DateTime.MinValue, false, null, false);
+        ValidacionCuenta validacion = new ValidacionCuenta(0, 0, "RecuperacionPassword", _seguridad.GenerarHashToken(token), DateTime.MinValue, DateTime.MinValue, false, null, false);
 
         Usuario? usuarioBD = _usuarioMPP.ConsultarUsuarioPorRecuperacionPassword(validacion);
 
