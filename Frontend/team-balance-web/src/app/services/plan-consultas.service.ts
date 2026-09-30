@@ -8,6 +8,11 @@ export interface ConsultaPlan { id: number; idPlanComercial: number; nombre: str
 export class PlanConsultasService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = '/api/planes';
-  consultar(idPlan: number): Observable<ConsultaPlan[]> { return this.http.get<ConsultaPlan[]>(`${this.apiUrl}/${idPlan}/consultas`); }
-  registrar(idPlan: number, consulta: ConsultaPlan): Observable<ConsultaPlan> { return this.http.post<ConsultaPlan>(`${this.apiUrl}/${idPlan}/consultas`, consulta); }
+  consultar(idPlan: number): Observable<ConsultaPlan[]> {
+    return this.http.get<ConsultaPlan[]>(`${this.apiUrl}/${idPlan}/consultas`);
+  }
+  registrar(consulta: ConsultaPlan): Observable<ConsultaPlan> {
+    console.log('CONSULTA QUE ENVÍO:', consulta);
+    return this.http.post<ConsultaPlan>(`${this.apiUrl}/consultas`, consulta);
+  }
 }

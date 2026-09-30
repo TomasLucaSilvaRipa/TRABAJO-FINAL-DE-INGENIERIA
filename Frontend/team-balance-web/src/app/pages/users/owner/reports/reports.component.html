@@ -1,5 +1,33 @@
 <section class="tb-workspace space-y-6">
-  <header><p class="tb-page-kicker">REPORTES</p><h1 class="tb-page-title">Información para decidir</h1><p class="tb-page-description">Consultá indicadores operativos de proyectos, disponibilidad y carga cuando existan datos registrados.</p></header>
-  <section class="tb-panel grid gap-4 md:grid-cols-3"><label class="tb-field-label">Período<select><option>Seleccionar período</option></select></label><label class="tb-field-label">Proyecto<select><option>Todos los proyectos</option></select></label><div class="flex items-end"><button class="tb-action-button" type="button">Generar reporte</button></div></section>
-  <section class="tb-panel"><div class="tb-empty-state"><h2>El reporte aparecerá aquí</h2><p>Seleccioná los filtros para consultar información operativa de la agencia.</p></div></section>
+  <header><p class="tb-page-kicker">REPORTES</p><h1 class="tb-page-title">Riesgo de retraso de proyectos</h1><p class="tb-page-description">Anticipá desvíos cruzando tareas, horas registradas y disponibilidad del equipo.</p></header>
+  <section class="tb-panel grid gap-4 md:grid-cols-4">
+    <label class="tb-field-label">Proyecto<select [(ngModel)]="filtro.idProyecto"><option [ngValue]="null">Todos los proyectos</option>@for (proyecto of proyectos(); track proyecto.id) { <option [ngValue]="proyecto.id">{{ proyecto.nombre }}</option> }</select></label>
+    <label class="tb-field-label">Nivel de riesgo<select [(ngModel)]="filtro.nivelRiesgo"><option [ngValue]="null">Todos los niveles</option><option value="Alto">Alto</option><option value="Medio">Medio</option><option value="Bajo">Bajo</option></select></label>
+    <label class="tb-field-label">Vence dentro de<select [(ngModel)]="filtro.diasHastaDeadlineMaximo"><option [ngValue]="null">Cualquier fecha</option><option [ngValue]="7">7 días</option><option [ngValue]="14">14 días</option><option [ngValue]="30">30 días</option></select></label>
+    <div class="flex items-end"><button class="tb-action-button" type="button" (click)="consultarRiesgos()" [disabled]="cargando()">{{ cargando() ? 'Calculando...' : 'Analizar riesgo' }}</button></div>
+  </section>
+  <section class="tb-panel space-y-4">
+    <div><p class="tb-page-kicker">REPORTE EJECUTIVO</p><h2 class="text-xl font-semibold text-slate-900 dark:text-white">Configurá la previsualización</h2><p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Usa el mismo proyecto seleccionado arriba o dejalo vacío para analizar toda la agencia.</p></div>
+    <div class="grid gap-4 md:grid-cols-[1fr_auto]"><label class="tb-field-label">Título del reporte<input [(ngModel)]="configuracionReporte.titulo" /></label><div class="flex items-end"><button class="tb-action-button" type="button" (click)="generarReporte()" [disabled]="generandoReporte()">{{ generandoReporte() ? 'Generando...' : 'Generar reporte' }}</button></div></div>
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200"><input type="checkbox" [(ngModel)]="configuracionReporte.incluirTodasLasSecciones" /> Todas las secciones</label><label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200"><input type="checkbox" [(ngModel)]="configuracionReporte.incluirRiesgoRetraso" /> Riesgo de retraso</label><label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200"><input type="checkbox" [(ngModel)]="configuracionReporte.incluirDesvioHoras" /> Carga pendiente</label></div>
+  </section>
+  @if (error()) { <p class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ error() }}</p> }
+  @if (!cargando() && !riesgos().length && !error()) { <section class="tb-panel"><div class="tb-empty-state"><h2>Prepará el análisis</h2><p>Aplicá filtros opcionales y analizá el estado actual de los proyectos activos de la agencia.</p></div></section> }
+  @if (riesgos().length) {
+    <section class="grid gap-4 lg:grid-cols-2">
+      @for (riesgo of riesgos(); track riesgo.idProyecto) {
+        <article class="tb-panel space-y-4">
+          <div class="flex items-start justify-between gap-4"><div><p class="tb-page-kicker">{{ riesgo.nombreCliente }}</p><h2 class="text-xl font-semibold text-slate-900 dark:text-white">{{ riesgo.nombreProyecto }}</h2><p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ riesgo.nombrePM }}</p></div><span class="tb-status-badge">Riesgo {{ riesgo.nivelRiesgo }}</span></div>
+          <div class="grid grid-cols-2 gap-3 text-sm"><div><p class="text-slate-500 dark:text-slate-300">Horas restantes</p><strong>{{ riesgo.horasRestantes }}</strong></div><div><p class="text-slate-500 dark:text-slate-300">Disponibilidad semanal</p><strong>{{ riesgo.disponibilidadEquipo }}</strong></div><div><p class="text-slate-500 dark:text-slate-300">Fecha estimada</p><strong>{{ riesgo.fechaEstimadaFinalizacion ? (riesgo.fechaEstimadaFinalizacion | date:'dd/MM/yyyy') : 'Sin estimación' }}</strong></div><div><p class="text-slate-500 dark:text-slate-300">Demora posible</p><strong>{{ riesgo.diasPosibleRetraso }} días</strong></div></div>
+          <div><h3 class="font-semibold text-slate-900 dark:text-white">Factores detectados</h3><ul class="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-300">@for (causa of riesgo.causas; track causa.descripcion) { <li>• {{ causa.descripcion }}</li> }</ul></div>
+        </article>
+      }
+    </section>
+  }
+  @if (reporte(); as reporteGenerado) {
+    <section class="tb-panel space-y-5 print:shadow-none" id="reporte-ejecutivo">
+      <div class="flex flex-wrap items-start justify-between gap-4"><div><p class="tb-page-kicker">REPORTE GENERADO</p><h2 class="text-2xl font-semibold text-slate-900 dark:text-white">{{ reporteGenerado.titulo }}</h2><p class="mt-1 text-sm text-slate-600 dark:text-slate-300">Generado el {{ reporteGenerado.fechaGeneracion | date:'dd/MM/yyyy HH:mm' }}</p></div><button type="button" class="tb-secondary-button print:hidden" (click)="imprimirReporte()">Imprimir / guardar PDF</button></div>
+      <div class="grid gap-4 md:grid-cols-2">@for (seccion of reporteGenerado.secciones; track seccion.orden) { <article class="rounded-xl border border-slate-200 p-4 dark:border-slate-700"><h3 class="font-semibold text-slate-900 dark:text-white">{{ seccion.titulo }}</h3><p class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ seccion.descripcion }}</p><dl class="mt-4 space-y-3">@for (indicador of seccion.indicadores; track indicador.nombre) { <div><dt class="text-sm text-slate-500 dark:text-slate-300">{{ indicador.nombre }}</dt><dd class="font-semibold text-slate-900 dark:text-white">{{ indicador.valor }} {{ indicador.unidad }}</dd><p class="text-xs text-slate-500 dark:text-slate-300">{{ indicador.descripcion }}</p></div> }</dl></article> }</div>
+    </section>
+  }
 </section>

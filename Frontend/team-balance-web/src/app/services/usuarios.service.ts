@@ -16,5 +16,5 @@ export class UsuariosService {
   consultarRolSoporteInicial(): Observable<Rol> { return this.http.get<Rol>('/api/usuarios/rol-soporte-inicial'); }
   registrarUsuario(usuario: Partial<UsuarioGestion>): Observable<UsuarioGestion> { return this.http.post<UsuarioGestion>(this.apiUrl, usuario); }
   modificarUsuario(usuario: UsuarioGestion): Observable<void> { return this.http.put<void>(`${this.apiUrl}/${usuario.id}`, usuario); }
-  cambiarEstado(idUsuario: number, activo: boolean): Observable<void> { return this.http.patch<void>(`${this.apiUrl}/${idUsuario}/estado?activo=${activo}`, {}); }
+  cambiarEstado(usuario: Partial<UsuarioGestion>): Observable<void> { return this.http.patch<void>(`${this.apiUrl}/${usuario.id}/estado`, usuario); }
 }

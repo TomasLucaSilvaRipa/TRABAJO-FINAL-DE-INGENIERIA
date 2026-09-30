@@ -8,7 +8,7 @@
   <form [formGroup]="form" (ngSubmit)="registrar()" class="tb-panel--navy p-6 shadow-sm">
     <div class="grid gap-5 md:grid-cols-2">
       <label class="tb-navy-field-label">{{localization.traducir('hours.task')}}
-        <input formControlName="tarea" [placeholder]="localization.traducir('hours.taskPlaceholder')" />
+        <select formControlName="tarea"><option [ngValue]="0">Seleccioná una tarea</option>@for(tarea of tareas();track tarea.id){<option [ngValue]="tarea.id">{{tarea.titulo}}</option>}</select>
       </label>
       <label class="tb-navy-field-label">{{localization.traducir('hours.date')}}
         <input type="date" formControlName="fecha" />
@@ -21,8 +21,9 @@
       </label>
     </div>
     <div class="mt-6 flex items-center gap-4">
-      <button type="submit" class="rounded-xl bg-cyan-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-cyan-700">{{localization.traducir('hours.save')}}</button>
+      <button type="submit" class="rounded-xl bg-cyan-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-cyan-700" [disabled]="guardando()">{{guardando() ? 'Guardando…' : localization.traducir('hours.save')}}</button>
       @if (enviado) { <p class="text-sm font-medium text-emerald-600">{{localization.traducir('hours.success')}}</p> }
+      @if (error()) { <p class="text-sm font-medium text-red-300">{{error()}}</p> }
     </div>
   </form>
 </section>

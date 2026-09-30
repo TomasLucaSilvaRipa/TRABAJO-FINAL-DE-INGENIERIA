@@ -9,13 +9,13 @@ public partial class PlanComercial
     {
     }
 
-    public PlanComercial(int iD)
+    public PlanComercial(int id)
     {
-        ID = iD;
+        ID = id;
     }
-    public PlanComercial(int iD, string nombre, string? descripcion, string periodicidad, decimal precioVigente, string moneda, int duracionMeses, string? alcanceFuncional, string? condicionesRenovacion, bool activo, DateTime fechaVigenciaDesde, DateTime? fechaVigenciaHasta)
+    public PlanComercial(int id, string nombre, string? descripcion, string periodicidad, decimal precioVigente, string moneda, int duracionMeses, string? alcanceFuncional, string? condicionesRenovacion, bool activo, DateTime fechaVigenciaDesde, DateTime? fechaVigenciaHasta)
     {
-        ID = iD;
+        ID = id;
         Nombre = nombre;
         Descripcion = descripcion;
         Periodicidad = periodicidad;

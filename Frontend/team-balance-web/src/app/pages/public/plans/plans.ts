@@ -52,8 +52,35 @@ export class PlansComponent {
   planesSeleccionados(): PlanComercial[] { return this.plans().filter((plan) => this.selectedPlanIds().includes(plan.id)); }
   abrirConsultas(plan: PlanComercial): void { this.planConsultado.set(plan); this.consultaError.set(''); this.consultaForm.reset({ nombre: '', email: '', consulta: '' }); this.cargarConsultas(plan.id); }
   cerrarConsultas(): void { this.planConsultado.set(null); this.consultas.set([]); this.consultaError.set(''); }
-  guardarConsulta(): void { const plan = this.planConsultado(); this.consultaForm.markAllAsTouched(); if (!plan || this.consultaForm.invalid || this.guardandoConsulta()) { return; } const valores = this.consultaForm.getRawValue(); const consulta = { id: 0, idPlanComercial: plan.id, nombre: valores.nombre, email: valores.email, consulta: valores.consulta, fechaAlta: '', activo: true } as ConsultaPlan; this.guardandoConsulta.set(true); this.consultaError.set(''); this.consultasService.registrar(plan.id, consulta).subscribe({ next: (resultado) => { this.consultas.update((consultas) => [resultado, ...consultas]); this.consultaForm.reset({ nombre: '', email: '', consulta: '' }); this.guardandoConsulta.set(false); }, error: (error) => { this.consultaError.set(typeof error.error === 'string' ? error.error : this.localization.traducir('plans.questions.saveError')); this.guardandoConsulta.set(false); } }); }
-  private cargarConsultas(idPlan: number): void { this.cargandoConsultas.set(true); this.consultasService.consultar(idPlan).subscribe({ next: (consultas) => { this.consultas.set(consultas); this.cargandoConsultas.set(false); }, error: () => { this.consultaError.set(this.localization.traducir('plans.questions.loadError')); this.cargandoConsultas.set(false); } }); }
+
+  guardarConsulta(): void {
+    const plan = this.planConsultado(); this.consultaForm.markAllAsTouched();
+    if (!plan || this.guardandoConsulta()) { return; }
+    if (this.consultaForm.invalid) { this.consultaError.set(this.localization.traducir('plans.questions.completeRequired')); return; }
+    const valores = this.consultaForm.getRawValue();
+    const consulta = { id: 0, idPlanComercial: plan.id, nombre: valores.nombre, email: valores.email, consulta: valores.consulta, fechaAlta: new Date().toISOString(), activo: true } as ConsultaPlan;
+    this.guardandoConsulta.set(true);
+    this.consultaError.set('');
+    this.consultasService.registrar(consulta).subscribe({ next: (resultado) => {
+      this.consultas.update((consultas) => [resultado, ...consultas]);
+      this.consultaForm.reset({ nombre: '', email: '', consulta: '' });
+      this.guardandoConsulta.set(false); }, error: (error) => {
+        this.consultaError.set(typeof error.error === 'string' ? error.error : this.localization.traducir('plans.questions.saveError'));
+        this.guardandoConsulta.set(false);
+      }
+    });
+  }
+
+  private cargarConsultas(idPlan: number): void {
+    this.cargandoConsultas.set(true);
+    this.consultasService.consultar(idPlan).subscribe({ next: (consultas) => {
+      this.consultas.set(consultas);
+      this.cargandoConsultas.set(false); }, error: () => {
+        this.consultaError.set(this.localization.traducir('plans.questions.loadError'));
+        this.cargandoConsultas.set(false);
+      }
+    });
+  }
 
   features(plan: PlanComercial): string[] {
     return this.planService.obtenerFuncionalidades(plan).slice(0, 8);

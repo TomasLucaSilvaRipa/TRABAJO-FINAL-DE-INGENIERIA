@@ -9,7 +9,7 @@ public partial class Proyecto
     {
     }
 
-    public Proyecto(int iD, int idAgencia, int idCliente, int idPMResponsable, string nombre, string? descripcion, DateTime? fechaInicio, DateTime? deadline, decimal horasEstimadasTotales, string estado, bool activo, DateTime fechaAlta, DateTime? fechaBaja)
+    public Proyecto(int iD, int idAgencia, int idCliente, int idPMResponsable, string nombre, string? descripcion, DateTime? fechaInicio, DateTime? deadline, decimal horasEstimadasTotales, string estado, bool activo, DateTime fechaAlta, DateTime? fechaBaja, string? nombreCliente = null, string? nombrePMResponsable = null)
     {
         ID = iD;
         IdAgencia = idAgencia;
@@ -24,6 +24,8 @@ public partial class Proyecto
         Activo = activo;
         FechaAlta = fechaAlta;
         FechaBaja = fechaBaja;
+        NombreCliente = nombreCliente;
+        NombrePMResponsable = nombrePMResponsable;
     }
 
     public int ID { get; set; }
@@ -51,4 +53,8 @@ public partial class Proyecto
     public DateTime FechaAlta { get; set; }
 
     public DateTime? FechaBaja { get; set; }
+
+    public string? NombreCliente { get; set; }
+
+    public string? NombrePMResponsable { get; set; }
 }

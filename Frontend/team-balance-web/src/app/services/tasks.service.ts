@@ -29,6 +29,10 @@ export class TasksService {
     return this.http.patch<boolean>(`${this.url}/estado`, tarea);
   }
 
+  cambiarEstadoPropio(tarea: Partial<Tarea>): Observable<boolean> {
+    return this.http.patch<boolean>(`${this.url}/mias/estado`, tarea);
+  }
+
   crearSkill(skill: Partial<Skill>): Observable<Skill> {
     return this.http.post<Skill>(`${this.url}/skills`, skill);
   }

@@ -16,5 +16,5 @@ export class RolesService {
   consultarRolesAsignablesAgencia(): Observable<Rol[]> { return this.http.get<Rol[]>(`${this.apiUrl}/asignables-agencia`); }
   registrarRol(rol: Partial<Rol>): Observable<Rol> { return this.http.post<Rol>(this.apiUrl, rol); }
   modificarRol(rol: Rol): Observable<void> { return this.http.put<void>(`${this.apiUrl}/${rol.id}`, rol); }
-  cambiarEstado(idRol: number, activo: boolean): Observable<void> { return this.http.patch<void>(`${this.apiUrl}/${idRol}/estado?activo=${activo}`, {}); }
+  cambiarEstado(rol: Partial<Rol>): Observable<void> { return this.http.patch<void>(`${this.apiUrl}/${rol.id}/estado`, rol); }
 }

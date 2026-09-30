@@ -10,6 +10,11 @@ public partial class Rol
         Permisos = new List<Permiso>();
     }
 
+    public Rol(string nombre)
+    {
+        Nombre = nombre;
+    }
+
     public Rol(int id, int? idAgencia, string nombre, string? descripcion, string tipoUsuario, bool esRolBase, bool activo, List<Permiso> permisos)
     {
         ID = id;
