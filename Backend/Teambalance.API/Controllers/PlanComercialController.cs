@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
 
@@ -34,37 +35,34 @@ public class PlanComercialController : ControllerBase
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpGet("{id:int}")]
-    public IActionResult ConsultarPlan(int id)
+    [HttpGet("{ID:int}")]
+    public IActionResult ConsultarPlan([FromRoute, ValidateNever] PlanComercial planComercial)
     {
         try 
         { 
-            PlanComercial planComercial = new PlanComercial(id);
             return Ok(_planBLL.ConsultarPlanDisponible(planComercial)); 
         }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpGet("{idPlan:int}/consultas")]
-    public IActionResult ConsultarConsultas(int idPlan)
+    [HttpGet("{ID:int}/consultas")]
+    public IActionResult ConsultarConsultas([FromRoute, ValidateNever] PlanComercial planComercial)
     {
         try {
-            PlanComercial planComercial = new PlanComercial(idPlan);
             List<ConsultaPlan> consultas = _consultaBLL.Consultar(planComercial); 
-            return Ok(consultas); 
+            return Ok(consultas);
         }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpPost("{idPlan:int}/consultas")]
-    public IActionResult RegistrarConsulta(int idPlan, [FromBody] ConsultaPlan consulta)
+    [HttpPost("consultas")]
+    public IActionResult RegistrarConsulta([FromBody] ConsultaPlan consulta)
     {
         try 
         {
-            PlanComercial planComercial = new PlanComercial(idPlan);
-            ConsultaPlan resultado = _consultaBLL.Registrar(planComercial, consulta); 
+            ConsultaPlan resultado = _consultaBLL.Registrar(consulta); 
             return Ok(resultado); 
         }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
@@ -97,12 +95,12 @@ public class PlanComercialController : ControllerBase
     }
 
     [HttpPatch("{id:int}/estado")]
-    public IActionResult CambiarEstado(int id, [FromBody] PlanComercial plan)
+    public IActionResult CambiarEstado([FromBody] PlanComercial plan)
     {
         try 
         { 
             Usuario usuario = ValidarSesion(); 
-            return Ok(_planBLL.CambiarEstado(id, plan, usuario)); 
+            return Ok(_planBLL.CambiarEstado(plan, usuario)); 
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }

@@ -52,18 +52,18 @@ public class RolController : ControllerBase
     }
 
     [HttpPut("{idRol:int}")]
-    public IActionResult ModificarRol(int idRol, [FromBody] Rol rol)
+    public IActionResult ModificarRol([FromBody] Rol rol)
     {
-        try { rol.ID = idRol; _rolBLL.ModificarRol(rol, ObtenerSolicitante()); return NoContent(); }
+        try { _rolBLL.ModificarRol(rol, ObtenerSolicitante()); return NoContent(); }
         catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
         catch (ArgumentException ex){ return BadRequest(ex.Message); }
         catch (Exception){ return StatusCode(500, "No fue posible modificar el rol."); }
     }
 
     [HttpPatch("{idRol:int}/estado")]
-    public IActionResult CambiarEstado(int idRol, [FromQuery] bool activo)
+    public IActionResult CambiarEstado([FromBody] Rol rol)
     {
-        try { ValidarGestionRoles(); _rolBLL.CambiarEstado(new Rol() { ID = idRol }, activo); return NoContent(); }
+        try { ValidarGestionRoles(); _rolBLL.CambiarEstado(rol); return NoContent(); }
         catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
         catch (Exception){ return StatusCode(500, "No fue posible actualizar el rol."); }
     }

@@ -54,6 +54,7 @@ import { RegisterHoursComponent } from './pages/users/employee/register-hours/re
 import { AvailabilityComponent } from './pages/users/employee/availability/availability.component';
 import { LicensesComponent } from './pages/users/employee/licenses/licenses.component';
 import { ImpactSimulationComponent } from './pages/users/pm/impact-simulation/impact-simulation.component';
+import { ProjectKanbanComponent } from './pages/users/pm/project-kanban/project-kanban.component';
 import { NotificationsComponent } from './pages/global/notifications/notifications.component';
 import { HelpComponent } from './pages/global/help/help.component';
 
@@ -201,6 +202,7 @@ export const routes: Routes = [
       { path: 'mis-tareas', component: MyTasksComponent, canActivate: [permissionGuard], data: { permission: 'VerDashboard' }, title: 'Mis tareas | TeamBalance' },
       { path: 'detalle-tarea', component: TaskDetailComponent, canActivate: [permissionGuard], data: { permission: 'VerDashboard' }, title: 'Detalle de tarea | TeamBalance' },
       { path: 'kanban', component: KanbanBoard, canActivate: [permissionGuard], data: { permission: 'VerKanban' }, title: 'Tablero Kanban | TeamBalance' },
+      { path: 'kanban-proyectos', component: ProjectKanbanComponent, canActivate: [permissionGuard], data: { permission: 'GestionarTareas' }, title: 'Kanban de proyectos | TeamBalance' },
       { path: 'registrar-horas', component: RegisterHoursComponent, canActivate: [permissionGuard], data: { permission: 'RegistrarHoras' }, title: 'Registrar horas | TeamBalance' },
       { path: 'disponibilidad', component: AvailabilityComponent, canActivate: [permissionGuard], data: { permission: 'GestionarDisponibilidad' }, title: 'Mi disponibilidad | TeamBalance' },
       { path: 'licencias', component: LicensesComponent, canActivate: [permissionGuard], data: { permission: 'GestionarDisponibilidad' }, title: 'Licencias y ausencias | TeamBalance' },

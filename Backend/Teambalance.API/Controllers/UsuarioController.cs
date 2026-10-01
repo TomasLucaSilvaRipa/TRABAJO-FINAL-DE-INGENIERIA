@@ -45,7 +45,8 @@ public class UsuarioController : ControllerBase
             {
                 return NotFound("El usuario inicial de Soporte ya fue creado.");
             }
-            return Ok(_rolBLL.ConsultarRolPorNombre("Soporte"));
+            Rol rol = new Rol("Soporte");
+            return Ok(_rolBLL.ConsultarRolPorNombre(rol));
         }
         catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
         catch (KeyNotFoundException ex){ return NotFound(ex.Message); }
@@ -67,11 +68,10 @@ public class UsuarioController : ControllerBase
     }
 
     [HttpPut("agencia/{idUsuario:int}")]
-    public IActionResult ModificarUsuarioAgencia(int idUsuario, [FromBody] Usuario usuario)
+    public IActionResult ModificarUsuarioAgencia([FromBody] Usuario usuario)
     {
         try
         {
-            usuario.ID = idUsuario;
             _usuarioBLL.ModificarUsuarioAgencia(usuario, ObtenerSolicitante());
             return NoContent();
         }
@@ -82,11 +82,11 @@ public class UsuarioController : ControllerBase
     }
 
     [HttpPatch("agencia/{idUsuario:int}/estado")]
-    public IActionResult CambiarEstadoUsuarioAgencia(int idUsuario, [FromQuery] bool activo)
+    public IActionResult CambiarEstadoUsuarioAgencia([FromBody] Usuario usuario)
     {
         try
         {
-            _usuarioBLL.CambiarEstadoUsuarioAgencia(idUsuario, activo, ObtenerSolicitante());
+            _usuarioBLL.CambiarEstadoUsuarioAgencia(usuario, ObtenerSolicitante());
             return NoContent();
         }
         catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }

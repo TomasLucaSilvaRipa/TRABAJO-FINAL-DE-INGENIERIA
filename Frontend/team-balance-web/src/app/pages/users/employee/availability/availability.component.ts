@@ -37,9 +37,9 @@ export class AvailabilityComponent {
     this.guardando.set(true);
     this.error.set('');
     this.mensaje.set('');
-    this.resourcesService.guardarMiDisponibilidad({ disponibilidadBase: { horaInicio: datos.horaInicio ?? '09:00', horaFin: datos.horaFin ?? '18:00', horasSemanales: Number(datos.horasSemanales ?? 0), observacion: datos.observacion ?? '', activo: true } }).subscribe({
+    this.resourcesService.guardarMiDisponibilidad({ horaInicio: datos.horaInicio ?? '09:00', horaFin: datos.horaFin ?? '18:00', horasSemanales: Number(datos.horasSemanales ?? 0), observacion: datos.observacion ?? '', activo: true }).subscribe({
       next: () => { this.guardando.set(false); this.mensaje.set('Tu disponibilidad fue actualizada.'); },
-      error: error => { this.guardando.set(false); this.error.set(error?.error || 'No fue posible actualizar tu disponibilidad.'); },
+      error: error => { this.guardando.set(false); this.error.set(typeof error?.error === 'string' ? error.error : error?.error?.message || error?.error?.title || 'No fue posible actualizar tu disponibilidad.'); },
     });
   }
 }

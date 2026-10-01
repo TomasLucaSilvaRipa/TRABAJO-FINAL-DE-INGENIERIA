@@ -35,6 +35,10 @@ builder.Services.AddScoped<MPPTarea>();
 builder.Services.AddScoped<MPPRecursos>();
 builder.Services.AddScoped<MPPOpinionServicio>();
 builder.Services.AddScoped<MPPConsultaPlan>();
+builder.Services.AddScoped<MPPRiesgoRetraso>();
+builder.Services.AddScoped<MPPRegistroHora>();
+builder.Services.AddScoped<MPPBestFit>();
+builder.Services.AddScoped<MPPSimulacionImpacto>();
 
 builder.Services.AddScoped<ContratacionBLL>();
 builder.Services.AddScoped<BLLAgencia>();
@@ -47,6 +51,11 @@ builder.Services.AddScoped<BLLTarea>();
 builder.Services.AddScoped<BLLRecursos>();
 builder.Services.AddScoped<BLLOpinionServicio>();
 builder.Services.AddScoped<BLLConsultaPlan>();
+builder.Services.AddScoped<BLLRiesgoRetraso>();
+builder.Services.AddScoped<BLLReporteEjecutivo>();
+builder.Services.AddScoped<BLLRegistroHora>();
+builder.Services.AddScoped<BLLBestFit>();
+builder.Services.AddScoped<BLLSimulacionImpacto>();
 builder.Services.AddSingleton<EncryptionService>();
 
 builder.Services.AddHttpClient<PasswordSecurityWebService>( client => { client.BaseAddress = new Uri(builder.Configuration["PasswordSecurityWebService:BaseUrl"]!); });

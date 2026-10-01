@@ -51,7 +51,7 @@ public partial class AusenciaEmpleado
 
     public int? IdUsuarioResolucion { get; set; }
 
-    public string Estado { get; set; } = null!;
+    public string? Estado { get; set; }
 
     public DateTime FechaSolicitud { get; set; }
 

@@ -12,9 +12,9 @@ public class BLLRol
         _rolMPP = rolMPP;
     }
 
-    public Rol ConsultarRolPorNombre(string nombre)
+    public Rol ConsultarRolPorNombre(Rol rol)
     {
-        return _rolMPP.ConsultarRolPorNombre(nombre);
+        return _rolMPP.ConsultarRolPorNombre(rol);
     }
 
     public void CargarAutorizacion(Usuario usuario)
@@ -88,9 +88,9 @@ public class BLLRol
         _rolMPP.ReemplazarPermisos(rol);
     }
 
-    public void CambiarEstado(Rol rol, bool activo)
+    public void CambiarEstado(Rol rol)
     {
-        _rolMPP.CambiarEstado(rol, activo);
+        _rolMPP.CambiarEstado(rol);
     }
 
     private static void ValidarRol(Rol rol)

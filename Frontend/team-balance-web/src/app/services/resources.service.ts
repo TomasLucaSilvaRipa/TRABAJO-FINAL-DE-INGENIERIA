@@ -7,6 +7,7 @@ export interface EmpleadoSkill { id?: number; idEmpleado?: number; idSkill: numb
 export interface DisponibilidadBase { id?: number; idEmpleado?: number; horaInicio: string; horaFin: string; horasSemanales: number; observacion?: string; activo?: boolean; }
 export interface FichaEmpleado { id?: number; empleadoSkills: EmpleadoSkill[]; disponibilidadBase: DisponibilidadBase; }
 export interface EmpleadoDisponibilidad { id?: number; disponibilidadBase: DisponibilidadBase; }
+export interface AusenciaEmpleado { id?: number; idEmpleado?: number; tipoPeriodo: string; fechaInicioSolicitada: string; fechaFinSolicitada: string; motivo?: string; estado?: string; fechaSolicitud?: string; activo?: boolean; }
 
 @Injectable({ providedIn: 'root' })
 export class ResourcesService {
@@ -17,5 +18,7 @@ export class ResourcesService {
   consultarFichaEmpleado(idUsuario: number): Observable<FichaEmpleado> { return this.http.get<FichaEmpleado>(`${this.url}/empleados/${idUsuario}/ficha`); }
   guardarFichaEmpleado(ficha: FichaEmpleado): Observable<void> { return this.http.put<void>(`${this.url}/empleados/${ficha.id}/ficha`, ficha); }
   consultarMiDisponibilidad(): Observable<EmpleadoDisponibilidad> { return this.http.get<EmpleadoDisponibilidad>(`${this.url}/disponibilidad`); }
-  guardarMiDisponibilidad(empleado: EmpleadoDisponibilidad): Observable<void> { return this.http.put<void>(`${this.url}/disponibilidad`, empleado); }
+  guardarMiDisponibilidad(disponibilidad: DisponibilidadBase): Observable<void> { return this.http.put<void>(`${this.url}/disponibilidad`, disponibilidad); }
+  consultarMisAusencias(): Observable<AusenciaEmpleado[]> { return this.http.get<AusenciaEmpleado[]>(`${this.url}/ausencias`); }
+  registrarAusencia(ausencia: AusenciaEmpleado): Observable<AusenciaEmpleado> { return this.http.post<AusenciaEmpleado>(`${this.url}/ausencias`, ausencia); }
 }

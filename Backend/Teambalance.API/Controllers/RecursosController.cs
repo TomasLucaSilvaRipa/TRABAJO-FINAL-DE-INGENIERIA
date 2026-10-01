@@ -42,27 +42,69 @@ public class RecursosController : ControllerBase
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
     }
 
-    [HttpGet("empleados/{idUsuario:int}/ficha")]
-    public IActionResult ConsultarFichaEmpleado(int idUsuario)
+    [HttpGet("empleados/{ID:int}/ficha")]
+    public IActionResult ConsultarFichaEmpleado([FromRoute] Usuario usuario)
     {
         try
         {
-            return Ok(_recursosBLL.ConsultarFichaEmpleado(idUsuario, ObtenerSolicitante()));
+            return Ok(_recursosBLL.ConsultarFichaEmpleado(usuario, ObtenerSolicitante()));
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpPut("empleados/{idUsuario:int}/ficha")]
-    public IActionResult GuardarFichaEmpleado(int idUsuario, [FromBody] Empleado empleado)
+    [HttpPut("empleados/{ID:int}/ficha")]
+    public IActionResult GuardarFichaEmpleado([FromBody] Empleado empleado)
     {
         try
         {
-            _recursosBLL.GuardarFichaEmpleado(idUsuario, empleado, ObtenerSolicitante());
+            _recursosBLL.GuardarFichaEmpleado(empleado, ObtenerSolicitante());
             return NoContent();
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
+    }
+
+    [HttpGet("disponibilidad")]
+    public IActionResult ConsultarMiDisponibilidad()
+    {
+        try
+        {
+            Empleado empleado = _recursosBLL.ConsultarMiDisponibilidad(ObtenerSolicitante());
+            return Ok(empleado);
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
+
+    [HttpPut("disponibilidad")]
+    public IActionResult GuardarMiDisponibilidad([FromBody] DisponibilidadBase disponibilidad)
+    {
+        try
+        {
+            _recursosBLL.GuardarMiDisponibilidad(disponibilidad, ObtenerSolicitante());
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
+
+    [HttpGet("ausencias")]
+    public IActionResult ConsultarMisAusencias()
+    {
+        try { List<AusenciaEmpleado> ausencias = _recursosBLL.ConsultarMisAusencias(ObtenerSolicitante()); return Ok(ausencias); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
+
+    [HttpPost("ausencias")]
+    public IActionResult RegistrarAusencia([FromBody] AusenciaEmpleado ausencia)
+    {
+        try { AusenciaEmpleado resultado = _recursosBLL.RegistrarAusencia(ausencia, ObtenerSolicitante()); return Ok(resultado); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
     private Usuario ObtenerSolicitante()

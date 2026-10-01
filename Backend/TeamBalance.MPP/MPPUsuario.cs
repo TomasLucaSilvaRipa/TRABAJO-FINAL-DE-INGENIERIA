@@ -237,9 +237,9 @@ public class MPPUsuario
         }
     }
 
-    public void CambiarEstado(Usuario usuario, bool activo)
+    public void CambiarEstado(Usuario usuario)
     {
-        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", usuario.ID), new SqlParameter("@Activo", activo) };
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", usuario.ID), new SqlParameter("@Activo", usuario.Activo) };
         if (!_conexion.Escribir("dbo.usp_Usuario_CambiarEstado", parametros)){ throw new InvalidOperationException("No fue posible actualizar el estado del usuario."); }
     }
 

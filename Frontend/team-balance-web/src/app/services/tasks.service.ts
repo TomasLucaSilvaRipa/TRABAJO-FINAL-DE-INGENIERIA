@@ -14,6 +14,7 @@ export class TasksService {
   consultar(): Observable<Tarea[]> { return this.http.get<Tarea[]>(this.url); }
 
   consultarMias(): Observable<Tarea[]> {  return this.http.get<Tarea[]>(`${this.url}/mias`); }
+  consultarPorPM(): Observable<Tarea[]> { return this.http.get<Tarea[]>(`${this.url}/proyectos-pm`); }
 
   guardarComentarios(tarea: Partial<Tarea>): Observable<boolean> {
     return this.http.patch<boolean>(`${this.url}/mias/comentarios`, tarea);

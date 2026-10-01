@@ -51,8 +51,8 @@ public class BLLAgencia
         {
             throw new InvalidOperationException("Ya existe un usuario registrado con ese email laboral.");
         }
-
-        Rol rolDueño = _rolBLL.ConsultarRolPorNombre("Dueño");
+        Rol rol = new Rol("Dueño");
+        Rol rolDueño = _rolBLL.ConsultarRolPorNombre(rol);
         if (!usuario.AceptaTerminos) { throw new ArgumentException("Necesitás aceptar los Términos y Condiciones para completar el registro."); }
         _usuarioBLL.PrepararUsuarioDueño(usuario, rolDueño);
         Dueño dueño = _usuarioBLL.CrearDueño();
@@ -63,7 +63,7 @@ public class BLLAgencia
         agencia.ID = registro.IdAgencia;
         usuario.ID = registro.IdUsuario;
         usuario.IdAgencia = registro.IdAgencia;
-        _proyectoBLL.CrearEstadosBase(registro.IdAgencia);
+        _proyectoBLL.CrearEstadosBase(agencia);
 
         Bitacora bitacora = new Bitacora(usuario.ID, agencia.ID,"Agencia",agencia.ID,"RegistrarAgecnia", "Se registró la agencia y el usuario Dueño inicial.","Exitoso","Informacion","Registro");
         _bitacoraBLL.Add(bitacora);

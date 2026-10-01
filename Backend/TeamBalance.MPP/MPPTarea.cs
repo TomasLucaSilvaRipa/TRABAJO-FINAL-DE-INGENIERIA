@@ -22,6 +22,16 @@ public class MPPTarea
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
+    public List<Tarea> ConsultarPorPM(Usuario usuario)
+    {
+        try
+        {
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", usuario.ID) };
+            List<Tarea> tareas = CrearTareas(_conexion.Leer("dbo.usp_Tarea_ConsultarPorPM", parametros));
+            return tareas;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
     public bool GuardarComentarios(Tarea tarea, Usuario usuario) {
         try
         {
@@ -46,6 +56,17 @@ public class MPPTarea
         {
             List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@ID", tarea.ID), new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@Activo", tarea.Activo) };
             return _conexion.Escribir("dbo.usp_Tarea_CambiarEstado", parametros);
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    public bool CambiarEstadoPropio(Tarea tarea, Usuario usuario)
+    {
+        try
+        {
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@ID", tarea.ID), new SqlParameter("@IdUsuario", usuario.ID), new SqlParameter("@Estado", tarea.Estado ?? string.Empty) };
+            bool resultado = _conexion.Escribir("dbo.usp_Tarea_ActualizarEstadoEmpleado", parametros);
+            return resultado;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
     }

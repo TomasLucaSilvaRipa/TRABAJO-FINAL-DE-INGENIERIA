@@ -34,6 +34,7 @@ export class AppSidebarComponent {
     { key: 'menu.dashboard', path: '/dashboard', permission: 'VerDashboard' },
     { key: 'menu.projects', path: '/dashboard/proyectos', permission: 'GestionarProyectos' },
     { key: 'menu.tasks', path: '/dashboard/tareas', permission: 'GestionarTareas' },
+    { key: 'menu.kanban', path: '/dashboard/kanban-proyectos', permission: 'GestionarTareas' },
     { key: 'menu.employees', path: '/dashboard/empleados', permission: 'GestionarUsuarios' },
     { key: 'menu.reports', path: '/dashboard/reportes', permission: 'ConsultarTableroEjecutivo' },
     { key: 'menu.agency', path: '/dashboard/configuracion-agencia', permission: 'GestionarAgencia' },

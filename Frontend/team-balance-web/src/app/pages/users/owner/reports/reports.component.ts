@@ -17,6 +17,7 @@ export class Reports {
   private readonly reporteService = inject(ReporteEjecutivoService);
   protected readonly proyectos = signal<Proyecto[]>([]);
   protected readonly riesgos = signal<DetalleRiesgoProyecto[]>([]);
+  protected readonly riesgoSeleccionado = signal<DetalleRiesgoProyecto | null>(null);
   protected readonly cargando = signal(false);
   protected readonly error = signal('');
   protected readonly reporte = signal<ReporteEjecutivo | null>(null);
@@ -43,6 +44,7 @@ export class Reports {
     this.riesgoService.consultar(this.filtro).subscribe({
       next: resultado => {
         this.riesgos.set(resultado.proyectos);
+        this.riesgoSeleccionado.set(null);
         this.cargando.set(false);
       },
       error: error => {
@@ -51,6 +53,9 @@ export class Reports {
       },
     });
   }
+
+  protected verDetalleRiesgo(riesgo: DetalleRiesgoProyecto): void { this.riesgoSeleccionado.set(riesgo); }
+  protected cerrarDetalleRiesgo(): void { this.riesgoSeleccionado.set(null); }
 
   protected generarReporte(): void {
     this.generandoReporte.set(true);

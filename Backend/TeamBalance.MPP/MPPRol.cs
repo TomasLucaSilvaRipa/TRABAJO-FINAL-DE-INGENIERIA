@@ -14,11 +14,11 @@ public class MPPRol
         _conexion = conexion;
     }
 
-    public Rol ConsultarRolPorNombre(string nombre)
+    public Rol ConsultarRolPorNombre(Rol rol)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@Nombre", nombre),
+            new SqlParameter("@Nombre", rol.Nombre),
         };
 
         DataTable resultado = _conexion.Leer("dbo.usp_Rol_ConsultarPorNombre", parametros);
@@ -78,9 +78,9 @@ public class MPPRol
         if (!_conexion.Escribir("dbo.usp_Rol_Modificar", parametros)){ throw new InvalidOperationException("No fue posible modificar el rol."); }
     }
 
-    public void CambiarEstado(Rol rol, bool activo)
+    public void CambiarEstado(Rol rol)
     {
-        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdRol", rol.ID), new SqlParameter("@Activo", activo) };
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdRol", rol.ID), new SqlParameter("@Activo", rol.Activo) };
         if (!_conexion.Escribir("dbo.usp_Rol_CambiarEstado", parametros)){ throw new InvalidOperationException("No fue posible actualizar el rol."); }
     }
 

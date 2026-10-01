@@ -25,6 +25,13 @@ public class TareasController : ControllerBase
             return Ok(tareas); 
         } catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); } 
     }
+    [HttpGet("proyectos-pm")]
+    public IActionResult ConsultarPorPM()
+    {
+        try { List<Tarea> tareas = _tareaBLL.ConsultarPorPM(ValidarSesion()); return Ok(tareas); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
     
     [HttpPatch("mias/comentarios")]
     public IActionResult GuardarComentarios([FromBody] Tarea tarea)
@@ -83,6 +90,19 @@ public class TareasController : ControllerBase
         } catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); } 
     }
 
+    [HttpPatch("mias/estado")]
+    public IActionResult CambiarEstadoPropio([FromBody] Tarea tarea)
+    {
+        try
+        {
+            bool resultado = _tareaBLL.CambiarEstadoPropio(tarea, ValidarSesion());
+            return Ok(resultado);
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
+
     private Usuario ValidarSesion() 
     {
         try
@@ -99,5 +119,4 @@ public class TareasController : ControllerBase
         catch (Exception ex) { throw new Exception(ex.Message); }  
     }
 }
-
 

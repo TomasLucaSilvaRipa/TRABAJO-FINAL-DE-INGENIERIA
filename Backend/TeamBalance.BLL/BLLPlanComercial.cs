@@ -16,52 +16,83 @@ public class BLLPlanComercial
 
     public List<PlanComercial> ConsultarPlanesActivos()
     {
-        return _planMPP.ConsultarPlanes(true);
+        try
+        {
+            List<PlanComercial> planes = _planMPP.ConsultarPlanes(true);
+            return planes;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
     public List<PlanComercial> ConsultarPlanes()
     {
-        return _planMPP.ConsultarPlanes(false);
+        try
+        {
+            List<PlanComercial> planes = _planMPP.ConsultarPlanes(false);
+            return planes;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
     public PlanComercial ConsultarPlan(PlanComercial planComercial)
     {
-        return _planMPP.ConsultarPlan(planComercial);
+        try
+        {
+            PlanComercial plan = new PlanComercial();
+            return plan;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
     public PlanComercial ConsultarPlanDisponible(PlanComercial planComercial)
     {
-        PlanComercial plan = _planMPP.ConsultarPlan(planComercial);
-        if (!plan.Activo){ throw new KeyNotFoundException("El plan comercial indicado no se encuentra disponible."); }
-        return plan;
+        try
+        {
+            PlanComercial plan = _planMPP.ConsultarPlan(planComercial);
+            if (!plan.Activo) { throw new KeyNotFoundException("El plan comercial indicado no se encuentra disponible."); }
+            return plan;
+        }
+        catch (KeyNotFoundException ex) { throw new KeyNotFoundException(ex.Message); }
+        catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
     public PlanComercial RegistrarPlan(PlanComercial plan, Usuario usuario)
     {
-        PrepararPlan(plan);
-        PlanComercial resultado = _planMPP.RegistrarPlan(plan);
-        Bitacora bitacora = new Bitacora("RegistrarPlan", "Se registró un nuevo plan comercial.");
-        RegistrarBitacora(resultado, usuario,bitacora);
-        return resultado;
+        try
+        {
+            PrepararPlan(plan);
+            PlanComercial resultado = _planMPP.RegistrarPlan(plan);
+            Bitacora bitacora = new Bitacora("RegistrarPlan", "Se registró un nuevo plan comercial.");
+            RegistrarBitacora(resultado, usuario, bitacora);
+            return resultado;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
     public PlanComercial ModificarPlan(PlanComercial plan, Usuario usuario)
     {
-        if (plan.ID <= 0){ throw new ArgumentException("Seleccioná un plan válido."); }
-
-        PrepararPlan(plan);
-        PlanComercial resultado = _planMPP.ModificarPlan(plan);
-        Bitacora bitacora = new Bitacora("ModificarPlan", "Se modificó un plan comercial.");
-        RegistrarBitacora(resultado, usuario, bitacora);
-        return resultado;
+        try
+        {
+            if (plan.ID <= 0) { throw new ArgumentException("Seleccioná un plan válido."); }
+            PrepararPlan(plan);
+            PlanComercial resultado = _planMPP.ModificarPlan(plan);
+            Bitacora bitacora = new Bitacora("ModificarPlan", "Se modificó un plan comercial.");
+            RegistrarBitacora(resultado, usuario, bitacora);
+            return resultado;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
-    public PlanComercial CambiarEstado(int id, PlanComercial planComercial, Usuario usuario)
+    public PlanComercial CambiarEstado(PlanComercial planComercial, Usuario usuario)
     {
-        PlanComercial resultado = _planMPP.CambiarEstado(id, planComercial.Activo);
-        Bitacora bitacora = new Bitacora(planComercial.Activo ? "ActivarPlan" : "DesactivarPlan", planComercial.Activo ? "Se activó un plan comercial." : "Se desactivó un plan comercial.");
-        RegistrarBitacora(resultado, usuario, bitacora);
-        return resultado;
+        try
+        {
+            PlanComercial resultado = _planMPP.CambiarEstado(planComercial);
+            Bitacora bitacora = new Bitacora(planComercial.Activo ? "ActivarPlan" : "DesactivarPlan", planComercial.Activo ? "Se activó un plan comercial." : "Se desactivó un plan comercial.");
+            RegistrarBitacora(resultado, usuario, bitacora);
+            return resultado;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
     private static void PrepararPlan(PlanComercial plan)

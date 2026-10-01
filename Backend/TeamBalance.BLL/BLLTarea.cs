@@ -25,6 +25,16 @@ public class BLLTarea
         if (!_rolBLL.TienePermiso(usuario, "VerDashboard")) { throw new UnauthorizedAccessException("No tenés permiso para consultar tus tareas."); } 
         return _tareaMPP.ConsultarPorEmpleado(usuario); 
     }
+    public List<Tarea> ConsultarPorPM(Usuario usuario)
+    {
+        try
+        {
+            ValidarGestionTareas(usuario);
+            List<Tarea> tareas = _tareaMPP.ConsultarPorPM(usuario);
+            return tareas;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
 
     public bool GuardarComentarios(Tarea tarea, Usuario usuario)
     {
@@ -78,6 +88,20 @@ public class BLLTarea
             }
             else { throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."); }
         }catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    public bool CambiarEstadoPropio(Tarea tarea, Usuario usuario)
+    {
+        try
+        {
+            if (!_rolBLL.TienePermiso(usuario, "VerKanban")) { throw new UnauthorizedAccessException("No tenés permiso para actualizar tareas desde el tablero."); }
+            if (tarea.ID <= 0 || string.IsNullOrWhiteSpace(tarea.Estado)) { throw new ArgumentException("Indicá la tarea y el estado a actualizar."); }
+            List<Tarea> tareas = ConsultarAsignadas(usuario);
+            if (!tareas.Any(item => item.ID == tarea.ID)) { throw new UnauthorizedAccessException("No tenés acceso a esta tarea."); }
+            bool resultado = _tareaMPP.CambiarEstadoPropio(tarea, usuario);
+            return resultado;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
     public Skill RegistrarSkill(Skill skill, Usuario usuario) {

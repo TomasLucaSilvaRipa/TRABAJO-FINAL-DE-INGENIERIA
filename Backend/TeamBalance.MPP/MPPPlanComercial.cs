@@ -67,12 +67,12 @@ public class MPPPlanComercial
         return CrearPlan(tabla.Rows[0]);
     }
 
-    public PlanComercial CambiarEstado(int id, bool activo)
+    public PlanComercial CambiarEstado(PlanComercial planComercial)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@ID", id),
-            new SqlParameter("@Activo", activo),
+            new SqlParameter("@ID", planComercial.ID),
+            new SqlParameter("@Activo", planComercial.Activo),
         };
 
         DataTable tabla = _conexion.Leer("dbo.usp_PlanComercial_CambiarEstado", parametros);

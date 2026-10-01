@@ -252,14 +252,15 @@ public class BLLUsuario
         RegistrarPerfiles(usuario);
     }
 
-    public void CambiarEstadoUsuarioAgencia(int idUsuario, bool activo, Usuario solicitante)
+    public void CambiarEstadoUsuarioAgencia(Usuario usuario, Usuario solicitante)
     {
         try
         {
             ValidarPermiso(solicitante, "GestionarUsuarios");
-            Usuario usuario = _usuarioMPP.ConsultarUsuariosAgencia(solicitante).FirstOrDefault(item => item.ID == idUsuario) ?? throw new KeyNotFoundException("No existe el usuario dentro de la agencia.");
-            _usuarioMPP.CambiarEstado(usuario, activo);
-            Bitacora bitacora = new Bitacora(solicitante.ID, solicitante.IdAgencia, "Usuario", idUsuario, activo ? "ActivarUsuario" : "DarBajaUsuario", activo ? "Se activó un usuario de la agencia." : "Se dio de baja un usuario de la agencia.", "Exitoso", "Informacion", "Usuarios");
+            Usuario usuarioAgencia = _usuarioMPP.ConsultarUsuariosAgencia(solicitante).FirstOrDefault(item => item.ID == usuario.ID) ?? throw new KeyNotFoundException("No existe el usuario dentro de la agencia.");
+            usuarioAgencia.Activo = usuario.Activo;
+            _usuarioMPP.CambiarEstado(usuarioAgencia);
+            Bitacora bitacora = new Bitacora(solicitante.ID, solicitante.IdAgencia, "Usuario", usuarioAgencia.ID, usuarioAgencia.Activo ? "ActivarUsuario" : "DarBajaUsuario", usuarioAgencia.Activo ? "Se activó un usuario de la agencia." : "Se dio de baja un usuario de la agencia.", "Exitoso", "Informacion", "Usuarios");
             _bitacoraBLL.Add(bitacora);
         }
         catch(Exception ex) { throw new Exception(ex.Message); }
@@ -273,7 +274,8 @@ public class BLLUsuario
         }
         List<int> rolesSolicitados = usuario.Roles.Select(rol => rol.ID).Distinct().ToList();
         List<Rol> rolesActivos = _rolBLL.ConsultarRolesAsignablesAgencia(solicitante);
-        Rol rolSoporte = _rolBLL.ConsultarRolPorNombre("Soporte");
+        Rol rol = new Rol("Soporte");
+        Rol rolSoporte = _rolBLL.ConsultarRolPorNombre(rol);
         if (!_usuarioMPP.ExisteSoporte() && rolesSolicitados.Contains(rolSoporte.ID))
         {
             rolesActivos.Add(rolSoporte);

@@ -57,6 +57,9 @@ GO
 CREATE OR ALTER PROCEDURE dbo.usp_Tarea_ConsultarEmpleados @IdAgencia INT AS SELECT E.ID,U.IdAgencia,U.Nombre,U.Apellido,U.Email FROM dbo.Empleado E INNER JOIN dbo.Usuario U ON U.ID=E.IdUsuario WHERE U.IdAgencia=@IdAgencia AND U.Activo=1 AND E.Activo=1;
 GO
 CREATE OR ALTER PROCEDURE dbo.usp_Tarea_Consultar @IdAgencia INT AS SELECT T.* FROM dbo.Tarea T INNER JOIN dbo.Proyecto P ON P.ID=T.IdProyecto WHERE P.IdAgencia=@IdAgencia ORDER BY T.Activo DESC,T.Deadline;
+
+GO
+CREATE OR ALTER PROCEDURE dbo.usp_Tarea_ConsultarPorPM @IdUsuario INT AS SELECT T.* FROM dbo.Tarea T INNER JOIN dbo.Proyecto P ON P.ID=T.IdProyecto INNER JOIN dbo.PM PM ON PM.ID=P.IdPMResponsable WHERE PM.IdUsuario=@IdUsuario AND P.Activo=1 ORDER BY T.Activo DESC,T.Deadline;
 GO
 CREATE OR ALTER PROCEDURE dbo.usp_Tarea_Registrar @ID INT=0,@IdAgencia INT,@IdProyecto INT,@IdEmpleadoAsignado INT=NULL,@IdSkillRequerido INT,@IdEstadoTarea INT,@Titulo NVARCHAR(200),@Descripcion NVARCHAR(MAX)=NULL,@Prioridad NVARCHAR(50)=NULL,@Complejidad NVARCHAR(50)=NULL,@FechaInicio DATETIME2=NULL,@Deadline DATETIME2=NULL,@SeniorityRequerido NVARCHAR(50)=NULL,@PorcentajeAvance DECIMAL(5,2)=0,@HorasEstimadas DECIMAL(18,2)=0,@ArchivosAdjuntosJson NVARCHAR(MAX)=NULL AS
 BEGIN
