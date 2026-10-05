@@ -1,27 +1,43 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Skill } from '../../../../services/resources.service';
-import { Tarea, TareaOpciones, TasksService } from '../../../../services/tasks.service';
+import { FiltroTarea, Tarea, TareaOpciones, TasksService } from '../../../../services/tasks.service';
 import { LocalizationService } from '../../../../services/localization.service';
+import { BestFitService, RecomendacionBestFit } from '../../../../services/best-fit.service';
+import { PlantillaTarea, TaskTemplatesService } from '../../../../services/task-templates.service';
+
+interface ChecklistItem {
+    texto: string;
+    completada: boolean;
+}
 
 @Component({ selector: 'app-task-manager.component', imports: [ReactiveFormsModule], templateUrl: './task-manager.component.html' })
 export class TaskManagerComponent {
   private readonly service = inject(TasksService);
+    private readonly templatesService = inject(TaskTemplatesService);
+    private readonly bestFitService = inject(BestFitService);
     private readonly fb = inject(FormBuilder);
 
     readonly localization = inject(LocalizationService);
 
     readonly tareas = signal<Tarea[]>([]);
+    readonly plantillas = signal<PlantillaTarea[]>([]);
     readonly opciones = signal<TareaOpciones>({ proyectos: [], estados: [], empleados: [], skills: [] });
     readonly mostrar = signal(false);
     readonly mostrarSkill = signal(false);
+    readonly recomendaciones = signal<RecomendacionBestFit[]>([]);
+    readonly buscandoRecurso = signal(false);
     readonly error = signal('');
+    readonly checklist = signal<ChecklistItem[]>([]);
+    readonly nuevoChecklist = signal('');
 
     readonly form = this.fb.group({
         id: [0],
+        idPlantillaTarea: [0],
         idProyecto: [0, Validators.min(1)],
         idEstadoTarea: [0, Validators.min(1)],
         idEmpleadoAsignado: [null as number | null],
+        idTareaPredecesora: [null as number | null],
         idSkillRequerido: [0, Validators.min(1)],
         titulo: ['', Validators.required],
         descripcion: [''],
@@ -32,6 +48,7 @@ export class TaskManagerComponent {
         seniorityRequerido: [''],
         porcentajeAvance: [0],
         horasEstimadas: [0],
+        checklistJson: [''],
         archivosAdjuntosJson: ['']
     });
 
@@ -39,6 +56,7 @@ export class TaskManagerComponent {
         nombre: ['', Validators.required],
         categoria: ['']
     });
+    readonly filtroForm = this.fb.group({ idProyecto: [null as number | null], estado: [''], prioridad: [''], idEmpleadoAsignado: [null as number | null], idSkillRequerido: [null as number | null], deadlineDesde: [''], deadlineHasta: [''] });
 
     constructor()
     {
@@ -49,22 +67,53 @@ export class TaskManagerComponent {
     {
         this.service.consultar().subscribe((tareas: Tarea[]) => this.tareas.set(tareas));
         this.service.opciones().subscribe((opciones: TareaOpciones) => this.opciones.set(opciones));
+        this.templatesService.consultar().subscribe({ next: (plantillas: PlantillaTarea[]) => this.plantillas.set(plantillas) });
     }
 
     nuevo(): void
     {
-        this.form.reset({ id: 0, idProyecto: 0, idEstadoTarea: 0, idEmpleadoAsignado: null, idSkillRequerido: 0, titulo: '', descripcion: '', prioridad: 'Media', complejidad: 'Media', fechaInicio: '', deadline: '', seniorityRequerido: '', porcentajeAvance: 0, horasEstimadas: 0, archivosAdjuntosJson: '' });
+        const estadoPendiente = this.opciones().estados.find(estado => estado.nombre.toLowerCase() === 'pendiente')?.id ?? 0;
+        this.form.reset({ id: 0, idPlantillaTarea: 0, idProyecto: 0, idEstadoTarea: estadoPendiente, idEmpleadoAsignado: null, idTareaPredecesora: null, idSkillRequerido: 0, titulo: '', descripcion: '', prioridad: 'Media', complejidad: 'Media', fechaInicio: '', deadline: '', seniorityRequerido: '', porcentajeAvance: 0, horasEstimadas: 0, checklistJson: '', archivosAdjuntosJson: '' });
+        this.checklist.set([]);
+        this.nuevoChecklist.set('');
         this.error.set('');
+        this.recomendaciones.set([]);
         this.mostrar.set(true);
     }
 
     editar(tarea: Tarea): void
     {
-        this.form.patchValue({ ...tarea, archivosAdjuntosJson: this.obtenerUrlsAdjuntas(tarea.archivosAdjuntosJson).join('\n') });
+        this.form.patchValue({ ...tarea, idPlantillaTarea: 0, archivosAdjuntosJson: this.obtenerUrlsAdjuntas(tarea.archivosAdjuntosJson).join('\n') });
+        this.checklist.set(this.obtenerChecklist(tarea.checklistJson));
+        this.nuevoChecklist.set('');
+        this.recomendaciones.set([]);
         this.mostrar.set(true);
     }
 
-    guardar(): void
+    aplicarPlantilla(): void
+    {
+        const idPlantilla = this.form.controls.idPlantillaTarea.value;
+        const plantilla = this.plantillas().find((item: PlantillaTarea) => item.id === idPlantilla);
+        if (!plantilla)
+        {
+            return;
+        }
+
+        this.form.patchValue({
+            titulo: plantilla.tituloSugerido || '',
+            descripcion: plantilla.descripcionBase || '',
+            idSkillRequerido: plantilla.idSkillRequerido || 0,
+            prioridad: plantilla.prioridadSugerida || 'Media',
+            complejidad: plantilla.complejidad || 'Media',
+            seniorityRequerido: plantilla.seniorityRecomendado || '',
+            horasEstimadas: plantilla.horasEstimadas || 0,
+            archivosAdjuntosJson: this.obtenerUrlsAdjuntas(plantilla.archivosAdjuntosJson).join('\n')
+        });
+        this.checklist.set(this.obtenerChecklist(plantilla.checklistBaseJson));
+        this.actualizarAvanceChecklist();
+    }
+
+    guardar(sugerirRecurso: boolean = false): void
     {
         if (this.form.invalid)
         {
@@ -81,14 +130,86 @@ export class TaskManagerComponent {
             return;
         }
 
-        const tarea = { ...datos, archivosAdjuntosJson: urls.length === 0 ? null : JSON.stringify(urls) } as unknown as Partial<Tarea>;
+        const tarea = { ...datos, checklistJson: JSON.stringify(this.checklist()), archivosAdjuntosJson: urls.length === 0 ? null : JSON.stringify(urls) } as unknown as Partial<Tarea>;
 
         this.service.guardar(tarea).subscribe({
-            next: () =>{
-                this.mostrar.set(false);
+            next: (resultado: Tarea) =>{
+                if (sugerirRecurso)
+                {
+                    this.form.patchValue({ id: resultado.id });
+                    this.sugerirRecurso();
+                }
+                else
+                {
+                    this.mostrar.set(false);
+                }
                 this.cargar();
-            },error: () => this.error.set('No se pudo guardar la tarea.')
+            },error: respuesta => this.error.set(this.obtenerMensajeError(respuesta, 'No se pudo guardar la tarea.'))
         });
+    }
+
+    aplicarFiltro(): void
+    {
+        const valores = this.filtroForm.getRawValue();
+        const filtro: FiltroTarea = { idProyecto: valores.idProyecto, estado: valores.estado || null, prioridad: valores.prioridad || null, idEmpleadoAsignado: valores.idEmpleadoAsignado, idSkillRequerido: valores.idSkillRequerido, deadlineDesde: valores.deadlineDesde || null, deadlineHasta: valores.deadlineHasta || null };
+        this.service.filtrar(filtro).subscribe({ next: (tareas: Tarea[]) => this.tareas.set(tareas), error: () => this.error.set('No se pudo aplicar el filtro de tareas.') });
+    }
+
+    limpiarFiltro(): void
+    {
+        this.filtroForm.reset({ idProyecto: null, estado: '', prioridad: '', idEmpleadoAsignado: null, idSkillRequerido: null, deadlineDesde: '', deadlineHasta: '' });
+        this.cargar();
+    }
+
+    tareasPredecesoras(): Tarea[]
+    {
+        const idProyecto = this.form.controls.idProyecto.value;
+        const idTarea = this.form.controls.id.value;
+        return this.tareas().filter(tarea => tarea.activo && tarea.idProyecto === idProyecto && tarea.id !== idTarea);
+    }
+
+    sugerirRecurso(): void
+    {
+        const idTarea = this.form.controls.id.value;
+        if (!idTarea)
+        {
+            this.guardar(true);
+            return;
+        }
+        this.buscandoRecurso.set(true);
+        this.error.set('');
+        this.bestFitService.sugerir({ idTarea }).subscribe({ next: (recomendaciones: RecomendacionBestFit[]) => { this.recomendaciones.set(recomendaciones); this.buscandoRecurso.set(false); }, error: () => { this.error.set('No se pudieron generar sugerencias para esta tarea.'); this.buscandoRecurso.set(false); } });
+    }
+
+    seleccionarRecurso(recomendacion: RecomendacionBestFit): void
+    {
+        this.form.controls.idEmpleadoAsignado.setValue(recomendacion.idEmpleadoSugerido);
+        this.recomendaciones.set([]);
+    }
+
+    agregarChecklist(): void
+    {
+        const texto = this.nuevoChecklist().trim();
+        if (!texto)
+        {
+            return;
+        }
+
+        this.checklist.update(items => [...items, { texto, completada: false }]);
+        this.nuevoChecklist.set('');
+        this.actualizarAvanceChecklist();
+    }
+
+    alternarChecklist(indice: number): void
+    {
+        this.checklist.update(items => items.map((item, posicion) => posicion === indice ? { ...item, completada: !item.completada } : item));
+        this.actualizarAvanceChecklist();
+    }
+
+    eliminarChecklist(indice: number): void
+    {
+        this.checklist.update(items => items.filter((_, posicion) => posicion !== indice));
+        this.actualizarAvanceChecklist();
     }
 
     abrirSkills(): void
@@ -149,6 +270,36 @@ export class TaskManagerComponent {
         }
     }
 
+    private obtenerChecklist(checklistJson?: string | null): ChecklistItem[]
+    {
+        if (!checklistJson)
+        {
+            return [];
+        }
+
+        try
+        {
+            const checklist = JSON.parse(checklistJson);
+            return Array.isArray(checklist) ? checklist.filter(item => typeof item?.texto === 'string').map(item => ({ texto: item.texto, completada: Boolean(item.completada) })) : [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private actualizarAvanceChecklist(): void
+    {
+        const checklist = this.checklist();
+        if (!checklist.length)
+        {
+            return;
+        }
+
+        const porcentaje = Math.round((checklist.filter(item => item.completada).length / checklist.length) * 100);
+        this.form.controls.porcentajeAvance.setValue(porcentaje);
+    }
+
     private esUrlImagen(url: string): boolean
     {
         try
@@ -160,5 +311,25 @@ export class TaskManagerComponent {
         {
             return false;
         }
+    }
+
+    private obtenerMensajeError(respuesta: any, predeterminado: string): string
+    {
+        if (typeof respuesta?.error === 'string')
+        {
+            return respuesta.error;
+        }
+
+        const errores = respuesta?.error?.errors;
+        if (errores && typeof errores === 'object')
+        {
+            const mensajes = Object.values(errores).flat().filter((mensaje): mensaje is string => typeof mensaje === 'string');
+            if (mensajes.length)
+            {
+                return mensajes.join(' ');
+            }
+        }
+
+        return predeterminado;
     }
 }

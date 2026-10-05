@@ -26,6 +26,7 @@ public partial class Proyecto
         FechaBaja = fechaBaja;
         NombreCliente = nombreCliente;
         NombrePMResponsable = nombrePMResponsable;
+        Tareas = new List<Tarea>();
     }
 
     public int ID { get; set; }
@@ -57,4 +58,7 @@ public partial class Proyecto
     public string? NombreCliente { get; set; }
 
     public string? NombrePMResponsable { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public List<Tarea> Tareas { get; set; } = new List<Tarea>();
 }

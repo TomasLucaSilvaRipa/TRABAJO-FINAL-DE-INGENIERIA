@@ -28,8 +28,48 @@ public class MPPProyecto
     {
         try
         {
-            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia) };
+            FiltroProyecto filtro = new FiltroProyecto();
+            return Consultar(usuario, filtro);
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    public List<Proyecto> Consultar(Usuario usuario, FiltroProyecto filtro)
+    {
+        try
+        {
+            List<SqlParameter> parametros = CrearParametrosFiltro(usuario, filtro);
             DataTable tabla = _conexion.Leer("dbo.usp_Proyecto_Consultar", parametros);
+            List<Proyecto> proyectos = CrearProyectos(tabla);
+            return proyectos;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    public Proyecto ConsultarDetalle(Proyecto proyecto)
+    {
+        try
+        {
+            List<SqlParameter> parametrosProyecto = new List<SqlParameter>() { new SqlParameter("@ID", proyecto.ID), new SqlParameter("@IdAgencia", proyecto.IdAgencia) };
+            DataTable tablaProyecto = _conexion.Leer("dbo.usp_Proyecto_ConsultarDetalle", parametrosProyecto);
+            List<Proyecto> proyectos = CrearProyectos(tablaProyecto);
+            if (proyectos.Count == 0) { throw new KeyNotFoundException("No se encontró el proyecto solicitado."); }
+            Proyecto resultado = proyectos[0];
+            List<SqlParameter> parametrosTareas = new List<SqlParameter>() { new SqlParameter("@IdProyecto", resultado.ID), new SqlParameter("@IdAgencia", resultado.IdAgencia) };
+            DataTable tablaTareas = _conexion.Leer("dbo.usp_Tarea_ConsultarPorProyecto", parametrosTareas);
+            resultado.Tareas = CrearTareas(tablaTareas);
+            return resultado;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    public List<Proyecto> ConsultarPorResponsable(Usuario usuario, FiltroProyecto filtro)
+    {
+        try
+        {
+            List<SqlParameter> parametros = CrearParametrosFiltro(usuario, filtro);
+            parametros.Add(new SqlParameter("@IdUsuario", usuario.ID));
+            DataTable tabla = _conexion.Leer("dbo.usp_Proyecto_ConsultarPorPM", parametros);
             List<Proyecto> proyectos = CrearProyectos(tabla);
             return proyectos;
         }
@@ -55,6 +95,29 @@ public class MPPProyecto
         {
             List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@ID", proyecto.ID), new SqlParameter("@IdAgencia", proyecto.IdAgencia), new SqlParameter("@Activo", proyecto.Activo) };
             bool resultado = _conexion.Escribir("dbo.usp_Proyecto_CambiarEstado", parametros);
+            return resultado;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    public bool Cerrar(Proyecto proyecto)
+    {
+        try
+        {
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@ID", proyecto.ID), new SqlParameter("@IdAgencia", proyecto.IdAgencia) };
+            bool resultado = _conexion.Escribir("dbo.usp_Proyecto_Cerrar", parametros);
+            return resultado;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    public bool EsResponsable(Proyecto proyecto, Usuario usuario)
+    {
+        try
+        {
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@ID", proyecto.ID), new SqlParameter("@IdAgencia", proyecto.IdAgencia), new SqlParameter("@IdUsuario", usuario.ID) };
+            DataTable tabla = _conexion.Leer("dbo.usp_Proyecto_EsResponsable", parametros);
+            bool resultado = tabla.Rows.Count > 0;
             return resultado;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
@@ -130,6 +193,16 @@ public class MPPProyecto
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
+    private static List<SqlParameter> CrearParametrosFiltro(Usuario usuario, FiltroProyecto filtro)
+    {
+        try
+        {
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@IdCliente", (object?)filtro.IdCliente ?? DBNull.Value), new SqlParameter("@IdPMResponsable", (object?)filtro.IdPMResponsable ?? DBNull.Value), new SqlParameter("@Estado", (object?)filtro.Estado ?? DBNull.Value), new SqlParameter("@FechaDesde", (object?)filtro.FechaDesde ?? DBNull.Value), new SqlParameter("@FechaHasta", (object?)filtro.FechaHasta ?? DBNull.Value) };
+            return parametros;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
     private static List<Proyecto> CrearProyectos(DataTable tabla)
     {
         try
@@ -141,6 +214,21 @@ public class MPPProyecto
                 proyectos.Add(proyecto);
             }
             return proyectos;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    private static List<Tarea> CrearTareas(DataTable tabla)
+    {
+        try
+        {
+            List<Tarea> tareas = new List<Tarea>();
+            foreach (DataRow fila in tabla.Rows)
+            {
+                Tarea tarea = new Tarea(Convert.ToInt32(fila["ID"]), Convert.ToInt32(fila["IdProyecto"]), fila["IdEmpleadoAsignado"] == DBNull.Value ? null : Convert.ToInt32(fila["IdEmpleadoAsignado"]), fila["IdSkillRequerido"] == DBNull.Value ? null : Convert.ToInt32(fila["IdSkillRequerido"]), Convert.ToInt32(fila["IdEstadoTarea"]), fila["IdTareaPredecesora"] == DBNull.Value ? null : Convert.ToInt32(fila["IdTareaPredecesora"]), Convert.ToString(fila["Titulo"]) ?? string.Empty, Convert.ToString(fila["Descripcion"]), Convert.ToString(fila["Estado"]), Convert.ToString(fila["Prioridad"]), Convert.ToString(fila["Complejidad"]), fila["FechaInicio"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaInicio"]), fila["Deadline"] == DBNull.Value ? null : Convert.ToDateTime(fila["Deadline"]), fila["FechaFinReal"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaFinReal"]), Convert.ToString(fila["SeniorityRequerido"]), Convert.ToString(fila["ChecklistJson"]), Convert.ToString(fila["ComentariosJson"]), Convert.ToString(fila["ArchivosAdjuntosJson"]), Convert.ToBoolean(fila["Bloqueada"]), Convert.ToString(fila["MotivoBloqueo"]), Convert.ToDecimal(fila["PorcentajeAvance"]), Convert.ToDecimal(fila["HorasEstimadas"]), Convert.ToBoolean(fila["Activo"]), fila["FechaBaja"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaBaja"]));
+                tareas.Add(tarea);
+            }
+            return tareas;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
     }

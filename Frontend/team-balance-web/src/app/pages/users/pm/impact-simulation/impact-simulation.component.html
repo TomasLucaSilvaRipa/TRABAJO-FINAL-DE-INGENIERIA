@@ -1,5 +1,130 @@
-<section class="tb-workspace mx-auto max-w-5xl space-y-6">
-  <header><p class="tb-page-kicker">PLANIFICACIÓN</p><h1 class="tb-page-title">Simulación de impacto</h1><p class="tb-page-description">Evaluá cómo una reasignación o un cambio de plazo podría afectar la capacidad del equipo.</p></header>
-  <section class="tb-panel grid gap-4 md:grid-cols-3"><label class="tb-field-label">Tarea<select [ngModel]="idTarea()" (ngModelChange)="idTarea.set($event)"><option [ngValue]="0">Seleccionar tarea</option>@for(tarea of tareas();track tarea.id){<option [ngValue]="tarea.id">{{tarea.titulo}}</option>}</select></label><label class="tb-field-label">Recurso candidato<select [ngModel]="idEmpleado()" (ngModelChange)="idEmpleado.set($event)"><option [ngValue]="0">Seleccionar recurso</option>@for(empleado of empleados();track empleado.id){<option [ngValue]="empleado.id">{{empleado.nombre}} {{empleado.apellido}}</option>}</select></label><div class="flex items-end"><button class="tb-action-button" type="button" (click)="simular()">Preparar simulación</button></div></section>
-  @if(error()){<p class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{error()}}</p>}<article class="tb-panel">@if(resultado();as simulacion){<div class="grid gap-4 sm:grid-cols-3"><div><p class="text-sm text-slate-500">Carga proyectada</p><strong class="text-2xl">{{simulacion.cargaProyectada}} h</strong></div><div><p class="text-sm text-slate-500">Disponibilidad restante</p><strong class="text-2xl">{{simulacion.disponibilidadRestante}} h</strong></div><div><p class="text-sm text-slate-500">Ocupación proyectada</p><strong class="text-2xl">{{simulacion.porcentajeOcupacionProyectado}}%</strong></div></div><p class="mt-5 font-semibold" [class.text-red-600]="simulacion.generaSobrecarga">{{simulacion.impactoOperativo}}</p>}@else{<div class="tb-empty-state"><h2>Sin escenario para analizar</h2><p>Al seleccionar una tarea y un recurso, la simulación mostrará el impacto sobre la capacidad.</p></div>}</article>
+<section class="tb-workspace mx-auto max-w-6xl space-y-6">
+  <header>
+    <p class="tb-page-kicker">PLANIFICACIÓN</p>
+    <h1 class="tb-page-title">Simulación de impacto</h1>
+    <p class="tb-page-description">Compará escenarios antes de asignar una tarea. La simulación no modifica las cargas ni la asignación real.</p>
+  </header>
+
+  <section class="tb-panel space-y-4">
+    <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+      <label class="tb-field-label">
+        Tarea del proyecto
+        <select [ngModel]="idTarea()" (ngModelChange)="seleccionarTarea($event)">
+          <option [ngValue]="0">Seleccionar tarea</option>
+          @for (tarea of tareas(); track tarea.id) {
+            <option [ngValue]="tarea.id">{{ tarea.titulo }} · {{ tarea.horasEstimadas }} h · vence {{ tarea.deadline | date:'dd/MM/yyyy' }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="tb-field-label">
+        Recurso candidato
+        <select [ngModel]="idEmpleado()" (ngModelChange)="idEmpleado.set($event)">
+          <option [ngValue]="0">Seleccionar recurso</option>
+          @for (empleado of empleados(); track empleado.id) {
+            <option [ngValue]="empleado.id">{{ empleado.nombre }} {{ empleado.apellido }}</option>
+          }
+        </select>
+      </label>
+
+      <div class="flex flex-wrap items-end gap-2">
+        <button class="tb-action-button" type="button" [disabled]="cargando()" (click)="simular()">{{ escenarios().length ? 'Comparar otro candidato' : 'Simular candidato' }}</button>
+        <button class="tb-secondary-button" type="button" [disabled]="cargando()" (click)="usarRecursoBestFit()">Usar Best Fit</button>
+      </div>
+    </div>
+
+    <p class="text-sm text-slate-500">Podés evaluar más de un empleado para comparar alternativas, incluso ante una posible reasignación. Sólo “Conservar escenario” lo registra como referencia.</p>
+  </section>
+
+  @if (error()) {
+    <p class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ error() }}</p>
+  }
+
+  @if (mensaje()) {
+    <p class="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{{ mensaje() }}</p>
+  }
+
+  @if (recomendaciones().length) {
+    <section class="tb-panel">
+      <h2 class="text-lg font-bold">Compatibilidad sugerida por Best Fit</h2>
+      <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        @for (recomendacion of recomendaciones(); track recomendacion.id) {
+          <article class="rounded-xl border border-cyan-900/50 bg-slate-950/25 p-4">
+            <p class="font-semibold">{{ recomendacion.nombreEmpleado }}</p>
+            <p class="mt-1 text-sm text-slate-400">{{ recomendacion.seniorityEmpleado }} · {{ recomendacion.horasDisponibles }} h disponibles</p>
+            <p class="mt-2 text-sm font-semibold text-cyan-300">Compatibilidad: {{ recomendacion.puntajeCompatibilidad }}%</p>
+          </article>
+        }
+      </div>
+    </section>
+  }
+
+  @if (escenarios().length) {
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-bold">Escenarios comparados</h2>
+        <span class="text-sm text-slate-400">{{ escenarios().length }} escenario(s)</span>
+      </div>
+
+      <div class="grid gap-4 lg:grid-cols-2">
+        @for (escenario of escenarios(); track escenario.idEmpleadoCandidato) {
+          <article class="tb-panel border-l-4" [class.border-red-500]="escenario.generaSobrecarga" [class.border-emerald-400]="!escenario.generaSobrecarga">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="tb-page-kicker">CANDIDATO</p>
+                <h3 class="text-xl font-bold">{{ nombreEmpleado(escenario.idEmpleadoCandidato) }}</h3>
+                @if (escenario.nombreTarea) {
+                  <p class="mt-1 text-sm text-slate-400">{{ escenario.nombreProyecto }} · {{ escenario.nombreTarea }}</p>
+                }
+              </div>
+              <span class="rounded-full px-3 py-1 text-sm font-bold" [class.bg-red-100]="escenario.generaSobrecarga" [class.text-red-700]="escenario.generaSobrecarga" [class.bg-emerald-100]="!escenario.generaSobrecarga" [class.text-emerald-700]="!escenario.generaSobrecarga">{{ escenario.impactoOperativo }}</span>
+            </div>
+
+            <div class="mt-5 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+              <div><p class="text-slate-400">Carga actual</p><strong>{{ escenario.cargaActual }} h</strong></div>
+              <div><p class="text-slate-400">Proyectada</p><strong>{{ escenario.cargaProyectada }} h</strong></div>
+              <div><p class="text-slate-400">Capacidad</p><strong>{{ escenario.capacidadSemanal }} h</strong></div>
+              <div><p class="text-slate-400">Disponible</p><strong [class.text-red-400]="(escenario.disponibilidadRestante || 0) < 0">{{ escenario.disponibilidadRestante }} h</strong></div>
+            </div>
+
+            <div class="mt-4 rounded-lg bg-slate-950/35 p-3 text-sm">
+              <div class="flex justify-between"><span>Ocupación</span><strong>{{ escenario.porcentajeOcupacionActual }}% → {{ escenario.porcentajeOcupacionProyectado }}%</strong></div>
+              <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-700">
+                <span class="block h-full rounded-full bg-gradient-to-r from-lime-400 via-emerald-400 to-cyan-300" [style.width.%]="Math.min(100, escenario.porcentajeOcupacionProyectado || 0)"></span>
+              </div>
+            </div>
+
+            <div class="mt-4 text-sm">
+              <p class="font-semibold">Resumen de tarea</p>
+              <p class="mt-1 text-slate-400">{{ escenario.horasTarea }} h estimadas · Prioridad {{ escenario.prioridadTarea || 'Sin definir' }} · Deadline {{ escenario.deadlineTarea | date:'dd/MM/yyyy' }}</p>
+            </div>
+
+            @if (advertencias(escenario).length) {
+              <ul class="mt-4 space-y-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+                @for (advertencia of advertencias(escenario); track advertencia) {
+                  <li>• {{ advertencia }}</li>
+                }
+              </ul>
+            }
+
+            @if (compatibilidad(escenario.idEmpleadoCandidato); as recomendacion) {
+              <p class="mt-4 text-sm text-cyan-300">Best Fit: {{ recomendacion.puntajeCompatibilidad }}% de compatibilidad.</p>
+            }
+
+            <div class="mt-5 flex flex-wrap gap-2">
+              <button class="tb-action-button" type="button" [disabled]="cargando() || escenario.id > 0" (click)="conservar(escenario)">{{ escenario.id > 0 ? 'Escenario conservado' : 'Conservar escenario' }}</button>
+              <button class="tb-secondary-button" type="button" [disabled]="cargando()" (click)="descartar(escenario)">Descartar simulación</button>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  } @else {
+    <section class="tb-panel">
+      <div class="tb-empty-state">
+        <h2>Sin escenarios para comparar</h2>
+        <p>Elegí una tarea pendiente y uno o varios empleados para ver la carga actual, la carga proyectada, las ausencias y las advertencias operativas.</p>
+      </div>
+    </section>
+  }
 </section>

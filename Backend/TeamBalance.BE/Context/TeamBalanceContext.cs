@@ -512,6 +512,7 @@ public partial class TeamBalanceContext : DbContext
                 .HasPrecision(0)
                 .HasDefaultValueSql("(sysdatetime())");
             entity.Property(e => e.HorasEstimadas).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.MotivoBaja).HasMaxLength(500);
             entity.Property(e => e.Nombre).HasMaxLength(150);
             entity.Property(e => e.PrioridadSugerida).HasMaxLength(50);
             entity.Property(e => e.SeniorityRecomendado).HasMaxLength(50);

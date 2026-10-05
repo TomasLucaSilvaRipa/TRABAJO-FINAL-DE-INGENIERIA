@@ -24,6 +24,18 @@
                     <input formControlName="titulo" />
                 </label>
 
+                @if(!form.controls.id.value){
+                    <label class="tb-field-label">
+                        Usar plantilla activa
+                        <select formControlName="idPlantillaTarea" (change)="aplicarPlantilla()">
+                            <option [ngValue]="0">Crear sin plantilla</option>
+                            @for(plantilla of plantillas();track plantilla.id){
+                                <option [ngValue]="plantilla.id">{{plantilla.nombre}} · {{plantilla.horasEstimadas}} h</option>
+                            }
+                        </select>
+                    </label>
+                }
+
                 <label class="tb-field-label">
                     Proyecto
                     <select formControlName="idProyecto">
@@ -70,6 +82,17 @@
                 </label>
 
                 <label class="tb-field-label">
+                    Tarea precedente
+                    <select formControlName="idTareaPredecesora">
+                        <option [ngValue]="null">Sin dependencia</option>
+                        @for(predecesora of tareasPredecesoras();track predecesora.id){
+                            <option [ngValue]="predecesora.id">{{predecesora.titulo}} · {{predecesora.estado || 'Sin estado'}}</option>
+                        }
+                    </select>
+                    <span class="mt-1 block text-xs text-slate-500">Sólo se pueden seleccionar tareas activas del mismo proyecto.</span>
+                </label>
+
+                <label class="tb-field-label">
                     Prioridad
                     <select formControlName="prioridad">
                         <option>Baja</option>
@@ -112,14 +135,48 @@
                     <textarea rows="2" formControlName="descripcion"></textarea>
                 </label>
 
+                <section class="rounded-xl border border-cyan-700/40 bg-cyan-950/20 p-4 md:col-span-2">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <p class="text-sm font-semibold">Checklist de subactividades</p>
+                            <p class="mt-1 text-xs text-slate-400">Se guarda serializada en JSON, igual que las URLs adjuntas. Al marcar una subactividad se recalcula el avance.</p>
+                        </div>
+                        @if(checklist().length){<span class="tb-status-badge">{{form.controls.porcentajeAvance.value}}% avance</span>}
+                    </div>
+                    <div class="mt-3 flex gap-2">
+                        <input class="min-w-0 flex-1" [value]="nuevoChecklist()" (input)="nuevoChecklist.set($any($event.target).value)" (keyup.enter)="agregarChecklist()" placeholder="Ej.: Definir la paleta de colores" />
+                        <button class="tb-button tb-button--secondary" type="button" (click)="agregarChecklist()">Agregar</button>
+                    </div>
+                    <div class="mt-3 space-y-2">
+                        @for(item of checklist();track item.texto + $index){
+                            <div class="flex items-center gap-2 rounded-lg border border-slate-700 p-2">
+                                <input type="checkbox" [checked]="item.completada" (change)="alternarChecklist($index)" />
+                                <span class="min-w-0 flex-1 text-sm" [class.line-through]="item.completada">{{item.texto}}</span>
+                                <button class="text-xs text-red-400" type="button" (click)="eliminarChecklist($index)">Quitar</button>
+                            </div>
+                        } @empty {
+                            <p class="text-sm text-slate-400">Todavía no hay subactividades.</p>
+                        }
+                    </div>
+                </section>
+
                 <label class="tb-field-label md:col-span-2">
                     URLs de imágenes adjuntas (máximo 5)
                     <textarea rows="3" formControlName="archivosAdjuntosJson" placeholder="Pegá una URL externa por línea. Por ejemplo, una imagen subida a Cloudinary."></textarea>
                     <span class="mt-1 block text-xs text-slate-500">Las imágenes se guardan como URLs serializadas en JSON; TeamBalance no almacena archivos dentro de SQL.</span>
                 </label>
 
+                <section class="rounded-xl border border-cyan-700/40 bg-cyan-950/20 p-4 md:col-span-2">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div><p class="text-sm font-semibold">Sugerir responsable con Best Fit</p><p class="mt-1 text-xs text-slate-400">Evalúa skill requerida, disponibilidad y carga operativa. Elegí una sugerencia y luego guardá la tarea.</p></div>
+                        <button class="tb-button tb-button--secondary" type="button" (click)="sugerirRecurso()" [disabled]="buscandoRecurso()">{{buscandoRecurso() ? 'Analizando…' : 'Sugerir recurso'}}</button>
+                    </div>
+                    @if(recomendaciones().length){<div class="mt-4 space-y-2">@for(recomendacion of recomendaciones();track recomendacion.id){<article class="flex items-center justify-between gap-3 rounded-lg border border-slate-700 p-3"><div><strong>{{recomendacion.nombreEmpleado}}</strong><p class="text-xs text-slate-400">{{recomendacion.seniorityEmpleado}} · {{recomendacion.horasDisponibles}} h disponibles · {{recomendacion.puntajeCompatibilidad}}% compatible</p></div><button class="tb-link-button" type="button" (click)="seleccionarRecurso(recomendacion)">Elegir</button></article>}</div>}
+                </section>
+
                 <div class="flex items-center gap-3 md:col-span-2">
                     <button class="tb-action-button" type="submit">Guardar tarea</button>
+                    <button class="tb-button tb-button--secondary" type="button" (click)="guardar(true)">Guardar y sugerir</button>
                     <button class="tb-button tb-button--secondary" type="button" (click)="mostrar.set(false)">Cancelar</button>
                     @if(error()){
                         <p class="text-sm text-red-600">{{error()}}</p>
@@ -173,6 +230,17 @@
             </div>
             <span class="tb-count-chip">{{tareas().length}}</span>
         </div>
+
+        <form class="mb-5 grid items-end gap-3 md:grid-cols-4" [formGroup]="filtroForm" (ngSubmit)="aplicarFiltro()">
+            <label class="tb-field-label">Proyecto<select formControlName="idProyecto"><option [ngValue]="null">Todos</option>@for(proyecto of opciones().proyectos;track proyecto.id){<option [ngValue]="proyecto.id">{{proyecto.nombre}}</option>}</select></label>
+            <label class="tb-field-label">Estado<select formControlName="estado"><option value="">Todos</option>@for(estado of opciones().estados;track estado.id){<option [value]="estado.nombre">{{estado.nombre}}</option>}</select></label>
+            <label class="tb-field-label">Prioridad<select formControlName="prioridad"><option value="">Todas</option><option>Baja</option><option>Media</option><option>Alta</option></select></label>
+            <label class="tb-field-label">Responsable<select formControlName="idEmpleadoAsignado"><option [ngValue]="null">Todos</option>@for(empleado of opciones().empleados;track empleado.id){<option [ngValue]="empleado.id">{{empleado.nombre}} {{empleado.apellido}}</option>}</select></label>
+            <label class="tb-field-label">Skill<select formControlName="idSkillRequerido"><option [ngValue]="null">Todas</option>@for(skill of opciones().skills;track skill.id){<option [ngValue]="skill.id">{{skill.nombre}}</option>}</select></label>
+            <label class="tb-field-label">Deadline desde<input type="date" formControlName="deadlineDesde" /></label>
+            <label class="tb-field-label">Deadline hasta<input type="date" formControlName="deadlineHasta" /></label>
+            <div class="flex gap-2"><button class="tb-button" type="submit">Aplicar filtros</button><button class="tb-link-button" type="button" (click)="limpiarFiltro()">Limpiar</button></div>
+        </form>
 
         @if(!tareas().length){
             <div class="tb-empty-state">

@@ -42,6 +42,32 @@ public class RegistroHorasController : ControllerBase
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
+    [HttpPost("previsualizar")]
+    public IActionResult Previsualizar([FromBody] List<RegistroHora> registros)
+    {
+        try
+        {
+            List<RegistroHora> resultado = _registroHoraBLL.Previsualizar(registros, ValidarSesion());
+            return Ok(resultado);
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
+
+    [HttpPost("imputaciones")]
+    public IActionResult RegistrarImputaciones([FromBody] List<RegistroHora> registros)
+    {
+        try
+        {
+            List<RegistroHora> resultado = _registroHoraBLL.RegistrarImputaciones(registros, ValidarSesion());
+            return Ok(resultado);
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
+
     private Usuario ValidarSesion()
     {
         try

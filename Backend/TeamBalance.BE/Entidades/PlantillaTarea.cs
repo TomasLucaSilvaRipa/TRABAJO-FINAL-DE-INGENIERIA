@@ -52,13 +52,15 @@ public partial class PlantillaTarea
 
     public string? SeniorityRecomendado { get; set; }
 
-    public string Estado { get; set; } = null!;
+    public string Estado { get; set; } = "Activa";
 
     public bool Activo { get; set; }
 
     public DateTime FechaCreacion { get; set; }
 
     public DateTime? FechaBaja { get; set; }
+
+    public string? MotivoBaja { get; set; }
 
     public string? ChecklistBaseJson { get; set; }
 

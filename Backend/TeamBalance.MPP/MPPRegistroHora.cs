@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using TeamBalance.BE.Entidades;
 using TeamBalance.DAL;
@@ -7,6 +8,7 @@ namespace TeamBalance.MPP;
 
 public class MPPRegistroHora
 {
+    private static readonly JsonSerializerOptions OpcionesJson = new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     private readonly Conexion _conexion;
 
     public MPPRegistroHora(Conexion conexion)
@@ -22,6 +24,40 @@ public class MPPRegistroHora
             DataTable tabla = _conexion.Leer("dbo.usp_RegistroHora_Registrar", parametros);
             RegistroHora resultado = CrearRegistro(tabla.Rows[0]);
             return resultado;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    public List<RegistroHora> Previsualizar(List<RegistroHora> registros, Usuario usuario)
+    {
+        try
+        {
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", usuario.ID), new SqlParameter("@RegistrosJson", JsonSerializer.Serialize(registros, OpcionesJson)) };
+            DataTable tabla = _conexion.Leer("dbo.usp_RegistroHora_Previsualizar", parametros);
+            List<RegistroHora> resultados = new List<RegistroHora>();
+            foreach (DataRow fila in tabla.Rows)
+            {
+                RegistroHora registro = CrearPrevisualizacion(fila);
+                resultados.Add(registro);
+            }
+            return resultados;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    public List<RegistroHora> RegistrarImputaciones(List<RegistroHora> registros, Usuario usuario)
+    {
+        try
+        {
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", usuario.ID), new SqlParameter("@RegistrosJson", JsonSerializer.Serialize(registros, OpcionesJson)) };
+            DataTable tabla = _conexion.Leer("dbo.usp_RegistroHora_RegistrarImputaciones", parametros);
+            List<RegistroHora> resultados = new List<RegistroHora>();
+            foreach (DataRow fila in tabla.Rows)
+            {
+                RegistroHora registro = CrearRegistro(fila);
+                resultados.Add(registro);
+            }
+            return resultados;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
@@ -48,6 +84,21 @@ public class MPPRegistroHora
         try
         {
             RegistroHora registro = new RegistroHora(Convert.ToInt32(fila["ID"]), Convert.ToInt32(fila["IdTarea"]), Convert.ToInt32(fila["IdEmpleado"]), Convert.ToDateTime(fila["Fecha"]), Convert.ToDecimal(fila["CantidadHoras"]), Convert.ToString(fila["Descripcion"]), Convert.ToBoolean(fila["Activo"]));
+            return registro;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    private static RegistroHora CrearPrevisualizacion(DataRow fila)
+    {
+        try
+        {
+            RegistroHora registro = new RegistroHora();
+            registro.IdTarea = Convert.ToInt32(fila["IdTarea"]);
+            registro.HorasEstimadas = Convert.ToDecimal(fila["HorasEstimadas"]);
+            registro.HorasRealesResultantes = Convert.ToDecimal(fila["HorasRealesResultantes"]);
+            registro.PorcentajeConsumo = Convert.ToDecimal(fila["PorcentajeConsumo"]);
+            registro.RequiereAdvertencia = Convert.ToBoolean(fila["RequiereAdvertencia"]);
             return registro;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }

@@ -41,6 +41,32 @@ public class ProyectosController : ControllerBase
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
+    [HttpPost("detalle")]
+    public IActionResult ConsultarDetalle([FromBody] Proyecto proyecto)
+    {
+        try
+        {
+            Proyecto resultado = _proyectoBLL.ConsultarDetalle(proyecto, ValidarSesion());
+            return Ok(resultado);
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
+
+    [HttpPost("filtrar")]
+    public IActionResult Filtrar([FromBody] FiltroProyecto filtro)
+    {
+        try
+        {
+            List<Proyecto> proyectos = _proyectoBLL.Consultar(ValidarSesion(), filtro);
+            return Ok(proyectos);
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
+
     [HttpPost]
     public IActionResult Guardar([FromBody] Proyecto proyecto)
     {
@@ -54,7 +80,7 @@ public class ProyectosController : ControllerBase
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
-    [HttpPut("{id:int}")]
+    [HttpPut]
     public IActionResult Modificar([FromBody] Proyecto proyecto)
     {
         try
@@ -67,7 +93,7 @@ public class ProyectosController : ControllerBase
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
-    [HttpPatch("{id:int}/estado")]
+    [HttpPatch("estado")]
     public IActionResult CambiarEstado([FromBody] Proyecto proyecto)
     {
         try
@@ -76,6 +102,20 @@ public class ProyectosController : ControllerBase
             return Ok(resultado);
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
+
+    [HttpPatch("cerrar")]
+    public IActionResult Cerrar([FromBody] Proyecto proyecto)
+    {
+        try
+        {
+            bool resultado = _proyectoBLL.Cerrar(proyecto, ValidarSesion());
+            return Ok(resultado);
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
@@ -93,7 +133,7 @@ public class ProyectosController : ControllerBase
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
-    [HttpPut("clientes/{id:int}")]
+    [HttpPut("clientes")]
     public IActionResult ModificarCliente([FromBody] Cliente cliente)
     {
         try
@@ -106,7 +146,7 @@ public class ProyectosController : ControllerBase
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
-    [HttpPatch("clientes/{id:int}/estado")]
+    [HttpPatch("clientes/estado")]
     public IActionResult CambiarEstadoCliente([FromBody] Cliente cliente)
     {
         try

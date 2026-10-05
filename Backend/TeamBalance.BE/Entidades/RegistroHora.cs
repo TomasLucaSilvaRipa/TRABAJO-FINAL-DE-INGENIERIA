@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace TeamBalance.BE.Entidades;
 
@@ -33,4 +34,16 @@ public partial class RegistroHora
     public string? Descripcion { get; set; }
 
     public bool Activo { get; set; }
+
+    [NotMapped]
+    public decimal HorasEstimadas { get; set; }
+
+    [NotMapped]
+    public decimal HorasRealesResultantes { get; set; }
+
+    [NotMapped]
+    public decimal PorcentajeConsumo { get; set; }
+
+    [NotMapped]
+    public bool RequiereAdvertencia { get; set; }
 }

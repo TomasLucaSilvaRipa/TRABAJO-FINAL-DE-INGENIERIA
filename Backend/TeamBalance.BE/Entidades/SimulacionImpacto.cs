@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace TeamBalance.BE.Entidades;
 
@@ -60,4 +61,25 @@ public partial class SimulacionImpacto
     public DateTime FechaExpiracion { get; set; }
 
     public bool Activo { get; set; }
+
+    [NotMapped]
+    public decimal HorasTarea { get; set; }
+
+    [NotMapped]
+    public decimal CapacidadSemanal { get; set; }
+
+    [NotMapped]
+    public int DiasAusenciaProximaSemana { get; set; }
+
+    [NotMapped]
+    public DateTime? DeadlineTarea { get; set; }
+
+    [NotMapped]
+    public string? PrioridadTarea { get; set; }
+
+    [NotMapped]
+    public string? NombreTarea { get; set; }
+
+    [NotMapped]
+    public string? NombreProyecto { get; set; }
 }

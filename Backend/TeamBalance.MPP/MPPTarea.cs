@@ -10,8 +10,17 @@ public class MPPTarea
     private readonly Conexion _conexion;
     public MPPTarea(Conexion conexion) { _conexion = conexion; }
     public List<Tarea> Consultar(Usuario usuario) {
-        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia) };
-        return CrearTareas(_conexion.Leer("dbo.usp_Tarea_Consultar", parametros));
+        FiltroTarea filtro = new FiltroTarea();
+        return Consultar(usuario, filtro);
+    }
+    public List<Tarea> Consultar(Usuario usuario, FiltroTarea filtro) {
+        try
+        {
+            List<SqlParameter> parametros = CrearParametrosFiltro(usuario, filtro);
+            List<Tarea> tareas = CrearTareas(_conexion.Leer("dbo.usp_Tarea_Consultar", parametros));
+            return tareas;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
     }
     public List<Tarea> ConsultarPorEmpleado(Usuario usuario)
     {
@@ -29,6 +38,15 @@ public class MPPTarea
             List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", usuario.ID) };
             List<Tarea> tareas = CrearTareas(_conexion.Leer("dbo.usp_Tarea_ConsultarPorPM", parametros));
             return tareas;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+    public List<Tarea> ConsultarTableroProyectoPropio(Tarea tarea, Usuario usuario)
+    {
+        try
+        {
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdProyecto", tarea.IdProyecto), new SqlParameter("@IdUsuario", usuario.ID) };
+            return CrearTareas(_conexion.Leer("dbo.usp_Tarea_ConsultarTableroProyectoEmpleado", parametros));
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
@@ -71,6 +89,23 @@ public class MPPTarea
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
+    public Tarea ActualizarAvancePropio(Tarea tarea, Usuario usuario)
+    {
+        try
+        {
+            List<SqlParameter> parametros = new List<SqlParameter>() {
+                new SqlParameter("@ID", tarea.ID),
+                new SqlParameter("@IdUsuario", usuario.ID),
+                new SqlParameter("@Estado", tarea.Estado ?? string.Empty),
+                new SqlParameter("@ChecklistJson", (object?)tarea.ChecklistJson ?? DBNull.Value),
+                new SqlParameter("@PorcentajeAvance", tarea.PorcentajeAvance),
+                new SqlParameter("@MotivoBloqueo", (object?)tarea.MotivoBloqueo ?? DBNull.Value)
+            };
+            return CrearTareas(_conexion.Leer("dbo.usp_Tarea_ActualizarAvanceEmpleado", parametros)).Single();
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
     public GestionTareaOpciones ConsultarOpciones(Usuario usuario)
     {
         try
@@ -90,7 +125,7 @@ public class MPPTarea
     {
         try
         {
-            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@ID", tarea.ID), new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@IdProyecto", tarea.IdProyecto), new SqlParameter("@IdEmpleadoAsignado", (object?)tarea.IdEmpleadoAsignado ?? DBNull.Value), new SqlParameter("@IdSkillRequerido", (object?)tarea.IdSkillRequerido ?? DBNull.Value), new SqlParameter("@IdEstadoTarea", tarea.IdEstadoTarea), new SqlParameter("@Titulo", tarea.Titulo), new SqlParameter("@Descripcion", (object?)tarea.Descripcion ?? DBNull.Value), new SqlParameter("@Prioridad", (object?)tarea.Prioridad ?? DBNull.Value), new SqlParameter("@Complejidad", (object?)tarea.Complejidad ?? DBNull.Value), new SqlParameter("@FechaInicio", (object?)tarea.FechaInicio ?? DBNull.Value), new SqlParameter("@Deadline", (object?)tarea.Deadline ?? DBNull.Value), new SqlParameter("@SeniorityRequerido", (object?)tarea.SeniorityRequerido ?? DBNull.Value), new SqlParameter("@PorcentajeAvance", tarea.PorcentajeAvance), new SqlParameter("@HorasEstimadas", tarea.HorasEstimadas), new SqlParameter("@ArchivosAdjuntosJson", (object?)tarea.ArchivosAdjuntosJson ?? DBNull.Value) };
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@ID", tarea.ID), new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@IdProyecto", tarea.IdProyecto), new SqlParameter("@IdTareaPredecesora", (object?)tarea.IdTareaPredecesora ?? DBNull.Value), new SqlParameter("@IdEmpleadoAsignado", (object?)tarea.IdEmpleadoAsignado ?? DBNull.Value), new SqlParameter("@IdSkillRequerido", (object?)tarea.IdSkillRequerido ?? DBNull.Value), new SqlParameter("@IdEstadoTarea", tarea.IdEstadoTarea), new SqlParameter("@Titulo", tarea.Titulo), new SqlParameter("@Descripcion", (object?)tarea.Descripcion ?? DBNull.Value), new SqlParameter("@Prioridad", (object?)tarea.Prioridad ?? DBNull.Value), new SqlParameter("@Complejidad", (object?)tarea.Complejidad ?? DBNull.Value), new SqlParameter("@FechaInicio", (object?)tarea.FechaInicio ?? DBNull.Value), new SqlParameter("@Deadline", (object?)tarea.Deadline ?? DBNull.Value), new SqlParameter("@SeniorityRequerido", (object?)tarea.SeniorityRequerido ?? DBNull.Value), new SqlParameter("@PorcentajeAvance", tarea.PorcentajeAvance), new SqlParameter("@HorasEstimadas", tarea.HorasEstimadas), new SqlParameter("@ChecklistJson", (object?)tarea.ChecklistJson ?? DBNull.Value), new SqlParameter("@ArchivosAdjuntosJson", (object?)tarea.ArchivosAdjuntosJson ?? DBNull.Value) };
             return parametros;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
@@ -98,8 +133,17 @@ public class MPPTarea
     private static List<Tarea> CrearTareas(DataTable tabla) {
         try
         {
-            List<Tarea> tareas = new List<Tarea>(); foreach (DataRow fila in tabla.Rows) { Tarea tarea = new Tarea(Convert.ToInt32(fila["ID"]), Convert.ToInt32(fila["IdProyecto"]), fila["IdEmpleadoAsignado"] == DBNull.Value ? null : Convert.ToInt32(fila["IdEmpleadoAsignado"]), fila["IdSkillRequerido"] == DBNull.Value ? null : Convert.ToInt32(fila["IdSkillRequerido"]), Convert.ToInt32(fila["IdEstadoTarea"]), null, Convert.ToString(fila["Titulo"]) ?? string.Empty, Convert.ToString(fila["Descripcion"]), Convert.ToString(fila["Estado"]), Convert.ToString(fila["Prioridad"]), Convert.ToString(fila["Complejidad"]), fila["FechaInicio"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaInicio"]), fila["Deadline"] == DBNull.Value ? null : Convert.ToDateTime(fila["Deadline"]), null, Convert.ToString(fila["SeniorityRequerido"]), null, Convert.ToString(fila["ComentariosJson"]), Convert.ToString(fila["ArchivosAdjuntosJson"]), false, null, Convert.ToDecimal(fila["PorcentajeAvance"]), Convert.ToDecimal(fila["HorasEstimadas"]), Convert.ToBoolean(fila["Activo"]), fila["FechaBaja"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaBaja"])); tareas.Add(tarea); }
+            List<Tarea> tareas = new List<Tarea>(); foreach (DataRow fila in tabla.Rows) { Tarea tarea = new Tarea(Convert.ToInt32(fila["ID"]), Convert.ToInt32(fila["IdProyecto"]), fila["IdEmpleadoAsignado"] == DBNull.Value ? null : Convert.ToInt32(fila["IdEmpleadoAsignado"]), fila["IdSkillRequerido"] == DBNull.Value ? null : Convert.ToInt32(fila["IdSkillRequerido"]), Convert.ToInt32(fila["IdEstadoTarea"]), fila["IdTareaPredecesora"] == DBNull.Value ? null : Convert.ToInt32(fila["IdTareaPredecesora"]), Convert.ToString(fila["Titulo"]) ?? string.Empty, Convert.ToString(fila["Descripcion"]), Convert.ToString(fila["Estado"]), Convert.ToString(fila["Prioridad"]), Convert.ToString(fila["Complejidad"]), fila["FechaInicio"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaInicio"]), fila["Deadline"] == DBNull.Value ? null : Convert.ToDateTime(fila["Deadline"]), fila["FechaFinReal"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaFinReal"]), Convert.ToString(fila["SeniorityRequerido"]), Convert.ToString(fila["ChecklistJson"]), Convert.ToString(fila["ComentariosJson"]), Convert.ToString(fila["ArchivosAdjuntosJson"]), Convert.ToBoolean(fila["Bloqueada"]), Convert.ToString(fila["MotivoBloqueo"]), Convert.ToDecimal(fila["PorcentajeAvance"]), Convert.ToDecimal(fila["HorasEstimadas"]), Convert.ToBoolean(fila["Activo"]), fila["FechaBaja"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaBaja"])); tareas.Add(tarea); }
             return tareas;
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+    private static List<SqlParameter> CrearParametrosFiltro(Usuario usuario, FiltroTarea filtro)
+    {
+        try
+        {
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@IdProyecto", (object?)filtro.IdProyecto ?? DBNull.Value), new SqlParameter("@Estado", (object?)filtro.Estado ?? DBNull.Value), new SqlParameter("@Prioridad", (object?)filtro.Prioridad ?? DBNull.Value), new SqlParameter("@IdEmpleadoAsignado", (object?)filtro.IdEmpleadoAsignado ?? DBNull.Value), new SqlParameter("@IdSkillRequerido", (object?)filtro.IdSkillRequerido ?? DBNull.Value), new SqlParameter("@DeadlineDesde", (object?)filtro.DeadlineDesde ?? DBNull.Value), new SqlParameter("@DeadlineHasta", (object?)filtro.DeadlineHasta ?? DBNull.Value) };
+            return parametros;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
     }

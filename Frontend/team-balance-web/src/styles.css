@@ -355,6 +355,13 @@
 .tb-navy-field-label input, .tb-navy-field-label select, .tb-navy-field-label textarea { display: block; width: 100%; margin-top: .5rem; border: 1px solid #48627f; border-radius: .75rem; background: #1d2b43; color: #ffffff; padding: .65rem .75rem; outline: none; }
 .tb-navy-field-label input::placeholder, .tb-navy-field-label textarea::placeholder { color: #a7b8ca; }.tb-navy-field-label input:focus, .tb-navy-field-label select:focus, .tb-navy-field-label textarea:focus { border-color: #17b6d3; box-shadow: 0 0 0 3px rgba(23, 182, 211, .16); }
 
+/* Panel lateral del Kanban: se separa del marco de la app y anima sólo opacidad/transform. */
+.tb-kanban-backdrop { opacity: 0; pointer-events: none; transition: opacity 180ms ease; }
+.tb-kanban-backdrop--open { opacity: 1; pointer-events: auto; }
+.tb-kanban-drawer { border-radius: 1.15rem; opacity: .98; transform: translateX(calc(100% + 1.5rem)); transition: transform 180ms cubic-bezier(.2, .8, .2, 1), opacity 180ms ease; will-change: transform, opacity; }
+.tb-kanban-drawer--open { opacity: 1; transform: translateX(0); }
+@media (prefers-reduced-motion: reduce) { .tb-kanban-backdrop, .tb-kanban-drawer { transition: none; } }
+
 /* Sistema visual operativo: superficies planas, densidad SaaS y estados consistentes. */
 :root { --tb-navy: #082f49; --tb-navy-strong: #06243a; --tb-cyan: #0799bd; --tb-cyan-hover: #087e9d; --tb-ink: #183b4c; --tb-muted: #617c88; --tb-line: #d9e4e6; --tb-surface: #fffefa; --tb-canvas: #f5f7f6; }
 .team-balance-workspace { background: var(--tb-canvas); }

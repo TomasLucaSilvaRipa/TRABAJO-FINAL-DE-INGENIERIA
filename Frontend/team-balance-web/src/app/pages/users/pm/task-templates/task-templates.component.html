@@ -1,0 +1,73 @@
+<section class="tb-workspace mx-auto max-w-6xl space-y-6">
+  <header class="tb-page-header">
+    <div>
+      <p class="tb-page-kicker">GESTIÓN OPERATIVA</p>
+      <h1 class="tb-page-title">Plantillas de tareas</h1>
+      <p class="tb-page-description">Definí estructuras reutilizables para planificar tareas frecuentes sin crear trabajo operativo todavía.</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button class="tb-button tb-button--secondary" type="button" (click)="abrirDesdeTarea()">Crear desde tarea existente</button>
+      <button class="tb-action-button" type="button" (click)="nueva()">Crear plantilla</button>
+    </div>
+  </header>
+
+  @if (error()) { <p class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ error() }}</p> }
+  @if (mensaje()) { <p class="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{{ mensaje() }}</p> }
+
+  @if (mostrarFormulario()) {
+    <section class="tb-workflow-panel">
+      <div class="tb-panel-heading">
+        <div>
+          <p class="tb-page-kicker">{{ form.controls.id.value ? 'EDICIÓN' : 'NUEVA PLANTILLA' }}</p>
+          <h2>{{ form.controls.id.value ? 'Modificar plantilla' : 'Datos base de la tarea recurrente' }}</h2>
+        </div>
+        <button class="tb-icon-button" type="button" (click)="mostrarFormulario.set(false)">×</button>
+      </div>
+
+      <form class="grid gap-4 md:grid-cols-2" [formGroup]="form" (ngSubmit)="guardar()">
+        <label class="tb-field-label">Nombre de la plantilla<input formControlName="nombre" placeholder="Ej.: Landing de campaña" /></label>
+        <label class="tb-field-label">Título sugerido<input formControlName="tituloSugerido" placeholder="Ej.: Diseñar landing de campaña" /></label>
+        <label class="tb-field-label">Skill requerida<select formControlName="idSkillRequerido"><option [ngValue]="0">Seleccioná una skill</option>@for (skill of skills(); track skill.id) { <option [ngValue]="skill.id">{{ skill.nombre }}</option> }</select></label>
+        <label class="tb-field-label">Seniority recomendado<select formControlName="seniorityRecomendado"><option value="">Sin definir</option><option>Junior</option><option>Semisenior</option><option>Senior</option></select></label>
+        <label class="tb-field-label">Prioridad sugerida<select formControlName="prioridadSugerida"><option>Baja</option><option>Media</option><option>Alta</option></select></label>
+        <label class="tb-field-label">Complejidad<select formControlName="complejidad"><option>Baja</option><option>Media</option><option>Alta</option></select></label>
+        <label class="tb-field-label">Horas estimadas<input type="number" min="0.25" step="0.25" formControlName="horasEstimadas" /></label>
+        <div></div>
+        <label class="tb-field-label md:col-span-2">Descripción base<textarea rows="3" formControlName="descripcionBase"></textarea></label>
+
+        <section class="rounded-xl border border-cyan-700/40 bg-cyan-950/20 p-4 md:col-span-2">
+          <div class="flex flex-wrap items-center justify-between gap-2"><div><p class="font-semibold">Checklist base</p><p class="text-xs text-slate-400">Se aplicará como lista inicial al usar la plantilla en una tarea nueva.</p></div></div>
+          <div class="mt-3 flex gap-2"><input class="min-w-0 flex-1" [value]="nuevoChecklist()" (input)="nuevoChecklist.set($any($event.target).value)" (keyup.enter)="agregarChecklist()" placeholder="Ej.: Preparar versión mobile" /><button class="tb-button tb-button--secondary" type="button" (click)="agregarChecklist()">Agregar</button></div>
+          <div class="mt-3 space-y-2">@for (item of checklist(); track item.texto + $index) { <div class="flex gap-2 rounded-lg border border-slate-700 p-2"><span class="flex-1 text-sm">{{ item.texto }}</span><button class="text-xs text-red-400" type="button" (click)="quitarChecklist($index)">Quitar</button></div> } @empty { <p class="text-sm text-slate-400">Todavía no definiste subactividades.</p> }</div>
+        </section>
+
+        <label class="tb-field-label md:col-span-2">URLs de archivos modelo o referencias visuales (máximo 5)<textarea rows="3" formControlName="archivosAdjuntosJson" placeholder="Pegá una URL http(s) por línea."></textarea></label>
+        <div class="flex items-center gap-3 md:col-span-2"><button class="tb-action-button" type="submit">{{ form.controls.id.value ? 'Guardar cambios' : 'Crear plantilla' }}</button><button class="tb-button tb-button--secondary" type="button" (click)="mostrarFormulario.set(false)">Cancelar</button></div>
+      </form>
+    </section>
+  }
+
+  <section class="tb-list-section">
+    <div class="tb-list-section__header"><div><p class="tb-page-kicker">CATÁLOGO DE LA AGENCIA</p><h2>Plantillas activas</h2></div><span class="tb-count-chip">{{ plantillas().length }}</span></div>
+    <div class="mt-5 grid gap-4 md:grid-cols-2">
+      @for (plantilla of plantillas(); track plantilla.id) {
+        <article class="rounded-xl border border-slate-700 bg-slate-950/20 p-5">
+          <div class="flex justify-between gap-3"><div><h3 class="text-lg font-bold">{{ plantilla.nombre }}</h3><p class="mt-1 text-sm text-slate-400">{{ plantilla.tituloSugerido }}</p></div><span class="tb-status-badge">{{ plantilla.horasEstimadas }} h</span></div>
+          <p class="mt-4 text-sm text-slate-400">{{ plantilla.descripcionBase || 'Sin descripción base.' }}</p>
+          <div class="mt-4 grid grid-cols-2 gap-2 text-sm"><span>Prioridad: <strong>{{ plantilla.prioridadSugerida || 'Sin definir' }}</strong></span><span>Complejidad: <strong>{{ plantilla.complejidad || 'Sin definir' }}</strong></span><span>Skill: <strong>{{ plantilla.skillRequerido }}</strong></span><span>Seniority: <strong>{{ plantilla.seniorityRecomendado || 'Sin definir' }}</strong></span></div>
+          <div class="mt-5 flex gap-2"><button class="tb-button tb-button--ghost" type="button" (click)="editar(plantilla)">Editar</button><button class="tb-button tb-button--danger" type="button" (click)="solicitarBaja(plantilla)">Dar de baja</button></div>
+        </article>
+      } @empty {
+        <div class="tb-empty-state md:col-span-2"><h3>Sin plantillas todavía</h3><p>Creá una desde cero o reutilizá una tarea existente como punto de partida.</p></div>
+      }
+    </div>
+  </section>
+
+  @if (mostrarDesdeTarea()) {
+    <div class="tb-dialog-backdrop" (click)="mostrarDesdeTarea.set(false)"><section class="tb-dialog" (click)="$event.stopPropagation()"><button class="tb-dialog__close" type="button" (click)="mostrarDesdeTarea.set(false)">×</button><p class="tb-page-kicker">A3 · DESDE TAREA EXISTENTE</p><h2>Elegí una tarea como base</h2><div class="mt-5 space-y-2">@for (tarea of tareasBase(); track tarea.id) { <button class="block w-full rounded-lg border border-slate-700 p-3 text-left hover:border-cyan-400" type="button" (click)="seleccionarTareaBase(tarea)"><strong>{{ tarea.titulo }}</strong><span class="ml-2 text-sm text-slate-400">{{ tarea.horasEstimadas }} h · {{ tarea.prioridad || 'Sin prioridad' }}</span></button> } @empty { <p class="tb-muted-text">No hay tareas activas disponibles en tus proyectos.</p> }</div></section></div>
+  }
+
+  @if (mostrarBaja(); as plantilla) {
+    <div class="tb-dialog-backdrop" (click)="mostrarBaja.set(null)"><section class="tb-dialog" (click)="$event.stopPropagation()"><button class="tb-dialog__close" type="button" (click)="mostrarBaja.set(null)">×</button><p class="tb-page-kicker">BAJA LÓGICA</p><h2>Dar de baja “{{ plantilla.nombre }}”</h2><p class="tb-muted-text">Dejará de estar disponible para crear tareas nuevas, pero se conservará su historial.</p><form class="mt-5 space-y-4" [formGroup]="bajaForm" (ngSubmit)="confirmarBaja()"><label class="tb-field-label">Motivo de la baja<textarea rows="3" formControlName="motivoBaja"></textarea></label><button class="tb-button tb-button--danger" type="submit">Confirmar baja</button></form></section></div>
+  }
+</section>

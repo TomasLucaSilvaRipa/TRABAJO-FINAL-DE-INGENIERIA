@@ -55,6 +55,7 @@ import { AvailabilityComponent } from './pages/users/employee/availability/avail
 import { LicensesComponent } from './pages/users/employee/licenses/licenses.component';
 import { ImpactSimulationComponent } from './pages/users/pm/impact-simulation/impact-simulation.component';
 import { ProjectKanbanComponent } from './pages/users/pm/project-kanban/project-kanban.component';
+import { TaskTemplatesComponent } from './pages/users/pm/task-templates/task-templates.component';
 import { NotificationsComponent } from './pages/global/notifications/notifications.component';
 import { HelpComponent } from './pages/global/help/help.component';
 
@@ -196,6 +197,7 @@ export const routes: Routes = [
       { path: 'configuracion-agencia', component: AgencyConfiguration, canActivate: [permissionGuard], data: { permission: 'GestionarAgencia' }, title: 'Configuración de agencia | TeamBalance' },
       { path: 'suscripcion', component: Subscription, canActivate: [permissionGuard], data: { permission: 'GestionarSuscripcion' }, title: 'Suscripción | TeamBalance' },
       { path: 'tareas', component: TaskManagerComponent, canActivate: [permissionGuard], data: { permission: 'GestionarTareas' }, title: 'Gestión de tareas | TeamBalance' },
+      { path: 'plantillas-tareas', component: TaskTemplatesComponent, canActivate: [permissionGuard], data: { permission: 'GestionarTareas' }, title: 'Plantillas de tareas | TeamBalance' },
       { path: 'best-fit', component: BestFit, canActivate: [permissionGuard], data: { permission: 'UsarBestFit' }, title: 'Best Fit | TeamBalance' },
       { path: 'calendario-equipo', component: TeamCalendar, canActivate: [permissionGuard], data: { permission: 'VerCalendarioEquipo' }, title: 'Calendario del equipo | TeamBalance' },
       { path: 'simulacion-impacto', component: ImpactSimulationComponent, canActivate: [permissionGuard], data: { permission: 'SimularImpacto' }, title: 'Simulación de impacto | TeamBalance' },

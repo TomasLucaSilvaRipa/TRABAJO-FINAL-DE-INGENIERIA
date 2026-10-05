@@ -32,6 +32,19 @@ public class TareasController : ControllerBase
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
+
+    [HttpPost("mias/tablero-proyecto")]
+    public IActionResult ConsultarTableroProyectoPropio([FromBody] Tarea tarea)
+    {
+        try
+        {
+            List<Tarea> tareas = _tareaBLL.ConsultarTableroProyectoPropio(tarea, ValidarSesion());
+            return Ok(tareas);
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
     
     [HttpPatch("mias/comentarios")]
     public IActionResult GuardarComentarios([FromBody] Tarea tarea)
@@ -49,6 +62,18 @@ public class TareasController : ControllerBase
     public IActionResult Opciones() { 
         return Ok(_tareaBLL.ConsultarOpciones(ValidarSesion())); 
     }
+    [HttpPost("filtrar")]
+    public IActionResult Filtrar([FromBody] FiltroTarea filtro)
+    {
+        try
+        {
+            List<Tarea> tareas = _tareaBLL.Consultar(ValidarSesion(), filtro);
+            return Ok(tareas);
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
     [HttpPost] public IActionResult Guardar([FromBody] Tarea tarea) 
     { 
         try 
@@ -57,7 +82,7 @@ public class TareasController : ControllerBase
             return Ok(resultado); 
         } catch (ArgumentException ex) { return BadRequest(ex.Message); } 
     }
-    [HttpPut("{id:int}")] public IActionResult Modificar([FromBody] Tarea tarea) 
+    [HttpPut] public IActionResult Modificar([FromBody] Tarea tarea) 
     { 
         try 
         {
@@ -96,6 +121,19 @@ public class TareasController : ControllerBase
         try
         {
             bool resultado = _tareaBLL.CambiarEstadoPropio(tarea, ValidarSesion());
+            return Ok(resultado);
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
+
+    [HttpPatch("mias/avance")]
+    public IActionResult ActualizarAvancePropio([FromBody] Tarea tarea)
+    {
+        try
+        {
+            Tarea resultado = _tareaBLL.ActualizarAvancePropio(tarea, ValidarSesion());
             return Ok(resultado);
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
