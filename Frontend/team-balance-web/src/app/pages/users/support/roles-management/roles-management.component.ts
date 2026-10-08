@@ -47,5 +47,5 @@ export class RolManagement {
     this.rolesService.registrarRol(rol).subscribe({ next: () => { this.mensaje.set('Rol guardado correctamente.'); this.cancelar(); this.cargar(); }, error: (respuesta: { error?: string }) => this.error.set(respuesta.error || 'No fue posible guardar el rol.') });
   }
   cambiarEstado(rol: Rol): void { this.rolesService.cambiarEstado({ ...rol, activo: !rol.activo }).subscribe({ next: () => this.cargar(), error: (respuesta: { error?: string }) => this.error.set(respuesta.error || 'No fue posible actualizar el rol.') }); }
-  private permisosInternosSoporte(): string[] { return ['ConsultarBitacora', 'GestionarPlanes', 'GestionarBandejaSoporte', 'GestionarNovedades', 'GestionarOperadores']; }
+  private permisosInternosSoporte(): string[] { return ['ConsultarBitacora', 'GestionarPlanes', 'GestionarBandejaSoporte', 'GestionarNovedades', 'GestionarOperadores', 'GestionarRespaldos']; }
 }

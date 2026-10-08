@@ -47,6 +47,7 @@ builder.Services.AddScoped<MPPPlantillaTarea>();
 builder.Services.AddScoped<MPPSuscripcion>();
 builder.Services.AddScoped<MPPHelpDesk>();
 builder.Services.AddScoped<MPPNovedades>();
+builder.Services.AddScoped<MPPRespaldoBaseDatos>();
 
 builder.Services.AddScoped<ContratacionBLL>();
 builder.Services.AddScoped<BLLAgencia>();
@@ -69,9 +70,12 @@ builder.Services.AddScoped<BLLPlantillaTarea>();
 builder.Services.AddScoped<BLLSuscripcion>();
 builder.Services.AddScoped<BLLHelpDesk>();
 builder.Services.AddScoped<BLLNovedades>();
+builder.Services.AddScoped<BLLRespaldoBaseDatos>();
+builder.Services.AddSingleton(builder.Configuration.GetSection("Backup").Get<BackupSettings>() ?? new BackupSettings());
 builder.Services.AddSingleton<EncryptionService>();
 builder.Services.AddHostedService<SubscriptionExpirationHostedService>();
 builder.Services.AddHostedService<NewsPublisherHostedService>();
+builder.Services.AddHostedService<BackupHostedService>();
 
 builder.Services.AddHttpClient<PasswordSecurityWebService>( client => { client.BaseAddress = new Uri(builder.Configuration["PasswordSecurityWebService:BaseUrl"]!); });
 

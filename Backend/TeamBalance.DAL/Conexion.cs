@@ -76,5 +76,36 @@ namespace TeamBalance.DAL
             catch (Exception ex) { throw new Exception(ex.Message); }
         
         }
+
+        public async Task EjecutarAdministracionAsync(string consulta, List<SqlParameter>? parametros = null, string baseDatos = "master", int tiempoEsperaSegundos = 900)
+        {
+            try
+            {
+                SqlConnectionStringBuilder cadena = new SqlConnectionStringBuilder(_cadenaConexion) { InitialCatalog = baseDatos };
+                await using SqlConnection conn = new SqlConnection(cadena.ConnectionString);
+                await using SqlCommand cmd = new SqlCommand(consulta, conn) { CommandType = CommandType.Text, CommandTimeout = tiempoEsperaSegundos };
+                if (parametros is not null) foreach (SqlParameter parametro in parametros) cmd.Parameters.Add(parametro);
+                await conn.OpenAsync();
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (SqlException ex) { throw new InvalidOperationException(ex.Message, ex); }
+        }
+
+        public async Task<DataTable> LeerAdministracionAsync(string consulta, List<SqlParameter>? parametros = null, string baseDatos = "master", int tiempoEsperaSegundos = 900)
+        {
+            try
+            {
+                SqlConnectionStringBuilder cadena = new SqlConnectionStringBuilder(_cadenaConexion) { InitialCatalog = baseDatos };
+                await using SqlConnection conn = new SqlConnection(cadena.ConnectionString);
+                await using SqlCommand cmd = new SqlCommand(consulta, conn) { CommandType = CommandType.Text, CommandTimeout = tiempoEsperaSegundos };
+                if (parametros is not null) foreach (SqlParameter parametro in parametros) cmd.Parameters.Add(parametro);
+                await conn.OpenAsync();
+                await using SqlDataReader lector = await cmd.ExecuteReaderAsync();
+                DataTable resultado = new DataTable();
+                resultado.Load(lector);
+                return resultado;
+            }
+            catch (SqlException ex) { throw new InvalidOperationException(ex.Message, ex); }
+        }
     }
 }
