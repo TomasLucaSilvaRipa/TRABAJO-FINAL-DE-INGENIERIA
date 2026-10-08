@@ -36,7 +36,7 @@ GO
 CREATE OR ALTER PROCEDURE dbo.usp_DisponibilidadBase_Consultar @IdEmpleado INT AS
 BEGIN SELECT ID, IdEmpleado, HoraInicio, HoraFin, HorasSemanales, Observacion, Activo FROM dbo.DisponibilidadBase WHERE IdEmpleado=@IdEmpleado AND Activo=1; END
 GO
-CREATE OR ALTER PROCEDURE dbo.usp_DisponibilidadBase_RegistrarActualizar @IdEmpleado INT, @HoraInicio TIME, @HoraFin TIME, @HorasSemanales DECIMAL(10,2), @Observacion NVARCHAR(500) = NULL AS
+CREATE OR ALTER PROCEDURE dbo.usp_DisponibilidadBase_RegistrarActualizar @IdEmpleado INT, @HoraInicio TIME, @HoraFin TIME, @HorasSemanales DECIMAL(10,2), @Observacion NVARCHAR(MAX) = NULL AS
 BEGIN
     IF EXISTS(SELECT 1 FROM dbo.DisponibilidadBase WHERE IdEmpleado=@IdEmpleado) UPDATE dbo.DisponibilidadBase SET HoraInicio=@HoraInicio, HoraFin=@HoraFin, HorasSemanales=@HorasSemanales, Observacion=@Observacion, Activo=1 WHERE IdEmpleado=@IdEmpleado;
     ELSE INSERT INTO dbo.DisponibilidadBase(IdEmpleado, HoraInicio, HoraFin, HorasSemanales, Observacion, Activo) VALUES(@IdEmpleado, @HoraInicio, @HoraFin, @HorasSemanales, @Observacion, 1);

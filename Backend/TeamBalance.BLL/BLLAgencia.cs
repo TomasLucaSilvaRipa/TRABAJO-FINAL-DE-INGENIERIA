@@ -30,7 +30,8 @@ public class BLLAgencia
     public async Task<bool> RegistrarAgencia(Agencia agencia, Usuario usuario, ContratacionServicio contratacionServicio, bool recibirNewsletter, List<int>? categoriasNewsletterIds)
     {
         ValidarDatosRegistro(usuario, contratacionServicio);
-        PreferenciasNewsletterRequest preferenciasNewsletter = new() { CategoriasIds = categoriasNewsletterIds?.Distinct().ToList() ?? [] };
+        PreferenciasNewsletterRequest preferenciasNewsletter = new PreferenciasNewsletterRequest();
+        preferenciasNewsletter.CategoriasIds = categoriasNewsletterIds?.Distinct().ToList() ?? new List<int>();
         if (recibirNewsletter)
         {
             if (preferenciasNewsletter.CategoriasIds.Count == 0) throw new ArgumentException("Seleccioná al menos una categoría para recibir novedades.");

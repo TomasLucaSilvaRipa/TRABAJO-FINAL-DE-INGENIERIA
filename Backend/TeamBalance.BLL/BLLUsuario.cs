@@ -320,7 +320,7 @@ public class BLLUsuario
             Usuario usuarioAgencia = _usuarioMPP.ConsultarUsuariosAgencia(solicitante).FirstOrDefault(item => item.ID == usuario.ID) ?? throw new KeyNotFoundException("No existe el usuario dentro de la agencia.");
             if (!usuario.Activo && usuarioAgencia.Empleado is not null)
             {
-                int idEmpleado = _recursosMPP.ConsultarIdEmpleadoPorUsuarioAgencia(usuarioAgencia.ID, solicitante);
+                int idEmpleado = _recursosMPP.ConsultarIdEmpleadoPorUsuarioAgencia(usuarioAgencia, solicitante);
                 List<Tarea> tareasPendientes = _tareaMPP.Consultar(solicitante, new FiltroTarea { IdEmpleadoAsignado = idEmpleado })
                     .Where(tarea => tarea.Activo && !string.Equals(tarea.Estado, "Finalizada", StringComparison.OrdinalIgnoreCase) && !string.Equals(tarea.Estado, "Finalizado", StringComparison.OrdinalIgnoreCase))
                     .ToList();

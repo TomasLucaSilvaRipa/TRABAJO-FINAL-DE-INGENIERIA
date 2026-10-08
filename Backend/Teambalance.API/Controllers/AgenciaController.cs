@@ -119,7 +119,7 @@ public class AgenciaController : ControllerBase
 
 public sealed class RegistrarAgenciaRequest
 {
-    public Agencia Agencia { get; set; } = new();
+    public Agencia Agencia { get; set; } = new Agencia();
     public bool RecibirNewsletter { get; set; }
-    public List<int> CategoriasNewsletterIds { get; set; } = [];
+    public List<int> CategoriasNewsletterIds { get; set; } = new List<int>();
 }

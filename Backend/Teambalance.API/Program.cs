@@ -22,6 +22,8 @@ builder.Services.AddSingleton(new EmailService(
     builder.Configuration["Frontend:PublicBaseUrl"],
     builder.Configuration["Email:LogoUrl"]));
 builder.Services.AddScoped<Seguridad>();
+string fieldEncryptionKey = builder.Configuration["FieldEncryption:Key"] ?? throw new InvalidOperationException("No se configuró FieldEncryption:Key. Configurala como secreto del entorno antes de iniciar la API.");
+builder.Services.AddSingleton(new FieldEncryptionService(fieldEncryptionKey));
 
 builder.Services.AddScoped<Conexion>(_ =>
     new Conexion(builder.Configuration.GetConnectionString("TeamBalanceDB")
@@ -72,6 +74,7 @@ builder.Services.AddScoped<BLLHelpDesk>();
 builder.Services.AddScoped<BLLNovedades>();
 builder.Services.AddScoped<BLLRespaldoBaseDatos>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("Backup").Get<BackupSettings>() ?? new BackupSettings());
+builder.Services.AddSingleton<ContinuityHistoryXmlService>();
 builder.Services.AddSingleton<EncryptionService>();
 builder.Services.AddHostedService<SubscriptionExpirationHostedService>();
 builder.Services.AddHostedService<NewsPublisherHostedService>();

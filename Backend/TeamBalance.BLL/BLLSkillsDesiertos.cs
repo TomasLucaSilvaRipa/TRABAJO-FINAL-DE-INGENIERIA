@@ -53,7 +53,10 @@ public class BLLSkillsDesiertos
     {
         ValidarAcceso(usuario);
         if (consulta.IdSkill <= 0 || consulta.IdProyecto <= 0) { throw new ArgumentException("Seleccioná una skill y un proyecto válidos."); }
-        FiltroCoberturaSkill filtro = new() { IdProyecto = consulta.IdProyecto, FechaDesde = DateTime.Today, FechaHasta = DateTime.Today.AddDays(90) };
+        FiltroCoberturaSkill filtro = new FiltroCoberturaSkill();
+        filtro.IdProyecto = consulta.IdProyecto;
+        filtro.FechaDesde = DateTime.Today;
+        filtro.FechaHasta = DateTime.Today.AddDays(90);
         AnalisisCoberturaSkill analisis = AnalizarCobertura(filtro, usuario, false).FirstOrDefault(item => item.IdSkill == consulta.IdSkill)
             ?? throw new KeyNotFoundException("La skill no tiene demanda activa en el proyecto seleccionado.");
 

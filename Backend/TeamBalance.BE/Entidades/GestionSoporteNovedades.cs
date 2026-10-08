@@ -31,6 +31,7 @@ public sealed class MensajeSoporteDetalle
 
 public sealed class CrearConsultaSoporteRequest
 {
+    public int? IdSuscripcion { get; set; }
     public string Categoria { get; set; } = string.Empty;
     public string Asunto { get; set; } = string.Empty;
     public string Descripcion { get; set; } = string.Empty;
@@ -38,12 +39,14 @@ public sealed class CrearConsultaSoporteRequest
 
 public sealed class EnviarMensajeSoporteRequest
 {
+    public int IdConsulta { get; set; }
     public string Mensaje { get; set; } = string.Empty;
     public string? Estado { get; set; }
 }
 
 public sealed class CambiarEstadoConsultaRequest
 {
+    public int IdConsulta { get; set; }
     public string Estado { get; set; } = string.Empty;
 }
 
@@ -81,5 +84,5 @@ public sealed class GuardarNoticiaRequest
 
 public sealed class PreferenciasNewsletterRequest
 {
-    public List<int> CategoriasIds { get; set; } = [];
+    public List<int> CategoriasIds { get; set; } = new List<int>();
 }

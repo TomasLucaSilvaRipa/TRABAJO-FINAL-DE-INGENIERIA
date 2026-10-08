@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
+using TeamBalance.Services;
 
 namespace Teambalance.API.Controllers;
 
@@ -16,8 +17,8 @@ public sealed class RespaldosController : ControllerBase
     [HttpGet]
     public IActionResult Consultar() => Ejecutar(() =>
     {
-        var resultado = _respaldoBLL.Consultar(UsuarioActual());
-        return Ok(new { respaldos = resultado.Respaldos, pruebasRestauracion = resultado.Pruebas, rpoHoras = 24, rtoHoras = 4, retencionDias = 30 });
+        (List<RespaldoBaseDatos> Respaldos, List<PruebaRestauracionRespaldo> Pruebas, List<RegistroContinuidadXml> HistorialXml) resultado = _respaldoBLL.Consultar(UsuarioActual());
+        return Ok(new { respaldos = resultado.Respaldos, pruebasRestauracion = resultado.Pruebas, historialXml = resultado.HistorialXml, rpoHoras = 24, rtoHoras = 4, retencionDias = 30 });
     });
 
     [HttpPost]

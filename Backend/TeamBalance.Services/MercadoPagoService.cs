@@ -125,13 +125,18 @@ namespace TeamBalance.Services
         string? accessToken = _configuration["MercadoPago:AccessToken"];
         if (string.IsNullOrWhiteSpace(accessToken)) throw new InvalidOperationException("No se configuró el Access Token de Mercado Pago.");
         (decimal importe, string moneda) = ObtenerCobroPrueba(nombrePlan);
-        var body = new
-        {
-            reason = $"TeamBalance · renovación {nombrePlan}", external_reference = referenciaExterna, payer_email = payerEmail,
-            card_token_id = cardToken, status = "authorized",
-            auto_recurring = new { frequency = 1, frequency_type = "months", transaction_amount = importe, currency_id = moneda }
-        };
-        using HttpRequestMessage request = new(HttpMethod.Post, "https://api.mercadopago.com/preapproval");
+        MercadoPagoPreapprovalRequest body = new MercadoPagoPreapprovalRequest();
+        body.Reason = $"TeamBalance · renovación {nombrePlan}";
+        body.ExternalReference = referenciaExterna;
+        body.PayerEmail = payerEmail;
+        body.CardTokenId = cardToken;
+        body.Status = "authorized";
+        body.AutoRecurring = new MercadoPagoAutoRecurringRequest();
+        body.AutoRecurring.Frequency = 1;
+        body.AutoRecurring.FrequencyType = "months";
+        body.AutoRecurring.TransactionAmount = importe;
+        body.AutoRecurring.CurrencyId = moneda;
+        using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "https://api.mercadopago.com/preapproval");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         if (CobroPruebaHabilitado()) request.Headers.TryAddWithoutValidation("X-scope", "stage");
         request.Content = JsonContent.Create(body);
@@ -146,7 +151,7 @@ namespace TeamBalance.Services
     {
         string? accessToken = _configuration["MercadoPago:AccessToken"];
         if (string.IsNullOrWhiteSpace(accessToken)) throw new InvalidOperationException("No se configuró el Access Token de Mercado Pago.");
-        using HttpRequestMessage request = new(HttpMethod.Get, $"https://api.mercadopago.com/authorized_payments/search?preapproval_id={Uri.EscapeDataString(preapprovalId)}");
+        using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, $"https://api.mercadopago.com/authorized_payments/search?preapproval_id={Uri.EscapeDataString(preapprovalId)}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         using HttpResponseMessage response = await _httpClient.SendAsync(request);
         if (!response.IsSuccessStatusCode) throw new InvalidOperationException("No fue posible consultar los cobros recurrentes en Mercado Pago.");
@@ -162,7 +167,7 @@ namespace TeamBalance.Services
         string? accessToken = _configuration["MercadoPago:AccessToken"];
         if (string.IsNullOrWhiteSpace(accessToken)) throw new InvalidOperationException("No se configuró el Access Token de Mercado Pago.");
 
-        using HttpRequestMessage request = new(HttpMethod.Put, $"https://api.mercadopago.com/preapproval/{Uri.EscapeDataString(preapprovalId)}");
+        using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Put, $"https://api.mercadopago.com/preapproval/{Uri.EscapeDataString(preapprovalId)}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         if (CobroPruebaHabilitado()) request.Headers.TryAddWithoutValidation("X-scope", "stage");
         request.Content = JsonContent.Create(new { status = estado });
@@ -261,6 +266,42 @@ namespace TeamBalance.Services
 
         [JsonPropertyName("status")]
         public string? Status { get; set; }
+    }
+
+    public sealed class MercadoPagoPreapprovalRequest
+    {
+        [JsonPropertyName("reason")]
+        public string Reason { get; set; } = string.Empty;
+
+        [JsonPropertyName("external_reference")]
+        public string ExternalReference { get; set; } = string.Empty;
+
+        [JsonPropertyName("payer_email")]
+        public string PayerEmail { get; set; } = string.Empty;
+
+        [JsonPropertyName("card_token_id")]
+        public string CardTokenId { get; set; } = string.Empty;
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = string.Empty;
+
+        [JsonPropertyName("auto_recurring")]
+        public MercadoPagoAutoRecurringRequest AutoRecurring { get; set; } = new MercadoPagoAutoRecurringRequest();
+    }
+
+    public sealed class MercadoPagoAutoRecurringRequest
+    {
+        [JsonPropertyName("frequency")]
+        public int Frequency { get; set; }
+
+        [JsonPropertyName("frequency_type")]
+        public string FrequencyType { get; set; } = string.Empty;
+
+        [JsonPropertyName("transaction_amount")]
+        public decimal TransactionAmount { get; set; }
+
+        [JsonPropertyName("currency_id")]
+        public string CurrencyId { get; set; } = string.Empty;
     }
 
     public sealed class MercadoPagoAuthorizedPaymentsResponse

@@ -9,7 +9,13 @@ export interface RespaldoBaseDatos {
 
 export interface PruebaRestauracion { id: number; idRespaldo: number; baseDatosDestino: string; fechaInicio: string; fechaFin: string | null; estado: string; mensaje: string | null; }
 
-export interface EstadoRespaldos { respaldos: RespaldoBaseDatos[]; pruebasRestauracion: PruebaRestauracion[]; rpoHoras: number; rtoHoras: number; retencionDias: number; }
+export interface RegistroContinuidadXml {
+  idOperacion: string; tipo: string; estado: string; fechaInicioUtc: string; fechaFinUtc: string | null;
+  idRespaldo: number | null; nombreArchivo: string; tamanoBytes: number | null; verificado: boolean | null;
+  idUsuarioSolicitante: number | null; archivosConfiguracion: number | null; mensaje: string | null;
+}
+
+export interface EstadoRespaldos { respaldos: RespaldoBaseDatos[]; pruebasRestauracion: PruebaRestauracion[]; historialXml: RegistroContinuidadXml[]; rpoHoras: number; rtoHoras: number; retencionDias: number; }
 
 @Injectable({ providedIn: 'root' })
 export class RespaldosService {

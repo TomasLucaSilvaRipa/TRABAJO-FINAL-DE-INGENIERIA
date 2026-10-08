@@ -9,7 +9,7 @@ public sealed class BackupSettings
     public int RetentionDays { get; set; } = 30;
     public int DailyHourLocal { get; set; } = 3;
     public string TimeZoneId { get; set; } = "Argentina Standard Time";
-    // Se guardan junto al .bak como evidencia de configuración. El directorio de
-    // respaldos no se expone desde la aplicación ni se ofrece para descarga.
+    public string XmlHistoryFile { get; set; } = @"C:\TeamBalance\Backups\continuity\historial-continuidad.xml";
+    
     public List<string> ConfigurationFiles { get; set; } = ["appsettings.json", "appsettings.Production.json"];
 }

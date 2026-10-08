@@ -25,7 +25,7 @@ public class MPPSkillsDesiertos
 
     public List<EmpleadoCoberturaSkill> ConsultarEmpleados(Usuario usuario)
     {
-        List<SqlParameter> parametros = new() { new SqlParameter("@IdAgencia", usuario.IdAgencia) };
+        List<SqlParameter> parametros = new List<SqlParameter> { new SqlParameter("@IdAgencia", usuario.IdAgencia) };
         DataTable tabla = _conexion.Leer("dbo.usp_SkillsDesiertos_ConsultarEmpleados", parametros);
         return tabla.Rows.Cast<DataRow>().Select(fila => new EmpleadoCoberturaSkill
         {
@@ -37,7 +37,7 @@ public class MPPSkillsDesiertos
 
     public bool RegistrarRecomendacion(RecomendacionSkill recomendacion, Usuario usuario)
     {
-        List<SqlParameter> parametros = new()
+        List<SqlParameter> parametros = new List<SqlParameter>
         {
             new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@IdSkill", recomendacion.IdSkill), new SqlParameter("@IdUsuarioCreador", usuario.ID),
             new SqlParameter("@TipoAccion", recomendacion.TipoAccion), new SqlParameter("@Observacion", recomendacion.Observacion)
@@ -49,7 +49,7 @@ public class MPPSkillsDesiertos
     {
         DataTable tabla = _conexion.Leer("dbo.usp_SkillsDesiertos_SugerirEmpleados", new List<SqlParameter>
         {
-            new("@IdAgencia", usuario.IdAgencia), new("@IdSkill", consulta.IdSkill), new("@IdProyecto", consulta.IdProyecto)
+            new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@IdSkill", consulta.IdSkill), new SqlParameter("@IdProyecto", consulta.IdProyecto)
         });
         return tabla.Rows.Cast<DataRow>().Select(fila => new SugerenciaEmpleadoSkill
         {
@@ -61,7 +61,7 @@ public class MPPSkillsDesiertos
         }).ToList();
     }
 
-    private static List<SqlParameter> CrearParametros(FiltroCoberturaSkill filtro, Usuario usuario) => new()
+    private static List<SqlParameter> CrearParametros(FiltroCoberturaSkill filtro, Usuario usuario) => new List<SqlParameter>
     {
         new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@FechaDesde", filtro.FechaDesde), new SqlParameter("@FechaHasta", filtro.FechaHasta),
         new SqlParameter("@IdProyecto", (object?)filtro.IdProyecto ?? DBNull.Value), new SqlParameter("@IdCliente", (object?)filtro.IdCliente ?? DBNull.Value)

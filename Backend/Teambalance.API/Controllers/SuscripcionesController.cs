@@ -40,10 +40,10 @@ public sealed class SuscripcionesController : ControllerBase
         catch (Exception) { return StatusCode(502, "No fue posible enviar la solicitud al proveedor de pago."); }
     }
 
-    [HttpPost("operaciones/{referenciaOperacion}/verificar-pago")]
-    public async Task<IActionResult> VerificarPago([FromRoute] string referenciaOperacion, [FromBody] VerificarOperacionRequest solicitud)
+    [HttpPost("operaciones/{ReferenciaOperacion}/verificar-pago")]
+    public async Task<IActionResult> VerificarPago([FromRoute] VerificarPagoSuscripcionRequest solicitudRuta, [FromBody] VerificarPagoSuscripcionRequest solicitud)
     {
-        try { return Ok(await _suscripcionBLL.VerificarActualizacionPago(referenciaOperacion, solicitud.PaymentId)); }
+        try { solicitud.ReferenciaOperacion = solicitudRuta.ReferenciaOperacion; return Ok(await _suscripcionBLL.VerificarActualizacionPago(solicitud)); }
         catch (KeyNotFoundException ex) { return NotFound(new { code = "SUBSCRIPTION_OPERATION_NOT_FOUND", message = ex.Message }); }
         catch (ArgumentException ex) { return BadRequest(new { code = "SUBSCRIPTION_VALIDATION", message = ex.Message }); }
         catch (InvalidOperationException ex) { return BadRequest(new { code = "SUBSCRIPTION_OPERATION_REJECTED", message = ex.Message }); }
@@ -53,7 +53,7 @@ public sealed class SuscripcionesController : ControllerBase
     [HttpPost("cancelar-renovacion")]
     public async Task<IActionResult> CancelarRenovacion([FromBody] CancelacionRenovacionRequest solicitud)
     {
-        try { return Ok(await _suscripcionBLL.CancelarRenovacion(ObtenerSolicitante(), solicitud.Motivo)); }
+        try { return Ok(await _suscripcionBLL.CancelarRenovacion(ObtenerSolicitante(), solicitud)); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
@@ -97,7 +97,3 @@ public sealed class SuscripcionesController : ControllerBase
     }
 }
 
-public sealed class VerificarOperacionRequest
-{
-    public string PaymentId { get; set; } = string.Empty;
-}

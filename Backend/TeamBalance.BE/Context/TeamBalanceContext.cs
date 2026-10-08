@@ -323,7 +323,7 @@ public partial class TeamBalanceContext : DbContext
             entity.Property(e => e.HoraFin).HasPrecision(0);
             entity.Property(e => e.HoraInicio).HasPrecision(0);
             entity.Property(e => e.HorasSemanales).HasColumnType("decimal(5, 2)");
-            entity.Property(e => e.Observacion).HasMaxLength(500);
+            entity.Property(e => e.Observacion).HasColumnType("nvarchar(max)");
 
             entity.HasOne(d => d.IdEmpleadoNavigation).WithOne(p => p.DisponibilidadBase)
                 .HasForeignKey<DisponibilidadBase>(d => d.IdEmpleado)

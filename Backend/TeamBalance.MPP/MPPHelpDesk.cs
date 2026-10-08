@@ -8,31 +8,93 @@ namespace TeamBalance.MPP;
 public sealed class MPPHelpDesk
 {
     private readonly Conexion _conexion;
-    public MPPHelpDesk(Conexion conexion) => _conexion = conexion;
 
-    public ConsultaSoporteResumen Crear(int idUsuario, int? idAgencia, int? idSuscripcion, CrearConsultaSoporteRequest solicitud) => CrearResumen(_conexion.Leer("dbo.usp_HelpDesk_CrearConsulta", new List<SqlParameter>
-    {
-        new("@IdUsuario", idUsuario), new("@IdAgencia", (object?)idAgencia ?? DBNull.Value), new("@IdSuscripcion", (object?)idSuscripcion ?? DBNull.Value), new("@Categoria", solicitud.Categoria), new("@Asunto", solicitud.Asunto), new("@Descripcion", solicitud.Descripcion),
-    }).Rows[0]);
+    public MPPHelpDesk(Conexion conexion) {
+        _conexion = conexion;
+    }
 
-    public List<ConsultaSoporteResumen> ConsultarPropias(int idUsuario) => Consultar("dbo.usp_HelpDesk_ConsultarPropias", new("@IdUsuario", idUsuario));
-    public List<ConsultaSoporteResumen> ConsultarBandeja(string? estado) => Consultar("dbo.usp_HelpDesk_ConsultarBandeja", new("@Estado", (object?)estado ?? DBNull.Value));
+    public ConsultaSoporteResumen Crear(Usuario usuario, CrearConsultaSoporteRequest solicitud) {
+        List<SqlParameter> parametros = new List<SqlParameter>() {
+            new SqlParameter("@IdUsuario", usuario.ID),
+            new SqlParameter("@IdAgencia", (object?)usuario.IdAgencia ?? DBNull.Value),
+            new SqlParameter("@IdSuscripcion", (object?)solicitud.IdSuscripcion ?? DBNull.Value),
+            new SqlParameter("@Categoria", solicitud.Categoria),
+            new SqlParameter("@Asunto", solicitud.Asunto),
+            new SqlParameter("@Descripcion", solicitud.Descripcion)
+        };
+        DataTable tabla = _conexion.Leer("dbo.usp_HelpDesk_CrearConsulta", parametros);
+        return CrearResumen(tabla.Rows[0]);
+    }
 
-    public ConsultaSoporteResumen? ConsultarDetalle(int idConsulta) { DataTable tabla = _conexion.Leer("dbo.usp_HelpDesk_ConsultarDetalle", new List<SqlParameter> { new("@IdConsulta", idConsulta) }); return tabla.Rows.Count == 0 ? null : CrearResumen(tabla.Rows[0]); }
+    public List<ConsultaSoporteResumen> ConsultarPropias(Usuario usuario) {
+        return Consultar("dbo.usp_HelpDesk_ConsultarPropias", new SqlParameter("@IdUsuario", usuario.ID));
+    }
 
-    public List<MensajeSoporteDetalle> ConsultarMensajes(int idConsulta) => _conexion.Leer("dbo.usp_HelpDesk_ConsultarMensajes", new List<SqlParameter> { new("@IdConsulta", idConsulta) }).Rows.Cast<DataRow>().Select(f => new MensajeSoporteDetalle
-    {
-        ID = Convert.ToInt32(f["ID"]), IdUsuario = Convert.ToInt32(f["IdUsuario"]), NombreUsuario = Convert.ToString(f["NombreUsuario"]) ?? string.Empty, EsSoporte = Convert.ToBoolean(f["EsSoporte"]), Mensaje = Convert.ToString(f["Mensaje"]) ?? string.Empty, Fecha = Convert.ToDateTime(f["Fecha"]),
-    }).ToList();
+    public List<ConsultaSoporteResumen> ConsultarBandeja(ConsultaSoporteResumen filtro) {
+        return Consultar("dbo.usp_HelpDesk_ConsultarBandeja", new SqlParameter("@Estado", (object?)filtro.Estado ?? DBNull.Value));
+    }
 
-    public void AgregarMensaje(int idConsulta, int idUsuario, string mensaje, string estado) => _conexion.Leer("dbo.usp_HelpDesk_AgregarMensaje", new List<SqlParameter> { new("@IdConsulta", idConsulta), new("@IdUsuario", idUsuario), new("@Mensaje", mensaje), new("@Estado", estado) });
-    public void CambiarEstado(int idConsulta, string estado) => _conexion.Leer("dbo.usp_HelpDesk_CambiarEstado", new List<SqlParameter> { new("@IdConsulta", idConsulta), new("@Estado", estado) });
+    public ConsultaSoporteResumen? ConsultarDetalle(ConsultaSoporteResumen consulta) {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdConsulta", consulta.ID) };
+        DataTable tabla = _conexion.Leer("dbo.usp_HelpDesk_ConsultarDetalle", parametros);
+        return tabla.Rows.Count == 0 ? null : CrearResumen(tabla.Rows[0]);
+    }
 
-    private List<ConsultaSoporteResumen> Consultar(string sp, SqlParameter parametro) => _conexion.Leer(sp, new List<SqlParameter> { parametro }).Rows.Cast<DataRow>().Select(CrearResumen).ToList();
-    private static ConsultaSoporteResumen CrearResumen(DataRow f) => new()
-    {
-        ID = Convert.ToInt32(f["ID"]), IdUsuario = Convert.ToInt32(f["IdUsuario"]), IdAgencia = f["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(f["IdAgencia"]), IdSuscripcion = f.Table.Columns.Contains("IdSuscripcion") && f["IdSuscripcion"] != DBNull.Value ? Convert.ToInt32(f["IdSuscripcion"]) : null,
-        Categoria = Convert.ToString(f["Categoria"]) ?? string.Empty, Asunto = Convert.ToString(f["Asunto"]) ?? string.Empty, Descripcion = Convert.ToString(f["Descripcion"]) ?? string.Empty, Estado = Convert.ToString(f["Estado"]) ?? string.Empty, FechaCreacion = Convert.ToDateTime(f["FechaCreacion"]), FechaActualizacion = f["FechaActualizacion"] == DBNull.Value ? null : Convert.ToDateTime(f["FechaActualizacion"]),
-        NombreSolicitante = f.Table.Columns.Contains("NombreSolicitante") ? Convert.ToString(f["NombreSolicitante"]) ?? string.Empty : string.Empty, EmailSolicitante = f.Table.Columns.Contains("EmailSolicitante") && f["EmailSolicitante"] != DBNull.Value ? Convert.ToString(f["EmailSolicitante"]) : null, NombreAgencia = f.Table.Columns.Contains("NombreAgencia") && f["NombreAgencia"] != DBNull.Value ? Convert.ToString(f["NombreAgencia"]) : null, NombrePlan = f.Table.Columns.Contains("NombrePlan") && f["NombrePlan"] != DBNull.Value ? Convert.ToString(f["NombrePlan"]) : null, CantidadMensajes = f.Table.Columns.Contains("CantidadMensajes") ? Convert.ToInt32(f["CantidadMensajes"]) : 0,
-    };
+    public List<MensajeSoporteDetalle> ConsultarMensajes(ConsultaSoporteResumen consulta) {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdConsulta", consulta.ID) };
+        DataTable tabla = _conexion.Leer("dbo.usp_HelpDesk_ConsultarMensajes", parametros);
+        return tabla.Rows.Cast<DataRow>().Select(fila => new MensajeSoporteDetalle
+        {
+            ID = Convert.ToInt32(fila["ID"]),
+            IdUsuario = Convert.ToInt32(fila["IdUsuario"]),
+            NombreUsuario = Convert.ToString(fila["NombreUsuario"]) ?? string.Empty,
+            EsSoporte = Convert.ToBoolean(fila["EsSoporte"]),
+            Mensaje = Convert.ToString(fila["Mensaje"]) ?? string.Empty,
+            Fecha = Convert.ToDateTime(fila["Fecha"]),
+        }).ToList();
+    }
+
+    public void AgregarMensaje(ConsultaSoporteResumen consulta, Usuario usuario, EnviarMensajeSoporteRequest solicitud) {
+        List<SqlParameter> parametros = new List<SqlParameter>() {
+            new SqlParameter("@IdConsulta", consulta.ID),
+            new SqlParameter("@IdUsuario", usuario.ID),
+            new SqlParameter("@Mensaje", solicitud.Mensaje),
+            new SqlParameter("@Estado", consulta.Estado)
+        };
+        _conexion.Leer("dbo.usp_HelpDesk_AgregarMensaje", parametros);
+    }
+
+    public void CambiarEstado(ConsultaSoporteResumen consulta) {
+        List<SqlParameter> parametros = new List<SqlParameter>() {
+            new SqlParameter("@IdConsulta", consulta.ID),
+            new SqlParameter("@Estado", consulta.Estado)
+        };
+        _conexion.Leer("dbo.usp_HelpDesk_CambiarEstado", parametros);
+    }
+
+    private List<ConsultaSoporteResumen> Consultar(string procedimientoAlmacenado, SqlParameter parametro) {
+        List<SqlParameter> parametros = new List<SqlParameter> { parametro };
+        DataTable tabla = _conexion.Leer(procedimientoAlmacenado, parametros);
+        return tabla.Rows.Cast<DataRow>().Select(CrearResumen).ToList();
+    }
+
+    private static ConsultaSoporteResumen CrearResumen(DataRow fila) {
+        ConsultaSoporteResumen consulta = new ConsultaSoporteResumen();
+        consulta.ID = Convert.ToInt32(fila["ID"]);
+        consulta.IdUsuario = Convert.ToInt32(fila["IdUsuario"]);
+        consulta.IdAgencia = fila["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAgencia"]);
+        consulta.IdSuscripcion = fila.Table.Columns.Contains("IdSuscripcion") && fila["IdSuscripcion"] != DBNull.Value ? Convert.ToInt32(fila["IdSuscripcion"]) : null;
+        consulta.Categoria = Convert.ToString(fila["Categoria"]) ?? string.Empty;
+        consulta.Asunto = Convert.ToString(fila["Asunto"]) ?? string.Empty;
+        consulta.Descripcion = Convert.ToString(fila["Descripcion"]) ?? string.Empty;
+        consulta.Estado = Convert.ToString(fila["Estado"]) ?? string.Empty;
+        consulta.FechaCreacion = Convert.ToDateTime(fila["FechaCreacion"]);
+        consulta.FechaActualizacion = fila["FechaActualizacion"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaActualizacion"]);
+        consulta.NombreSolicitante = fila.Table.Columns.Contains("NombreSolicitante") ? Convert.ToString(fila["NombreSolicitante"]) ?? string.Empty : string.Empty;
+        consulta.EmailSolicitante = fila.Table.Columns.Contains("EmailSolicitante") && fila["EmailSolicitante"] != DBNull.Value ? Convert.ToString(fila["EmailSolicitante"]) : null;
+        consulta.NombreAgencia = fila.Table.Columns.Contains("NombreAgencia") && fila["NombreAgencia"] != DBNull.Value ? Convert.ToString(fila["NombreAgencia"]) : null;
+        consulta.NombrePlan = fila.Table.Columns.Contains("NombrePlan") && fila["NombrePlan"] != DBNull.Value ? Convert.ToString(fila["NombrePlan"]) : null;
+        consulta.CantidadMensajes = fila.Table.Columns.Contains("CantidadMensajes") ? Convert.ToInt32(fila["CantidadMensajes"]) : 0;
+        return consulta;
+    }
 }

@@ -56,6 +56,9 @@ public partial class Suscripcion
     public DateTime? FechaSincronizacionRenovacion { get; set; }
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? MotivoRenovacion { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public string? NombrePlan { get; set; }
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]

@@ -1,5 +1,6 @@
 using TeamBalance.BE.Entidades;
 using TeamBalance.MPP;
+using TeamBalance.Services;
 
 namespace TeamBalance.BLL;
 
@@ -8,12 +9,14 @@ public class BLLRecursos
     private readonly MPPRecursos _recursosMPP;
     private readonly BLLRol _rolBLL;
     private readonly BLLBitacora _bitacoraBLL;
+    private readonly FieldEncryptionService _fieldEncryptionService;
 
-    public BLLRecursos(MPPRecursos recursosMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL)
+    public BLLRecursos(MPPRecursos recursosMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL, FieldEncryptionService fieldEncryptionService)
     {
         _recursosMPP = recursosMPP;
         _rolBLL = rolBLL;
         _bitacoraBLL = bitacoraBLL;
+        _fieldEncryptionService = fieldEncryptionService;
     }
 
     public List<Skill> ConsultarSkills(Usuario solicitante)
@@ -60,19 +63,20 @@ public class BLLRecursos
             ValidarGestionUsuarios(solicitante);
             ObtenerAgencia(solicitante);
             Empleado empleado = _recursosMPP.ConsultarFichaEmpleado(usuario, solicitante);
+            DescifrarObservacionDisponibilidad(empleado);
             return empleado;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
-    public void RegistrarExportacionFichaEmpleado(int idUsuario, Usuario solicitante)
+    public void RegistrarExportacionFichaEmpleado(Usuario usuario, Usuario solicitante)
     {
         try
         {
             ValidarGestionUsuarios(solicitante);
-            if (idUsuario <= 0) { throw new ArgumentException("Seleccioná un empleado válido."); }
+            if (usuario.ID <= 0) { throw new ArgumentException("Seleccioná un empleado válido."); }
 
-            Empleado empleado = _recursosMPP.ConsultarFichaEmpleado(new Usuario { ID = idUsuario }, solicitante);
+            Empleado empleado = _recursosMPP.ConsultarFichaEmpleado(usuario, solicitante);
             _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "Empleado", empleado.ID, "ExportarLegajoEmpleado", "Se preparó la exportación del legajo de un empleado.", "Exitoso", "Información", "Recursos"));
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
@@ -102,6 +106,7 @@ public class BLLRecursos
         {
             throw new ArgumentException("La hora de fin debe ser posterior a la hora de inicio.");
         }
+        CifrarObservacionDisponibilidad(empleado);
         _recursosMPP.GuardarFichaEmpleado(empleado, solicitante);
     }
 
@@ -111,6 +116,7 @@ public class BLLRecursos
         {
             ValidarDisponibilidad(usuario);
             Empleado empleado = _recursosMPP.ConsultarMiDisponibilidad(usuario);
+            DescifrarObservacionDisponibilidad(empleado);
             return empleado;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
@@ -123,6 +129,7 @@ public class BLLRecursos
             ValidarDisponibilidad(usuario);
             if (disponibilidad.HorasSemanales <= 0) { throw new ArgumentException("Ingresá una disponibilidad semanal válida."); }
             if (disponibilidad.HoraFin <= disponibilidad.HoraInicio) { throw new ArgumentException("La hora de finalización debe ser posterior a la de inicio."); }
+            disponibilidad.Observacion = _fieldEncryptionService.CifrarObservacionDisponibilidad(disponibilidad);
             _recursosMPP.GuardarMiDisponibilidad(disponibilidad, usuario);
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
@@ -145,9 +152,10 @@ public class BLLRecursos
         {
             ValidarEmpleadoSolicitante(usuario);
             ValidarDatosAusencia(ausencia);
-            int idEmpleado = _recursosMPP.ConsultarIdEmpleadoPorUsuarioAgencia(usuario.ID, usuario);
-            ValidarSolapamiento(idEmpleado, ausencia.FechaInicioSolicitada, ausencia.FechaFinSolicitada, null, usuario);
-            List<TareaDisponibilidadAfectada> tareasAfectadas = _recursosMPP.ConsultarTareasAfectadas(idEmpleado, ausencia.FechaInicioSolicitada, ausencia.FechaFinSolicitada, usuario);
+            ausencia.IdEmpleado = usuario.ID;
+            ausencia.IdEmpleado = _recursosMPP.ConsultarIdEmpleadoPorUsuarioAgencia(ausencia, usuario);
+            ValidarSolapamiento(ausencia, null, usuario);
+            List<TareaDisponibilidadAfectada> tareasAfectadas = _recursosMPP.ConsultarTareasAfectadas(ausencia, null, usuario);
             AusenciaEmpleado resultado = _recursosMPP.RegistrarAusencia(ausencia, usuario);
             _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "AusenciaEmpleado", resultado.ID, "Solicitar no disponibilidad", "El empleado registró una solicitud pendiente de aprobación.", "Exitoso", "Información", "Recursos"));
             return new ResultadoGestionDisponibilidad { Ausencia = resultado, TareasAfectadas = tareasAfectadas };
@@ -167,23 +175,23 @@ public class BLLRecursos
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
-    public ResultadoGestionDisponibilidad AprobarAusencia(ResolucionAusenciaEmpleado resolucion, Usuario solicitante, bool parcial)
+    public ResultadoGestionDisponibilidad AprobarAusencia(ResolucionAusenciaEmpleado resolucion, Usuario solicitante)
     {
         try
         {
             ValidarGestorDisponibilidad(solicitante);
-            AusenciaEmpleado solicitud = _recursosMPP.ConsultarAusencia(resolucion.IdAusencia, solicitante);
+            AusenciaEmpleado solicitud = _recursosMPP.ConsultarAusencia(resolucion, solicitante);
             ValidarSolicitudPendiente(solicitud);
             resolucion.FechaInicioAprobada ??= solicitud.FechaInicioSolicitada;
             resolucion.FechaFinAprobada ??= solicitud.FechaFinSolicitada;
             resolucion.HorasNoDisponiblesAprobadas ??= solicitud.HorasNoDisponiblesSolicitadas;
             if (resolucion.FechaInicioAprobada.Value.Date < solicitud.FechaInicioSolicitada.Date || resolucion.FechaFinAprobada.Value.Date > solicitud.FechaFinSolicitada.Date || resolucion.FechaFinAprobada.Value.Date < resolucion.FechaInicioAprobada.Value.Date) { throw new ArgumentException("El período aprobado debe estar dentro del período solicitado."); }
-            if (parcial && string.IsNullOrWhiteSpace(resolucion.MotivoResolucion)) { throw new ArgumentException("Ingresá una observación para la aprobación parcial."); }
-            ValidarSolapamiento(solicitud.IdEmpleado, resolucion.FechaInicioAprobada.Value, resolucion.FechaFinAprobada.Value, solicitud.ID, solicitante);
-            List<TareaDisponibilidadAfectada> tareas = _recursosMPP.ConsultarTareasAfectadas(solicitud.IdEmpleado, resolucion.FechaInicioAprobada.Value, resolucion.FechaFinAprobada.Value, solicitante);
-            string estado = parcial ? "Aprobada parcialmente" : "Aprobada";
-            AusenciaEmpleado resultado = _recursosMPP.ResolverAusencia(resolucion, estado, solicitante);
-            _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "AusenciaEmpleado", resultado.ID, parcial ? "Aprobar parcialmente no disponibilidad" : "Aprobar no disponibilidad", "Se actualizó la disponibilidad operativa del período autorizado.", "Exitoso", "Información", "Recursos"));
+            if (resolucion.EsParcial && string.IsNullOrWhiteSpace(resolucion.MotivoResolucion)) { throw new ArgumentException("Ingresá una observación para la aprobación parcial."); }
+            resolucion.Estado = resolucion.EsParcial ? "Aprobada parcialmente" : "Aprobada";
+            ValidarSolapamiento(solicitud, resolucion, solicitante);
+            List<TareaDisponibilidadAfectada> tareas = _recursosMPP.ConsultarTareasAfectadas(solicitud, resolucion, solicitante);
+            AusenciaEmpleado resultado = _recursosMPP.ResolverAusencia(resolucion, solicitante);
+            _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "AusenciaEmpleado", resultado.ID, resolucion.EsParcial ? "Aprobar parcialmente no disponibilidad" : "Aprobar no disponibilidad", "Se actualizó la disponibilidad operativa del período autorizado.", "Exitoso", "Información", "Recursos"));
             return new ResultadoGestionDisponibilidad { Ausencia = resultado, TareasAfectadas = tareas };
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
@@ -195,9 +203,10 @@ public class BLLRecursos
         {
             ValidarGestorDisponibilidad(solicitante);
             if (string.IsNullOrWhiteSpace(resolucion.MotivoResolucion)) { throw new ArgumentException("Ingresá el motivo del rechazo."); }
-            AusenciaEmpleado solicitud = _recursosMPP.ConsultarAusencia(resolucion.IdAusencia, solicitante);
+            AusenciaEmpleado solicitud = _recursosMPP.ConsultarAusencia(resolucion, solicitante);
             ValidarSolicitudPendiente(solicitud);
-            AusenciaEmpleado resultado = _recursosMPP.ResolverAusencia(resolucion, "Rechazada", solicitante);
+            resolucion.Estado = "Rechazada";
+            AusenciaEmpleado resultado = _recursosMPP.ResolverAusencia(resolucion, solicitante);
             _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "AusenciaEmpleado", resultado.ID, "Rechazar no disponibilidad", "La solicitud fue rechazada sin modificar la disponibilidad operativa.", "Exitoso", "Información", "Recursos"));
             return resultado;
         }
@@ -210,9 +219,9 @@ public class BLLRecursos
         {
             ValidarGestorDisponibilidad(solicitante); ValidarDatosAusencia(ausencia);
             if (ausencia.IdEmpleado <= 0) { throw new ArgumentException("Seleccioná un empleado activo."); }
-            ausencia.IdEmpleado = _recursosMPP.ConsultarIdEmpleadoPorUsuarioAgencia(ausencia.IdEmpleado, solicitante);
-            ValidarSolapamiento(ausencia.IdEmpleado, ausencia.FechaInicioSolicitada, ausencia.FechaFinSolicitada, null, solicitante);
-            List<TareaDisponibilidadAfectada> tareas = _recursosMPP.ConsultarTareasAfectadas(ausencia.IdEmpleado, ausencia.FechaInicioSolicitada, ausencia.FechaFinSolicitada, solicitante);
+            ausencia.IdEmpleado = _recursosMPP.ConsultarIdEmpleadoPorUsuarioAgencia(ausencia, solicitante);
+            ValidarSolapamiento(ausencia, null, solicitante);
+            List<TareaDisponibilidadAfectada> tareas = _recursosMPP.ConsultarTareasAfectadas(ausencia, null, solicitante);
             AusenciaEmpleado resultado = _recursosMPP.RegistrarAusenciaDirecta(ausencia, solicitante);
             _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "AusenciaEmpleado", resultado.ID, "Registrar no disponibilidad directa", "Se registró y aprobó directamente un período de no disponibilidad.", "Exitoso", "Información", "Recursos"));
             return new ResultadoGestionDisponibilidad { Ausencia = resultado, TareasAfectadas = tareas };
@@ -259,15 +268,31 @@ public class BLLRecursos
         ausencia.TipoPeriodo = ausencia.TipoPeriodo.Trim(); ausencia.Motivo = ausencia.Motivo.Trim(); ausencia.ComprobanteUrl = string.IsNullOrWhiteSpace(ausencia.ComprobanteUrl) ? null : ausencia.ComprobanteUrl.Trim();
     }
 
-    private void ValidarSolapamiento(int idEmpleado, DateTime desde, DateTime hasta, int? idAusenciaExcluir, Usuario solicitante)
+    private void ValidarSolapamiento(AusenciaEmpleado ausencia, ResolucionAusenciaEmpleado? resolucion, Usuario solicitante)
     {
-        bool incompatible = _recursosMPP.ConsultarAusenciasEmpleado(idEmpleado, solicitante).Any(ausencia => ausencia.ID != idAusenciaExcluir && ausencia.Activo && ausencia.Estado != "Rechazada" && ausencia.FechaInicioSolicitada.Date <= hasta.Date && ausencia.FechaFinSolicitada.Date >= desde.Date);
+        bool incompatible = _recursosMPP.ConsultarAusenciasEmpleado(ausencia, solicitante).Any(solicitud => solicitud.ID != (resolucion?.IdAusencia ?? ausencia.ID) && solicitud.Activo && solicitud.Estado != "Rechazada" && solicitud.FechaInicioSolicitada.Date <= (resolucion?.FechaFinAprobada ?? ausencia.FechaFinSolicitada).Date && solicitud.FechaFinSolicitada.Date >= (resolucion?.FechaInicioAprobada ?? ausencia.FechaInicioSolicitada).Date);
         if (incompatible) { throw new ArgumentException("Ya existe un período de no disponibilidad incompatible para esas fechas."); }
     }
 
     private static void ValidarSolicitudPendiente(AusenciaEmpleado solicitud)
     {
         if (!string.Equals(solicitud.Estado, "Pendiente", StringComparison.OrdinalIgnoreCase)) { throw new ArgumentException("La solicitud ya fue resuelta."); }
+    }
+
+    private void CifrarObservacionDisponibilidad(Empleado empleado)
+    {
+        if (empleado.DisponibilidadBase is not null)
+        {
+            empleado.DisponibilidadBase.Observacion = _fieldEncryptionService.CifrarObservacionDisponibilidad(empleado.DisponibilidadBase);
+        }
+    }
+
+    private void DescifrarObservacionDisponibilidad(Empleado empleado)
+    {
+        if (empleado.DisponibilidadBase is not null)
+        {
+            empleado.DisponibilidadBase.Observacion = _fieldEncryptionService.DescifrarObservacionDisponibilidad(empleado.DisponibilidadBase);
+        }
     }
 
     private static int ObtenerAgencia(Usuario usuario)

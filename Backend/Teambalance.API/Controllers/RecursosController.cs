@@ -49,41 +49,39 @@ public class RecursosController : ControllerBase
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
     }
 
-    [HttpGet("empleados/{idUsuario:int}/ficha")]
-    public IActionResult ConsultarFichaEmpleado([FromRoute] int idUsuario)
+    [HttpGet("empleados/{ID:int}/ficha")]
+    public IActionResult ConsultarFichaEmpleado([FromRoute] Usuario usuario)
     {
         try
         {
-            if (idUsuario <= 0) { return BadRequest("Seleccioná un empleado válido."); }
-            return Ok(_recursosBLL.ConsultarFichaEmpleado(new Usuario { ID = idUsuario }, ObtenerSolicitante()));
+            if (usuario.ID <= 0) { return BadRequest("Seleccioná un empleado válido."); }
+            return Ok(_recursosBLL.ConsultarFichaEmpleado(usuario, ObtenerSolicitante()));
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpPost("empleados/{idUsuario:int}/ficha/exportacion")]
-    public IActionResult RegistrarExportacionFichaEmpleado([FromRoute] int idUsuario)
+    [HttpPost("empleados/{ID:int}/ficha/exportacion")]
+    public IActionResult RegistrarExportacionFichaEmpleado([FromRoute] Usuario usuario)
     {
         try
         {
-            _recursosBLL.RegistrarExportacionFichaEmpleado(idUsuario, ObtenerSolicitante());
+            _recursosBLL.RegistrarExportacionFichaEmpleado(usuario, ObtenerSolicitante());
             return NoContent();
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpPut("empleados/{idUsuario:int}/ficha")]
-    public IActionResult GuardarFichaEmpleado([FromRoute] int idUsuario, [FromBody] FichaEmpleadoActualizar ficha)
+    [HttpPut("empleados/{ID:int}/ficha")]
+    public IActionResult GuardarFichaEmpleado([FromRoute] FichaEmpleadoActualizar fichaRuta, [FromBody] FichaEmpleadoActualizar ficha)
     {
         try
         {
-            Empleado empleado = new Empleado
-            {
-                ID = idUsuario,
-                EmpleadoSkills = ficha.EmpleadoSkills ?? new List<EmpleadoSkill>(),
-                DisponibilidadBase = ficha.DisponibilidadBase,
-            };
+            Empleado empleado = new Empleado();
+            empleado.ID = fichaRuta.ID;
+            empleado.EmpleadoSkills = ficha.EmpleadoSkills ?? new List<EmpleadoSkill>();
+            empleado.DisponibilidadBase = ficha.DisponibilidadBase;
             _recursosBLL.GuardarFichaEmpleado(empleado, ObtenerSolicitante());
             return NoContent();
         }
@@ -151,26 +149,26 @@ public class RecursosController : ControllerBase
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpPost("ausencias/{idAusencia:int}/aprobar")]
-    public IActionResult AprobarAusencia([FromRoute] int idAusencia, [FromBody] ResolucionAusenciaEmpleado resolucion)
+    [HttpPost("ausencias/{IdAusencia:int}/aprobar")]
+    public IActionResult AprobarAusencia([FromRoute] ResolucionAusenciaEmpleado resolucionRuta, [FromBody] ResolucionAusenciaEmpleado resolucion)
     {
-        try { resolucion.IdAusencia = idAusencia; return Ok(_recursosBLL.AprobarAusencia(resolucion, ObtenerSolicitante(), false)); }
+        try { resolucion.IdAusencia = resolucionRuta.IdAusencia; return Ok(_recursosBLL.AprobarAusencia(resolucion, ObtenerSolicitante())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpPost("ausencias/{idAusencia:int}/aprobar-parcial")]
-    public IActionResult AprobarParcialmenteAusencia([FromRoute] int idAusencia, [FromBody] ResolucionAusenciaEmpleado resolucion)
+    [HttpPost("ausencias/{IdAusencia:int}/aprobar-parcial")]
+    public IActionResult AprobarParcialmenteAusencia([FromRoute] ResolucionAusenciaEmpleado resolucionRuta, [FromBody] ResolucionAusenciaEmpleado resolucion)
     {
-        try { resolucion.IdAusencia = idAusencia; return Ok(_recursosBLL.AprobarAusencia(resolucion, ObtenerSolicitante(), true)); }
+        try { resolucion.IdAusencia = resolucionRuta.IdAusencia; resolucion.EsParcial = true; return Ok(_recursosBLL.AprobarAusencia(resolucion, ObtenerSolicitante())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpPost("ausencias/{idAusencia:int}/rechazar")]
-    public IActionResult RechazarAusencia([FromRoute] int idAusencia, [FromBody] ResolucionAusenciaEmpleado resolucion)
+    [HttpPost("ausencias/{IdAusencia:int}/rechazar")]
+    public IActionResult RechazarAusencia([FromRoute] ResolucionAusenciaEmpleado resolucionRuta, [FromBody] ResolucionAusenciaEmpleado resolucion)
     {
-        try { resolucion.IdAusencia = idAusencia; return Ok(_recursosBLL.RechazarAusencia(resolucion, ObtenerSolicitante())); }
+        try { resolucion.IdAusencia = resolucionRuta.IdAusencia; return Ok(_recursosBLL.RechazarAusencia(resolucion, ObtenerSolicitante())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
     }

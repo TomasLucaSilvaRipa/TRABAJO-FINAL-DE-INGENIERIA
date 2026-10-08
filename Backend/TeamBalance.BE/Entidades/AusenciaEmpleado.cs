@@ -77,13 +77,15 @@ public class TareaDisponibilidadAfectada
 
 public class ResultadoGestionDisponibilidad
 {
-    public AusenciaEmpleado Ausencia { get; set; } = new();
-    public List<TareaDisponibilidadAfectada> TareasAfectadas { get; set; } = new();
+    public AusenciaEmpleado Ausencia { get; set; } = new AusenciaEmpleado();
+    public List<TareaDisponibilidadAfectada> TareasAfectadas { get; set; } = new List<TareaDisponibilidadAfectada>();
 }
 
 public class ResolucionAusenciaEmpleado
 {
     public int IdAusencia { get; set; }
+    public string Estado { get; set; } = string.Empty;
+    public bool EsParcial { get; set; }
     public DateTime? FechaInicioAprobada { get; set; }
     public DateTime? FechaFinAprobada { get; set; }
     public decimal? HorasNoDisponiblesAprobadas { get; set; }

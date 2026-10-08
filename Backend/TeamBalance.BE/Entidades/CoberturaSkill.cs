@@ -50,8 +50,8 @@ public class AnalisisCoberturaSkill
     public int PuntajeCriticidad { get; set; }
     public DateTime? DeadlineMasProximo { get; set; }
     public string AccionSugerida { get; set; } = string.Empty;
-    public List<TareaCoberturaSkill> TareasAfectadas { get; set; } = new();
-    public List<EmpleadoCoberturaSkill> EmpleadosRelacionados { get; set; } = new();
+    public List<TareaCoberturaSkill> TareasAfectadas { get; set; } = new List<TareaCoberturaSkill>();
+    public List<EmpleadoCoberturaSkill> EmpleadosRelacionados { get; set; } = new List<EmpleadoCoberturaSkill>();
 }
 
 public class RecomendacionSkill

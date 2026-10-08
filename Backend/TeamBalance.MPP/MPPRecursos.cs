@@ -56,8 +56,7 @@ public class MPPRecursos
     {
         try
         {
-            int idAgencia = solicitante.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.");
-            int idEmpleado = ConsultarIdEmpleado(usuario.ID, idAgencia);
+            int idEmpleado = ConsultarIdEmpleado(usuario, solicitante);
             Empleado empleado = new Empleado();
             empleado.ID = idEmpleado;
             List<SqlParameter> parametrosSkills = new List<SqlParameter>() { new SqlParameter("@IdEmpleado", idEmpleado) };
@@ -78,12 +77,23 @@ public class MPPRecursos
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
-    public int ConsultarIdEmpleadoPorUsuarioAgencia(int idUsuario, Usuario solicitante)
+    public int ConsultarIdEmpleadoPorUsuarioAgencia(Usuario usuario, Usuario solicitante)
     {
         try
         {
-            int idAgencia = solicitante.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.");
-            return ConsultarIdEmpleado(idUsuario, idAgencia);
+            return ConsultarIdEmpleado(usuario, solicitante);
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    public int ConsultarIdEmpleadoPorUsuarioAgencia(AusenciaEmpleado ausencia, Usuario solicitante)
+    {
+        try
+        {
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", ausencia.IdEmpleado), new SqlParameter("@IdAgencia", solicitante.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")) };
+            DataTable tabla = _conexion.Leer("dbo.usp_Empleado_ConsultarIdPorUsuarioAgencia", parametros);
+            if (tabla.Rows.Count == 0) { throw new ArgumentException("El usuario seleccionado no es un empleado de tu agencia."); }
+            return Convert.ToInt32(tabla.Rows[0]["ID"]);
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
@@ -91,8 +101,7 @@ public class MPPRecursos
     {
         try
         {
-            int idAgencia = solicitante.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.");
-            int idEmpleado = ConsultarIdEmpleado(empleado.ID, idAgencia);
+            int idEmpleado = ConsultarIdEmpleado(empleado, solicitante);
             List<SqlParameter> parametrosLimpiar = new List<SqlParameter>() { new SqlParameter("@IdEmpleado", idEmpleado) };
             _conexion.Escribir("dbo.usp_EmpleadoSkill_Limpiar", parametrosLimpiar);
             foreach (EmpleadoSkill empleadoSkill in empleado.EmpleadoSkills)
@@ -122,8 +131,7 @@ public class MPPRecursos
     {
         try
         {
-            int idAgencia = usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.");
-            int idEmpleado = ConsultarIdEmpleado(usuario.ID, idAgencia);
+            int idEmpleado = ConsultarIdEmpleado(usuario, usuario);
             List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdEmpleado", idEmpleado), new SqlParameter("@HoraInicio", disponibilidad.HoraInicio.ToTimeSpan()), new SqlParameter("@HoraFin", disponibilidad.HoraFin.ToTimeSpan()), new SqlParameter("@HorasSemanales", disponibilidad.HorasSemanales), new SqlParameter("@Observacion", (object?)disponibilidad.Observacion ?? DBNull.Value) };
             _conexion.Escribir("dbo.usp_DisponibilidadBase_RegistrarActualizar", parametros);
         }
@@ -153,11 +161,11 @@ public class MPPRecursos
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
-    private int ConsultarIdEmpleado(int idUsuario, int idAgencia)
+    private int ConsultarIdEmpleado(Usuario usuario, Usuario solicitante)
     {
         try
         {
-            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario), new SqlParameter("@IdAgencia", idAgencia) };
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", usuario.ID), new SqlParameter("@IdAgencia", solicitante.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")) };
             DataTable tabla = _conexion.Leer("dbo.usp_Empleado_ConsultarIdPorUsuarioAgencia", parametros);
             if (tabla.Rows.Count == 0) { throw new ArgumentException("El usuario seleccionado no es un empleado de tu agencia."); }
             int idEmpleado = Convert.ToInt32(tabla.Rows[0]["ID"]);
@@ -228,28 +236,28 @@ public class MPPRecursos
         return tabla.Rows.Cast<DataRow>().Select(fila => new EmpleadoDisponibilidadOpcion { IdUsuario = Convert.ToInt32(fila["IdUsuario"]), NombreCompleto = Convert.ToString(fila["NombreCompleto"]) ?? string.Empty }).ToList();
     }
 
-    public AusenciaEmpleado ConsultarAusencia(int idAusencia, Usuario solicitante)
+    public AusenciaEmpleado ConsultarAusencia(ResolucionAusenciaEmpleado resolucion, Usuario solicitante)
     {
-        DataTable tabla = _conexion.Leer("dbo.usp_AusenciaEmpleado_ConsultarPorId", new List<SqlParameter> { new("@IdAusencia", idAusencia), new("@IdAgencia", solicitante.IdAgencia) });
+        DataTable tabla = _conexion.Leer("dbo.usp_AusenciaEmpleado_ConsultarPorId", new List<SqlParameter>() { new SqlParameter("@IdAusencia", resolucion.IdAusencia), new SqlParameter("@IdAgencia", solicitante.IdAgencia) });
         if (tabla.Rows.Count == 0) { throw new KeyNotFoundException("La solicitud no existe o no pertenece a tu agencia."); }
         return CrearAusencias(tabla).Single();
     }
 
-    public List<AusenciaEmpleado> ConsultarAusenciasEmpleado(int idEmpleado, Usuario solicitante)
+    public List<AusenciaEmpleado> ConsultarAusenciasEmpleado(AusenciaEmpleado ausencia, Usuario solicitante)
     {
-        DataTable tabla = _conexion.Leer("dbo.usp_AusenciaEmpleado_ConsultarPorEmpleado", new List<SqlParameter> { new("@IdEmpleado", idEmpleado), new("@IdAgencia", solicitante.IdAgencia) });
+        DataTable tabla = _conexion.Leer("dbo.usp_AusenciaEmpleado_ConsultarPorEmpleado", new List<SqlParameter>() { new SqlParameter("@IdEmpleado", ausencia.IdEmpleado), new SqlParameter("@IdAgencia", solicitante.IdAgencia) });
         return CrearAusencias(tabla);
     }
 
-    public List<TareaDisponibilidadAfectada> ConsultarTareasAfectadas(int idEmpleado, DateTime desde, DateTime hasta, Usuario solicitante)
+    public List<TareaDisponibilidadAfectada> ConsultarTareasAfectadas(AusenciaEmpleado ausencia, ResolucionAusenciaEmpleado? resolucion, Usuario solicitante)
     {
-        DataTable tabla = _conexion.Leer("dbo.usp_Disponibilidad_ConsultarTareasAfectadas", new List<SqlParameter> { new("@IdEmpleado", idEmpleado), new("@FechaDesde", desde), new("@FechaHasta", hasta), new("@IdAgencia", solicitante.IdAgencia) });
+        DataTable tabla = _conexion.Leer("dbo.usp_Disponibilidad_ConsultarTareasAfectadas", new List<SqlParameter>() { new SqlParameter("@IdEmpleado", ausencia.IdEmpleado), new SqlParameter("@FechaDesde", resolucion?.FechaInicioAprobada ?? ausencia.FechaInicioSolicitada), new SqlParameter("@FechaHasta", resolucion?.FechaFinAprobada ?? ausencia.FechaFinSolicitada), new SqlParameter("@IdAgencia", solicitante.IdAgencia) });
         return tabla.Rows.Cast<DataRow>().Select(fila => new TareaDisponibilidadAfectada { IdTarea = Convert.ToInt32(fila["IdTarea"]), Titulo = Convert.ToString(fila["Titulo"]) ?? string.Empty, NombreProyecto = Convert.ToString(fila["NombreProyecto"]) ?? string.Empty, Deadline = fila["Deadline"] == DBNull.Value ? null : Convert.ToDateTime(fila["Deadline"]) }).ToList();
     }
 
-    public AusenciaEmpleado ResolverAusencia(ResolucionAusenciaEmpleado resolucion, string estado, Usuario solicitante)
+    public AusenciaEmpleado ResolverAusencia(ResolucionAusenciaEmpleado resolucion, Usuario solicitante)
     {
-        DataTable tabla = _conexion.Leer("dbo.usp_AusenciaEmpleado_Resolver", new List<SqlParameter> { new("@IdAusencia", resolucion.IdAusencia), new("@IdUsuarioResolucion", solicitante.ID), new("@Estado", estado), new("@FechaInicioAprobada", (object?)resolucion.FechaInicioAprobada ?? DBNull.Value), new("@FechaFinAprobada", (object?)resolucion.FechaFinAprobada ?? DBNull.Value), new("@HorasNoDisponiblesAprobadas", (object?)resolucion.HorasNoDisponiblesAprobadas ?? DBNull.Value), new("@MotivoResolucion", (object?)resolucion.MotivoResolucion ?? DBNull.Value) });
+        DataTable tabla = _conexion.Leer("dbo.usp_AusenciaEmpleado_Resolver", new List<SqlParameter>() { new SqlParameter("@IdAusencia", resolucion.IdAusencia), new SqlParameter("@IdUsuarioResolucion", solicitante.ID), new SqlParameter("@Estado", resolucion.Estado), new SqlParameter("@FechaInicioAprobada", (object?)resolucion.FechaInicioAprobada ?? DBNull.Value), new SqlParameter("@FechaFinAprobada", (object?)resolucion.FechaFinAprobada ?? DBNull.Value), new SqlParameter("@HorasNoDisponiblesAprobadas", (object?)resolucion.HorasNoDisponiblesAprobadas ?? DBNull.Value), new SqlParameter("@MotivoResolucion", (object?)resolucion.MotivoResolucion ?? DBNull.Value) });
         return CrearAusencias(tabla).Single();
     }
 

@@ -13,7 +13,7 @@ public sealed class BLLNovedades
     public BLLNovedades(MPPNovedades novedadesMPP, BLLBitacora bitacoraBLL, EmailService emailService, BLLRol rolBLL) { _novedadesMPP = novedadesMPP; _bitacoraBLL = bitacoraBLL; _emailService = emailService; _rolBLL = rolBLL; }
     public List<CategoriaNoticia> Categorias() => _novedadesMPP.Categorias();
     public List<Noticia> Publicas() => _novedadesMPP.Publicas();
-    public List<int> Preferencias(Usuario usuario) { ExigirPermiso(usuario, "GestionarNewsletter"); return _novedadesMPP.Preferencias(usuario.ID); }
+    public List<int> Preferencias(Usuario usuario) { ExigirPermiso(usuario, "GestionarNewsletter"); return _novedadesMPP.Preferencias(usuario); }
     public void ValidarPreferencias(PreferenciasNewsletterRequest solicitud)
     {
         List<int> validas = _novedadesMPP.Categorias().Where(c => c.Activo).Select(c => c.ID).ToList();
@@ -23,7 +23,7 @@ public sealed class BLLNovedades
     {
         ExigirPermiso(usuario, "GestionarNewsletter");
         ValidarPreferencias(solicitud);
-        _novedadesMPP.GuardarPreferencias(usuario.ID, solicitud.CategoriasIds);
+        _novedadesMPP.GuardarPreferencias(usuario, solicitud);
     }
     public List<Noticia> Gestion(Usuario usuario) { ExigirGestionNovedades(usuario); return _novedadesMPP.Gestion(); }
     public async Task<Noticia> Guardar(Usuario usuario, GuardarNoticiaRequest solicitud)
@@ -34,14 +34,14 @@ public sealed class BLLNovedades
         await DifundirPendientes();
         return noticia;
     }
-    public void Bajar(Usuario usuario, int idNoticia) { ExigirGestionNovedades(usuario); _novedadesMPP.Bajar(idNoticia); _bitacoraBLL.Add(new Bitacora(usuario.ID, null, "Noticia", idNoticia, "BajarNoticia", "Se dio de baja una novedad.", "Exitoso", "Informacion", "Novedades")); }
+    public void Bajar(Usuario usuario, Noticia noticia) { ExigirGestionNovedades(usuario); _novedadesMPP.Bajar(noticia); _bitacoraBLL.Add(new Bitacora(usuario.ID, null, "Noticia", noticia.ID, "BajarNoticia", "Se dio de baja una novedad.", "Exitoso", "Informacion", "Novedades")); }
     public async Task<int> DifundirPendientes()
     {
         int enviadas = 0;
         foreach (Noticia noticia in _novedadesMPP.PendientesDifusion())
         {
-            foreach ((string email, string nombre) in _novedadesMPP.Destinatarios(noticia.ID)) if (await _emailService.EnviarNewsletter(email, nombre, noticia.Titulo, noticia.Contenido, noticia.Categoria)) enviadas++;
-            _novedadesMPP.MarcarDifundida(noticia.ID);
+            foreach ((string email, string nombre) in _novedadesMPP.Destinatarios(noticia)) if (await _emailService.EnviarNewsletter(email, nombre, noticia.Titulo, noticia.Contenido, noticia.Categoria)) enviadas++;
+            _novedadesMPP.MarcarDifundida(noticia);
         }
         return enviadas;
     }

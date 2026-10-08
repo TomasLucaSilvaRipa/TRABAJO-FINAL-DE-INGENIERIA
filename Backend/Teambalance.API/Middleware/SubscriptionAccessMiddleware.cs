@@ -20,7 +20,7 @@ public sealed class SubscriptionAccessMiddleware
 
         string token = authorization[7..].Trim();
         TeamBalance.BE.Entidades.Usuario? usuario = usuarioBLL.ConsultarUsuarioSesion(token);
-        if (usuario?.IdAgencia is int idAgencia && !suscripcionBLL.PuedeUsarAgencia(idAgencia))
+        if (usuario is not null && usuario.IdAgencia.HasValue && !suscripcionBLL.PuedeUsarAgencia(usuario))
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             await context.Response.WriteAsJsonAsync(new

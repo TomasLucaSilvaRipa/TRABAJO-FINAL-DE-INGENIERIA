@@ -14,12 +14,26 @@ public sealed class MPPNovedades
     public List<Noticia> Publicas() => ConsultarNoticias("dbo.usp_Novedades_ConsultarPublicas");
     public List<Noticia> Gestion() => ConsultarNoticias("dbo.usp_Novedades_ConsultarGestion");
     public Noticia Guardar(GuardarNoticiaRequest solicitud) => CrearNoticia(_conexion.Leer("dbo.usp_Novedades_Guardar", new List<SqlParameter> { new("@IdCategoria", solicitud.IdCategoriaNoticia), new("@Titulo", solicitud.Titulo), new("@Contenido", solicitud.Contenido), new("@ImagenUrl", (object?)solicitud.ImagenUrl ?? DBNull.Value), new("@FechaPublicacion", solicitud.FechaPublicacion ?? DateTime.Now), new("@FechaVencimiento", (object?)solicitud.FechaVencimiento ?? DBNull.Value) }).Rows[0]);
-    public void Bajar(int id) => _conexion.Leer("dbo.usp_Novedades_Bajar", new List<SqlParameter> { new("@IdNoticia", id) });
-    public List<int> Preferencias(int idUsuario) => _conexion.Leer("dbo.usp_Novedades_ConsultarPreferencias", new List<SqlParameter> { new("@IdUsuario", idUsuario) }).Rows.Cast<DataRow>().Select(f => Convert.ToInt32(f["IdCategoriaNoticia"])).ToList();
-    public void GuardarPreferencias(int idUsuario, List<int> categorias) => _conexion.Leer("dbo.usp_Novedades_GuardarPreferencias", new List<SqlParameter> { new("@IdUsuario", idUsuario), new("@CategoriasJson", JsonSerializer.Serialize(categorias.Distinct().ToList())) });
+    public void Bajar(Noticia noticia) => _conexion.Leer("dbo.usp_Novedades_Bajar", new List<SqlParameter>() { new SqlParameter("@IdNoticia", noticia.ID) });
+    public List<int> Preferencias(Usuario usuario) => _conexion.Leer("dbo.usp_Novedades_ConsultarPreferencias", new List<SqlParameter>() { new SqlParameter("@IdUsuario", usuario.ID) }).Rows.Cast<DataRow>().Select(f => Convert.ToInt32(f["IdCategoriaNoticia"])).ToList();
+    public void GuardarPreferencias(Usuario usuario, PreferenciasNewsletterRequest solicitud) => _conexion.Leer("dbo.usp_Novedades_GuardarPreferencias", new List<SqlParameter>() { new SqlParameter("@IdUsuario", usuario.ID), new SqlParameter("@CategoriasJson", JsonSerializer.Serialize(solicitud.CategoriasIds.Distinct().ToList())) });
     public List<Noticia> PendientesDifusion() => ConsultarNoticias("dbo.usp_Novedades_ConsultarPendientesDifusion");
-    public List<(string Email, string Nombre)> Destinatarios(int idNoticia) => _conexion.Leer("dbo.usp_Novedades_ConsultarDestinatarios", new List<SqlParameter> { new("@IdNoticia", idNoticia) }).Rows.Cast<DataRow>().Select(f => (Convert.ToString(f["Email"]) ?? string.Empty, Convert.ToString(f["Nombre"]) ?? "Usuario")).ToList();
-    public void MarcarDifundida(int idNoticia) => _conexion.Leer("dbo.usp_Novedades_MarcarDifundida", new List<SqlParameter> { new("@IdNoticia", idNoticia) });
+    public List<(string Email, string Nombre)> Destinatarios(Noticia noticia) => _conexion.Leer("dbo.usp_Novedades_ConsultarDestinatarios", new List<SqlParameter>() { new SqlParameter("@IdNoticia", noticia.ID) }).Rows.Cast<DataRow>().Select(f => (Convert.ToString(f["Email"]) ?? string.Empty, Convert.ToString(f["Nombre"]) ?? "Usuario")).ToList();
+    public void MarcarDifundida(Noticia noticia) => _conexion.Leer("dbo.usp_Novedades_MarcarDifundida", new List<SqlParameter>() { new SqlParameter("@IdNoticia", noticia.ID) });
     private List<Noticia> ConsultarNoticias(string sp) => _conexion.Leer(sp).Rows.Cast<DataRow>().Select(CrearNoticia).ToList();
-    private static Noticia CrearNoticia(DataRow f) => new() { ID = Convert.ToInt32(f["ID"]), IdCategoriaNoticia = Convert.ToInt32(f["IdCategoriaNoticia"]), Categoria = Convert.ToString(f["Categoria"]) ?? string.Empty, Titulo = Convert.ToString(f["Titulo"]) ?? string.Empty, Contenido = Convert.ToString(f["Contenido"]) ?? string.Empty, ImagenUrl = f["ImagenUrl"] == DBNull.Value ? null : Convert.ToString(f["ImagenUrl"]), FechaPublicacion = Convert.ToDateTime(f["FechaPublicacion"]), FechaVencimiento = f["FechaVencimiento"] == DBNull.Value ? null : Convert.ToDateTime(f["FechaVencimiento"]), Activo = Convert.ToBoolean(f["Activo"]), DifusionEnviada = Convert.ToBoolean(f["DifusionEnviada"]) };
+    private static Noticia CrearNoticia(DataRow fila)
+    {
+        Noticia noticia = new Noticia();
+        noticia.ID = Convert.ToInt32(fila["ID"]);
+        noticia.IdCategoriaNoticia = Convert.ToInt32(fila["IdCategoriaNoticia"]);
+        noticia.Categoria = Convert.ToString(fila["Categoria"]) ?? string.Empty;
+        noticia.Titulo = Convert.ToString(fila["Titulo"]) ?? string.Empty;
+        noticia.Contenido = Convert.ToString(fila["Contenido"]) ?? string.Empty;
+        noticia.ImagenUrl = fila["ImagenUrl"] == DBNull.Value ? null : Convert.ToString(fila["ImagenUrl"]);
+        noticia.FechaPublicacion = Convert.ToDateTime(fila["FechaPublicacion"]);
+        noticia.FechaVencimiento = fila["FechaVencimiento"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaVencimiento"]);
+        noticia.Activo = Convert.ToBoolean(fila["Activo"]);
+        noticia.DifusionEnviada = Convert.ToBoolean(fila["DifusionEnviada"]);
+        return noticia;
+    }
 }

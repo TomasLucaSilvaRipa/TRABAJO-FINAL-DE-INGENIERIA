@@ -5,7 +5,7 @@ namespace TeamBalance.BLL;
 
 public class BLLRol
 {
-    private static readonly HashSet<string> PermisosInternosSoporte = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> PermisosInternosSoporte = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "ConsultarBitacora", "GestionarPlanes", "GestionarBandejaSoporte", "GestionarNovedades", "GestionarOperadores", "GestionarRespaldos"
     };

@@ -6,6 +6,7 @@ namespace TeamBalance.BE.Entidades;
 /// </summary>
 public sealed class FichaEmpleadoActualizar
 {
-    public List<EmpleadoSkill> EmpleadoSkills { get; set; } = new();
+    public int ID { get; set; }
+    public List<EmpleadoSkill> EmpleadoSkills { get; set; } = new List<EmpleadoSkill>();
     public DisponibilidadBase? DisponibilidadBase { get; set; }
 }

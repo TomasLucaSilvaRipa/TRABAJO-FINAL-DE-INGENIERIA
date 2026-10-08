@@ -11,15 +11,15 @@ public sealed class MPPSuscripcion
 
     public MPPSuscripcion(Conexion conexion) => _conexion = conexion;
 
-    public Suscripcion? ConsultarActual(int idAgencia)
+    public Suscripcion? ConsultarActual(Usuario usuario)
     {
-        DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_ConsultarActualPorAgencia", new List<SqlParameter> { new("@IdAgencia", idAgencia) });
+        DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_ConsultarActualPorAgencia", new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("El usuario no pertenece a una agencia.")) });
         return tabla.Rows.Count == 0 ? null : CrearSuscripcion(tabla.Rows[0]);
     }
 
-    public List<OperacionSuscripcionHistorial> ConsultarHistorial(int idAgencia)
+    public List<OperacionSuscripcionHistorial> ConsultarHistorial(Usuario usuario)
     {
-        DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_ConsultarHistorialPorAgencia", new List<SqlParameter> { new("@IdAgencia", idAgencia) });
+        DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_ConsultarHistorialPorAgencia", new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("El usuario no pertenece a una agencia.")) });
         return tabla.Rows.Cast<DataRow>().Select(fila => new OperacionSuscripcionHistorial
         {
             ID = Convert.ToInt32(fila["ID"]),
@@ -35,11 +35,11 @@ public sealed class MPPSuscripcion
         }).ToList();
     }
 
-    public OperacionSuscripcionPendiente CrearSolicitudCambioPlan(int idSuscripcion, int idPlanNuevo, string referenciaInterna, string proveedor)
+    public OperacionSuscripcionPendiente CrearSolicitudCambioPlan(CambioPlanSuscripcionRequest solicitud)
     {
         DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_CrearSolicitudCambioPlan", new List<SqlParameter>
         {
-            new("@IdSuscripcion", idSuscripcion), new("@IdPlanNuevo", idPlanNuevo), new("@ReferenciaInterna", referenciaInterna), new("@Proveedor", proveedor),
+            new SqlParameter("@IdSuscripcion", solicitud.IdSuscripcion), new SqlParameter("@IdPlanNuevo", solicitud.IdPlanComercial), new SqlParameter("@ReferenciaInterna", solicitud.ReferenciaInterna), new SqlParameter("@Proveedor", solicitud.Proveedor),
         });
         if (tabla.Rows.Count != 1) throw new InvalidOperationException("No fue posible generar la solicitud de actualización.");
         DataRow fila = tabla.Rows[0];
@@ -51,9 +51,9 @@ public sealed class MPPSuscripcion
         };
     }
 
-    public OperacionSuscripcionPendiente ConsultarOperacionPendiente(string referenciaInterna)
+    public OperacionSuscripcionPendiente ConsultarOperacionPendiente(OperacionSuscripcionPendiente operacion)
     {
-        DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_ConsultarOperacionPendiente", new List<SqlParameter> { new("@ReferenciaInterna", referenciaInterna) });
+        DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_ConsultarOperacionPendiente", new List<SqlParameter>() { new SqlParameter("@ReferenciaInterna", operacion.ReferenciaInterna) });
         if (tabla.Rows.Count != 1) throw new KeyNotFoundException("No existe una actualización de suscripción pendiente con la referencia indicada.");
         DataRow fila = tabla.Rows[0];
         return new OperacionSuscripcionPendiente
@@ -64,29 +64,29 @@ public sealed class MPPSuscripcion
         };
     }
 
-    public Suscripcion AplicarResultadoCambioPlan(string referenciaInterna, string referenciaProveedor, string estadoProveedor, string detalle)
+    public Suscripcion AplicarResultadoCambioPlan(OperacionSuscripcionPendiente operacion)
     {
         DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_AplicarResultadoCambioPlan", new List<SqlParameter>
         {
-            new("@ReferenciaInterna", referenciaInterna), new("@ReferenciaProveedor", referenciaProveedor), new("@EstadoProveedor", estadoProveedor), new("@Detalle", detalle),
+            new SqlParameter("@ReferenciaInterna", operacion.ReferenciaInterna), new SqlParameter("@ReferenciaProveedor", operacion.ReferenciaProveedor), new SqlParameter("@EstadoProveedor", operacion.EstadoProveedor), new SqlParameter("@Detalle", operacion.DetalleProveedor),
         });
         if (tabla.Rows.Count != 1) throw new InvalidOperationException("No fue posible actualizar el resultado de la suscripción.");
         return CrearSuscripcion(tabla.Rows[0]);
     }
 
-    public Suscripcion ActualizarRenovacion(int idSuscripcion, bool activa, string? motivo)
+    public Suscripcion ActualizarRenovacion(Suscripcion suscripcion)
     {
         DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_ActualizarRenovacion", new List<SqlParameter>
         {
-            new("@IdSuscripcion", idSuscripcion), new("@Activa", activa), new("@Motivo", (object?)motivo ?? DBNull.Value),
+            new SqlParameter("@IdSuscripcion", suscripcion.ID), new SqlParameter("@Activa", suscripcion.RenovacionAutomatica), new SqlParameter("@Motivo", (object?)suscripcion.MotivoRenovacion ?? DBNull.Value),
         });
         if (tabla.Rows.Count != 1) throw new KeyNotFoundException("No existe una suscripción activa para actualizar.");
         return CrearSuscripcion(tabla.Rows[0]);
     }
 
-    public bool PuedeUsarAgencia(int idAgencia)
+    public bool PuedeUsarAgencia(Usuario usuario)
     {
-        DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_PuedeUsarAgencia", new List<SqlParameter> { new("@IdAgencia", idAgencia) });
+        DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_PuedeUsarAgencia", new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("El usuario no pertenece a una agencia.")) });
         return tabla.Rows.Count == 1 && Convert.ToBoolean(tabla.Rows[0]["Vigente"]);
     }
 
@@ -99,11 +99,11 @@ public sealed class MPPSuscripcion
         }).ToList();
     }
 
-    public void RegistrarRenovacionProveedor(int idSuscripcion, string referenciaProveedor, string estadoProveedor)
+    public void RegistrarRenovacionProveedor(Suscripcion suscripcion)
     {
         _conexion.Leer("dbo.usp_Suscripcion_RegistrarRenovacionProveedor", new List<SqlParameter>
         {
-            new("@IdSuscripcion", idSuscripcion), new("@ReferenciaProveedor", referenciaProveedor), new("@EstadoProveedor", estadoProveedor),
+            new SqlParameter("@IdSuscripcion", suscripcion.ID), new SqlParameter("@ReferenciaProveedor", suscripcion.ReferenciaRenovacionProveedor), new SqlParameter("@EstadoProveedor", suscripcion.EstadoRenovacionProveedor),
         });
     }
 
@@ -117,25 +117,25 @@ public sealed class MPPSuscripcion
         }).ToList();
     }
 
-    public void AplicarCobroRecurrente(int idSuscripcion, string referenciaPago, decimal importe, string moneda, string detalle)
+    public void AplicarCobroRecurrente(RenovacionProveedorPendiente renovacion)
     {
         _conexion.Leer("dbo.usp_Suscripcion_AplicarCobroRecurrente", new List<SqlParameter>
         {
-            new("@IdSuscripcion", idSuscripcion), new("@ReferenciaPago", referenciaPago), new("@Importe", importe), new("@Moneda", moneda), new("@Detalle", detalle),
+            new SqlParameter("@IdSuscripcion", renovacion.IdSuscripcion), new SqlParameter("@ReferenciaPago", renovacion.ReferenciaPago), new SqlParameter("@Importe", renovacion.Importe), new SqlParameter("@Moneda", renovacion.Moneda), new SqlParameter("@Detalle", renovacion.Detalle),
         });
     }
 
-    public void ActualizarEstadoRenovacionProveedor(int idSuscripcion, string estadoProveedor)
+    public void ActualizarEstadoRenovacionProveedor(Suscripcion suscripcion)
     {
         _conexion.Leer("dbo.usp_Suscripcion_ActualizarEstadoRenovacionProveedor", new List<SqlParameter>
         {
-            new("@IdSuscripcion", idSuscripcion), new("@EstadoProveedor", estadoProveedor),
+            new SqlParameter("@IdSuscripcion", suscripcion.ID), new SqlParameter("@EstadoProveedor", suscripcion.EstadoRenovacionProveedor),
         });
     }
 
     private static Suscripcion CrearSuscripcion(DataRow fila)
     {
-        Suscripcion suscripcion = new(Convert.ToInt32(fila["ID"]), Convert.ToInt32(fila["IdAgencia"]), Convert.ToInt32(fila["IdPlanComercial"]),
+        Suscripcion suscripcion = new Suscripcion(Convert.ToInt32(fila["ID"]), Convert.ToInt32(fila["IdAgencia"]), Convert.ToInt32(fila["IdPlanComercial"]),
             fila["ReferenciaExterna"] == DBNull.Value ? null : Convert.ToString(fila["ReferenciaExterna"]), Convert.ToString(fila["Estado"]) ?? string.Empty,
             Convert.ToDateTime(fila["FechaAlta"]), Convert.ToDateTime(fila["FechaVencimiento"]), fila["FechaProximaRenovacion"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaProximaRenovacion"]),
             Convert.ToBoolean(fila["RenovacionAutomatica"]), Convert.ToDecimal(fila["ImporteVigente"]), Convert.ToBoolean(fila["Activo"]), fila["FechaBaja"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaBaja"]));

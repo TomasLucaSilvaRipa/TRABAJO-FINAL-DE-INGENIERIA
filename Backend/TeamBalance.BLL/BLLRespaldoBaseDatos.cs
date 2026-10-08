@@ -11,19 +11,21 @@ public sealed class BLLRespaldoBaseDatos
     private readonly BLLRol _rolBLL;
     private readonly BLLBitacora _bitacoraBLL;
     private readonly BackupSettings _configuracion;
+    private readonly ContinuityHistoryXmlService _historialXml;
 
-    public BLLRespaldoBaseDatos(MPPRespaldoBaseDatos respaldoMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL, BackupSettings configuracion)
+    public BLLRespaldoBaseDatos(MPPRespaldoBaseDatos respaldoMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL, BackupSettings configuracion, ContinuityHistoryXmlService historialXml)
     {
         _respaldoMPP = respaldoMPP;
         _rolBLL = rolBLL;
         _bitacoraBLL = bitacoraBLL;
         _configuracion = configuracion;
+        _historialXml = historialXml;
     }
 
-    public (List<RespaldoBaseDatos> Respaldos, List<PruebaRestauracionRespaldo> Pruebas) Consultar(Usuario solicitante)
+    public (List<RespaldoBaseDatos> Respaldos, List<PruebaRestauracionRespaldo> Pruebas, List<RegistroContinuidadXml> HistorialXml) Consultar(Usuario solicitante)
     {
         ExigirGestionRespaldos(solicitante);
-        return (_respaldoMPP.Consultar(), _respaldoMPP.ConsultarPruebas());
+        return (_respaldoMPP.Consultar(), _respaldoMPP.ConsultarPruebas(), _historialXml.Consultar());
     }
 
     public Task<RespaldoBaseDatos> CrearManual(Usuario solicitante)
@@ -43,10 +45,10 @@ public sealed class BLLRespaldoBaseDatos
         RespaldoBaseDatos respaldo = _respaldoMPP.Consultar().FirstOrDefault(item => item.ID == idRespaldo && item.Estado == "Completado" && item.Verificado)
             ?? throw new KeyNotFoundException("No existe un respaldo verificado disponible para restaurar.");
         ValidarRutaRespaldo(respaldo.RutaArchivo);
-        if (!File.Exists(respaldo.RutaArchivo)) throw new FileNotFoundException("No se encontró el archivo de respaldo en la ubicación configurada.");
+        if (!File.Exists(respaldo.RutaArchivo)) { throw new FileNotFoundException("No se encontró el archivo de respaldo en la ubicación configurada."); }
 
         string nombreDestino = $"TeamBalanceRecovery_{idRespaldo}_{DateTime.UtcNow:yyyyMMddHHmmss}";
-        PruebaRestauracionRespaldo prueba = new()
+        PruebaRestauracionRespaldo prueba = new PruebaRestauracionRespaldo()
         {
             IdRespaldo = respaldo.ID,
             BaseDatosDestino = nombreDestino,
@@ -54,9 +56,11 @@ public sealed class BLLRespaldoBaseDatos
             IdUsuarioSolicitante = solicitante.ID
         };
         prueba.ID = _respaldoMPP.RegistrarPrueba(prueba);
+        string? idEventoXml = null;
 
         try
         {
+            idEventoXml = _historialXml.RegistrarInicio(CrearEventoXml("RestoreAislado", respaldo, solicitante.ID));
             Directory.CreateDirectory(RutaRecovery());
             await _respaldoMPP.VerificarBackupAsync(respaldo.RutaArchivo);
             DataTable archivos = await _respaldoMPP.ConsultarArchivosLogicosAsync(respaldo.RutaArchivo);
@@ -66,6 +70,7 @@ public sealed class BLLRespaldoBaseDatos
             prueba.FechaFin = DateTime.Now;
             prueba.Estado = "Completada";
             prueba.Mensaje = "Backup verificado y restaurado correctamente en un entorno aislado temporal.";
+            _historialXml.Finalizar(idEventoXml, "Completado", prueba.Mensaje, respaldo.TamanoBytes, true);
             _respaldoMPP.FinalizarPrueba(prueba);
             RegistrarBitacora(solicitante.ID, "ProbarRestauracionRespaldo", $"El respaldo {respaldo.NombreArchivo} se restauró en la base aislada {nombreDestino}.", "Exitoso", "Informacion");
             return prueba;
@@ -73,6 +78,7 @@ public sealed class BLLRespaldoBaseDatos
         catch (Exception ex)
         {
             try { await _respaldoMPP.EliminarBaseAisladaAsync(nombreDestino); } catch { /* Se conserva el error principal en la bitácora. */ }
+            if (idEventoXml is not null) { try { _historialXml.Finalizar(idEventoXml, "Fallido", LimitarMensaje(ex.Message), respaldo.TamanoBytes, false); } catch { /* No se reemplaza el error de la operación por uno de auditoría. */ } }
             prueba.FechaFin = DateTime.Now;
             prueba.Estado = "Fallida";
             prueba.Mensaje = LimitarMensaje(ex.Message);
@@ -94,6 +100,7 @@ public sealed class BLLRespaldoBaseDatos
             ?? throw new KeyNotFoundException("No existe un respaldo verificado disponible para recuperar producción.");
         ValidarRutaRespaldo(respaldo.RutaArchivo);
         if (!File.Exists(respaldo.RutaArchivo)) throw new FileNotFoundException("No se encontró el archivo de respaldo en la ubicación configurada.");
+        string idEventoXml = _historialXml.RegistrarInicio(CrearEventoXml("RestoreProduccion", respaldo, solicitante.ID));
 
         try
         {
@@ -102,10 +109,12 @@ public sealed class BLLRespaldoBaseDatos
             DataTable archivosActuales = await _respaldoMPP.ConsultarArchivosBaseActualAsync(_configuracion.DatabaseName);
             List<(string Logico, string Fisico)> destinos = CrearDestinosProduccion(archivosRespaldo, archivosActuales);
             await _respaldoMPP.RestaurarProduccionAsync(_configuracion.DatabaseName, respaldo.RutaArchivo, destinos);
+            _historialXml.Finalizar(idEventoXml, "Completado", "La base productiva se recuperó desde el respaldo seleccionado.", respaldo.TamanoBytes, true);
             RegistrarBitacora(solicitante.ID, "RestaurarProduccionDesdeRespaldo", $"La base productiva se recuperó desde el respaldo verificado {respaldo.NombreArchivo}.", "Exitoso", "Critico");
         }
         catch (Exception ex)
         {
+            try { _historialXml.Finalizar(idEventoXml, "Fallido", LimitarMensaje(ex.Message), respaldo.TamanoBytes, false); } catch { /* El registro inicial externo queda como evidencia de una operación interrumpida. */ }
             try { RegistrarBitacora(solicitante.ID, "RestaurarProduccionDesdeRespaldo", $"Falló la recuperación productiva desde {respaldo.NombreArchivo}: {LimitarMensaje(ex.Message)}", "Fallido", "Critico"); } catch { /* La base puede estar en proceso de recuperación. */ }
             throw;
         }
@@ -128,7 +137,7 @@ public sealed class BLLRespaldoBaseDatos
         DateTime inicio = DateTime.Now;
         string nombre = $"TeamBalance_full_{inicio:yyyyMMdd_HHmmss}.bak";
         string ruta = Path.Combine(RutaRespaldos(), nombre);
-        RespaldoBaseDatos respaldo = new()
+        RespaldoBaseDatos respaldo = new RespaldoBaseDatos()
         {
             NombreArchivo = nombre,
             RutaArchivo = ruta,
@@ -137,8 +146,10 @@ public sealed class BLLRespaldoBaseDatos
             FechaExpiracion = inicio.AddDays(Math.Clamp(_configuracion.RetentionDays, 1, 365))
         };
         respaldo.ID = _respaldoMPP.Registrar(respaldo);
+        string? idEventoXml = null;
         try
         {
+            idEventoXml = _historialXml.RegistrarInicio(CrearEventoXml("Backup", respaldo, idUsuarioSolicitante));
             await _respaldoMPP.EjecutarBackupAsync(_configuracion.DatabaseName, ruta);
             await _respaldoMPP.VerificarBackupAsync(ruta);
             int archivosConfiguracion = RespaldarConfiguracion(nombre);
@@ -147,6 +158,7 @@ public sealed class BLLRespaldoBaseDatos
             respaldo.Verificado = true;
             respaldo.TamanoBytes = File.Exists(ruta) ? new FileInfo(ruta).Length : null;
             respaldo.Mensaje = $"Respaldo completo {origen.ToLowerInvariant()} verificado con RESTORE VERIFYONLY. Configuración asociada: {archivosConfiguracion} archivo(s).";
+            _historialXml.Finalizar(idEventoXml, "Completado", respaldo.Mensaje, respaldo.TamanoBytes, true, archivosConfiguracion);
             _respaldoMPP.Finalizar(respaldo);
             RegistrarBitacora(idUsuarioSolicitante, "CrearRespaldoBaseDatos", $"Se generó un respaldo completo {origen.ToLowerInvariant()} y se verificó su integridad.", "Exitoso", "Informacion");
             PurgarVencidos();
@@ -154,6 +166,7 @@ public sealed class BLLRespaldoBaseDatos
         }
         catch (Exception ex)
         {
+            if (idEventoXml is not null) { try { _historialXml.Finalizar(idEventoXml, "Fallido", LimitarMensaje(ex.Message), null, false); } catch { /* El registro inicial externo conserva la operación interrumpida. */ } }
             respaldo.FechaFin = DateTime.Now;
             respaldo.Estado = "Fallido";
             respaldo.Verificado = false;
@@ -199,6 +212,18 @@ public sealed class BLLRespaldoBaseDatos
         }).ToList();
     }
 
+    private static RegistroContinuidadXml CrearEventoXml(string tipo, RespaldoBaseDatos respaldo, int? idUsuario)
+    {
+        RegistroContinuidadXml evento = new RegistroContinuidadXml();
+        evento.Tipo = tipo;
+        evento.IdRespaldo = respaldo.ID;
+        evento.NombreArchivo = respaldo.NombreArchivo;
+        evento.TamanoBytes = respaldo.TamanoBytes;
+        evento.Verificado = respaldo.Verificado;
+        evento.IdUsuarioSolicitante = idUsuario;
+        return evento;
+    }
+
     private static List<(string Logico, string Fisico)> CrearDestinosProduccion(DataTable archivosRespaldo, DataTable archivosActuales)
     {
         if (!archivosRespaldo.Columns.Contains("LogicalName") || !archivosRespaldo.Columns.Contains("Type") || !archivosActuales.Columns.Contains("LogicalName") || !archivosActuales.Columns.Contains("FileType") || !archivosActuales.Columns.Contains("PhysicalName"))
@@ -230,7 +255,7 @@ public sealed class BLLRespaldoBaseDatos
     {
         string directorioDestino = RutaConfiguracion(nombreRespaldo);
         Directory.CreateDirectory(directorioDestino);
-        List<string> archivosCopiados = [];
+        List<string> archivosCopiados = new List<string>();
         foreach (string archivoConfiguracion in _configuracion.ConfigurationFiles.Where(item => !string.IsNullOrWhiteSpace(item)))
         {
             string origen = Path.IsPathRooted(archivoConfiguracion)
@@ -242,12 +267,13 @@ public sealed class BLLRespaldoBaseDatos
             archivosCopiados.Add(Path.GetFileName(origen));
         }
 
-        File.WriteAllLines(Path.Combine(directorioDestino, "manifest.txt"),
-        [
+        string[] lineasManifest = new string[]
+        {
             $"Respaldo de configuración asociado a {nombreRespaldo}",
             $"Generado: {DateTime.Now:O}",
             $"Archivos: {string.Join(", ", archivosCopiados)}"
-        ]);
+        };
+        File.WriteAllLines(Path.Combine(directorioDestino, "manifest.txt"), lineasManifest);
         return archivosCopiados.Count;
     }
 

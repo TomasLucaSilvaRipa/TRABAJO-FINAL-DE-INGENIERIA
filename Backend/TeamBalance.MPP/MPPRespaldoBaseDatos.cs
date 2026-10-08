@@ -15,14 +15,14 @@ public sealed class MPPRespaldoBaseDatos
     {
         string baseDatos = IdentificadorSeguro(nombreBaseDatos);
         const string consulta = "BACKUP DATABASE {0} TO DISK = @RutaArchivo WITH COPY_ONLY, INIT, CHECKSUM, STATS = 10;";
-        await _conexion.EjecutarAdministracionAsync(string.Format(consulta, baseDatos), new List<SqlParameter> { new("@RutaArchivo", rutaArchivo) }, nombreBaseDatos, 1800);
+        await _conexion.EjecutarAdministracionAsync(string.Format(consulta, baseDatos), new List<SqlParameter> { new SqlParameter("@RutaArchivo", rutaArchivo) }, nombreBaseDatos, 1800);
     }
 
-    public Task VerificarBackupAsync(string rutaArchivo) => _conexion.EjecutarAdministracionAsync("RESTORE VERIFYONLY FROM DISK = @RutaArchivo WITH CHECKSUM;", new List<SqlParameter> { new("@RutaArchivo", rutaArchivo) }, "master", 1800);
+    public Task VerificarBackupAsync(string rutaArchivo) => _conexion.EjecutarAdministracionAsync("RESTORE VERIFYONLY FROM DISK = @RutaArchivo WITH CHECKSUM;", new List<SqlParameter> { new SqlParameter("@RutaArchivo", rutaArchivo) }, "master", 1800);
 
     public async Task<DataTable> ConsultarArchivosLogicosAsync(string rutaArchivo)
     {
-        return await _conexion.LeerAdministracionAsync("RESTORE FILELISTONLY FROM DISK = @RutaArchivo;", new List<SqlParameter> { new("@RutaArchivo", rutaArchivo) }, "master", 1800);
+        return await _conexion.LeerAdministracionAsync("RESTORE FILELISTONLY FROM DISK = @RutaArchivo;", new List<SqlParameter> { new SqlParameter("@RutaArchivo", rutaArchivo) }, "master", 1800);
     }
 
     public Task RestaurarEnAisladoAsync(string nombreBaseDatosDestino, string rutaArchivo, IEnumerable<(string Logico, string Fisico)> archivos)
@@ -30,14 +30,14 @@ public sealed class MPPRespaldoBaseDatos
         string destino = IdentificadorSeguro(nombreBaseDatosDestino);
         string movimientos = string.Join(", ", archivos.Select(archivo => $"MOVE N'{LiteralSeguro(archivo.Logico)}' TO N'{LiteralSeguro(archivo.Fisico)}'"));
         string consulta = $"RESTORE DATABASE {destino} FROM DISK = @RutaArchivo WITH {movimientos}, CHECKSUM, RECOVERY, STATS = 10; DBCC CHECKDB ({destino}) WITH NO_INFOMSGS;";
-        return _conexion.EjecutarAdministracionAsync(consulta, new List<SqlParameter> { new("@RutaArchivo", rutaArchivo) }, "master", 3600);
+        return _conexion.EjecutarAdministracionAsync(consulta, new List<SqlParameter> { new SqlParameter("@RutaArchivo", rutaArchivo) }, "master", 3600);
     }
 
     public Task<DataTable> ConsultarArchivosBaseActualAsync(string nombreBaseDatos)
     {
         string nombreSeguro = IdentificadorSeguro(nombreBaseDatos);
         const string consulta = "SELECT name AS LogicalName, type AS FileType, physical_name AS PhysicalName FROM sys.master_files WHERE database_id = DB_ID(@NombreBaseDatos) ORDER BY file_id;";
-        return _conexion.LeerAdministracionAsync(consulta, new List<SqlParameter> { new("@NombreBaseDatos", nombreBaseDatos) }, "master", 300);
+        return _conexion.LeerAdministracionAsync(consulta, new List<SqlParameter> { new SqlParameter("@NombreBaseDatos", nombreBaseDatos) }, "master", 300);
     }
 
     public Task RestaurarProduccionAsync(string nombreBaseDatos, string rutaArchivo, IEnumerable<(string Logico, string Fisico)> archivos)
@@ -53,7 +53,7 @@ public sealed class MPPRespaldoBaseDatos
             "END TRY BEGIN CATCH " +
             $"IF DB_ID(N'{literal}') IS NOT NULL ALTER DATABASE {destino} SET MULTI_USER; " +
             "THROW; END CATCH;";
-        return _conexion.EjecutarAdministracionAsync(consulta, new List<SqlParameter> { new("@RutaArchivo", rutaArchivo) }, "master", 3600);
+        return _conexion.EjecutarAdministracionAsync(consulta, new List<SqlParameter> { new SqlParameter("@RutaArchivo", rutaArchivo) }, "master", 3600);
     }
 
     public Task EliminarBaseAisladaAsync(string nombreBaseDatos)
@@ -68,16 +68,16 @@ public sealed class MPPRespaldoBaseDatos
     {
         DataTable tabla = _conexion.Leer("dbo.usp_RespaldoBaseDatos_Registrar", new List<SqlParameter>
         {
-            new("@NombreArchivo", respaldo.NombreArchivo), new("@RutaArchivo", respaldo.RutaArchivo), new("@FechaInicio", respaldo.FechaInicio),
-            new("@IdUsuarioSolicitante", (object?)respaldo.IdUsuarioSolicitante ?? DBNull.Value), new("@FechaExpiracion", respaldo.FechaExpiracion)
+            new SqlParameter("@NombreArchivo", respaldo.NombreArchivo), new SqlParameter("@RutaArchivo", respaldo.RutaArchivo), new SqlParameter("@FechaInicio", respaldo.FechaInicio),
+            new SqlParameter("@IdUsuarioSolicitante", (object?)respaldo.IdUsuarioSolicitante ?? DBNull.Value), new SqlParameter("@FechaExpiracion", respaldo.FechaExpiracion)
         });
         return tabla.Rows.Count == 1 ? Convert.ToInt32(tabla.Rows[0]["ID"]) : throw new InvalidOperationException("No se pudo registrar el respaldo.");
     }
 
     public void Finalizar(RespaldoBaseDatos respaldo) => _conexion.Escribir("dbo.usp_RespaldoBaseDatos_Finalizar", new List<SqlParameter>
     {
-        new("@IdRespaldo", respaldo.ID), new("@FechaFin", (object?)respaldo.FechaFin ?? DBNull.Value), new("@Estado", respaldo.Estado), new("@Verificado", respaldo.Verificado),
-        new("@TamanoBytes", (object?)respaldo.TamanoBytes ?? DBNull.Value), new("@Mensaje", (object?)respaldo.Mensaje ?? DBNull.Value)
+        new SqlParameter("@IdRespaldo", respaldo.ID), new SqlParameter("@FechaFin", (object?)respaldo.FechaFin ?? DBNull.Value), new SqlParameter("@Estado", respaldo.Estado), new SqlParameter("@Verificado", respaldo.Verificado),
+        new SqlParameter("@TamanoBytes", (object?)respaldo.TamanoBytes ?? DBNull.Value), new SqlParameter("@Mensaje", (object?)respaldo.Mensaje ?? DBNull.Value)
     });
 
     public List<RespaldoBaseDatos> Consultar() => _conexion.Leer("dbo.usp_RespaldoBaseDatos_Consultar").Rows.Cast<DataRow>().Select(CrearRespaldo).ToList();
@@ -86,14 +86,14 @@ public sealed class MPPRespaldoBaseDatos
     {
         DataTable tabla = _conexion.Leer("dbo.usp_PruebaRestauracion_Registrar", new List<SqlParameter>
         {
-            new("@IdRespaldo", prueba.IdRespaldo), new("@BaseDatosDestino", prueba.BaseDatosDestino), new("@FechaInicio", prueba.FechaInicio), new("@IdUsuarioSolicitante", (object?)prueba.IdUsuarioSolicitante ?? DBNull.Value)
+            new SqlParameter("@IdRespaldo", prueba.IdRespaldo), new SqlParameter("@BaseDatosDestino", prueba.BaseDatosDestino), new SqlParameter("@FechaInicio", prueba.FechaInicio), new SqlParameter("@IdUsuarioSolicitante", (object?)prueba.IdUsuarioSolicitante ?? DBNull.Value)
         });
         return tabla.Rows.Count == 1 ? Convert.ToInt32(tabla.Rows[0]["ID"]) : throw new InvalidOperationException("No se pudo registrar la prueba de restauración.");
     }
 
     public void FinalizarPrueba(PruebaRestauracionRespaldo prueba) => _conexion.Escribir("dbo.usp_PruebaRestauracion_Finalizar", new List<SqlParameter>
     {
-        new("@IdPrueba", prueba.ID), new("@FechaFin", (object?)prueba.FechaFin ?? DBNull.Value), new("@Estado", prueba.Estado), new("@Mensaje", (object?)prueba.Mensaje ?? DBNull.Value)
+        new SqlParameter("@IdPrueba", prueba.ID), new SqlParameter("@FechaFin", (object?)prueba.FechaFin ?? DBNull.Value), new SqlParameter("@Estado", prueba.Estado), new SqlParameter("@Mensaje", (object?)prueba.Mensaje ?? DBNull.Value)
     });
 
     public List<PruebaRestauracionRespaldo> ConsultarPruebas() => _conexion.Leer("dbo.usp_PruebaRestauracion_Consultar").Rows.Cast<DataRow>().Select(fila => new PruebaRestauracionRespaldo
@@ -104,9 +104,9 @@ public sealed class MPPRespaldoBaseDatos
         IdUsuarioSolicitante = fila["IdUsuarioSolicitante"] == DBNull.Value ? null : Convert.ToInt32(fila["IdUsuarioSolicitante"])
     }).ToList();
 
-    public void EliminarRegistro(int idRespaldo) => _conexion.Escribir("dbo.usp_RespaldoBaseDatos_Eliminar", new List<SqlParameter> { new("@IdRespaldo", idRespaldo) });
+    public void EliminarRegistro(int idRespaldo) => _conexion.Escribir("dbo.usp_RespaldoBaseDatos_Eliminar", new List<SqlParameter> { new SqlParameter("@IdRespaldo", idRespaldo) });
 
-    private static RespaldoBaseDatos CrearRespaldo(DataRow fila) => new()
+    private static RespaldoBaseDatos CrearRespaldo(DataRow fila) => new RespaldoBaseDatos()
     {
         ID = Convert.ToInt32(fila["ID"]), NombreArchivo = Convert.ToString(fila["NombreArchivo"]) ?? string.Empty, RutaArchivo = Convert.ToString(fila["RutaArchivo"]) ?? string.Empty,
         FechaInicio = Convert.ToDateTime(fila["FechaInicio"]), FechaFin = fila["FechaFin"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaFin"]),

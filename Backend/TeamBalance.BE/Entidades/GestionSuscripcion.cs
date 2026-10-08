@@ -3,12 +3,21 @@ namespace TeamBalance.BE.Entidades;
 // DTOs del CU05-003. No contienen ni reciben datos sensibles de pago.
 public sealed class CambioPlanSuscripcionRequest
 {
+    public int IdSuscripcion { get; set; }
     public int IdPlanComercial { get; set; }
+    public string ReferenciaInterna { get; set; } = string.Empty;
+    public string Proveedor { get; set; } = string.Empty;
 }
 
 public sealed class CancelacionRenovacionRequest
 {
     public string? Motivo { get; set; }
+}
+
+public sealed class VerificarPagoSuscripcionRequest
+{
+    public string ReferenciaOperacion { get; set; } = string.Empty;
+    public string PaymentId { get; set; } = string.Empty;
 }
 
 public sealed class InicioActualizacionSuscripcion
@@ -66,6 +75,9 @@ public sealed class OperacionSuscripcionPendiente
     public decimal Importe { get; set; }
     public string Moneda { get; set; } = string.Empty;
     public string Proveedor { get; set; } = string.Empty;
+    public string ReferenciaProveedor { get; set; } = string.Empty;
+    public string EstadoProveedor { get; set; } = string.Empty;
+    public string DetalleProveedor { get; set; } = string.Empty;
 }
 
 public sealed class SincronizacionVencimientosResultado
@@ -95,4 +107,9 @@ public sealed class RenovacionProveedorPendiente
     public int IdAgencia { get; set; }
     public int IdPlanComercial { get; set; }
     public string ReferenciaRenovacionProveedor { get; set; } = string.Empty;
+    public string ReferenciaPago { get; set; } = string.Empty;
+    public decimal Importe { get; set; }
+    public string Moneda { get; set; } = string.Empty;
+    public string Detalle { get; set; } = string.Empty;
+    public string EstadoProveedor { get; set; } = string.Empty;
 }
