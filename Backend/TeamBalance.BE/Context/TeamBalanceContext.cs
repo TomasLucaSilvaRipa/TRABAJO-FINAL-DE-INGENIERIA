@@ -192,6 +192,7 @@ public partial class TeamBalanceContext : DbContext
             entity.Property(e => e.HorasNoDisponiblesSolicitadas).HasColumnType("decimal(5, 2)");
             entity.Property(e => e.Motivo).HasMaxLength(500);
             entity.Property(e => e.MotivoResolucion).HasMaxLength(500);
+            entity.Property(e => e.ComprobanteUrl).HasMaxLength(1000);
             entity.Property(e => e.TipoPeriodo).HasMaxLength(80);
 
             entity.HasOne(d => d.IdEmpleadoNavigation).WithMany(p => p.AusenciaEmpleados)

@@ -7,7 +7,7 @@ import { AuthService } from '../../../services/auth.service';
 import { SidebarService } from '../../services/sidebar.service';
 import { ReviewsService } from '../../../services/reviews.service';
 
-interface NavItem { key: string; path: string; permission: string; }
+interface NavItem { key: string; path: string; permission: string; soloSoporte?: boolean; ocultarSoporte?: boolean; }
 
 @Component({
   selector: 'app-sidebar',
@@ -34,15 +34,22 @@ export class AppSidebarComponent {
     { key: 'menu.dashboard', path: '/dashboard', permission: 'VerDashboard' },
     { key: 'menu.projects', path: '/dashboard/proyectos', permission: 'GestionarProyectos' },
     { key: 'menu.tasks', path: '/dashboard/tareas', permission: 'GestionarTareas' },
-    { key: 'menu.templates', path: '/dashboard/plantillas-tareas', permission: 'GestionarTareas' },
+    { key: 'menu.templates', path: '/dashboard/plantillas-tareas', permission: 'GestionarPlantillasTareas' },
     { key: 'menu.kanban', path: '/dashboard/kanban-proyectos', permission: 'GestionarTareas' },
     { key: 'menu.employees', path: '/dashboard/empleados', permission: 'GestionarUsuarios' },
     { key: 'menu.reports', path: '/dashboard/reportes', permission: 'ConsultarTableroEjecutivo' },
     { key: 'menu.agency', path: '/dashboard/configuracion-agencia', permission: 'GestionarAgencia' },
     { key: 'menu.subscription', path: '/dashboard/suscripcion', permission: 'GestionarSuscripcion' },
+    { key: 'menu.help', path: '/dashboard/ayuda', permission: 'ConsultarAyuda' },
+    { key: 'menu.support', path: '/dashboard/soporte', permission: 'GestionarSoporte', ocultarSoporte: true },
+    { key: 'menu.newsletter', path: '/dashboard/newsletter', permission: 'GestionarNewsletter', ocultarSoporte: true },
+    { key: 'menu.supportInbox', path: '/dashboard/soporte/bandeja', permission: 'GestionarBandejaSoporte', soloSoporte: true },
+    { key: 'menu.newsManagement', path: '/dashboard/gestion-novedades', permission: 'GestionarNovedades', soloSoporte: true },
+    { key: 'menu.operators', path: '/dashboard/operadores', permission: 'GestionarOperadores', soloSoporte: true },
     { key: 'menu.teamCalendar', path: '/dashboard/calendario-equipo', permission: 'VerCalendarioEquipo' },
     { key: 'menu.simulation', path: '/dashboard/simulacion-impacto', permission: 'SimularImpacto' },
-    { key: 'menu.myTasks', path: '/dashboard/mis-tareas', permission: 'VerDashboard' },
+    { key: 'menu.skillsCoverage', path: '/dashboard/skills-desiertos', permission: 'AnalizarSkills' },
+    { key: 'menu.myTasks', path: '/dashboard/mis-tareas', permission: 'VerMisTareas' },
     { key: 'menu.kanban', path: '/dashboard/kanban', permission: 'VerKanban' },
     { key: 'menu.registerHours', path: '/dashboard/registrar-horas', permission: 'RegistrarHoras' },
     { key: 'menu.availability', path: '/dashboard/disponibilidad', permission: 'GestionarDisponibilidad' },
@@ -57,6 +64,8 @@ export class AppSidebarComponent {
   }
 
   puedeVer(item: NavItem): boolean {
+    if (item.soloSoporte && !this.authService.esSoporte()) return false;
+    if (item.ocultarSoporte && this.authService.esSoporte()) return false;
     return this.authService.tienePermiso(item.permission);
   }
 

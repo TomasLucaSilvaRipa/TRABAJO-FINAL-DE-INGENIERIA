@@ -28,11 +28,11 @@ namespace Teambalance.API.Controllers
         }
 
         [HttpGet("{referencia}/estado")]
-        public IActionResult ConsultarEstado(ContratacionServicio contratacionServicio)
+        public IActionResult ConsultarEstado(string referencia)
         {
             try
             {
-                return Ok(_bll.ConsultarEstado(contratacionServicio));
+                return Ok(_bll.ConsultarEstado(new ContratacionServicio(referencia)));
             }
             catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
             catch (Exception ex) { return BadRequest(ex.Message); }

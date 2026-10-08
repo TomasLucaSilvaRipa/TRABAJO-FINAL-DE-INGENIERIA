@@ -48,10 +48,11 @@ public class AgenciaController : ControllerBase
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); } }
 
     [HttpPost("{referenciaContratacion}/registro")]
-    public async Task<IActionResult> RegistrarAgencia([FromRoute] string referenciaContratacion, [FromBody] Agencia agencia)
+    public async Task<IActionResult> RegistrarAgencia([FromRoute] string referenciaContratacion, [FromBody] RegistrarAgenciaRequest solicitud)
     {
         try
         {
+            Agencia agencia = solicitud.Agencia;
             Usuario? usuario = agencia.Usuarios.FirstOrDefault();
             ContratacionServicio contratacionSericio = new ContratacionServicio(referenciaContratacion);
             if (usuario is null)
@@ -59,7 +60,7 @@ public class AgenciaController : ControllerBase
                 return BadRequest("No se recibieron los datos del dueño.");
             }
 
-            bool emailValidacionEnviado = await _agenciaBLL.RegistrarAgencia(agencia, usuario, contratacionSericio);
+            bool emailValidacionEnviado = await _agenciaBLL.RegistrarAgencia(agencia, usuario, contratacionSericio, solicitud.RecibirNewsletter, solicitud.CategoriasNewsletterIds);
 
             return Ok(new
             {
@@ -114,4 +115,11 @@ public class AgenciaController : ControllerBase
         if (usuario is null) { throw new UnauthorizedAccessException("Tu sesión ya no es válida."); }
         return usuario;
     }
+}
+
+public sealed class RegistrarAgenciaRequest
+{
+    public Agencia Agencia { get; set; } = new();
+    public bool RecibirNewsletter { get; set; }
+    public List<int> CategoriasNewsletterIds { get; set; } = [];
 }

@@ -21,6 +21,13 @@
         <p>{{ errorMessage() }}</p>
         <a class="tb-button tb-button--primary" routerLink="/plans">Ver planes</a>
       </div>
+    } @else if (resultadoSuscripcion(); as suscripcion) {
+      <div class="tb-card">
+        <p class="tb-eyebrow">Actualización de suscripción</p>
+        <h2>{{ suscripcion.mensaje }}</h2>
+        <p>La operación quedó registrada con la referencia informada por Mercado Pago. No se almacenaron datos del medio de pago.</p>
+        <a class="tb-button tb-button--primary mt-5" routerLink="/dashboard/suscripcion">Volver a la suscripción</a>
+      </div>
     } @else if (resultado(); as estado) {
       <div class="tb-card">
         @if (estado.puedeRegistrar) {

@@ -56,8 +56,14 @@ import { LicensesComponent } from './pages/users/employee/licenses/licenses.comp
 import { ImpactSimulationComponent } from './pages/users/pm/impact-simulation/impact-simulation.component';
 import { ProjectKanbanComponent } from './pages/users/pm/project-kanban/project-kanban.component';
 import { TaskTemplatesComponent } from './pages/users/pm/task-templates/task-templates.component';
+import { SkillsDesiertosComponent } from './pages/users/pm/skills-desiertos/skills-desiertos.component';
 import { NotificationsComponent } from './pages/global/notifications/notifications.component';
 import { HelpComponent } from './pages/global/help/help.component';
+import { SubscriptionExpiredComponent } from './pages/public/subscription-expired/subscription-expired.component';
+import { NewsComponent } from './pages/public/news/news.component';
+import { HelpdeskComponent } from './pages/global/helpdesk/helpdesk.component';
+import { NewsletterComponent } from './pages/global/newsletter/newsletter.component';
+import { OperatorsManagementComponent } from './pages/users/support/operators-management/operators-management.component';
 
 export const routes: Routes = [
   {
@@ -86,6 +92,16 @@ export const routes: Routes = [
         title: 'Planes | TeamBalance',
       },
       {
+        path: 'novedades',
+        component: NewsComponent,
+        title: 'Novedades | TeamBalance',
+      },
+      {
+        path: 'ayuda',
+        component: HelpComponent,
+        title: 'Ayuda | TeamBalance',
+      },
+      {
         path: 'checkout',
         component: CheckoutComponent,
         title: 'Contratación | TeamBalance',
@@ -94,6 +110,11 @@ export const routes: Routes = [
         path: 'pago/resultado',
         component: PaymentResultComponent,
         title: 'Estado del pago | TeamBalance',
+      },
+      {
+        path: 'suscripcion-vencida',
+        component: SubscriptionExpiredComponent,
+        title: 'Suscripción vencida | TeamBalance',
       },
       {
         path: 'registrar-agencia',
@@ -197,12 +218,13 @@ export const routes: Routes = [
       { path: 'configuracion-agencia', component: AgencyConfiguration, canActivate: [permissionGuard], data: { permission: 'GestionarAgencia' }, title: 'Configuración de agencia | TeamBalance' },
       { path: 'suscripcion', component: Subscription, canActivate: [permissionGuard], data: { permission: 'GestionarSuscripcion' }, title: 'Suscripción | TeamBalance' },
       { path: 'tareas', component: TaskManagerComponent, canActivate: [permissionGuard], data: { permission: 'GestionarTareas' }, title: 'Gestión de tareas | TeamBalance' },
-      { path: 'plantillas-tareas', component: TaskTemplatesComponent, canActivate: [permissionGuard], data: { permission: 'GestionarTareas' }, title: 'Plantillas de tareas | TeamBalance' },
+      { path: 'plantillas-tareas', component: TaskTemplatesComponent, canActivate: [permissionGuard], data: { permission: 'GestionarPlantillasTareas' }, title: 'Plantillas de tareas | TeamBalance' },
       { path: 'best-fit', component: BestFit, canActivate: [permissionGuard], data: { permission: 'UsarBestFit' }, title: 'Best Fit | TeamBalance' },
       { path: 'calendario-equipo', component: TeamCalendar, canActivate: [permissionGuard], data: { permission: 'VerCalendarioEquipo' }, title: 'Calendario del equipo | TeamBalance' },
       { path: 'simulacion-impacto', component: ImpactSimulationComponent, canActivate: [permissionGuard], data: { permission: 'SimularImpacto' }, title: 'Simulación de impacto | TeamBalance' },
-      { path: 'mis-tareas', component: MyTasksComponent, canActivate: [permissionGuard], data: { permission: 'VerDashboard' }, title: 'Mis tareas | TeamBalance' },
-      { path: 'detalle-tarea', component: TaskDetailComponent, canActivate: [permissionGuard], data: { permission: 'VerDashboard' }, title: 'Detalle de tarea | TeamBalance' },
+      { path: 'skills-desiertos', component: SkillsDesiertosComponent, canActivate: [permissionGuard], data: { permission: 'AnalizarSkills' }, title: 'Cobertura de skills | TeamBalance' },
+      { path: 'mis-tareas', component: MyTasksComponent, canActivate: [permissionGuard], data: { permission: 'VerMisTareas' }, title: 'Mis tareas | TeamBalance' },
+      { path: 'detalle-tarea', component: TaskDetailComponent, canActivate: [permissionGuard], data: { permission: 'VerMisTareas' }, title: 'Detalle de tarea | TeamBalance' },
       { path: 'kanban', component: KanbanBoard, canActivate: [permissionGuard], data: { permission: 'VerKanban' }, title: 'Tablero Kanban | TeamBalance' },
       { path: 'kanban-proyectos', component: ProjectKanbanComponent, canActivate: [permissionGuard], data: { permission: 'GestionarTareas' }, title: 'Kanban de proyectos | TeamBalance' },
       { path: 'registrar-horas', component: RegisterHoursComponent, canActivate: [permissionGuard], data: { permission: 'RegistrarHoras' }, title: 'Registrar horas | TeamBalance' },
@@ -212,6 +234,11 @@ export const routes: Routes = [
       { path: 'roles', component: RolManagement, canActivate: [permissionGuard], data: { permission: 'GestionarRoles' }, title: 'Gestión de roles | TeamBalance' },
       { path: 'notificaciones', component: NotificationsComponent, canActivate: [permissionGuard], data: { permission: 'ConsultarNotificaciones' }, title: 'Notificaciones | TeamBalance' },
       { path: 'ayuda', component: HelpComponent, canActivate: [permissionGuard], data: { permission: 'ConsultarAyuda' }, title: 'Ayuda | TeamBalance' },
+      { path: 'soporte', component: HelpdeskComponent, canActivate: [permissionGuard], data: { permission: 'GestionarSoporte' }, title: 'Soporte | TeamBalance' },
+      { path: 'newsletter', component: NewsletterComponent, canActivate: [permissionGuard], data: { permission: 'GestionarNewsletter' }, title: 'Newsletter | TeamBalance' },
+      { path: 'soporte/bandeja', component: HelpdeskComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarBandejaSoporte' }, title: 'Bandeja de soporte | TeamBalance' },
+      { path: 'gestion-novedades', component: NewsletterComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarNovedades' }, title: 'Gestión de novedades | TeamBalance' },
+      { path: 'operadores', component: OperatorsManagementComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarOperadores' }, title: 'Gestión de operadores | TeamBalance' },
       {
         path:'form-elements',
         component:FormElementsComponent,

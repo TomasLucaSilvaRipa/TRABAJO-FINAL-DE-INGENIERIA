@@ -15,8 +15,10 @@ public class BLLUsuario
     private readonly EmailService _emailService;
     private readonly RecaptchaService _recaptchaService;
     private readonly BLLRol _rolBLL;
+    private readonly MPPRecursos _recursosMPP;
+    private readonly MPPTarea _tareaMPP;
 
-    public BLLUsuario(MPPUsuario usuarioMPP, BLLBitacora bitacoraBLL, Seguridad seguridad, EmailService emailService, RecaptchaService recaptchaService, BLLRol rolBLL)
+    public BLLUsuario(MPPUsuario usuarioMPP, BLLBitacora bitacoraBLL, Seguridad seguridad, EmailService emailService, RecaptchaService recaptchaService, BLLRol rolBLL, MPPRecursos recursosMPP, MPPTarea tareaMPP)
     {
         _usuarioMPP = usuarioMPP;
         _bitacoraBLL = bitacoraBLL;
@@ -24,6 +26,8 @@ public class BLLUsuario
         _emailService = emailService;
         _recaptchaService = recaptchaService;
         _rolBLL = rolBLL;
+        _recursosMPP = recursosMPP;
+        _tareaMPP = tareaMPP;
     }
 
     public bool EmailDisponible(Usuario usuario)
@@ -188,6 +192,62 @@ public class BLLUsuario
         return !_usuarioMPP.ExisteSoporte();
     }
 
+    public List<Usuario> ConsultarOperadores(Usuario solicitante)
+    {
+        ExigirGestionOperadores(solicitante);
+        List<Usuario> operadores = _usuarioMPP.ConsultarOperadores();
+        foreach (Usuario operador in operadores)
+        {
+            _rolBLL.CargarAutorizacion(operador);
+        }
+        return operadores;
+    }
+
+    public async Task<Usuario> RegistrarOperador(Usuario operador, Usuario solicitante)
+    {
+        ExigirGestionOperadores(solicitante);
+        PrepararOperador(operador, true);
+        operador.ID = _usuarioMPP.RegistrarUsuario(operador);
+        _usuarioMPP.ReemplazarRoles(operador);
+        _rolBLL.CargarAutorizacion(operador);
+
+        ValidacionCuenta validacion = CrearValidacionEmail(out string token);
+        _usuarioMPP.ReemplazarValidacionEmail(operador, validacion);
+        bool correoEnviado = await _emailService.EnviarCorreoValidacion(operador, token);
+        _bitacoraBLL.Add(new Bitacora(solicitante.ID, null, "Usuario", operador.ID, "RegistrarOperador", "Se creó un operador interno de TeamBalance.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia", "Operadores"));
+        return operador;
+    }
+
+    public void ModificarOperador(Usuario operador, Usuario solicitante)
+    {
+        ExigirGestionOperadores(solicitante);
+        Usuario existente = _usuarioMPP.ConsultarOperadores().FirstOrDefault(item => item.ID == operador.ID) ?? throw new KeyNotFoundException("No existe el operador indicado.");
+        PrepararOperador(operador, false);
+        Usuario? mismoEmail = _usuarioMPP.ConsultarUsuarioPorEmail(operador);
+        if (mismoEmail is not null && mismoEmail.ID != operador.ID)
+        {
+            throw new InvalidOperationException("Ya existe un usuario con ese email.");
+        }
+        operador.Activo = existente.Activo;
+        operador.Estado = existente.Estado;
+        _usuarioMPP.ModificarUsuario(operador);
+        _usuarioMPP.ReemplazarRoles(operador);
+        _bitacoraBLL.Add(new Bitacora(solicitante.ID, null, "Usuario", operador.ID, "ModificarOperador", "Se modificó un operador interno de TeamBalance.", "Exitoso", "Informacion", "Operadores"));
+    }
+
+    public void CambiarEstadoOperador(Usuario operador, Usuario solicitante)
+    {
+        ExigirGestionOperadores(solicitante);
+        Usuario existente = _usuarioMPP.ConsultarOperadores().FirstOrDefault(item => item.ID == operador.ID) ?? throw new KeyNotFoundException("No existe el operador indicado.");
+        if (!operador.Activo && existente.ID == solicitante.ID)
+        {
+            throw new InvalidOperationException("No podés dar de baja tu propio acceso de Soporte.");
+        }
+        existente.Activo = operador.Activo;
+        _usuarioMPP.CambiarEstado(existente);
+        _bitacoraBLL.Add(new Bitacora(solicitante.ID, null, "Usuario", existente.ID, existente.Activo ? "ActivarOperador" : "DarBajaOperador", existente.Activo ? "Se activó un operador interno." : "Se dio de baja un operador interno.", "Exitoso", "Informacion", "Operadores"));
+    }
+
     public async Task<Usuario> RegistrarUsuarioAgencia(Usuario usuario, Usuario solicitante)
     {
         ValidarPermiso(solicitante, "GestionarUsuarios");
@@ -258,11 +318,27 @@ public class BLLUsuario
         {
             ValidarPermiso(solicitante, "GestionarUsuarios");
             Usuario usuarioAgencia = _usuarioMPP.ConsultarUsuariosAgencia(solicitante).FirstOrDefault(item => item.ID == usuario.ID) ?? throw new KeyNotFoundException("No existe el usuario dentro de la agencia.");
+            if (!usuario.Activo && usuarioAgencia.Empleado is not null)
+            {
+                int idEmpleado = _recursosMPP.ConsultarIdEmpleadoPorUsuarioAgencia(usuarioAgencia.ID, solicitante);
+                List<Tarea> tareasPendientes = _tareaMPP.Consultar(solicitante, new FiltroTarea { IdEmpleadoAsignado = idEmpleado })
+                    .Where(tarea => tarea.Activo && !string.Equals(tarea.Estado, "Finalizada", StringComparison.OrdinalIgnoreCase) && !string.Equals(tarea.Estado, "Finalizado", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                if (tareasPendientes.Count > 0)
+                {
+                    string detalle = string.Join(", ", tareasPendientes.Take(3).Select(tarea => $"{tarea.Titulo}{(tarea.Deadline.HasValue ? $" (vence {tarea.Deadline.Value:dd/MM/yyyy})" : string.Empty)}"));
+                    string adicionales = tareasPendientes.Count > 3 ? $" y {tareasPendientes.Count - 3} más" : string.Empty;
+                    throw new InvalidOperationException($"No se puede dar de baja al empleado porque tiene {tareasPendientes.Count} tarea(s) activa(s): {detalle}{adicionales}. Reasignalas desde Planificar y asignar tareas antes de continuar.");
+                }
+            }
             usuarioAgencia.Activo = usuario.Activo;
             _usuarioMPP.CambiarEstado(usuarioAgencia);
             Bitacora bitacora = new Bitacora(solicitante.ID, solicitante.IdAgencia, "Usuario", usuarioAgencia.ID, usuarioAgencia.Activo ? "ActivarUsuario" : "DarBajaUsuario", usuarioAgencia.Activo ? "Se activó un usuario de la agencia." : "Se dio de baja un usuario de la agencia.", "Exitoso", "Informacion", "Usuarios");
             _bitacoraBLL.Add(bitacora);
         }
+        catch (UnauthorizedAccessException) { throw; }
+        catch (KeyNotFoundException) { throw; }
+        catch (InvalidOperationException) { throw; }
         catch(Exception ex) { throw new Exception(ex.Message); }
     }
 
@@ -289,12 +365,56 @@ public class BLLUsuario
         usuario.Nombre = usuario.Nombre.Trim();
         usuario.Apellido = usuario.Apellido.Trim();
         usuario.Email = usuario.Email.Trim().ToLowerInvariant();
+        if (_usuarioMPP.ConsultarUsuarioPorEmail(usuario) is not null)
+        {
+            throw new InvalidOperationException("Ya existe un usuario con ese email.");
+        }
         usuario.PasswordHash = _seguridad.GenerarHashPassword(usuario.PasswordHash);
         usuario.Estado = "PendienteValidacion";
         usuario.FechaAlta = DateTime.Now;
         usuario.Activo = true;
         usuario.AceptaTerminos = true;
         usuario.Rol = usuario.Roles.First();
+    }
+
+    private void PrepararOperador(Usuario operador, bool passwordObligatoria)
+    {
+        List<int> rolesSolicitados = operador.Roles.Select(rol => rol.ID).Distinct().ToList();
+        List<Rol> rolesSoporte = _rolBLL.ConsultarRolesActivos()
+            .Where(rol => string.Equals(rol.TipoUsuario, "Soporte", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        operador.Roles = rolesSoporte.Where(rol => rolesSolicitados.Contains(rol.ID)).ToList();
+        if (operador.Roles.Count != rolesSolicitados.Count || operador.Roles.Count == 0)
+        {
+            throw new ArgumentException("Seleccioná al menos un rol interno de Soporte válido.");
+        }
+        ValidarUsuarioGestion(operador, passwordObligatoria);
+        operador.Nombre = operador.Nombre.Trim();
+        operador.Apellido = operador.Apellido.Trim();
+        operador.Email = operador.Email.Trim().ToLowerInvariant();
+        operador.IdAgencia = null;
+        operador.Rol = operador.Roles.First();
+        if (passwordObligatoria)
+        {
+            if (_usuarioMPP.ConsultarUsuarioPorEmail(operador) is not null)
+            {
+                throw new InvalidOperationException("Ya existe un usuario con ese email.");
+            }
+            operador.PasswordHash = _seguridad.GenerarHashPassword(operador.PasswordHash);
+            operador.Estado = "PendienteValidacion";
+            operador.FechaAlta = DateTime.Now;
+            operador.Activo = true;
+            operador.AceptaTerminos = true;
+        }
+    }
+
+    private void ExigirGestionOperadores(Usuario solicitante)
+    {
+        ValidarPermiso(solicitante, "GestionarOperadores");
+        if (!solicitante.Roles.Any(rol => string.Equals(rol.TipoUsuario, "Soporte", StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new UnauthorizedAccessException("Sólo Soporte TeamBalance puede gestionar operadores internos.");
+        }
     }
 
     private static void ValidarUsuarioGestion(Usuario usuario, bool passwordObligatoria)

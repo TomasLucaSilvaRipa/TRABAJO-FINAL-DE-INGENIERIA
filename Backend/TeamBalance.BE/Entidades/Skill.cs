@@ -29,5 +29,10 @@ public partial class Skill
 
     public string? Categoria { get; set; }
 
+    public int? IdAreaSkill { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? NombreArea { get; set; }
+
     public bool Activo { get; set; }
 }

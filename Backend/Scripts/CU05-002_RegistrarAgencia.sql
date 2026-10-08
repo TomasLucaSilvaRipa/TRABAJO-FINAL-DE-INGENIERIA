@@ -146,7 +146,7 @@ BEGIN
     WHERE IdContratacionServicio = @IdContratacion
     ORDER BY ID DESC;
 
-    IF NOT EXISTS (SELECT 1 FROM dbo.Rol WHERE ID = @IdRol AND Nombre = N'Dueño' AND Activo = 1)
+    IF NOT EXISTS (SELECT 1 FROM dbo.Rol WHERE ID = @IdRol AND TipoUsuario = N'Dueno' AND Activo = 1)
         THROW 51002, 'No existe un rol Dueño activo para crear el usuario inicial.', 1;
 
     IF @AceptaTerminos = 0

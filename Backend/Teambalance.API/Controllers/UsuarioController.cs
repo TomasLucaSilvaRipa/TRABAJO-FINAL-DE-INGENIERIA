@@ -35,6 +35,45 @@ public class UsuarioController : ControllerBase
         catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
     }
 
+    [HttpGet("operadores")]
+    public IActionResult ConsultarOperadores()
+    {
+        try { return Ok(_usuarioBLL.ConsultarOperadores(ObtenerSolicitante())); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible consultar los operadores."); }
+    }
+
+    [HttpPost("operadores")]
+    public async Task<IActionResult> RegistrarOperador([FromBody] Usuario operador)
+    {
+        try { return Ok(await _usuarioBLL.RegistrarOperador(operador, ObtenerSolicitante())); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible registrar el operador."); }
+    }
+
+    [HttpPut("operadores/{idUsuario:int}")]
+    public IActionResult ModificarOperador(int idUsuario, [FromBody] Usuario operador)
+    {
+        try { operador.ID = idUsuario; _usuarioBLL.ModificarOperador(operador, ObtenerSolicitante()); return NoContent(); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible modificar el operador."); }
+    }
+
+    [HttpPatch("operadores/{idUsuario:int}/estado")]
+    public IActionResult CambiarEstadoOperador(int idUsuario, [FromBody] Usuario operador)
+    {
+        try { operador.ID = idUsuario; _usuarioBLL.CambiarEstadoOperador(operador, ObtenerSolicitante()); return NoContent(); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible actualizar el operador."); }
+    }
+
     [HttpGet("rol-soporte-inicial")]
     public IActionResult ConsultarRolSoporteInicial()
     {
@@ -91,6 +130,7 @@ public class UsuarioController : ControllerBase
         }
         catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
         catch (KeyNotFoundException ex){ return NotFound(ex.Message); }
+        catch (InvalidOperationException ex){ return BadRequest(ex.Message); }
         catch (Exception){ return StatusCode(500, "No fue posible actualizar el usuario."); }
     }
 

@@ -14,8 +14,9 @@ public class BLLAgencia
     private readonly BLLBitacora _bitacoraBLL;
     private readonly EmailService _emailService;
     private readonly BLLProyecto _proyectoBLL;
+    private readonly BLLNovedades _novedadesBLL;
 
-    public BLLAgencia(MPPAgencia agenciaMPP, ContratacionBLL contratacionBLL, BLLUsuario usuarioBLL, BLLRol rolBLL, BLLBitacora bitacoraBLL, EmailService emailService, BLLProyecto proyectoBLL){
+    public BLLAgencia(MPPAgencia agenciaMPP, ContratacionBLL contratacionBLL, BLLUsuario usuarioBLL, BLLRol rolBLL, BLLBitacora bitacoraBLL, EmailService emailService, BLLProyecto proyectoBLL, BLLNovedades novedadesBLL){
         _agenciaMPP = agenciaMPP;
         _contratacionBLL = contratacionBLL;
         _usuarioBLL = usuarioBLL;
@@ -23,11 +24,18 @@ public class BLLAgencia
         _bitacoraBLL = bitacoraBLL;
         _emailService = emailService;
         _proyectoBLL = proyectoBLL;
+        _novedadesBLL = novedadesBLL;
     }
 
-    public async Task<bool> RegistrarAgencia( Agencia agencia, Usuario usuario, ContratacionServicio contratacionServicio)
+    public async Task<bool> RegistrarAgencia(Agencia agencia, Usuario usuario, ContratacionServicio contratacionServicio, bool recibirNewsletter, List<int>? categoriasNewsletterIds)
     {
         ValidarDatosRegistro(usuario, contratacionServicio);
+        PreferenciasNewsletterRequest preferenciasNewsletter = new() { CategoriasIds = categoriasNewsletterIds?.Distinct().ToList() ?? [] };
+        if (recibirNewsletter)
+        {
+            if (preferenciasNewsletter.CategoriasIds.Count == 0) throw new ArgumentException("Seleccioná al menos una categoría para recibir novedades.");
+            _novedadesBLL.ValidarPreferencias(preferenciasNewsletter);
+        }
         ContratacionServicio contratacion = _contratacionBLL.ConsultarContratacionParaRegistro(contratacionServicio);
 
         agencia.NombreComercial = contratacion.NombreComercialAgencia;
@@ -63,6 +71,7 @@ public class BLLAgencia
         agencia.ID = registro.IdAgencia;
         usuario.ID = registro.IdUsuario;
         usuario.IdAgencia = registro.IdAgencia;
+        if (recibirNewsletter) _novedadesBLL.GuardarPreferencias(usuario, preferenciasNewsletter);
         _proyectoBLL.CrearEstadosBase(agencia);
 
         Bitacora bitacora = new Bitacora(usuario.ID, agencia.ID,"Agencia",agencia.ID,"RegistrarAgecnia", "Se registró la agencia y el usuario Dueño inicial.","Exitoso","Informacion","Registro");

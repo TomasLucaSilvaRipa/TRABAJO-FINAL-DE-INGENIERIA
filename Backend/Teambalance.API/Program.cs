@@ -2,6 +2,8 @@ using TeamBalance.BLL;
 using TeamBalance.DAL;
 using TeamBalance.MPP;
 using TeamBalance.Services;
+using Teambalance.API.Middleware;
+using Teambalance.API.Services;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -17,7 +19,8 @@ builder.Services.AddScoped<RecaptchaService>(serviceProvider => new RecaptchaSer
 builder.Services.AddSingleton(new EmailService(
     builder.Configuration["Email:Emisor"],
     builder.Configuration["Email:ClaveAplicacion"],
-    builder.Configuration["Frontend:PublicBaseUrl"]));
+    builder.Configuration["Frontend:PublicBaseUrl"],
+    builder.Configuration["Email:LogoUrl"]));
 builder.Services.AddScoped<Seguridad>();
 
 builder.Services.AddScoped<Conexion>(_ =>
@@ -33,6 +36,7 @@ builder.Services.AddScoped<MPPPlanComercial>();
 builder.Services.AddScoped<MPPProyecto>();
 builder.Services.AddScoped<MPPTarea>();
 builder.Services.AddScoped<MPPRecursos>();
+builder.Services.AddScoped<MPPSkillsDesiertos>();
 builder.Services.AddScoped<MPPOpinionServicio>();
 builder.Services.AddScoped<MPPConsultaPlan>();
 builder.Services.AddScoped<MPPRiesgoRetraso>();
@@ -40,6 +44,9 @@ builder.Services.AddScoped<MPPRegistroHora>();
 builder.Services.AddScoped<MPPBestFit>();
 builder.Services.AddScoped<MPPSimulacionImpacto>();
 builder.Services.AddScoped<MPPPlantillaTarea>();
+builder.Services.AddScoped<MPPSuscripcion>();
+builder.Services.AddScoped<MPPHelpDesk>();
+builder.Services.AddScoped<MPPNovedades>();
 
 builder.Services.AddScoped<ContratacionBLL>();
 builder.Services.AddScoped<BLLAgencia>();
@@ -50,6 +57,7 @@ builder.Services.AddScoped<BLLPlanComercial>();
 builder.Services.AddScoped<BLLProyecto>();
 builder.Services.AddScoped<BLLTarea>();
 builder.Services.AddScoped<BLLRecursos>();
+builder.Services.AddScoped<BLLSkillsDesiertos>();
 builder.Services.AddScoped<BLLOpinionServicio>();
 builder.Services.AddScoped<BLLConsultaPlan>();
 builder.Services.AddScoped<BLLRiesgoRetraso>();
@@ -58,7 +66,12 @@ builder.Services.AddScoped<BLLRegistroHora>();
 builder.Services.AddScoped<BLLBestFit>();
 builder.Services.AddScoped<BLLSimulacionImpacto>();
 builder.Services.AddScoped<BLLPlantillaTarea>();
+builder.Services.AddScoped<BLLSuscripcion>();
+builder.Services.AddScoped<BLLHelpDesk>();
+builder.Services.AddScoped<BLLNovedades>();
 builder.Services.AddSingleton<EncryptionService>();
+builder.Services.AddHostedService<SubscriptionExpirationHostedService>();
+builder.Services.AddHostedService<NewsPublisherHostedService>();
 
 builder.Services.AddHttpClient<PasswordSecurityWebService>( client => { client.BaseAddress = new Uri(builder.Configuration["PasswordSecurityWebService:BaseUrl"]!); });
 
@@ -73,6 +86,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseMiddleware<SubscriptionAccessMiddleware>();
 
 app.UseAuthorization();
 

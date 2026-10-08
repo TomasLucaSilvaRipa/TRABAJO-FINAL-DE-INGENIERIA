@@ -32,8 +32,8 @@ export class RolManagement {
   editar(rol: Rol): void { this.editando.set(rol); this.permisosSeleccionados.set(rol.permisos.map(permiso => permiso.id)); this.form.patchValue({ nombre: rol.nombre, descripcion: rol.descripcion ?? '', tipoUsuario: rol.tipoUsuario }); }
   cancelar(): void { this.editando.set(null); this.permisosSeleccionados.set([]); this.form.reset({ tipoUsuario: '' }); }
   cambiarPermiso(idPermiso: number, seleccionado: boolean): void { this.permisosSeleccionados.update(permisos => seleccionado ? [...new Set([...permisos, idPermiso])] : permisos.filter(id => id !== idPermiso)); }
-  puedeAsignarPermiso(permiso: Permiso): boolean { return permiso.codigo !== 'ConsultarBitacora' || this.form.controls.tipoUsuario.value === 'Soporte'; }
-  cambiarTipoUsuario(tipoUsuario: TipoUsuarioRol): void { this.form.controls.tipoUsuario.setValue(tipoUsuario); if (tipoUsuario !== 'Soporte') { const bitacora = this.permisos().find(permiso => permiso.codigo === 'ConsultarBitacora'); if (bitacora) { this.cambiarPermiso(bitacora.id, false); } } }
+  puedeAsignarPermiso(permiso: Permiso): boolean { return this.permisosInternosSoporte().indexOf(permiso.codigo) < 0 || this.form.controls.tipoUsuario.value === 'Soporte'; }
+  cambiarTipoUsuario(tipoUsuario: TipoUsuarioRol): void { this.form.controls.tipoUsuario.setValue(tipoUsuario); if (tipoUsuario !== 'Soporte') { for (const permiso of this.permisos().filter(item => this.permisosInternosSoporte().includes(item.codigo))) this.cambiarPermiso(permiso.id, false); } }
   guardar(): void {
     this.error.set(''); this.mensaje.set('');
     if (this.form.invalid || this.permisosSeleccionados().length === 0) { this.error.set('Completá el nombre, el tipo de usuario y asigná al menos un permiso.'); return; }
@@ -47,4 +47,5 @@ export class RolManagement {
     this.rolesService.registrarRol(rol).subscribe({ next: () => { this.mensaje.set('Rol guardado correctamente.'); this.cancelar(); this.cargar(); }, error: (respuesta: { error?: string }) => this.error.set(respuesta.error || 'No fue posible guardar el rol.') });
   }
   cambiarEstado(rol: Rol): void { this.rolesService.cambiarEstado({ ...rol, activo: !rol.activo }).subscribe({ next: () => this.cargar(), error: (respuesta: { error?: string }) => this.error.set(respuesta.error || 'No fue posible actualizar el rol.') }); }
+  private permisosInternosSoporte(): string[] { return ['ConsultarBitacora', 'GestionarPlanes', 'GestionarBandejaSoporte', 'GestionarNovedades', 'GestionarOperadores']; }
 }

@@ -54,10 +54,10 @@ export class AuthService {
   private readonly authApiUrl = '/api/auth';
   private readonly encryptionService = inject(EncryptionService);
 
-  registrarAgencia(referenciaContratacion: string, agencia: object): Observable<RegistryResponse> {
+  registrarAgencia(referenciaContratacion: string, agencia: object, recibirNewsletter: boolean, categoriasNewsletterIds: number[]): Observable<RegistryResponse> {
     return this.http.post<RegistryResponse>(
       `${this.agenciasApiUrl}/${referenciaContratacion}/registro`,
-      agencia,
+      { agencia, recibirNewsletter, categoriasNewsletterIds },
     );
   }
 

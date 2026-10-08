@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
 
@@ -35,22 +34,22 @@ public class PlanComercialController : ControllerBase
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpGet("{ID:int}")]
-    public IActionResult ConsultarPlan([FromRoute, ValidateNever] PlanComercial planComercial)
+    [HttpGet("{id:int}")]
+    public IActionResult ConsultarPlan(int id)
     {
         try 
         { 
-            return Ok(_planBLL.ConsultarPlanDisponible(planComercial)); 
+            return Ok(_planBLL.ConsultarPlanDisponible(new PlanComercial(id))); 
         }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpGet("{ID:int}/consultas")]
-    public IActionResult ConsultarConsultas([FromRoute, ValidateNever] PlanComercial planComercial)
+    [HttpGet("{id:int}/consultas")]
+    public IActionResult ConsultarConsultas(int id)
     {
         try {
-            List<ConsultaPlan> consultas = _consultaBLL.Consultar(planComercial); 
+            List<ConsultaPlan> consultas = _consultaBLL.Consultar(new PlanComercial(id)); 
             return Ok(consultas);
         }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }

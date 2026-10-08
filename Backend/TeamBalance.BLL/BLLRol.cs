@@ -5,6 +5,10 @@ namespace TeamBalance.BLL;
 
 public class BLLRol
 {
+    private static readonly HashSet<string> PermisosInternosSoporte = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ConsultarBitacora", "GestionarPlanes", "GestionarBandejaSoporte", "GestionarNovedades", "GestionarOperadores"
+    };
     private readonly MPPRol _rolMPP;
 
     public BLLRol(MPPRol rolMPP)
@@ -110,9 +114,9 @@ public class BLLRol
             throw new ArgumentException("Seleccioná el tipo de usuario del rol.");
         }
 
-        if (rol.TipoUsuario != "Soporte" && rol.Permisos.Any(permiso => string.Equals(permiso.Codigo, "ConsultarBitacora", StringComparison.OrdinalIgnoreCase)))
+        if (rol.TipoUsuario != "Soporte" && rol.Permisos.Any(permiso => PermisosInternosSoporte.Contains(permiso.Codigo ?? string.Empty)))
         {
-            throw new ArgumentException("La bitácora sólo puede asignarse a roles de tipo Soporte.");
+            throw new ArgumentException("Los permisos internos de BackOffice sólo pueden asignarse a roles de tipo Soporte.");
         }
     }
 

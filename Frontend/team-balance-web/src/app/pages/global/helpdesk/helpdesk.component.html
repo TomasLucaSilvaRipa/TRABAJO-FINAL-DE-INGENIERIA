@@ -1,0 +1,35 @@
+<section class="tb-workspace space-y-6">
+  <header>
+    <p class="tb-page-kicker">{{ auth.esSoporte() ? t('helpdesk.backoffice') : t('helpdesk.kicker') }}</p>
+    <h1 class="tb-page-title">{{ auth.esSoporte() ? t('helpdesk.inboxTitle') : t('helpdesk.title') }}</h1>
+    <p class="tb-page-description">{{ auth.esSoporte() ? t('helpdesk.inboxDescription') : t('helpdesk.description') }}</p>
+  </header>
+  @if (mensaje()) { <p class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300">{{ mensaje() }}</p> }
+  @if (error()) { <p class="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">{{ error() }}</p> }
+
+  @if (!auth.esSoporte()) {
+    <section class="tb-panel"><p class="tb-page-kicker">{{ t('helpdesk.newTicket') }}</p><h2 class="mt-1 text-xl font-bold">{{ t('helpdesk.question') }}</h2>
+      <form class="mt-5 grid gap-4" [formGroup]="crearForm" (ngSubmit)="crear()">
+        <div class="grid gap-4 md:grid-cols-2"><label class="text-sm font-bold">{{ t('helpdesk.category') }}<select class="tb-input mt-2 w-full" formControlName="categoria">@for (categoria of categorias; track categoria) { <option [value]="categoria">{{ etiquetaCategoria(categoria) }}</option> }</select></label><label class="text-sm font-bold">{{ t('helpdesk.subject') }}<input class="tb-input mt-2 w-full" formControlName="asunto" [placeholder]="t('helpdesk.subjectPlaceholder')" /></label></div>
+        <label class="text-sm font-bold">{{ t('helpdesk.descriptionLabel') }}<textarea class="tb-input mt-2 min-h-28 w-full" formControlName="descripcion" [placeholder]="t('helpdesk.descriptionPlaceholder')"></textarea></label>
+        <p class="text-xs text-slate-500">{{ t('helpdesk.sensitiveWarning') }}</p><div><button class="tb-action-button" type="submit" [disabled]="enviando()">{{ enviando() ? t('helpdesk.creating') : t('helpdesk.create') }}</button></div>
+      </form>
+    </section>
+  }
+
+  @if (cargando()) { <section class="tb-panel">{{ t('common.loading') }}</section> } @else {
+    <section class="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+      <div class="tb-panel"><p class="tb-page-kicker">{{ auth.esSoporte() ? t('helpdesk.inbox') : t('helpdesk.followUp') }}</p><h2 class="mt-1 text-xl font-bold">{{ auth.esSoporte() ? t('helpdesk.customerTickets') : t('helpdesk.myTickets') }}</h2><div class="mt-5 space-y-3">
+        @for (ticket of (auth.esSoporte() ? bandeja() : tickets()); track ticket.id) {
+          <button class="w-full rounded-xl border border-slate-200 p-4 text-left transition hover:border-cyan-400 dark:border-slate-700" [class.ring-2]="detalle()?.consulta?.id === ticket.id" [class.ring-cyan-500]="detalle()?.consulta?.id === ticket.id" type="button" (click)="abrir(ticket.id)"><div class="flex justify-between gap-3"><p class="font-bold">{{ ticket.asunto }}</p><span class="tb-status-badge">{{ etiquetaEstado(ticket.estado) }}</span></div><p class="mt-1 text-sm text-cyan-700 dark:text-cyan-300">{{ etiquetaCategoria(ticket.categoria) }}</p>@if (auth.esSoporte()) { <p class="mt-1 text-sm text-slate-500">{{ ticket.nombreSolicitante }} · {{ ticket.nombreAgencia || t('helpdesk.noAgency') }}</p> }<p class="mt-2 text-xs text-slate-500">{{ ticket.fechaActualizacion || ticket.fechaCreacion | date:'dd/MM/yyyy HH:mm' }} · {{ ticket.cantidadMensajes }} {{ t('helpdesk.messages') }}</p></button>
+        } @empty { <div class="tb-empty-state">{{ auth.esSoporte() ? t('helpdesk.inboxEmpty') : t('helpdesk.myTicketsEmpty') }}</div> }
+      </div></div>
+      <div class="tb-panel">@if (detalle(); as d) {
+        <div class="flex flex-wrap items-start justify-between gap-3"><div><p class="tb-page-kicker">{{ etiquetaCategoria(d.consulta.categoria) }}</p><h2 class="mt-1 text-xl font-bold">{{ d.consulta.asunto }}</h2><p class="mt-1 text-sm text-slate-500">{{ t('helpdesk.status') }}: {{ etiquetaEstado(d.consulta.estado) }} · {{ d.consulta.nombrePlan || t('helpdesk.service') }}</p></div>@if (auth.esSoporte() && d.consulta.estado !== 'Resuelta') { <button class="tb-secondary-button" type="button" [disabled]="actualizandoEstado()" (click)="resolver()">{{ t('helpdesk.resolve') }}</button> }</div>
+        @if (auth.esSoporte()) { <div class="mt-5 rounded-xl border border-slate-200 p-4 dark:border-slate-700"><label class="text-sm font-bold">{{ t('helpdesk.changeStatus') }}<select #estado class="tb-input mt-2 w-full" [value]="d.consulta.estado"><option value="Pendiente">{{ t('helpdesk.status.Pendiente') }}</option><option value="En revisión">{{ t('helpdesk.status.En revisión') }}</option><option value="Respondida">{{ t('helpdesk.status.Respondida') }}</option><option value="Resuelta">{{ t('helpdesk.status.Resuelta') }}</option></select></label><button class="tb-secondary-button mt-3" type="button" [disabled]="actualizandoEstado()" (click)="cambiarEstado(estado.value)">{{ t('helpdesk.saveStatus') }}</button></div> }
+        <div class="mt-5 space-y-3 border-y border-slate-200 py-5 dark:border-slate-700"><article class="rounded-xl bg-slate-50 p-4 text-sm dark:bg-slate-800"><p class="font-bold">{{ auth.esSoporte() ? d.consulta.nombreSolicitante : t('helpdesk.you') }} · {{ d.consulta.fechaCreacion | date:'dd/MM/yyyy HH:mm' }}</p><p class="mt-2 whitespace-pre-wrap">{{ d.consulta.descripcion }}</p></article>@for (item of d.mensajes; track item.id) { <article class="rounded-xl p-4 text-sm" [class.bg-cyan-50]="item.esSoporte" [class.dark:bg-cyan-500/10]="item.esSoporte" [class.bg-slate-50]="!item.esSoporte" [class.dark:bg-slate-800]="!item.esSoporte"><p class="font-bold">{{ item.esSoporte ? t('helpdesk.team') : item.nombreUsuario }} · {{ item.fecha | date:'dd/MM/yyyy HH:mm' }}</p><p class="mt-2 whitespace-pre-wrap">{{ item.mensaje }}</p></article> }</div>
+        @if (d.consulta.estado !== 'Resuelta') { <form class="mt-5" [formGroup]="mensajeForm" (ngSubmit)="enviar()"><label class="text-sm font-bold">{{ auth.esSoporte() ? t('helpdesk.reply') : t('helpdesk.addInfo') }}<textarea class="tb-input mt-2 min-h-24 w-full" formControlName="mensaje"></textarea></label><button class="tb-action-button mt-4" type="submit" [disabled]="enviando()">{{ enviando() ? t('helpdesk.sending') : t('helpdesk.send') }}</button></form> }
+      } @else { <div class="tb-empty-state">{{ t('helpdesk.selectTicket') }}</div> }</div>
+    </section>
+  }
+</section>

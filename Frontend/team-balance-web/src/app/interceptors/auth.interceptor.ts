@@ -31,6 +31,10 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
         authService.logOut();
         void router.navigate(['/signin']);
       }
+      else if (error.status === 403 && error.error?.code === 'SUBSCRIPTION_EXPIRED')
+      {
+        void router.navigate(['/suscripcion-vencida']);
+      }
 
       return throwError(() => error);
     }),

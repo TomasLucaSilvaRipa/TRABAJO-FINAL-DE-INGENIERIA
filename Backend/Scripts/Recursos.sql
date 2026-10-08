@@ -1,8 +1,19 @@
 CREATE OR ALTER PROCEDURE dbo.usp_Skill_Consultar AS
-BEGIN SELECT ID, Nombre, Categoria, Activo FROM dbo.Skill ORDER BY Activo DESC, Nombre; END
+BEGIN
+    SELECT S.ID, S.Nombre, COALESCE(A.Nombre, S.Categoria) AS Categoria, S.IdAreaSkill, A.Nombre AS NombreArea, S.Activo
+    FROM dbo.Skill S LEFT JOIN dbo.AreaSkill A ON A.ID = S.IdAreaSkill
+    ORDER BY S.Activo DESC, COALESCE(A.Nombre, S.Categoria), S.Nombre;
+END
 GO
-CREATE OR ALTER PROCEDURE dbo.usp_Skill_Registrar @Nombre NVARCHAR(150), @Categoria NVARCHAR(150) = NULL AS
-BEGIN INSERT INTO dbo.Skill (Nombre, Categoria, Activo) VALUES (@Nombre, @Categoria, 1); SELECT ID, Nombre, Categoria, Activo FROM dbo.Skill WHERE ID = SCOPE_IDENTITY(); END
+CREATE OR ALTER PROCEDURE dbo.usp_Skill_Registrar @Nombre NVARCHAR(150), @IdAreaSkill INT AS
+BEGIN
+    SET NOCOUNT ON;
+    IF NOT EXISTS (SELECT 1 FROM dbo.AreaSkill WHERE ID = @IdAreaSkill AND Activo = 1) THROW 51020, 'El área de la skill no es válida.', 1;
+    IF EXISTS (SELECT 1 FROM dbo.Skill WHERE Nombre = @Nombre) THROW 51021, 'Ya existe una skill con ese nombre.', 1;
+    DECLARE @Categoria NVARCHAR(150) = (SELECT Nombre FROM dbo.AreaSkill WHERE ID = @IdAreaSkill);
+    INSERT INTO dbo.Skill (Nombre, Categoria, IdAreaSkill, Activo) VALUES (@Nombre, @Categoria, @IdAreaSkill, 1);
+    SELECT S.ID, S.Nombre, S.Categoria, S.IdAreaSkill, A.Nombre AS NombreArea, S.Activo FROM dbo.Skill S INNER JOIN dbo.AreaSkill A ON A.ID=S.IdAreaSkill WHERE S.ID = SCOPE_IDENTITY();
+END
 GO
 CREATE OR ALTER PROCEDURE dbo.usp_Skill_CambiarEstado @ID INT, @Activo BIT AS
 BEGIN UPDATE dbo.Skill SET Activo=@Activo WHERE ID=@ID; END

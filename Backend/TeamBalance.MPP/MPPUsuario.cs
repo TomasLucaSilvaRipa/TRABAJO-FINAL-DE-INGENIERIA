@@ -204,6 +204,12 @@ public class MPPUsuario
         return resultado.Rows.Cast<DataRow>().Select(CrearUsuarioConEmpleado).ToList();
     }
 
+    public List<Usuario> ConsultarOperadores()
+    {
+        DataTable resultado = _conexion.Leer("dbo.usp_Usuario_ConsultarOperadores");
+        return resultado.Rows.Cast<DataRow>().Select(CrearUsuario).ToList();
+    }
+
     public int RegistrarUsuario(Usuario usuario)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()

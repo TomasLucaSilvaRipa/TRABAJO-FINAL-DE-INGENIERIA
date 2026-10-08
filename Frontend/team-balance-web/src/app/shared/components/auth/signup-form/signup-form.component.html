@@ -111,6 +111,24 @@
       </label>
       @if (hasError('acceptsTerms')) { <small class="tb-auth-field__error">{{localization.traducir('signup.termsError')}}</small> }
 
+      <label class="tb-terms-check">
+        <input type="checkbox" formControlName="recibirNewsletter" />
+        <span>{{ localization.traducir('signup.newsletterOptIn') }}</span>
+      </label>
+      @if (registryForm.controls.recibirNewsletter.value) {
+        <section class="tb-auth-field" aria-label="newsletter-categories">
+          <p class="tb-auth-field__hint">{{ localization.traducir('signup.newsletterCategoriesHint') }}</p>
+          <div class="tb-auth-form__row">
+            @for (categoria of categoriasNewsletter(); track categoria.id) {
+              <label class="tb-terms-check">
+                <input type="checkbox" [checked]="categoriasSeleccionadas().includes(categoria.id)" (change)="alternarCategoriaNewsletter(categoria.id)" />
+                <span><strong>{{ categoria.nombre }}</strong> · {{ categoria.descripcion }}</span>
+              </label>
+            }
+          </div>
+        </section>
+      }
+
       @if (requestError()) {
         <p class="tb-auth-request-error" role="alert">{{ requestError() }}</p>
       }

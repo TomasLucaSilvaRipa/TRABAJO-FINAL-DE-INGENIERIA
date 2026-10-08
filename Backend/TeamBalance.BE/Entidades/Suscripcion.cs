@@ -49,6 +49,12 @@ public partial class Suscripcion
 
     public DateTime? FechaBaja { get; set; }
 
+    public string? ReferenciaRenovacionProveedor { get; set; }
+
+    public string? EstadoRenovacionProveedor { get; set; }
+
+    public DateTime? FechaSincronizacionRenovacion { get; set; }
+
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public string? NombrePlan { get; set; }
 

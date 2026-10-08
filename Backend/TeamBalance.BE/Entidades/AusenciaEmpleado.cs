@@ -60,4 +60,38 @@ public partial class AusenciaEmpleado
     public string? MotivoResolucion { get; set; }
 
     public bool Activo { get; set; }
+
+    public string? ComprobanteUrl { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public string? NombreEmpleado { get; set; }
+}
+
+public class TareaDisponibilidadAfectada
+{
+    public int IdTarea { get; set; }
+    public string Titulo { get; set; } = string.Empty;
+    public string NombreProyecto { get; set; } = string.Empty;
+    public DateTime? Deadline { get; set; }
+}
+
+public class ResultadoGestionDisponibilidad
+{
+    public AusenciaEmpleado Ausencia { get; set; } = new();
+    public List<TareaDisponibilidadAfectada> TareasAfectadas { get; set; } = new();
+}
+
+public class ResolucionAusenciaEmpleado
+{
+    public int IdAusencia { get; set; }
+    public DateTime? FechaInicioAprobada { get; set; }
+    public DateTime? FechaFinAprobada { get; set; }
+    public decimal? HorasNoDisponiblesAprobadas { get; set; }
+    public string? MotivoResolucion { get; set; }
+}
+
+public class EmpleadoDisponibilidadOpcion
+{
+    public int IdUsuario { get; set; }
+    public string NombreCompleto { get; set; } = string.Empty;
 }

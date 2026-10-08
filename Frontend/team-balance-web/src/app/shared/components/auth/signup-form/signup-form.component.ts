@@ -6,6 +6,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, debounceTime, EMPTY, finalize, of, switchMap, tap, distinctUntilChanged } from 'rxjs';
 import { AuthService } from '../../../../services/auth.service';
 import { ContratacionService } from '../../../../services/contratacion.service';
+import { CategoriaNoticia, NovedadesService } from '../../../../services/novedades.service';
 import { PasswordSecurityService,PasswordEvaluation } from '../../../../services/security/password-security.service';
 import { LocalizationService } from '../../../../services/localization.service';
 
@@ -24,6 +25,7 @@ export class SignupFormComponent {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly contratacionService = inject(ContratacionService);
+  private readonly novedadesService = inject(NovedadesService);
   private readonly passwordSecurityService = inject(PasswordSecurityService);
   readonly localization = inject(LocalizationService);
   readonly passwordEvaluation = signal<PasswordEvaluation | null>(null);
@@ -36,6 +38,8 @@ export class SignupFormComponent {
   readonly emailValidacionEnviado = signal(false);
   readonly showPassword = signal(false);
   readonly showConfirmPassword = signal(false);
+  readonly categoriasNewsletter = signal<CategoriaNoticia[]>([]);
+  readonly categoriasSeleccionadas = signal<number[]>([]);
 
   readonly registryForm = this.formBuilder.nonNullable.group({
     firstName: ['', [Validators.required, Validators.minLength(2)]],
@@ -45,10 +49,12 @@ export class SignupFormComponent {
     password: ['', [Validators.required, Validators.minLength(8), Validators.pattern(/^(?=.*[A-Za-z])(?=.*\d).+$/)]],
     confirmPassword: ['', Validators.required],
     acceptsTerms: [false, Validators.requiredTrue],
+    recibirNewsletter: [false],
   });
 
   constructor() {
   this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => this.validarContinuidad(params.get('referencia')));
+  this.novedadesService.categorias().pipe(catchError(() => of([]))).subscribe((categorias) => this.categoriasNewsletter.set(categorias));
   this.registryForm.controls.password.valueChanges.pipe(debounceTime(300), distinctUntilChanged(), switchMap(password => password ? this.passwordSecurityService.evaluar(password).pipe(catchError(() => of(null))) : of(null)), takeUntilDestroyed(this.destroyRef)).subscribe(resultado => this.passwordEvaluation.set(resultado));
 }
 
@@ -70,6 +76,11 @@ export class SignupFormComponent {
 
     if (this.registryForm.controls.password.value !== this.registryForm.controls.confirmPassword.value) {
       this.requestError.set('Las contraseñas no coinciden.');
+      return;
+    }
+
+    if (this.registryForm.controls.recibirNewsletter.value && this.categoriasSeleccionadas().length === 0) {
+      this.requestError.set(this.localization.traducir('signup.newsletterCategoryRequired'));
       return;
     }
 
@@ -105,7 +116,12 @@ export class SignupFormComponent {
             return EMPTY;
           }
 
-          return this.authService.registrarAgencia(referenciaContratacion, agencia);
+          return this.authService.registrarAgencia(
+            referenciaContratacion,
+            agencia,
+            form.recibirNewsletter,
+            form.recibirNewsletter ? this.categoriasSeleccionadas() : [],
+          );
         }),
         finalize(() => this.submitting.set(false)),
       )
@@ -127,6 +143,14 @@ export class SignupFormComponent {
   hasError(controlName: keyof typeof this.registryForm.controls): boolean {
     const control = this.registryForm.controls[controlName];
     return control.touched && control.invalid;
+  }
+
+  alternarCategoriaNewsletter(idCategoria: number): void {
+    this.categoriasSeleccionadas.update((actuales) =>
+      actuales.includes(idCategoria)
+        ? actuales.filter((id) => id !== idCategoria)
+        : [...actuales, idCategoria],
+    );
   }
 
   private validarContinuidad(referencia: string | null): void {

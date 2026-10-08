@@ -26,10 +26,12 @@ BEGIN
 
     DECLARE @Importe DECIMAL(18, 2);
     DECLARE @Moneda NVARCHAR(10);
+    DECLARE @NombrePlan NVARCHAR(100);
 
     SELECT TOP (1)
         @Importe = PrecioVigente,
-        @Moneda = Moneda
+        @Moneda = Moneda,
+        @NombrePlan = Nombre
     FROM dbo.PlanComercial
     WHERE ID = @IdPlanComercial
       AND Activo = 1
@@ -39,7 +41,12 @@ BEGIN
 
     -- Checkout Pro TEST: mantener el importe temporal dentro del límite de las
     -- cuentas de prueba. El plan comercial real se aplicará al pasar a producción.
-    SET @Importe = 1000.00;
+    SET @Importe = CASE @NombrePlan
+        WHEN N'Entry' THEN 1000.00
+        WHEN N'Business' THEN 1500.00
+        WHEN N'Corporate' THEN 2000.00
+        ELSE 1000.00
+    END;
     SET @Moneda = N'ARS';
 
     INSERT INTO dbo.ContratacionServicio

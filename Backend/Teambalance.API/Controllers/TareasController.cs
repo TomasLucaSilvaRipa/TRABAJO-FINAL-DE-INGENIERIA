@@ -7,7 +7,8 @@ namespace Teambalance.API.Controllers;
 [Route("api/tareas")]
 public class TareasController : ControllerBase
 {
-    private readonly BLLTarea _tareaBLL; private readonly BLLUsuario _usuarioBLL;
+    private readonly BLLTarea _tareaBLL; 
+    private readonly BLLUsuario _usuarioBLL;
     public TareasController(BLLTarea tareaBLL, BLLUsuario usuarioBLL) { _tareaBLL = tareaBLL; _usuarioBLL = usuarioBLL; }
     [HttpGet] public IActionResult Consultar()
     {

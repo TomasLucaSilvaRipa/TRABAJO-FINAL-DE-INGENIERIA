@@ -11,10 +11,18 @@ export class UsuariosService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = '/api/usuarios/agencia';
 
-  consultarUsuarios(): Observable<UsuarioGestion[]> { return this.http.get<UsuarioGestion[]>(this.apiUrl); }
+  consultarUsuarios(): Observable<UsuarioGestion[]> {
+    return this.http.get<UsuarioGestion[]>(this.apiUrl);
+  }
+
   soporteInicialDisponible(): Observable<{ disponible: boolean }> { return this.http.get<{ disponible: boolean }>('/api/usuarios/soporte-inicial-disponible'); }
   consultarRolSoporteInicial(): Observable<Rol> { return this.http.get<Rol>('/api/usuarios/rol-soporte-inicial'); }
   registrarUsuario(usuario: Partial<UsuarioGestion>): Observable<UsuarioGestion> { return this.http.post<UsuarioGestion>(this.apiUrl, usuario); }
   modificarUsuario(usuario: UsuarioGestion): Observable<void> { return this.http.put<void>(`${this.apiUrl}/${usuario.id}`, usuario); }
   cambiarEstado(usuario: Partial<UsuarioGestion>): Observable<void> { return this.http.patch<void>(`${this.apiUrl}/${usuario.id}/estado`, usuario); }
+
+  consultarOperadores(): Observable<UsuarioGestion[]> { return this.http.get<UsuarioGestion[]>('/api/usuarios/operadores'); }
+  registrarOperador(operador: Partial<UsuarioGestion>): Observable<UsuarioGestion> { return this.http.post<UsuarioGestion>('/api/usuarios/operadores', operador); }
+  modificarOperador(operador: UsuarioGestion): Observable<void> { return this.http.put<void>(`/api/usuarios/operadores/${operador.id}`, operador); }
+  cambiarEstadoOperador(operador: Partial<UsuarioGestion>): Observable<void> { return this.http.patch<void>(`/api/usuarios/operadores/${operador.id}/estado`, operador); }
 }

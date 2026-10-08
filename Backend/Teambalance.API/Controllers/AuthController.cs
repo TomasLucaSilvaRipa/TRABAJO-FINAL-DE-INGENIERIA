@@ -40,9 +40,9 @@ public class AuthController : ControllerBase
 
             InicioSesionResultado resultado = await _usuarioBLL.IniciarSesion(usuario, mantenerSesion);
 
-            List<RolResponse> roles = resultado.Usuario.Roles.Select(rol => new RolResponse(rol.ID, rol.Nombre)).ToList();
+            List<RolResponse> roles = resultado.Usuario.Roles.Select(rol => new RolResponse(rol.ID, rol.Nombre, rol.TipoUsuario)).ToList();
             List<PermisoResponse> permisos = resultado.Usuario.Permisos.Select(permiso => new PermisoResponse(permiso.ID, permiso.Codigo, permiso.Nombre, permiso.Url)).ToList();
-            RolResponse rolPrincipal = new RolResponse(resultado.Usuario.Rol.ID, resultado.Usuario.Rol.Nombre);
+            RolResponse rolPrincipal = new RolResponse(resultado.Usuario.Rol.ID, resultado.Usuario.Rol.Nombre, resultado.Usuario.Rol.TipoUsuario);
             UsuarioSesionResponse usuarioResponse = new UsuarioSesionResponse(resultado.Usuario.ID, resultado.Usuario.IdAgencia, rolPrincipal, resultado.Usuario.Nombre, resultado.Usuario.Apellido, resultado.Usuario.Email, roles, permisos);
             LoginResponse response = new LoginResponse(resultado.AccessToken, resultado.FechaExpiracion, usuarioResponse);
             return Ok(response);
@@ -75,9 +75,9 @@ public class AuthController : ControllerBase
         {
             return Unauthorized();
         }
-        List<RolResponse> roles = usuario.Roles.Select(rol => new RolResponse(rol.ID, rol.Nombre)).ToList();
+        List<RolResponse> roles = usuario.Roles.Select(rol => new RolResponse(rol.ID, rol.Nombre, rol.TipoUsuario)).ToList();
         List<PermisoResponse> permisos = usuario.Permisos.Select(permiso => new PermisoResponse(permiso.ID, permiso.Codigo, permiso.Nombre, permiso.Url)).ToList();
-        RolResponse rolPrincipal = new RolResponse(usuario.Rol.ID, usuario.Rol.Nombre);
+        RolResponse rolPrincipal = new RolResponse(usuario.Rol.ID, usuario.Rol.Nombre, usuario.Rol.TipoUsuario);
         UsuarioSesionResponse usuarioResponse = new UsuarioSesionResponse(usuario.ID, usuario.IdAgencia, rolPrincipal, usuario.Nombre, usuario.Apellido, usuario.Email, roles, permisos);
         AutorizacionResponse response = new AutorizacionResponse(usuarioResponse, roles, permisos);
         return Ok(response);

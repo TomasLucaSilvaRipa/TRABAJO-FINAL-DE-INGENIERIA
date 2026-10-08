@@ -11,6 +11,8 @@
     <nav class="tb-nav" aria-label="Navegación principal">
       <a routerLink="/" fragment="top" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" [routerLinkActiveOptions]="{ exact: true }" class="tb-nav__link">{{ 'menu.home' | appTranslatePipe: localization.language() }}</a>
       <a routerLink="/plans" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">{{ 'menu.plans' | appTranslatePipe: localization.language() }}</a>
+      <a routerLink="/novedades" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">Novedades</a>
+      <a routerLink="/ayuda" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">{{ 'menu.help' | appTranslatePipe: localization.language() }}</a>
       <a routerLink="/about-us" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">{{ 'menu.about' | appTranslatePipe: localization.language() }}</a>
       <a routerLink="/contact" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">{{ 'menu.contact' | appTranslatePipe: localization.language() }}</a>
     </nav>
@@ -37,6 +39,8 @@
         <div class="tb-mobile-nav__links">
           <a routerLink="/" fragment="top" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" [routerLinkActiveOptions]="{ exact: true }" class="tb-nav__link">{{ 'menu.home' | appTranslatePipe: localization.language() }}</a>
           <a routerLink="/plans" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">{{ 'menu.plans' | appTranslatePipe: localization.language() }}</a>
+          <a routerLink="/novedades" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">Novedades</a>
+          <a routerLink="/ayuda" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">{{ 'menu.help' | appTranslatePipe: localization.language() }}</a>
           <a routerLink="/about-us" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">{{ 'menu.about' | appTranslatePipe: localization.language() }}</a>
           <a routerLink="/contact" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">{{ 'menu.contact' | appTranslatePipe: localization.language() }}</a>
         </div>
