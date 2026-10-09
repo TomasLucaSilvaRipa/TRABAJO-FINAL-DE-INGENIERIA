@@ -22,8 +22,12 @@ public class BLLBitacora
         bitacora.Accion = bitacora.Accion.Trim();
         bitacora.Mensaje = bitacora.Mensaje.Trim();
         bitacora.Entidad = string.IsNullOrWhiteSpace(bitacora.Entidad) ? null : bitacora.Entidad.Trim();
-        bitacora.Resultado = string.IsNullOrWhiteSpace(bitacora.Resultado) ? null : bitacora.Resultado.Trim();
-        bitacora.Criticidad = string.IsNullOrWhiteSpace(bitacora.Criticidad) ? "Informacion" : bitacora.Criticidad.Trim();
+        ResultadoBitacora? resultado = Bitacora.ObtenerResultado(bitacora.Resultado);
+        CriticidadBitacora? criticidad = Bitacora.ObtenerCriticidad(bitacora.Criticidad);
+        if (!string.IsNullOrWhiteSpace(bitacora.Resultado) && !resultado.HasValue) { throw new ArgumentException("El resultado de la bitácora no es válido."); }
+        if (!string.IsNullOrWhiteSpace(bitacora.Criticidad) && !criticidad.HasValue) { throw new ArgumentException("La criticidad de la bitácora no es válida."); }
+        bitacora.ResultadoEnum = resultado;
+        bitacora.CriticidadEnum = criticidad ?? CriticidadBitacora.Informacion;
         bitacora.Modulo = string.IsNullOrWhiteSpace(bitacora.Modulo) ? "General" : bitacora.Modulo.Trim();
         bitacora.DireccionIP = string.IsNullOrWhiteSpace(bitacora.DireccionIP) ? null : bitacora.DireccionIP.Trim();
         bitacora.FechaHora = bitacora.FechaHora == default ? DateTime.Now : bitacora.FechaHora;

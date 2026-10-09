@@ -31,7 +31,7 @@ public sealed class MPPHelpDesk
     }
 
     public List<ConsultaSoporteResumen> ConsultarBandeja(ConsultaSoporteResumen filtro) {
-        return Consultar("dbo.usp_HelpDesk_ConsultarBandeja", new SqlParameter("@Estado", (object?)filtro.Estado ?? DBNull.Value));
+        return Consultar("dbo.usp_HelpDesk_ConsultarBandeja", new SqlParameter("@Estado", string.IsNullOrWhiteSpace(filtro.Estado) ? DBNull.Value : filtro.Estado));
     }
 
     public ConsultaSoporteResumen? ConsultarDetalle(ConsultaSoporteResumen consulta) {

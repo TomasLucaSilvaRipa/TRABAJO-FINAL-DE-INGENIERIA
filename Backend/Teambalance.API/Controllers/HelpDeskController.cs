@@ -9,10 +9,12 @@ namespace Teambalance.API.Controllers;
 public sealed class HelpDeskController : ControllerBase
 {
     private readonly BLLHelpDesk _helpDeskBLL;
+    private readonly BLLConsultaPlan _consultaPlanBLL;
     private readonly BLLUsuario _usuarioBLL;
 
-    public HelpDeskController(BLLHelpDesk helpDeskBLL, BLLUsuario usuarioBLL) {
+    public HelpDeskController(BLLHelpDesk helpDeskBLL, BLLConsultaPlan consultaPlanBLL, BLLUsuario usuarioBLL) {
         _helpDeskBLL = helpDeskBLL;
+        _consultaPlanBLL = consultaPlanBLL;
         _usuarioBLL = usuarioBLL;
     }
 
@@ -69,8 +71,27 @@ public sealed class HelpDeskController : ControllerBase
 
     [HttpGet("bandeja")]
     public IActionResult Bandeja([FromQuery] ConsultaSoporteResumen filtro) {
-        return Ejecutar(() => Ok(_helpDeskBLL.Bandeja(UsuarioActual(), filtro)));
+        return Ejecutar(() =>
+        {
+            Usuario usuario = UsuarioActual();
+            ConsultaPlan filtroConsultaPlan = new ConsultaPlan();
+            filtroConsultaPlan.Estado = filtro.Estado;
+            List<BandejaSoporteItem> bandeja = _helpDeskBLL.Bandeja(usuario, filtro).Select(consulta => new BandejaSoporteItem(consulta)).Concat(_consultaPlanBLL.ConsultarBandeja(usuario, filtroConsultaPlan).Select(consulta => new BandejaSoporteItem(consulta))).OrderBy(consulta => OrdenEstado(consulta.Estado)).ThenByDescending(consulta => consulta.FechaActualizacion ?? consulta.FechaCreacion).ToList();
+            return Ok(bandeja);
+        });
     }
+
+    [HttpPost("consultas-plan/{ID:int}/respuesta")]
+    public IActionResult ResponderConsultaPlan([FromRoute] ConsultaPlan consulta, [FromBody] ConsultaPlan solicitud) {
+        return Ejecutar(() =>
+        {
+            solicitud.ID = consulta.ID;
+            ConsultaPlan resultado = _consultaPlanBLL.Responder(UsuarioActual(), solicitud);
+            return Ok(new BandejaSoporteItem(resultado));
+        });
+    }
+
+    private static int OrdenEstado(string estado) { return estado switch { "Pendiente" => 1, "En revisión" => 2, "Respondida" => 3, _ => 4 }; }
 
     private Usuario UsuarioActual()
     {

@@ -1,21 +1,36 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { CategoriaPreguntaFrecuente, FaqsService, PreguntaFrecuente } from '../../../services/faqs.service';
 import { LocalizationService } from '../../../services/localization.service';
-
-interface FaqItem { id: string; category: 'firstSteps' | 'projects' | 'team' | 'account'; questionKey: string; answerKey: string; }
 
 @Component({ selector: 'app-help', imports: [RouterLink], templateUrl: './help.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
 export class HelpComponent {
   readonly localization = inject(LocalizationService);
-  readonly categorias = ['all', 'firstSteps', 'projects', 'team', 'account'] as const;
-  readonly categoriaActiva = signal<(typeof this.categorias)[number]>('all'); readonly busqueda = signal(''); readonly abierta = signal<string | null>('acceso');
-  readonly preguntas: readonly FaqItem[] = [
-    { id: 'acceso', category: 'firstSteps', questionKey: 'faq.access.question', answerKey: 'faq.access.answer' }, { id: 'proyecto', category: 'projects', questionKey: 'faq.project.question', answerKey: 'faq.project.answer' }, { id: 'kanban', category: 'projects', questionKey: 'faq.kanban.question', answerKey: 'faq.kanban.answer' }, { id: 'horas', category: 'projects', questionKey: 'faq.hours.question', answerKey: 'faq.hours.answer' }, { id: 'best-fit', category: 'projects', questionKey: 'faq.bestFit.question', answerKey: 'faq.bestFit.answer' }, { id: 'disponibilidad', category: 'team', questionKey: 'faq.availability.question', answerKey: 'faq.availability.answer' }, { id: 'skills', category: 'team', questionKey: 'faq.skills.question', answerKey: 'faq.skills.answer' }, { id: 'suscripcion', category: 'account', questionKey: 'faq.subscription.question', answerKey: 'faq.subscription.answer' }, { id: 'seguridad', category: 'account', questionKey: 'faq.security.question', answerKey: 'faq.security.answer' },
-  ];
-  t(key: string): string { return this.localization.traducir(key); }
-  etiquetaCategoria(categoria: string): string { return this.t(`faq.category.${categoria}`); }
-  readonly preguntasFiltradas = computed(() => { const termino = this.busqueda().trim().toLocaleLowerCase(this.localization.language() === 'es' ? 'es-AR' : 'en-US'); const categoria = this.categoriaActiva(); return this.preguntas.filter(pregunta => (categoria === 'all' || pregunta.category === categoria) && (!termino || `${this.t(pregunta.questionKey)} ${this.t(pregunta.answerKey)} ${this.etiquetaCategoria(pregunta.category)}`.toLocaleLowerCase().includes(termino))); });
-  seleccionarCategoria(categoria: (typeof this.categorias)[number]): void { this.categoriaActiva.set(categoria); }
+  private readonly faqsService = inject(FaqsService);
+  readonly preguntas = signal<PreguntaFrecuente[]>([]);
+  readonly categoriaActiva = signal<CategoriaPreguntaFrecuente | 'all'>('all');
+  readonly busqueda = signal('');
+  readonly abierta = signal<number | null>(null);
+  readonly categorias = computed<(CategoriaPreguntaFrecuente | 'all')[]>(() => ['all', ...new Set(this.preguntas().map(pregunta => pregunta.categoria))]);
+  readonly preguntasFiltradas = computed(() => {
+    const termino = this.busqueda().trim().toLocaleLowerCase(this.localization.language() === 'es' ? 'es-AR' : 'en-US');
+    return this.preguntas().filter(pregunta => (this.categoriaActiva() === 'all' || pregunta.categoria === this.categoriaActiva()) && (!termino || `${this.pregunta(pregunta)} ${this.respuesta(pregunta)} ${this.etiquetaCategoria(pregunta.categoria)}`.toLocaleLowerCase().includes(termino)));
+  });
+
+  constructor() { this.faqsService.publicas().subscribe({ next: preguntas => this.preguntas.set(preguntas) }); }
+
+  t(clave: string): string { return this.localization.traducir(clave); }
+  etiquetaCategoria(categoria: CategoriaPreguntaFrecuente | 'all'): string {
+    if (categoria === 'all') { return this.t('faq.category.all'); }
+    if (categoria === CategoriaPreguntaFrecuente.PrimerosPasos) { return this.t('faqCategory.firstSteps'); }
+    if (categoria === CategoriaPreguntaFrecuente.ProyectosYTareas) { return this.t('faqCategory.projectsTasks'); }
+    if (categoria === CategoriaPreguntaFrecuente.EquipoYDisponibilidad) { return this.t('faqCategory.teamAvailability'); }
+    if (categoria === CategoriaPreguntaFrecuente.CuentaYSuscripcion) { return this.t('faqCategory.accountSubscription'); }
+    return this.t('faqCategory.general');
+  }
+  pregunta(item: PreguntaFrecuente): string { return this.localization.language() === 'es' ? item.preguntaEs : item.preguntaEn; }
+  respuesta(item: PreguntaFrecuente): string { return this.localization.language() === 'es' ? item.respuestaEs : item.respuestaEn; }
+  seleccionarCategoria(categoria: CategoriaPreguntaFrecuente | 'all'): void { this.categoriaActiva.set(categoria); }
   actualizarBusqueda(evento: Event): void { this.busqueda.set((evento.target as HTMLInputElement).value); }
-  alternarPregunta(id: string): void { this.abierta.update(actual => actual === id ? null : id); }
+  alternarPregunta(id: number): void { this.abierta.update(actual => actual === id ? null : id); }
 }

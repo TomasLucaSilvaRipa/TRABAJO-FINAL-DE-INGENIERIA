@@ -24,8 +24,8 @@ public class MPPBitacora
             new SqlParameter("@IdEntidad", (object?)bitacora.IdEntidad ?? DBNull.Value),
             new SqlParameter("@Accion", bitacora.Accion),
             new SqlParameter("@Mensaje", bitacora.Mensaje),
-            new SqlParameter("@Resultado", (object?)bitacora.Resultado ?? DBNull.Value),
-            new SqlParameter("@Criticidad", (object?)bitacora.Criticidad ?? DBNull.Value),
+            new SqlParameter("@ResultadoCodigo", bitacora.ResultadoEnum.HasValue ? (object)(int)bitacora.ResultadoEnum.Value : DBNull.Value),
+            new SqlParameter("@CriticidadCodigo", (int)bitacora.CriticidadEnum),
             new SqlParameter("@Modulo", (object?)bitacora.Modulo ?? DBNull.Value),
             new SqlParameter("@FechaHora", bitacora.FechaHora),
             new SqlParameter("@DireccionIP", (object?)bitacora.DireccionIP ?? DBNull.Value),
@@ -56,8 +56,8 @@ public class MPPBitacora
             new SqlParameter("@IdUsuario", (object?)filtro.IdUsuario ?? DBNull.Value),
             new SqlParameter("@Entidad", (object?)filtro.Entidad ?? DBNull.Value),
             new SqlParameter("@Accion", (object?)filtro.Accion ?? DBNull.Value),
-            new SqlParameter("@Resultado", (object?)filtro.Resultado ?? DBNull.Value),
-            new SqlParameter("@Criticidad", (object?)filtro.Criticidad ?? DBNull.Value),
+            new SqlParameter("@ResultadoCodigo", filtro.Resultado.HasValue ? (object)(int)filtro.Resultado.Value : DBNull.Value),
+            new SqlParameter("@CriticidadCodigo", filtro.Criticidad.HasValue ? (object)(int)filtro.Criticidad.Value : DBNull.Value),
             new SqlParameter("@Modulo", (object?)filtro.Modulo ?? DBNull.Value),
         };
 
@@ -72,7 +72,9 @@ public class MPPBitacora
 
         foreach (DataRow fila in tabla.Rows)
         {
-            Bitacora bitacora = new Bitacora(Convert.ToInt32(fila["ID"]), fila["IdUsuario"] == DBNull.Value ? null : Convert.ToInt32(fila["IdUsuario"]), fila["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAgencia"]), Convert.ToString(fila["Entidad"]), fila["IdEntidad"] == DBNull.Value ? null : Convert.ToInt32(fila["IdEntidad"]), Convert.ToString(fila["Accion"]) ?? string.Empty, Convert.ToString(fila["Mensaje"]) ?? string.Empty, Convert.ToString(fila["Resultado"]), Convert.ToString(fila["Criticidad"]), Convert.ToString(fila["Modulo"]), Convert.ToDateTime(fila["FechaHora"]), Convert.ToString(fila["DireccionIP"]));
+            Bitacora bitacora = new Bitacora(Convert.ToInt32(fila["ID"]), fila["IdUsuario"] == DBNull.Value ? null : Convert.ToInt32(fila["IdUsuario"]), fila["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAgencia"]), Convert.ToString(fila["Entidad"]), fila["IdEntidad"] == DBNull.Value ? null : Convert.ToInt32(fila["IdEntidad"]), Convert.ToString(fila["Accion"]) ?? string.Empty, Convert.ToString(fila["Mensaje"]) ?? string.Empty, null, null, Convert.ToString(fila["Modulo"]), Convert.ToDateTime(fila["FechaHora"]), Convert.ToString(fila["DireccionIP"]));
+            bitacora.ResultadoEnum = fila["ResultadoCodigo"] == DBNull.Value ? null : (ResultadoBitacora)Convert.ToInt32(fila["ResultadoCodigo"]);
+            bitacora.CriticidadEnum = fila["CriticidadCodigo"] == DBNull.Value ? CriticidadBitacora.Informacion : (CriticidadBitacora)Convert.ToInt32(fila["CriticidadCodigo"]);
 
             lista.Add(bitacora);
         }

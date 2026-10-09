@@ -65,6 +65,7 @@ import { HelpdeskComponent } from './pages/global/helpdesk/helpdesk.component';
 import { NewsletterComponent } from './pages/global/newsletter/newsletter.component';
 import { OperatorsManagementComponent } from './pages/users/support/operators-management/operators-management.component';
 import { BackupManagerComponent } from './pages/users/support/backup-manager/backup-manager.component';
+import { FaqManagerComponent } from './pages/users/support/faq-manager/faq-manager.component';
 
 export const routes: Routes = [
   {
@@ -239,6 +240,7 @@ export const routes: Routes = [
       { path: 'newsletter', component: NewsletterComponent, canActivate: [permissionGuard], data: { permission: 'GestionarNewsletter' }, title: 'Newsletter | TeamBalance' },
       { path: 'soporte/bandeja', component: HelpdeskComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarBandejaSoporte' }, title: 'Bandeja de soporte | TeamBalance' },
       { path: 'gestion-novedades', component: NewsletterComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarNovedades' }, title: 'Gestión de novedades | TeamBalance' },
+      { path: 'gestion-faqs', component: FaqManagerComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarFaqs' }, title: 'Gestión de FAQs | TeamBalance' },
       { path: 'operadores', component: OperatorsManagementComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarOperadores' }, title: 'Gestión de operadores | TeamBalance' },
       { path: 'respaldos', component: BackupManagerComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarRespaldos' }, title: 'Respaldo y restauración | TeamBalance' },
       {

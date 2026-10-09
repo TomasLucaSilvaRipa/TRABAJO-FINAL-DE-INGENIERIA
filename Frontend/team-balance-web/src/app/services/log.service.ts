@@ -2,6 +2,20 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+export enum ResultadoBitacora {
+  Pendiente = 1,
+  Exitoso = 2,
+  Parcial = 3,
+  Denegado = 4,
+  Error = 5
+}
+
+export enum CriticidadBitacora {
+  Informacion = 1,
+  Advertencia = 2,
+  Critico = 3
+}
+
 export interface Bitacora {
   id?: number;
   idUsuario?: number | null;
@@ -10,8 +24,8 @@ export interface Bitacora {
   idEntidad?: number | null;
   accion: string;
   mensaje: string;
-  resultado?: string | null;
-  criticidad?: string | null;
+  resultado?: ResultadoBitacora | null;
+  criticidad?: CriticidadBitacora | null;
   modulo?: string | null;
   direccionIP?: string | null;
   fechaHora: string;
@@ -24,8 +38,8 @@ export interface FiltroBitacora {
   idUsuario?: number | null;
   entidad?: string | null;
   accion?: string | null;
-  resultado?: string | null;
-  criticidad?: string | null;
+  resultado?: ResultadoBitacora | null;
+  criticidad?: CriticidadBitacora | null;
   modulo?: string | null;
 }
 

@@ -49,6 +49,7 @@ builder.Services.AddScoped<MPPPlantillaTarea>();
 builder.Services.AddScoped<MPPSuscripcion>();
 builder.Services.AddScoped<MPPHelpDesk>();
 builder.Services.AddScoped<MPPNovedades>();
+builder.Services.AddScoped<MPPPreguntaFrecuente>();
 builder.Services.AddScoped<MPPRespaldoBaseDatos>();
 
 builder.Services.AddScoped<ContratacionBLL>();
@@ -72,6 +73,7 @@ builder.Services.AddScoped<BLLPlantillaTarea>();
 builder.Services.AddScoped<BLLSuscripcion>();
 builder.Services.AddScoped<BLLHelpDesk>();
 builder.Services.AddScoped<BLLNovedades>();
+builder.Services.AddScoped<BLLPreguntaFrecuente>();
 builder.Services.AddScoped<BLLRespaldoBaseDatos>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("Backup").Get<BackupSettings>() ?? new BackupSettings());
 builder.Services.AddSingleton<ContinuityHistoryXmlService>();
