@@ -26,7 +26,7 @@ public class MPPBitacora
             new SqlParameter("@Mensaje", bitacora.Mensaje),
             new SqlParameter("@ResultadoCodigo", bitacora.ResultadoEnum.HasValue ? (object)(int)bitacora.ResultadoEnum.Value : DBNull.Value),
             new SqlParameter("@CriticidadCodigo", (int)bitacora.CriticidadEnum),
-            new SqlParameter("@Modulo", (object?)bitacora.Modulo ?? DBNull.Value),
+            new SqlParameter("@ModuloCodigo", bitacora.ModuloEnum.HasValue ? (object)(int)bitacora.ModuloEnum.Value : DBNull.Value),
             new SqlParameter("@FechaHora", bitacora.FechaHora),
             new SqlParameter("@DireccionIP", (object?)bitacora.DireccionIP ?? DBNull.Value),
         };
@@ -58,7 +58,7 @@ public class MPPBitacora
             new SqlParameter("@Accion", (object?)filtro.Accion ?? DBNull.Value),
             new SqlParameter("@ResultadoCodigo", filtro.Resultado.HasValue ? (object)(int)filtro.Resultado.Value : DBNull.Value),
             new SqlParameter("@CriticidadCodigo", filtro.Criticidad.HasValue ? (object)(int)filtro.Criticidad.Value : DBNull.Value),
-            new SqlParameter("@Modulo", (object?)filtro.Modulo ?? DBNull.Value),
+            new SqlParameter("@ModuloCodigo", filtro.Modulo.HasValue ? (object)(int)filtro.Modulo.Value : DBNull.Value),
         };
 
         DataTable tabla = _conexion.Leer("dbo.usp_Bitacora_Consultar", parametros);
@@ -75,6 +75,7 @@ public class MPPBitacora
             Bitacora bitacora = new Bitacora(Convert.ToInt32(fila["ID"]), fila["IdUsuario"] == DBNull.Value ? null : Convert.ToInt32(fila["IdUsuario"]), fila["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAgencia"]), Convert.ToString(fila["Entidad"]), fila["IdEntidad"] == DBNull.Value ? null : Convert.ToInt32(fila["IdEntidad"]), Convert.ToString(fila["Accion"]) ?? string.Empty, Convert.ToString(fila["Mensaje"]) ?? string.Empty, null, null, Convert.ToString(fila["Modulo"]), Convert.ToDateTime(fila["FechaHora"]), Convert.ToString(fila["DireccionIP"]));
             bitacora.ResultadoEnum = fila["ResultadoCodigo"] == DBNull.Value ? null : (ResultadoBitacora)Convert.ToInt32(fila["ResultadoCodigo"]);
             bitacora.CriticidadEnum = fila["CriticidadCodigo"] == DBNull.Value ? CriticidadBitacora.Informacion : (CriticidadBitacora)Convert.ToInt32(fila["CriticidadCodigo"]);
+            if (fila.Table.Columns.Contains("ModuloCodigo") && fila["ModuloCodigo"] != DBNull.Value) { bitacora.ModuloEnum = (ModuloBitacora)Convert.ToInt32(fila["ModuloCodigo"]); }
 
             lista.Add(bitacora);
         }

@@ -12,6 +12,10 @@ IF COL_LENGTH(N'dbo.Bitacora', N'CriticidadCodigo') IS NULL
     ALTER TABLE dbo.Bitacora ADD CriticidadCodigo INT NULL;
 GO
 
+IF COL_LENGTH(N'dbo.Bitacora', N'ModuloCodigo') IS NULL
+    ALTER TABLE dbo.Bitacora ADD ModuloCodigo INT NULL;
+GO
+
 UPDATE dbo.Bitacora
 SET ResultadoCodigo = CASE
         WHEN Resultado = N'Pendiente' THEN 1
@@ -26,6 +30,26 @@ SET ResultadoCodigo = CASE
         WHEN Criticidad = N'Advertencia' THEN 2
         WHEN Criticidad IN (N'Critico', N'Crítico') THEN 3
         ELSE 1
+    END,
+    ModuloCodigo = CASE
+        WHEN Modulo = N'General' THEN 1
+        WHEN Modulo IN (N'Contratacion', N'Contratación') THEN 2
+        WHEN Modulo = N'FAQs' THEN 3
+        WHEN Modulo = N'HelpDesk' THEN 4
+        WHEN Modulo = N'Kanban' THEN 5
+        WHEN Modulo = N'Novedades' THEN 6
+        WHEN Modulo = N'Planes' THEN 7
+        WHEN Modulo IN (N'Planificacion', N'Planificación') THEN 8
+        WHEN Modulo = N'Proyectos' THEN 9
+        WHEN Modulo = N'Recursos' THEN 10
+        WHEN Modulo = N'Registro' THEN 11
+        WHEN Modulo = N'Respaldos' THEN 12
+        WHEN Modulo = N'Seguridad' THEN 13
+        WHEN Modulo IN (N'Suscripcion', N'Suscripción') THEN 14
+        WHEN Modulo = N'Usuarios' THEN 15
+        WHEN Modulo = N'Operadores' THEN 16
+        WHEN Modulo = N'Encuestas' THEN 17
+        ELSE 1
     END;
 GO
 
@@ -38,7 +62,7 @@ CREATE OR ALTER PROCEDURE dbo.usp_Bitacora_Registrar
     @Mensaje NVARCHAR(1000),
     @ResultadoCodigo INT = NULL,
     @CriticidadCodigo INT = 1,
-    @Modulo NVARCHAR(100) = NULL,
+    @ModuloCodigo INT = 1,
     @FechaHora DATETIME2(0) = NULL,
     @DireccionIP NVARCHAR(50) = NULL
 AS
@@ -57,6 +81,7 @@ BEGIN
         Criticidad,
         ResultadoCodigo,
         CriticidadCodigo,
+        ModuloCodigo,
         Modulo,
         FechaHora,
         DireccionIP
@@ -73,7 +98,8 @@ BEGIN
         CASE @CriticidadCodigo WHEN 1 THEN N'Informacion' WHEN 2 THEN N'Advertencia' WHEN 3 THEN N'Critico' ELSE N'Informacion' END,
         @ResultadoCodigo,
         COALESCE(@CriticidadCodigo, 1),
-        NULLIF(@Modulo, N''),
+        COALESCE(@ModuloCodigo, 1),
+        CASE COALESCE(@ModuloCodigo, 1) WHEN 1 THEN N'General' WHEN 2 THEN N'Contratacion' WHEN 3 THEN N'FAQs' WHEN 4 THEN N'HelpDesk' WHEN 5 THEN N'Kanban' WHEN 6 THEN N'Novedades' WHEN 7 THEN N'Planes' WHEN 8 THEN N'Planificación' WHEN 9 THEN N'Proyectos' WHEN 10 THEN N'Recursos' WHEN 11 THEN N'Registro' WHEN 12 THEN N'Respaldos' WHEN 13 THEN N'Seguridad' WHEN 14 THEN N'Suscripción' WHEN 15 THEN N'Usuarios' WHEN 16 THEN N'Operadores' WHEN 17 THEN N'Encuestas' ELSE N'General' END,
         COALESCE(@FechaHora, SYSDATETIME()),
         NULLIF(@DireccionIP, N'')
     );
@@ -89,7 +115,7 @@ CREATE OR ALTER PROCEDURE dbo.usp_Bitacora_Consultar
     @Accion NVARCHAR(100) = NULL,
     @ResultadoCodigo INT = NULL,
     @CriticidadCodigo INT = NULL,
-    @Modulo NVARCHAR(100) = NULL
+    @ModuloCodigo INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -104,6 +130,7 @@ BEGIN
         Mensaje,
         ResultadoCodigo,
         CriticidadCodigo,
+        ModuloCodigo,
         Modulo,
         FechaHora,
         DireccionIP
@@ -116,7 +143,7 @@ BEGIN
       AND (NULLIF(@Accion, N'') IS NULL OR Accion = @Accion)
       AND (@ResultadoCodigo IS NULL OR ResultadoCodigo = @ResultadoCodigo)
       AND (@CriticidadCodigo IS NULL OR CriticidadCodigo = @CriticidadCodigo)
-      AND (NULLIF(@Modulo, N'') IS NULL OR Modulo = @Modulo)
+      AND (@ModuloCodigo IS NULL OR ModuloCodigo = @ModuloCodigo)
     ORDER BY FechaHora DESC, ID DESC;
 END;
 GO

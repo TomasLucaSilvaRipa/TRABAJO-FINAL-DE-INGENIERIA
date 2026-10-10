@@ -5,7 +5,7 @@ public class FiltroBitacora
 {
     public FiltroBitacora() { }
 
-    public FiltroBitacora(int? idAgencia = null, DateTime? desde = null, DateTime? hasta = null, int? idUsuario = null, string? entidad = null, string? accion = null, ResultadoBitacora? resultado = null, CriticidadBitacora? criticidad = null, string? modulo = null)
+    public FiltroBitacora(int? idAgencia = null, DateTime? desde = null, DateTime? hasta = null, int? idUsuario = null, string? entidad = null, string? accion = null, ResultadoBitacora? resultado = null, CriticidadBitacora? criticidad = null, ModuloBitacora? modulo = null)
     {
         IdAgencia = idAgencia;
         Desde = desde;
@@ -26,5 +26,5 @@ public class FiltroBitacora
     public string? Accion { get; set; }
     public ResultadoBitacora? Resultado { get; set; }
     public CriticidadBitacora? Criticidad { get; set; }
-    public string? Modulo { get; set; }
+    public ModuloBitacora? Modulo { get; set; }
 }

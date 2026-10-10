@@ -30,6 +30,7 @@
     "@tailwindcss/postcss": "^4.3.3",
     "@types/prismjs": "^1.26.6",
     "apexcharts": "^5.16.0",
+    "chart.js": "^4.5.1",
     "flatpickr": "^4.6.13",
     "ng-apexcharts": "^2.5.0",
     "ng-otp-input": "^2.0.10",

@@ -16,6 +16,26 @@ export enum CriticidadBitacora {
   Critico = 3
 }
 
+export enum ModuloBitacora {
+  General = 1,
+  Contratacion = 2,
+  PreguntasFrecuentes = 3,
+  HelpDesk = 4,
+  Kanban = 5,
+  Novedades = 6,
+  Planes = 7,
+  Planificacion = 8,
+  Proyectos = 9,
+  Recursos = 10,
+  Registro = 11,
+  Respaldos = 12,
+  Seguridad = 13,
+  Suscripcion = 14,
+  Usuarios = 15,
+  Operadores = 16,
+  Encuestas = 17
+}
+
 export interface Bitacora {
   id?: number;
   idUsuario?: number | null;
@@ -26,7 +46,7 @@ export interface Bitacora {
   mensaje: string;
   resultado?: ResultadoBitacora | null;
   criticidad?: CriticidadBitacora | null;
-  modulo?: string | null;
+  modulo?: ModuloBitacora | null;
   direccionIP?: string | null;
   fechaHora: string;
 }
@@ -40,7 +60,7 @@ export interface FiltroBitacora {
   accion?: string | null;
   resultado?: ResultadoBitacora | null;
   criticidad?: CriticidadBitacora | null;
-  modulo?: string | null;
+  modulo?: ModuloBitacora | null;
 }
 
 @Injectable({

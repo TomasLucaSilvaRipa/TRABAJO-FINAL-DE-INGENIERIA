@@ -1,0 +1,15 @@
+<div class="survey-results-chart">
+  <div class="survey-results-chart__canvas">
+    <canvas #grafico [attr.aria-label]="pregunta.enunciadoEs" role="img"></canvas>
+    <div class="survey-results-chart__total" aria-hidden="true"><strong>{{ cantidadRespuestas() }}</strong><span>{{ etiquetaRespuestas }}</span></div>
+  </div>
+  <ul class="survey-results-chart__legend" [attr.aria-label]="etiquetaRespuestas">
+    @for (opcion of pregunta.opciones; track opcion.idOpcionEncuesta; let indice = $index) {
+      <li>
+        <span class="survey-results-chart__color" [style.background-color]="colorOpcion(indice)"></span>
+        <span class="survey-results-chart__label">{{ etiquetaOpcion(indice) }}</span>
+        <strong>{{ opcion.porcentaje }}% <span>· {{ opcion.cantidadRespuestas }}</span></strong>
+      </li>
+    }
+  </ul>
+</div>

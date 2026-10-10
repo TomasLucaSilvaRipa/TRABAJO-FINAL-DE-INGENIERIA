@@ -20,7 +20,7 @@ public class BitacoraController : ControllerBase
     {
         try
         {
-            bool tieneFiltros = filtro.Desde.HasValue || filtro.Hasta.HasValue || filtro.IdUsuario.HasValue || !string.IsNullOrWhiteSpace(filtro.Entidad) || !string.IsNullOrWhiteSpace(filtro.Accion) || filtro.Resultado.HasValue || filtro.Criticidad.HasValue || !string.IsNullOrWhiteSpace(filtro.Modulo);
+            bool tieneFiltros = filtro.Desde.HasValue || filtro.Hasta.HasValue || filtro.IdUsuario.HasValue || !string.IsNullOrWhiteSpace(filtro.Entidad) || !string.IsNullOrWhiteSpace(filtro.Accion) || filtro.Resultado.HasValue || filtro.Criticidad.HasValue || filtro.Modulo.HasValue;
 
             List<Bitacora> bitacora;
 

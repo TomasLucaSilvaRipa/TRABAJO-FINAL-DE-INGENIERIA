@@ -45,8 +45,7 @@ public sealed class BLLSuscripcion
         if (solicitud.IdPlanComercial <= 0) throw new ArgumentException("Seleccioná una modalidad válida.");
 
         Suscripcion suscripcion = _suscripcionMPP.ConsultarActual(solicitante) ?? throw new KeyNotFoundException("La agencia no tiene una suscripción registrada.");
-        if (!suscripcion.Activo || suscripcion.Estado.Equals("Vencida", StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("No podés actualizar una suscripción vencida. Regularizá el servicio primero.");
-        if (suscripcion.IdPlanComercial == solicitud.IdPlanComercial) throw new ArgumentException("La modalidad seleccionada ya es la contratada.");
+        if (suscripcion.Activo && suscripcion.IdPlanComercial == solicitud.IdPlanComercial) throw new ArgumentException("La modalidad seleccionada ya es la contratada.");
 
         PlanComercial plan = _planMPP.ConsultarPlan(new PlanComercial(solicitud.IdPlanComercial));
         if (!plan.Activo || (plan.FechaVigenciaHasta.HasValue && plan.FechaVigenciaHasta.Value < DateTime.Now)) throw new ArgumentException("La modalidad seleccionada no está disponible.");

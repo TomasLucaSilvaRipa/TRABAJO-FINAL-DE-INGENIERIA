@@ -38,26 +38,27 @@
             fill="currentColor" />
         </svg>
       </button>
-      <div class="hidden xl:block">
-        <form>
-          <div class="relative">
-            <span class="absolute -translate-y-1/2 pointer-events-none left-4 top-1/2">
-              <!-- Search Icon -->
-              <svg class="fill-[#a9dce7]" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path fill-rule="evenodd" clip-rule="evenodd"
-                  d="M3.04175 9.37363C3.04175 5.87693 5.87711 3.04199 9.37508 3.04199C12.8731 3.04199 15.7084 5.87693 15.7084 9.37363C15.7084 12.8703 12.8731 15.7053 9.37508 15.7053C5.87711 15.7053 3.04175 12.8703 3.04175 9.37363ZM9.37508 1.54199C5.04902 1.54199 1.54175 5.04817 1.54175 9.37363C1.54175 13.6991 5.04902 17.2053 9.37508 17.2053C11.2674 17.2053 13.003 16.5344 14.357 15.4176L17.177 18.238C17.4699 18.5309 17.9448 18.5309 18.2377 18.238C18.5306 17.9451 18.5306 17.4703 18.2377 17.1774L15.418 14.3573C16.5365 13.0033 17.2084 11.2669 17.2084 9.37363C17.2084 5.04817 13.7011 1.54199 9.37508 1.54199Z"
-                  fill="" />
-              </svg>
-            </span>
-            <input #searchInput type="text" placeholder="Search or type command..."
-              class="h-11 w-full rounded-lg border border-white/20 bg-white/10 py-2.5 pl-12 pr-14 text-sm text-white shadow-theme-xs placeholder:text-[#a9dce7] focus:border-[#57d6ea] focus:outline-hidden focus:ring-3 focus:ring-[#57d6ea]/20 xl:w-[430px]" />
-            <button
-              class="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-lg border border-white/15 bg-white/10 px-[7px] py-[4.5px] text-xs -tracking-[0.2px] text-[#d8f3f7]">
-              <span> ⌘ </span>
-              <span> K </span>
-            </button>
+      <div class="relative hidden xl:block" role="search">
+        <label class="sr-only" for="dashboard-platform-search">{{ etiquetaBusqueda('dashboardSearch.label') }}</label>
+        <span class="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2">
+          <svg class="fill-[#a9dce7]" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M3.04175 9.37363C3.04175 5.87693 5.87711 3.04199 9.37508 3.04199C12.8731 3.04199 15.7084 5.87693 15.7084 9.37363C15.7084 12.8703 12.8731 15.7053 9.37508 15.7053C5.87711 15.7053 3.04175 12.8703 3.04175 9.37363ZM9.37508 1.54199C5.04902 1.54199 1.54175 5.04817 1.54175 9.37363C1.54175 13.6991 5.04902 17.2053 9.37508 17.2053C11.2674 17.2053 13.003 16.5344 14.357 15.4176L17.177 18.238C17.4699 18.5309 17.9448 18.5309 18.2377 18.238C18.5306 17.9451 18.5306 17.4703 18.2377 17.1774L15.418 14.3573C16.5365 13.0033 17.2084 11.2669 17.2084 9.37363C17.2084 5.04817 13.7011 1.54199 9.37508 1.54199Z" />
+          </svg>
+        </span>
+        <input #searchInput id="dashboard-platform-search" type="search" [value]="busqueda()" [placeholder]="etiquetaBusqueda('dashboardSearch.placeholder')" [attr.aria-expanded]="resultadosBusqueda().length > 0" aria-controls="dashboard-search-results" (input)="actualizarBusqueda($any($event.target).value)" (keydown.escape)="cerrarBusqueda()" class="h-11 w-full rounded-lg border border-white/20 bg-white/10 py-2.5 pr-20 pl-12 text-sm text-white shadow-theme-xs placeholder:text-[#a9dce7] focus:border-[#57d6ea] focus:outline-hidden focus:ring-3 focus:ring-[#57d6ea]/20 xl:w-[430px]" />
+        @if (busqueda()) {
+          <button type="button" class="absolute top-1/2 right-11 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-lg leading-none text-[#d8f3f7] hover:bg-white/10 hover:text-white" [attr.aria-label]="etiquetaBusqueda('dashboardSearch.clear')" (click)="cerrarBusqueda()">×</button>
+        }
+        <span class="pointer-events-none absolute top-1/2 right-2.5 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-lg border border-white/15 bg-white/10 px-[7px] py-[4.5px] text-xs -tracking-[0.2px] text-[#d8f3f7]"><span>⌘</span><span>K</span></span>
+        @if (busqueda()) {
+          <div id="dashboard-search-results" role="listbox" class="absolute top-[calc(100%+0.5rem)] right-0 z-[100000] w-[430px] overflow-hidden rounded-xl border border-white/15 bg-[#07324a] shadow-2xl">
+            @for (pagina of resultadosBusqueda(); track pagina.ruta) {
+              <a [routerLink]="pagina.ruta" role="option" (click)="cerrarBusqueda()" class="block border-b border-white/10 px-4 py-3 text-white transition hover:bg-white/10 focus:bg-white/10 focus:outline-none"><span class="block text-sm font-bold">{{ etiquetaBusqueda(pagina.titulo) }}</span><small class="mt-1 block text-xs leading-5 text-[#b7dfe7]">{{ etiquetaBusqueda(pagina.descripcion) }}</small></a>
+            } @empty {
+              <p class="m-0 px-4 py-4 text-sm text-[#b7dfe7]">{{ etiquetaBusqueda('dashboardSearch.empty') }}</p>
+            }
           </div>
-        </form>
+        }
       </div>
     </div>
     <div [ngClass]="isApplicationMenuOpen ? 'flex' : 'hidden'"

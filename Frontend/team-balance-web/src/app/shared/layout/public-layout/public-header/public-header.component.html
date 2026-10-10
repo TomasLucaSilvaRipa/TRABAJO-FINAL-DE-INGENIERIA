@@ -1,12 +1,15 @@
 <header class="tb-header">
   <div class="tb-container tb-header__inner">
-    <a routerLink="/" fragment="top" (click)="closeMenu()" class="tb-brand" aria-label="TeamBalance, inicio">
-      @if (contrastMode()) {
-        <img class="tb-brand__image tb-brand__image--contrast" src="/brand/teambalance-logo-header-contrast.png" alt="TeamBalance" />
-      } @else {
-        <img class="tb-brand__image" src="/brand/teambalance-logo-header.png" alt="TeamBalance" />
-      }
-    </a>
+    <div class="tb-header__brand-group">
+      <a routerLink="/" fragment="top" (click)="closeMenu()" class="tb-brand" aria-label="TeamBalance, inicio">
+        @if (contrastMode()) {
+          <img class="tb-brand__image tb-brand__image--contrast" src="/brand/teambalance-logo-header-contrast.png" alt="TeamBalance" />
+        } @else {
+          <img class="tb-brand__image" src="/brand/teambalance-logo-header.png" alt="TeamBalance" />
+        }
+      </a>
+      <app-language-selector [compact]="true" [variant]="contrastMode() ? 'dark' : 'light'"></app-language-selector>
+    </div>
 
     <nav class="tb-nav" aria-label="Navegación principal">
       <a routerLink="/" fragment="top" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" [routerLinkActiveOptions]="{ exact: true }" class="tb-nav__link">{{ 'menu.home' | appTranslatePipe: localization.language() }}</a>
@@ -17,10 +20,27 @@
       <a routerLink="/contact" (click)="closeMenu()" routerLinkActive="tb-nav__link--active" class="tb-nav__link">{{ 'menu.contact' | appTranslatePipe: localization.language() }}</a>
     </nav>
 
+    <div class="tb-public-search-row">
+      <div class="tb-public-search">
+        <label class="sr-only" for="public-platform-search">{{ etiquetaBusqueda('publicSearch.label') }}</label>
+        <svg class="tb-public-search__icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="m16 16 4 4"></path></svg>
+        <input id="public-platform-search" type="search" [value]="busqueda()" [placeholder]="etiquetaBusqueda('publicSearch.placeholder')" [attr.aria-expanded]="resultadosBusqueda().length > 0" aria-controls="public-search-results" (input)="actualizarBusqueda($any($event.target).value)" (keydown.escape)="cerrarBusqueda()" />
+        @if (busqueda()) { <button type="button" class="tb-public-search__clear" [attr.aria-label]="etiquetaBusqueda('publicSearch.clear')" (click)="cerrarBusqueda()">×</button> }
+        @if (busqueda()) {
+          <div id="public-search-results" class="tb-public-search__results" role="listbox">
+            @for (pagina of resultadosBusqueda(); track pagina.ruta) {
+              <a [routerLink]="pagina.ruta" role="option" (click)="cerrarBusqueda()"><span>{{ etiquetaBusqueda(pagina.titulo) }}</span><small>{{ etiquetaBusqueda(pagina.descripcion) }}</small></a>
+            } @empty {
+              <p>{{ etiquetaBusqueda('publicSearch.empty') }}</p>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
     <div class="tb-header__actions">
       <a routerLink="/signin" class="tb-login">  {{ 'signin' | appTranslatePipe: localization.language() }}</a>
       <a routerLink="/plans" class="tb-button tb-button--primary">  {{ 'view-plans' | appTranslatePipe: localization.language() }}</a>
-      <app-language-selector></app-language-selector>
     </div>
 
     <button type="button" class="tb-menu-button" (click)="toggleMenu()" [attr.aria-expanded]="menuOpen()" aria-controls="mobile-navigation">

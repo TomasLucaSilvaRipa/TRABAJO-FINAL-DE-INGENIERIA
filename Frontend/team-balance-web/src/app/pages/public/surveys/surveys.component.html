@@ -1,0 +1,26 @@
+<section class="tb-page-hero tb-page-hero--navy">
+  <div class="tb-container">
+    <p class="tb-eyebrow">{{ t('surveys.publicKicker') }}</p>
+    <h1 class="tb-title">{{ t('surveys.publicTitle') }}</h1>
+    <p class="tb-lead">{{ t('surveys.publicDescription') }}</p>
+  </div>
+</section>
+
+<section class="tb-section">
+  <div class="tb-container">
+    @if (cargando()) {
+      <p class="tb-empty-state">{{ t('common.loading') }}</p>
+    } @else if (mensaje()) {
+      <section class="tb-panel mx-auto max-w-2xl text-center"><p class="tb-eyebrow">{{ t('surveys.thankYouKicker') }}</p><h2 class="mt-2 text-2xl font-extrabold">{{ t('surveys.sent') }}</h2><p class="tb-muted-text mt-3">{{ t('surveys.thankYouDescription') }}</p><a routerLink="/" class="tb-action-button mt-6 inline-flex">{{ t('surveys.backHome') }}</a></section>
+    } @else if (encuestas().length === 0) {
+      <section class="tb-panel mx-auto max-w-2xl text-center"><h2 class="text-2xl font-extrabold">{{ t('surveys.emptyTitle') }}</h2><p class="tb-muted-text mt-3">{{ t('surveys.emptyDescription') }}</p><a routerLink="/" class="tb-secondary-button mt-6 inline-flex">{{ t('surveys.backHome') }}</a></section>
+    } @else {
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)]">
+        <aside class="space-y-3"><p class="tb-page-kicker">{{ t('surveys.available') }}</p>@for (encuesta of encuestas(); track encuesta.id) { <button type="button" class="w-full rounded-xl border p-4 text-left transition" [class.border-cyan-500]="encuestaSeleccionada()?.id === encuesta.id" [class.bg-cyan-50]="encuestaSeleccionada()?.id === encuesta.id" [class.dark:bg-cyan-950/30]="encuestaSeleccionada()?.id === encuesta.id" (click)="seleccionar(encuesta)"><strong class="block">{{ texto(encuesta.tituloEs, encuesta.tituloEn) }}</strong><span class="tb-muted-text mt-2 block text-sm">{{ texto(encuesta.descripcionEs, encuesta.descripcionEn) }}</span></button> }</aside>
+        @if (encuestaSeleccionada(); as encuesta) {
+          <form class="tb-panel" (ngSubmit)="enviar()"><p class="tb-page-kicker">{{ t('surveys.formKicker') }}</p><h2 class="mt-2 text-2xl font-extrabold">{{ texto(encuesta.tituloEs, encuesta.tituloEn) }}</h2><p class="tb-muted-text mt-3">{{ texto(encuesta.descripcionEs, encuesta.descripcionEn) }}</p><div class="mt-6 space-y-6">@for (pregunta of encuesta.preguntas; track pregunta.id; let indice = $index) { <fieldset><legend class="font-bold">{{ indice + 1 }}. {{ texto(pregunta.enunciadoEs, pregunta.enunciadoEn) }}</legend><div class="mt-3 grid gap-2">@for (opcion of pregunta.opciones; track opcion.id) { <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 p-3 transition hover:border-cyan-500 dark:border-slate-700"><input type="radio" [name]="'pregunta-' + pregunta.id" [checked]="respuestas()[pregunta.id] === opcion.id" (change)="seleccionarOpcion(pregunta.id, opcion.id)" /><span>{{ texto(opcion.textoEs, opcion.textoEn) }}</span></label> }</div></fieldset> }</div>@if (error()) { <p class="mt-5 text-sm font-bold text-red-600">{{ error() }}</p> }<button type="submit" class="tb-action-button mt-6" [disabled]="enviando()">{{ enviando() ? t('common.saving') : t('surveys.send') }}</button></form>
+        }
+      </div>
+    }
+  </div>
+</section>

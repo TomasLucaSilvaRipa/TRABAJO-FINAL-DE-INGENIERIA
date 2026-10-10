@@ -66,6 +66,8 @@ import { NewsletterComponent } from './pages/global/newsletter/newsletter.compon
 import { OperatorsManagementComponent } from './pages/users/support/operators-management/operators-management.component';
 import { BackupManagerComponent } from './pages/users/support/backup-manager/backup-manager.component';
 import { FaqManagerComponent } from './pages/users/support/faq-manager/faq-manager.component';
+import { PublicSurveysComponent } from './pages/public/surveys/surveys.component';
+import { SurveyManagerComponent } from './pages/users/support/survey-manager/survey-manager.component';
 
 export const routes: Routes = [
   {
@@ -102,6 +104,11 @@ export const routes: Routes = [
         path: 'ayuda',
         component: HelpComponent,
         title: 'Ayuda | TeamBalance',
+      },
+      {
+        path: 'encuestas',
+        component: PublicSurveysComponent,
+        title: 'Encuestas | TeamBalance',
       },
       {
         path: 'checkout',
@@ -241,6 +248,7 @@ export const routes: Routes = [
       { path: 'soporte/bandeja', component: HelpdeskComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarBandejaSoporte' }, title: 'Bandeja de soporte | TeamBalance' },
       { path: 'gestion-novedades', component: NewsletterComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarNovedades' }, title: 'Gestión de novedades | TeamBalance' },
       { path: 'gestion-faqs', component: FaqManagerComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarFaqs' }, title: 'Gestión de FAQs | TeamBalance' },
+      { path: 'gestion-encuestas', component: SurveyManagerComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarEncuestas' }, title: 'Gestión de encuestas | TeamBalance' },
       { path: 'operadores', component: OperatorsManagementComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarOperadores' }, title: 'Gestión de operadores | TeamBalance' },
       { path: 'respaldos', component: BackupManagerComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarRespaldos' }, title: 'Respaldo y restauración | TeamBalance' },
       {

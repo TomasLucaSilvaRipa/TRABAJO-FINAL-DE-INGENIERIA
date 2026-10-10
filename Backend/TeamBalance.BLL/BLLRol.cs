@@ -7,7 +7,7 @@ public class BLLRol
 {
     private static readonly HashSet<string> PermisosInternosSoporte = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
-        "ConsultarBitacora", "GestionarPlanes", "GestionarBandejaSoporte", "GestionarNovedades", "GestionarFaqs", "GestionarOperadores", "GestionarRespaldos"
+        "ConsultarBitacora", "GestionarPlanes", "GestionarBandejaSoporte", "GestionarNovedades", "GestionarFaqs", "GestionarEncuestas", "GestionarOperadores", "GestionarRespaldos"
     };
     private readonly MPPRol _rolMPP;
 

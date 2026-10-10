@@ -9,11 +9,13 @@ namespace Teambalance.API.Controllers;
 public sealed class SuscripcionesController : ControllerBase
 {
     private readonly BLLSuscripcion _suscripcionBLL;
+    private readonly BLLCuentaCorriente _cuentaCorrienteBLL;
     private readonly BLLUsuario _usuarioBLL;
 
-    public SuscripcionesController(BLLSuscripcion suscripcionBLL, BLLUsuario usuarioBLL)
+    public SuscripcionesController(BLLSuscripcion suscripcionBLL, BLLCuentaCorriente cuentaCorrienteBLL, BLLUsuario usuarioBLL)
     {
         _suscripcionBLL = suscripcionBLL;
+        _cuentaCorrienteBLL = cuentaCorrienteBLL;
         _usuarioBLL = usuarioBLL;
     }
 
@@ -25,6 +27,27 @@ public sealed class SuscripcionesController : ControllerBase
 
     [HttpGet("historial")]
     public IActionResult ConsultarHistorial() => Ejecutar(() => Ok(_suscripcionBLL.ConsultarHistorial(ObtenerSolicitante())));
+
+    [HttpGet("cuenta-corriente")]
+    public IActionResult ConsultarCuentaCorriente() => Ejecutar(() => Ok(_cuentaCorrienteBLL.Consultar(ObtenerSolicitante())));
+
+    [HttpPost("cancelar-servicio")]
+    public IActionResult CancelarServicio([FromBody] DocumentoComercial documento)
+    {
+        try { return Ok(_cuentaCorrienteBLL.CancelarSuscripcion(documento, ObtenerSolicitante())); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+    }
+
+    [HttpPost("reactivar-con-nota-credito")]
+    public IActionResult ReactivarConNotaCredito([FromBody] DocumentoComercial documento)
+    {
+        try { return Ok(_cuentaCorrienteBLL.ReactivarConNotaCredito(documento, ObtenerSolicitante())); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+    }
 
     [HttpGet("renovacion-automatica/configuracion")]
     public IActionResult ConsultarConfiguracionRenovacion() => Ejecutar(() => Ok(_suscripcionBLL.ObtenerConfiguracionRenovacionAutomatica(ObtenerSolicitante())));

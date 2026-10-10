@@ -60,6 +60,7 @@
           "builder": "@angular/build:dev-server",
           "options": {
             "port": 54536,
+            "proxyConfig": "proxy.config.json",
             "allowedHosts": [
               ".trycloudflare.com"
             ]

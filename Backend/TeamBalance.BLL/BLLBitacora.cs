@@ -28,7 +28,9 @@ public class BLLBitacora
         if (!string.IsNullOrWhiteSpace(bitacora.Criticidad) && !criticidad.HasValue) { throw new ArgumentException("La criticidad de la bitácora no es válida."); }
         bitacora.ResultadoEnum = resultado;
         bitacora.CriticidadEnum = criticidad ?? CriticidadBitacora.Informacion;
-        bitacora.Modulo = string.IsNullOrWhiteSpace(bitacora.Modulo) ? "General" : bitacora.Modulo.Trim();
+        ModuloBitacora? modulo = Bitacora.ObtenerModulo(bitacora.Modulo);
+        if (!string.IsNullOrWhiteSpace(bitacora.Modulo) && !modulo.HasValue) { throw new ArgumentException("El módulo de la bitácora no es válido."); }
+        bitacora.ModuloEnum = modulo ?? ModuloBitacora.General;
         bitacora.DireccionIP = string.IsNullOrWhiteSpace(bitacora.DireccionIP) ? null : bitacora.DireccionIP.Trim();
         bitacora.FechaHora = bitacora.FechaHora == default ? DateTime.Now : bitacora.FechaHora;
 

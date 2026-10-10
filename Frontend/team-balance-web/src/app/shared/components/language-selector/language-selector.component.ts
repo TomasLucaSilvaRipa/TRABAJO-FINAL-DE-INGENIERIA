@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { LanguageCode, LocalizationService } from '../../../services/localization.service';
 
 @Component({
@@ -9,11 +9,25 @@ import { LanguageCode, LocalizationService } from '../../../services/localizatio
 })
 export class LanguageSelector {
   readonly variant = input<'light' | 'dark'>('light');
+  readonly compact = input(false);
 
   readonly localization = inject(LocalizationService);
+  protected readonly abierto = signal(false);
 
-  cambiarIdioma(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    this.localization.cambiarIdioma(select.value as LanguageCode);
+  protected alternar(): void {
+    this.abierto.update((valor) => !valor);
+  }
+
+  protected cambiarIdioma(idioma: LanguageCode): void {
+    this.localization.cambiarIdioma(idioma);
+    this.abierto.set(false);
+  }
+
+  protected cerrar(): void {
+    this.abierto.set(false);
+  }
+
+  protected etiquetaIdioma(): string {
+    return this.localization.language() === 'es' ? 'ES' : 'EN';
   }
 }
