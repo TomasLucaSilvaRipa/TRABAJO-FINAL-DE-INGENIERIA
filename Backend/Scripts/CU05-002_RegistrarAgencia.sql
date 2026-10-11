@@ -29,9 +29,7 @@ BEGIN
     FROM dbo.ContratacionServicio
     WHERE ReferenciaContratacion = @ReferenciaContratacion
       AND EstadoContratacion = N'Aprobada'
-      AND Activo = 1
-      AND IdAgencia IS NULL
-      AND IdUsuario IS NULL;
+      AND Activo = 1;
 END;
 GO
 

@@ -133,6 +133,14 @@
               <small>Pago seguro para Argentina y Latinoamérica.</small>
             </span>
           </label>
+          <label class="tb-payment-option" [class.tb-payment-option--selected]="checkoutForm.controls.paymentProvider.value === 'Stripe'">
+            <input type="radio" formControlName="paymentProvider" value="Stripe" />
+            <span class="tb-payment-option__radio" aria-hidden="true"></span>
+            <span>
+              <strong>Stripe</strong>
+              <small>Pago seguro internacional con tarjeta en dólares.</small>
+            </span>
+          </label>
         </div>
 
         <p class="tb-payment-notice">El pago se realizará de forma segura en el sitio del proveedor seleccionado. TeamBalance no almacena los datos de tu tarjeta.</p>

@@ -39,6 +39,33 @@ public class BLLAgencia
         }
         ContratacionServicio contratacion = _contratacionBLL.ConsultarContratacionParaRegistro(contratacionServicio);
 
+        if (contratacion.IdAgencia.HasValue || contratacion.IdUsuario.HasValue)
+        {
+            if (!contratacion.IdAgencia.HasValue || !contratacion.IdUsuario.HasValue)
+            {
+                throw new InvalidOperationException("La contratación quedó asociada a un registro incompleto. Contactá a soporte para continuar.");
+            }
+
+            if (!string.Equals(usuario.Email.Trim(), contratacion.EmailLaboralResponsable, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("La contratación ya fue utilizada para registrar una agencia.");
+            }
+
+            agencia.ID = contratacion.IdAgencia.Value;
+            usuario.ID = contratacion.IdUsuario.Value;
+            usuario.IdAgencia = contratacion.IdAgencia.Value;
+            _rolBLL.CargarAutorizacion(usuario);
+
+            if (recibirNewsletter)
+            {
+                _novedadesBLL.GuardarPreferencias(usuario, preferenciasNewsletter);
+            }
+
+            _proyectoBLL.CrearEstadosBase(agencia);
+            await ReenviarValidacion(usuario);
+            return true;
+        }
+
         agencia.NombreComercial = contratacion.NombreComercialAgencia;
         agencia.RazonSocial = contratacion.RazonSocial;
         agencia.CUIT = contratacion.CUIT;
@@ -72,6 +99,7 @@ public class BLLAgencia
         agencia.ID = registro.IdAgencia;
         usuario.ID = registro.IdUsuario;
         usuario.IdAgencia = registro.IdAgencia;
+        _rolBLL.CargarAutorizacion(usuario);
         if (recibirNewsletter) _novedadesBLL.GuardarPreferencias(usuario, preferenciasNewsletter);
         _proyectoBLL.CrearEstadosBase(agencia);
 

@@ -103,7 +103,7 @@ public sealed class MPPSuscripcion
     {
         _conexion.Leer("dbo.usp_Suscripcion_RegistrarRenovacionProveedor", new List<SqlParameter>
         {
-            new SqlParameter("@IdSuscripcion", suscripcion.ID), new SqlParameter("@ReferenciaProveedor", suscripcion.ReferenciaRenovacionProveedor), new SqlParameter("@EstadoProveedor", suscripcion.EstadoRenovacionProveedor),
+            new SqlParameter("@IdSuscripcion", suscripcion.ID), new SqlParameter("@ReferenciaProveedor", suscripcion.ReferenciaRenovacionProveedor), new SqlParameter("@EstadoProveedor", suscripcion.EstadoRenovacionProveedor), new SqlParameter("@Proveedor", suscripcion.ProveedorRenovacion),
         });
     }
 
@@ -114,6 +114,7 @@ public sealed class MPPSuscripcion
         {
             IdSuscripcion = Convert.ToInt32(f["IdSuscripcion"]), IdAgencia = Convert.ToInt32(f["IdAgencia"]), IdPlanComercial = Convert.ToInt32(f["IdPlanComercial"]),
             ReferenciaRenovacionProveedor = Convert.ToString(f["ReferenciaRenovacionProveedor"]) ?? string.Empty,
+            Proveedor = Convert.ToString(f["ProveedorRenovacion"]) ?? "MercadoPago",
         }).ToList();
     }
 
@@ -121,7 +122,7 @@ public sealed class MPPSuscripcion
     {
         _conexion.Leer("dbo.usp_Suscripcion_AplicarCobroRecurrente", new List<SqlParameter>
         {
-            new SqlParameter("@IdSuscripcion", renovacion.IdSuscripcion), new SqlParameter("@ReferenciaPago", renovacion.ReferenciaPago), new SqlParameter("@Importe", renovacion.Importe), new SqlParameter("@Moneda", renovacion.Moneda), new SqlParameter("@Detalle", renovacion.Detalle),
+            new SqlParameter("@IdSuscripcion", renovacion.IdSuscripcion), new SqlParameter("@ReferenciaPago", renovacion.ReferenciaPago), new SqlParameter("@Importe", renovacion.Importe), new SqlParameter("@Moneda", renovacion.Moneda), new SqlParameter("@Detalle", renovacion.Detalle), new SqlParameter("@Proveedor", renovacion.Proveedor),
         });
     }
 
@@ -144,6 +145,7 @@ public sealed class MPPSuscripcion
         suscripcion.Moneda = fila.Table.Columns.Contains("Moneda") ? Convert.ToString(fila["Moneda"]) : null;
         suscripcion.ReferenciaRenovacionProveedor = fila.Table.Columns.Contains("ReferenciaRenovacionProveedor") && fila["ReferenciaRenovacionProveedor"] != DBNull.Value ? Convert.ToString(fila["ReferenciaRenovacionProveedor"]) : null;
         suscripcion.EstadoRenovacionProveedor = fila.Table.Columns.Contains("EstadoRenovacionProveedor") && fila["EstadoRenovacionProveedor"] != DBNull.Value ? Convert.ToString(fila["EstadoRenovacionProveedor"]) : null;
+        suscripcion.ProveedorRenovacion = fila.Table.Columns.Contains("ProveedorRenovacion") && fila["ProveedorRenovacion"] != DBNull.Value ? Convert.ToString(fila["ProveedorRenovacion"]) : null;
         suscripcion.FechaSincronizacionRenovacion = fila.Table.Columns.Contains("FechaSincronizacionRenovacion") && fila["FechaSincronizacionRenovacion"] != DBNull.Value ? Convert.ToDateTime(fila["FechaSincronizacionRenovacion"]) : null;
         return suscripcion;
     }

@@ -6,6 +6,12 @@
 */
 GO
 
+SET ANSI_NULLS ON;
+GO
+
+SET QUOTED_IDENTIFIER ON;
+GO
+
 IF OBJECT_ID(N'dbo.DocumentoComercial', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.DocumentoComercial
@@ -49,6 +55,12 @@ BEGIN
 END;
 GO
 
+/* Corrige textos ya guardados con UTF-8 interpretado por una página de códigos distinta. */
+UPDATE dbo.DocumentoComercial
+SET Concepto = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(Concepto, NCHAR(195) + NCHAR(179), NCHAR(243)), NCHAR(195) + NCHAR(169), NCHAR(233)), NCHAR(195) + NCHAR(161), NCHAR(225)), NCHAR(195) + NCHAR(173), NCHAR(237)), NCHAR(194) + NCHAR(183), NCHAR(183))
+WHERE CHARINDEX(NCHAR(195), Concepto) > 0 OR CHARINDEX(NCHAR(194), Concepto) > 0;
+GO
+
 CREATE OR ALTER PROCEDURE dbo.usp_CuentaCorriente_Consultar
     @IdAgencia INT
 AS
@@ -61,7 +73,7 @@ BEGIN
     /* Backfill seguro para agencias creadas antes de este módulo. */
     INSERT INTO dbo.DocumentoComercial(IdAgencia, IdSuscripcion, Tipo, Numero, Concepto, Importe, SaldoPendiente, Moneda, Estado, FechaEmision)
     SELECT S.IdAgencia, S.ID, N'Factura', CONCAT(N'FC-S', RIGHT(CONCAT(N'00000000', CONVERT(NVARCHAR(20), S.ID)), 8)),
-           CONCAT(N'Suscripción TeamBalance · ', P.Nombre), S.ImporteVigente, 0, P.Moneda, N'Pagada', S.FechaAlta
+           CONCAT(N'Suscripcion TeamBalance - ', P.Nombre), S.ImporteVigente, 0, P.Moneda, N'Pagada', S.FechaAlta
     FROM dbo.Suscripcion S
     INNER JOIN dbo.PlanComercial P ON P.ID = S.IdPlanComercial
     WHERE S.IdAgencia = @IdAgencia
@@ -120,7 +132,7 @@ BEGIN
     WHERE ID = @IdSuscripcion;
 
     INSERT INTO dbo.DocumentoComercial(IdAgencia, IdSuscripcion, IdDocumentoOrigen, Tipo, Numero, Concepto, Importe, SaldoPendiente, Moneda, Estado, FechaEmision, Motivo)
-    VALUES(@IdAgencia, @IdSuscripcion, @IdFactura, N'NotaCredito', N'PENDIENTE', N'Crédito por cancelación del servicio TeamBalance', @Importe, @Importe, @Moneda, N'Disponible', SYSDATETIME(), @Motivo);
+    VALUES(@IdAgencia, @IdSuscripcion, @IdFactura, N'NotaCredito', N'PENDIENTE', N'Credito por cancelacion del servicio TeamBalance', @Importe, @Importe, @Moneda, N'Disponible', SYSDATETIME(), @Motivo);
 
     SET @IdNotaCredito = CONVERT(INT, SCOPE_IDENTITY());
 
@@ -129,7 +141,7 @@ BEGIN
     WHERE ID = @IdNotaCredito;
 
     INSERT INTO dbo.MovimientoCuentaCorriente(IdAgencia, IdDocumentoComercial, Tipo, Importe, Moneda, Concepto)
-    VALUES(@IdAgencia, @IdNotaCredito, N'Nota de crédito', @Importe, @Moneda, N'Crédito disponible por cancelación de suscripción');
+    VALUES(@IdAgencia, @IdNotaCredito, N'Nota de credito', @Importe, @Moneda, N'Credito disponible por cancelacion de suscripcion');
 
     COMMIT TRANSACTION;
 
@@ -225,7 +237,7 @@ BEGIN
         THROW 53104, 'El saldo a favor no alcanza para esta modalidad. Podés regularizarla con tarjeta o elegir una modalidad de menor importe.', 1;
 
     INSERT INTO dbo.DocumentoComercial(IdAgencia, IdSuscripcion, Tipo, Numero, Concepto, Importe, SaldoPendiente, Moneda, Estado, FechaEmision)
-    VALUES(@IdAgencia, @IdSuscripcion, N'Factura', N'PENDIENTE', N'Reactivación de suscripción TeamBalance con nota de crédito', @ImportePlan, 0, @Moneda, N'Pagada', SYSDATETIME());
+        VALUES(@IdAgencia, @IdSuscripcion, N'Factura', N'PENDIENTE', N'Reactivacion de suscripcion TeamBalance con nota de credito', @ImportePlan, 0, @Moneda, N'Pagada', SYSDATETIME());
     SET @IdFactura = CONVERT(INT, SCOPE_IDENTITY());
     UPDATE dbo.DocumentoComercial SET Numero = CONCAT(N'FC-', RIGHT(CONCAT(N'00000000', CONVERT(NVARCHAR(20), @IdFactura)), 8)) WHERE ID = @IdFactura;
 
@@ -244,7 +256,7 @@ BEGIN
             Estado = CASE WHEN SaldoPendiente - @ImporteAplicado = 0 THEN N'Aplicada' ELSE N'Disponible' END
         WHERE ID = @IdNotaCredito;
         INSERT INTO dbo.MovimientoCuentaCorriente(IdAgencia, IdDocumentoComercial, Tipo, Importe, Moneda, Concepto)
-        VALUES(@IdAgencia, @IdNotaCredito, N'Aplicación de nota de crédito', @ImporteAplicado, @Moneda, CONCAT(N'Crédito aplicado a factura FC-', RIGHT(CONCAT(N'00000000', CONVERT(NVARCHAR(20), @IdFactura)), 8)));
+        VALUES(@IdAgencia, @IdNotaCredito, N'Aplicacion nota credito', @ImporteAplicado, @Moneda, CONCAT(N'Credito aplicado a factura FC-', RIGHT(CONCAT(N'00000000', CONVERT(NVARCHAR(20), @IdFactura)), 8)));
         SET @ImportePendiente = @ImportePendiente - @ImporteAplicado;
     END;
 
@@ -260,7 +272,7 @@ BEGIN
     WHERE ID = @IdSuscripcion;
 
     INSERT INTO dbo.MovimientoCuentaCorriente(IdAgencia, IdDocumentoComercial, Tipo, Importe, Moneda, Concepto)
-    VALUES(@IdAgencia, @IdFactura, N'Cobro con nota de crédito', @ImportePlan, @Moneda, N'Reactivación cubierta con saldo a favor');
+    VALUES(@IdAgencia, @IdFactura, N'Cobro nota credito', @ImportePlan, @Moneda, N'Reactivacion cubierta con saldo a favor');
 
     COMMIT TRANSACTION;
     SELECT ID, IdAgencia, IdSuscripcion, IdDocumentoOrigen, Tipo, Numero, Concepto, Importe, SaldoPendiente, Moneda, Estado, FechaEmision, FechaVencimiento, Motivo

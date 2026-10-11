@@ -8,14 +8,16 @@ namespace TeamBalance.BLL
     public class ContratacionBLL
     {
         private readonly MercadoPagoService _mercadoPagoService;
+        private readonly StripeService _stripeService;
         private readonly MPPContratacion _contratacionMPP;
         private readonly MPPPlanComercial _planMPP;
         private readonly BLLBitacora _bitacoraBLL;
         private readonly EmailService _emailService;
 
-        public ContratacionBLL(MercadoPagoService mercadoPagoService, MPPContratacion contratacionMPP, MPPPlanComercial planMPP, BLLBitacora bitacoraBLL, EmailService emailService)
+        public ContratacionBLL(MercadoPagoService mercadoPagoService, StripeService stripeService, MPPContratacion contratacionMPP, MPPPlanComercial planMPP, BLLBitacora bitacoraBLL, EmailService emailService)
         {
             _mercadoPagoService = mercadoPagoService;
+            _stripeService = stripeService;
             _contratacionMPP = contratacionMPP;
             _planMPP = planMPP;
             _bitacoraBLL = bitacoraBLL;
@@ -26,9 +28,9 @@ namespace TeamBalance.BLL
         {
             ValidarSolicitud(request);
 
-            if (!string.Equals(request.ProveedorPagoSeleccionado, "MercadoPago", StringComparison.Ordinal))
+            if (!string.Equals(request.ProveedorPagoSeleccionado, "MercadoPago", StringComparison.Ordinal) && !string.Equals(request.ProveedorPagoSeleccionado, "Stripe", StringComparison.Ordinal))
             {
-                throw new InvalidOperationException("Por el momento, la contratación está disponible únicamente con Mercado Pago.");
+                throw new InvalidOperationException("Seleccioná Mercado Pago o Stripe como proveedor de pago.");
             }
 
             string referenciaContratacion = Guid.NewGuid().ToString("N");
@@ -43,8 +45,9 @@ namespace TeamBalance.BLL
             _bitacoraBLL.Add(bitacora);
 
             PlanComercial plan = _planMPP.ConsultarPlan(new PlanComercial(contratacion.IdPlanComercial));
-            string urlPago = await _mercadoPagoService.CrearPago(new MercadoPagoPreferenceRequest(
-                "Suscripción TeamBalance", contratacion.Importe, contratacion.Moneda, contratacion.ReferenciaContratacion, plan.Nombre));
+            string urlPago = string.Equals(request.ProveedorPagoSeleccionado, "Stripe", StringComparison.Ordinal)
+                ? await _stripeService.CrearPago(contratacion, plan)
+                : await _mercadoPagoService.CrearPago(new MercadoPagoPreferenceRequest("Suscripción TeamBalance", contratacion.Importe, contratacion.Moneda, contratacion.ReferenciaContratacion, plan.Nombre));
 
             ContratacionInicioResponse respuesta = new ContratacionInicioResponse(urlPago, contratacion.ReferenciaContratacion);
             return respuesta;
@@ -75,19 +78,30 @@ namespace TeamBalance.BLL
                 return CrearRespuestaEstado(contratacion);
             }
 
-            MercadoPagoPayment payment = await _mercadoPagoService.ConsultarPago(paymentId);
+            string referenciaProveedor;
+            string estadoProveedor;
+            string mensajeProveedor;
 
-            if (!string.Equals(payment.ExternalReference, contratacionServicio.ReferenciaContratacion, StringComparison.Ordinal))
+            if (string.Equals(contratacion.ProveedorPagoSeleccionado, "Stripe", StringComparison.Ordinal))
             {
-                throw new InvalidOperationException("El pago no corresponde a la contratación indicada.");
+                (string id, string estado, string referencia, decimal importe, string moneda, string referenciaRenovacion) = await _stripeService.ConsultarPago(paymentId);
+                if (!string.Equals(referencia, contratacionServicio.ReferenciaContratacion, StringComparison.Ordinal)) throw new InvalidOperationException("La sesión de Stripe no corresponde a la contratación indicada.");
+                if (importe != contratacion.Importe || !string.Equals(moneda, contratacion.Moneda, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("El importe o la moneda informados por Stripe no coinciden con la contratación.");
+                referenciaProveedor = id;
+                estadoProveedor = estado;
+                mensajeProveedor = $"Stripe informó el estado '{estado}'.";
+            }
+            else
+            {
+                MercadoPagoPayment payment = await _mercadoPagoService.ConsultarPago(paymentId);
+                if (!string.Equals(payment.ExternalReference, contratacionServicio.ReferenciaContratacion, StringComparison.Ordinal)) throw new InvalidOperationException("El pago no corresponde a la contratación indicada.");
+                if (payment.TransactionAmount != contratacion.Importe || !string.Equals(payment.CurrencyId, contratacion.Moneda, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("El importe o la moneda informados por Mercado Pago no coinciden con la contratación.");
+                referenciaProveedor = payment.Id;
+                estadoProveedor = payment.Status;
+                mensajeProveedor = $"Mercado Pago informó el estado '{payment.Status}'.";
             }
 
-            if (payment.TransactionAmount != contratacion.Importe || !string.Equals(payment.CurrencyId, contratacion.Moneda, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException("El importe o la moneda informados por Mercado Pago no coinciden con la contratación.");
-            }
-
-            EstadoContratacionPersistido resultado = _contratacionMPP.ActualizarResultadoPago( contratacionServicio, payment.Id, payment.Status, $"Mercado Pago informó el estado '{payment.Status}'.");
+            EstadoContratacionPersistido resultado = _contratacionMPP.ActualizarResultadoPago(contratacionServicio, referenciaProveedor, estadoProveedor, mensajeProveedor);
 
             if (string.Equals(resultado.EstadoContratacion, "Aprobada", StringComparison.OrdinalIgnoreCase))
             {
@@ -101,7 +115,7 @@ namespace TeamBalance.BLL
 
         private static EstadoContratacionResponse CrearRespuestaEstado(EstadoContratacionPersistido contratacion)
         {
-            bool puedeRegistrar = string.Equals(contratacion.EstadoContratacion, "Aprobada", StringComparison.OrdinalIgnoreCase);
+            bool puedeRegistrar = string.Equals(contratacion.EstadoContratacion, "Aprobada", StringComparison.OrdinalIgnoreCase) && !contratacion.IdAgencia.HasValue && !contratacion.IdUsuario.HasValue;
             EstadoContratacionResponse respuesta = new EstadoContratacionResponse(contratacion.ReferenciaContratacion, contratacion.EstadoContratacion, puedeRegistrar);
             return respuesta;
         }

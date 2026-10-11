@@ -42,6 +42,10 @@ IF COL_LENGTH(N'dbo.Suscripcion', N'ReferenciaRenovacionProveedor') IS NULL
     ALTER TABLE dbo.Suscripcion ADD ReferenciaRenovacionProveedor NVARCHAR(250) NULL, EstadoRenovacionProveedor NVARCHAR(80) NULL, FechaSincronizacionRenovacion DATETIME2 NULL;
 GO
 
+IF COL_LENGTH(N'dbo.Suscripcion', N'ProveedorRenovacion') IS NULL
+    ALTER TABLE dbo.Suscripcion ADD ProveedorRenovacion NVARCHAR(100) NULL;
+GO
+
 CREATE OR ALTER PROCEDURE dbo.usp_Suscripcion_ConsultarActualPorAgencia
     @IdAgencia INT
 AS
@@ -50,7 +54,7 @@ BEGIN
     SELECT TOP (1)
         S.ID, S.IdAgencia, S.IdPlanComercial, S.ReferenciaExterna, S.Estado, S.FechaAlta, S.FechaVencimiento,
         S.FechaProximaRenovacion, S.RenovacionAutomatica, S.ImporteVigente, S.Activo, S.FechaBaja,
-        S.ReferenciaRenovacionProveedor, S.EstadoRenovacionProveedor, S.FechaSincronizacionRenovacion,
+        S.ReferenciaRenovacionProveedor, S.EstadoRenovacionProveedor, S.ProveedorRenovacion, S.FechaSincronizacionRenovacion,
         P.Nombre AS NombrePlan, P.Periodicidad AS PeriodicidadPlan, P.Moneda
     FROM dbo.Suscripcion S
     INNER JOIN dbo.PlanComercial P ON P.ID = S.IdPlanComercial
@@ -232,16 +236,16 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Suscripcion_RegistrarRenovacionProveedor
-    @IdSuscripcion INT, @ReferenciaProveedor NVARCHAR(250), @EstadoProveedor NVARCHAR(80)
+    @IdSuscripcion INT, @ReferenciaProveedor NVARCHAR(250), @EstadoProveedor NVARCHAR(80), @Proveedor NVARCHAR(100)
 AS
 BEGIN
     SET NOCOUNT ON;
     UPDATE dbo.Suscripcion
     SET RenovacionAutomatica = 1, ReferenciaRenovacionProveedor = @ReferenciaProveedor,
-        EstadoRenovacionProveedor = @EstadoProveedor, FechaSincronizacionRenovacion = SYSDATETIME()
+        EstadoRenovacionProveedor = @EstadoProveedor, ProveedorRenovacion = @Proveedor, FechaSincronizacionRenovacion = SYSDATETIME()
     WHERE ID = @IdSuscripcion AND Activo = 1;
     IF @@ROWCOUNT <> 1 THROW 53030, 'No existe una suscripción activa para registrar la autorización recurrente.', 1;
-    SELECT @IdSuscripcion AS IdSuscripcion, @ReferenciaProveedor AS ReferenciaProveedor, @EstadoProveedor AS EstadoProveedor;
+    SELECT @IdSuscripcion AS IdSuscripcion, @ReferenciaProveedor AS ReferenciaProveedor, @EstadoProveedor AS EstadoProveedor, @Proveedor AS Proveedor;
 END;
 GO
 
@@ -249,7 +253,7 @@ CREATE OR ALTER PROCEDURE dbo.usp_Suscripcion_ConsultarRenovacionesProveedor
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT ID AS IdSuscripcion, IdAgencia, IdPlanComercial, ReferenciaRenovacionProveedor, EstadoRenovacionProveedor
+    SELECT ID AS IdSuscripcion, IdAgencia, IdPlanComercial, ReferenciaRenovacionProveedor, EstadoRenovacionProveedor, COALESCE(ProveedorRenovacion, N'MercadoPago') AS ProveedorRenovacion
     FROM dbo.Suscripcion
     WHERE RenovacionAutomatica = 1 AND ReferenciaRenovacionProveedor IS NOT NULL;
 END;
@@ -268,7 +272,7 @@ END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Suscripcion_AplicarCobroRecurrente
-    @IdSuscripcion INT, @ReferenciaPago NVARCHAR(250), @Importe DECIMAL(18,2), @Moneda NVARCHAR(20), @Detalle NVARCHAR(1000)
+    @IdSuscripcion INT, @ReferenciaPago NVARCHAR(250), @Importe DECIMAL(18,2), @Moneda NVARCHAR(20), @Detalle NVARCHAR(1000), @Proveedor NVARCHAR(100)
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -287,7 +291,7 @@ BEGIN
         FechaSincronizacionRenovacion = SYSDATETIME()
     WHERE ID = @IdSuscripcion;
     INSERT INTO dbo.OperacionSuscripcion(IdSuscripcion, IdPlanAnterior, IdPlanNuevo, TipoOperacion, ReferenciaProveedor, Proveedor, Importe, Moneda, Estado, Detalle)
-    VALUES(@IdSuscripcion, @IdPlan, @IdPlan, N'Renovación automática', @ReferenciaPago, N'MercadoPago', @Importe, @Moneda, N'Aprobada', @Detalle);
+    VALUES(@IdSuscripcion, @IdPlan, @IdPlan, N'Renovación automática', @ReferenciaPago, @Proveedor, @Importe, @Moneda, N'Aprobada', @Detalle);
 END;
 GO
 

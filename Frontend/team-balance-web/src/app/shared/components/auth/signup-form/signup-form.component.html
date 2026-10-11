@@ -118,11 +118,11 @@
       @if (registryForm.controls.recibirNewsletter.value) {
         <section class="tb-auth-field" aria-label="newsletter-categories">
           <p class="tb-auth-field__hint">{{ localization.traducir('signup.newsletterCategoriesHint') }}</p>
-          <div class="tb-auth-form__row">
+          <div class="tb-newsletter-categories">
             @for (categoria of categoriasNewsletter(); track categoria.id) {
-              <label class="tb-terms-check">
+              <label class="tb-newsletter-category">
                 <input type="checkbox" [checked]="categoriasSeleccionadas().includes(categoria.id)" (change)="alternarCategoriaNewsletter(categoria.id)" />
-                <span><strong>{{ categoria.nombre }}</strong> · {{ categoria.descripcion }}</span>
+                <span>{{ categoria.nombre }}<small>{{ categoria.descripcion }}</small></span>
               </label>
             }
           </div>

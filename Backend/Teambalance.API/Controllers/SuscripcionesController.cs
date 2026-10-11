@@ -104,6 +104,26 @@ public sealed class SuscripcionesController : ControllerBase
         catch (Exception) { return StatusCode(502, "No fue posible autorizar la renovación automática con Mercado Pago."); }
     }
 
+    [HttpPost("renovacion-automatica/stripe")]
+    public async Task<IActionResult> SolicitarRenovacionStripe()
+    {
+        try { return Ok(await _suscripcionBLL.SolicitarRenovacionAutomaticaStripe(ObtenerSolicitante())); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(502, "No fue posible iniciar la renovación automática con Stripe."); }
+    }
+
+    [HttpPost("renovacion-automatica/verificar-stripe")]
+    public async Task<IActionResult> VerificarRenovacionStripe([FromBody] VerificarPagoSuscripcionRequest solicitud)
+    {
+        try { return Ok(await _suscripcionBLL.VerificarRenovacionAutomaticaStripe(solicitud.PaymentId)); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(502, "No fue posible verificar la renovación automática con Stripe."); }
+    }
+
     private Usuario ObtenerSolicitante()
     {
         string token = Request.Headers.Authorization.ToString().Replace("Bearer ", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();

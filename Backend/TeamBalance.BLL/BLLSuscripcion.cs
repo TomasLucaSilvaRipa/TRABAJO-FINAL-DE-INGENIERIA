@@ -11,14 +11,16 @@ public sealed class BLLSuscripcion
     private readonly BLLRol _rolBLL;
     private readonly BLLBitacora _bitacoraBLL;
     private readonly MercadoPagoService _mercadoPagoService;
+    private readonly StripeService _stripeService;
 
-    public BLLSuscripcion(MPPSuscripcion suscripcionMPP, MPPPlanComercial planMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL, MercadoPagoService mercadoPagoService)
+    public BLLSuscripcion(MPPSuscripcion suscripcionMPP, MPPPlanComercial planMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL, MercadoPagoService mercadoPagoService, StripeService stripeService)
     {
         _suscripcionMPP = suscripcionMPP;
         _planMPP = planMPP;
         _rolBLL = rolBLL;
         _bitacoraBLL = bitacoraBLL;
         _mercadoPagoService = mercadoPagoService;
+        _stripeService = stripeService;
     }
 
     public Suscripcion ConsultarSuscripcion(Usuario solicitante)
@@ -52,10 +54,12 @@ public sealed class BLLSuscripcion
 
         solicitud.IdSuscripcion = suscripcion.ID;
         solicitud.ReferenciaInterna = $"sus-{Guid.NewGuid():N}";
-        solicitud.Proveedor = "MercadoPago";
+        if (!string.Equals(solicitud.Proveedor, "MercadoPago", StringComparison.Ordinal) && !string.Equals(solicitud.Proveedor, "Stripe", StringComparison.Ordinal)) throw new ArgumentException("Seleccioná Mercado Pago o Stripe como proveedor de pago.");
         OperacionSuscripcionPendiente operacion = _suscripcionMPP.CrearSolicitudCambioPlan(solicitud);
 
-        string urlPago = await _mercadoPagoService.CrearPago(new MercadoPagoPreferenceRequest($"TeamBalance · cambio a {plan.Nombre}", operacion.Importe, operacion.Moneda, operacion.ReferenciaInterna, plan.Nombre));
+        string urlPago = string.Equals(solicitud.Proveedor, "Stripe", StringComparison.Ordinal)
+            ? await _stripeService.CrearPago(operacion, plan)
+            : await _mercadoPagoService.CrearPago(new MercadoPagoPreferenceRequest($"TeamBalance · cambio a {plan.Nombre}", operacion.Importe, operacion.Moneda, operacion.ReferenciaInterna, plan.Nombre));
 
         RegistrarBitacora(solicitante, suscripcion, "SolicitarActualizacionSuscripcion", $"Se solicitó la actualización de suscripción a la modalidad {plan.Nombre}.");
         return new InicioActualizacionSuscripcion(urlPago, solicitud.ReferenciaInterna, operacion.Importe, operacion.Moneda, DateTime.Now);
@@ -68,30 +72,31 @@ public sealed class BLLSuscripcion
         OperacionSuscripcionPendiente operacion = new OperacionSuscripcionPendiente();
         operacion.ReferenciaInterna = solicitud.ReferenciaOperacion;
         operacion = _suscripcionMPP.ConsultarOperacionPendiente(operacion);
-        MercadoPagoPayment pago = await _mercadoPagoService.ConsultarPago(solicitud.PaymentId);
-        if (!string.Equals(pago.ExternalReference, operacion.ReferenciaInterna, StringComparison.Ordinal))
+        if (string.Equals(operacion.Proveedor, "Stripe", StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("La referencia devuelta por Mercado Pago no corresponde a la actualización solicitada.");
+            (string id, string estado, string referencia, decimal importe, string moneda, string referenciaRenovacion) = await _stripeService.ConsultarPago(solicitud.PaymentId);
+            if (!string.Equals(referencia, operacion.ReferenciaInterna, StringComparison.Ordinal)) throw new InvalidOperationException("La sesión devuelta por Stripe no corresponde a la actualización solicitada.");
+            if (importe != operacion.Importe || !string.Equals(moneda, operacion.Moneda, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("El importe o la moneda informados por Stripe no coinciden con la actualización solicitada.");
+            operacion.ReferenciaProveedor = id;
+            operacion.EstadoProveedor = estado;
+            operacion.DetalleProveedor = $"Stripe informó el estado '{estado}'.";
         }
-        bool importeConvertidoPorProveedor = pago.TransactionAmount != operacion.Importe ||
-            !string.Equals(pago.CurrencyId, operacion.Moneda, StringComparison.OrdinalIgnoreCase);
-        PlanComercial plan = _planMPP.ConsultarPlan(new PlanComercial(operacion.IdPlanNuevo));
-        if (importeConvertidoPorProveedor && !_mercadoPagoService.EsCobroPruebaEsperado(pago, plan.Nombre))
+        else
         {
-            throw new InvalidOperationException($"El pago recibido fue {pago.TransactionAmount:0.##} {pago.CurrencyId}; no coincide con la cotización comercial ni con el cobro de prueba configurado.");
+            MercadoPagoPayment pago = await _mercadoPagoService.ConsultarPago(solicitud.PaymentId);
+            if (!string.Equals(pago.ExternalReference, operacion.ReferenciaInterna, StringComparison.Ordinal)) throw new InvalidOperationException("La referencia devuelta por Mercado Pago no corresponde a la actualización solicitada.");
+            bool importeConvertidoPorProveedor = pago.TransactionAmount != operacion.Importe || !string.Equals(pago.CurrencyId, operacion.Moneda, StringComparison.OrdinalIgnoreCase);
+            PlanComercial plan = _planMPP.ConsultarPlan(new PlanComercial(operacion.IdPlanNuevo));
+            if (importeConvertidoPorProveedor && !_mercadoPagoService.EsCobroPruebaEsperado(pago, plan.Nombre)) throw new InvalidOperationException($"El pago recibido fue {pago.TransactionAmount:0.##} {pago.CurrencyId}; no coincide con la cotización comercial ni con el cobro de prueba configurado.");
+            operacion.ReferenciaProveedor = pago.Id;
+            operacion.EstadoProveedor = pago.Status;
+            operacion.DetalleProveedor = importeConvertidoPorProveedor
+                ? $"Mercado Pago informó el estado '{pago.Status}'. Cobro acreditado: {pago.TransactionAmount:0.##} {pago.CurrencyId}; cotización del plan: {operacion.Importe:0.##} {operacion.Moneda}."
+                : $"Mercado Pago informó el estado '{pago.Status}'.";
         }
-        string detalleProveedor = importeConvertidoPorProveedor
-            ? $"Mercado Pago informó el estado '{pago.Status}'. Cobro acreditado: {pago.TransactionAmount:0.##} {pago.CurrencyId}; cotización del plan: {operacion.Importe:0.##} {operacion.Moneda}."
-            : $"Mercado Pago informó el estado '{pago.Status}'.";
-
-        // Fuera del modo de prueba el importe y la moneda deben coincidir con la cotización.
-        // En desarrollo sólo se admite el importe ARS configurado para este plan.
-        operacion.ReferenciaProveedor = pago.Id;
-        operacion.EstadoProveedor = pago.Status;
-        operacion.DetalleProveedor = detalleProveedor;
         Suscripcion suscripcion = _suscripcionMPP.AplicarResultadoCambioPlan(operacion);
-        bool aprobada = string.Equals(pago.Status, "approved", StringComparison.OrdinalIgnoreCase);
-        bool rechazada = string.Equals(pago.Status, "rejected", StringComparison.OrdinalIgnoreCase) || string.Equals(pago.Status, "cancelled", StringComparison.OrdinalIgnoreCase);
+        bool aprobada = string.Equals(operacion.EstadoProveedor, "approved", StringComparison.OrdinalIgnoreCase);
+        bool rechazada = string.Equals(operacion.EstadoProveedor, "rejected", StringComparison.OrdinalIgnoreCase) || string.Equals(operacion.EstadoProveedor, "cancelled", StringComparison.OrdinalIgnoreCase);
         string mensaje = aprobada
             ? "Suscripción actualizada correctamente."
             : rechazada
@@ -109,8 +114,12 @@ public sealed class BLLSuscripcion
 
         if (!string.IsNullOrWhiteSpace(actual.ReferenciaRenovacionProveedor))
         {
-            MercadoPagoPreapproval proveedor = await _mercadoPagoService.ActualizarRenovacionAutomatica(actual.ReferenciaRenovacionProveedor, "paused");
-            actual.EstadoRenovacionProveedor = proveedor.Status;
+            if (string.Equals(actual.ProveedorRenovacion, "Stripe", StringComparison.Ordinal)) actual.EstadoRenovacionProveedor = await _stripeService.ActualizarRenovacionAutomatica(actual.ReferenciaRenovacionProveedor, false);
+            else
+            {
+                MercadoPagoPreapproval proveedor = await _mercadoPagoService.ActualizarRenovacionAutomatica(actual.ReferenciaRenovacionProveedor, "paused");
+                actual.EstadoRenovacionProveedor = proveedor.Status;
+            }
             _suscripcionMPP.ActualizarEstadoRenovacionProveedor(actual);
         }
         actual.RenovacionAutomatica = false;
@@ -127,14 +136,19 @@ public sealed class BLLSuscripcion
         if (actual.RenovacionAutomatica) throw new ArgumentException("La renovación automática ya se encuentra activa.");
         if (!actual.Activo || actual.FechaVencimiento <= DateTime.Now) throw new InvalidOperationException("El período vigente ya finalizó y no admite reactivar la renovación.");
 
-        if (string.IsNullOrWhiteSpace(actual.ReferenciaRenovacionProveedor))
-            throw new InvalidOperationException("Para reactivar esta suscripción primero autorizá el medio de pago en Mercado Pago.");
+        if (string.IsNullOrWhiteSpace(actual.ReferenciaRenovacionProveedor)) throw new InvalidOperationException("Para reactivar esta suscripción primero autorizá un medio de pago.");
 
-        MercadoPagoPreapproval proveedor = await _mercadoPagoService.ActualizarRenovacionAutomatica(actual.ReferenciaRenovacionProveedor, "authorized");
+        if (string.Equals(actual.ProveedorRenovacion, "Stripe", StringComparison.Ordinal)) actual.EstadoRenovacionProveedor = await _stripeService.ActualizarRenovacionAutomatica(actual.ReferenciaRenovacionProveedor, true);
+        else
+        {
+            MercadoPagoPreapproval proveedor = await _mercadoPagoService.ActualizarRenovacionAutomatica(actual.ReferenciaRenovacionProveedor, "authorized");
+            actual.EstadoRenovacionProveedor = proveedor.Status;
+        }
         actual.RenovacionAutomatica = true;
         actual.MotivoRenovacion = null;
         Suscripcion resultado = _suscripcionMPP.ActualizarRenovacion(actual);
-        resultado.EstadoRenovacionProveedor = proveedor.Status;
+        resultado.EstadoRenovacionProveedor = actual.EstadoRenovacionProveedor;
+        resultado.ProveedorRenovacion = actual.ProveedorRenovacion;
         _suscripcionMPP.ActualizarEstadoRenovacionProveedor(resultado);
         RegistrarBitacora(solicitante, resultado, "ReactivarRenovacionAutomatica", "Se reactivó la renovación automática de la suscripción.");
         return new ResultadoGestionSuscripcion("Renovación automática reactivada correctamente.", resultado.Estado, resultado);
@@ -178,6 +192,7 @@ public sealed class BLLSuscripcion
 
         actual.ReferenciaRenovacionProveedor = preapproval.Id;
         actual.EstadoRenovacionProveedor = preapproval.Status;
+        actual.ProveedorRenovacion = "MercadoPago";
         _suscripcionMPP.RegistrarRenovacionProveedor(actual);
         Suscripcion resultado = _suscripcionMPP.ConsultarActual(solicitante) ?? throw new InvalidOperationException("No fue posible actualizar la suscripción.");
         RegistrarBitacora(solicitante, resultado, "AutorizarRenovacionAutomatica", "Se autorizó una renovación automática mediante Mercado Pago.");
@@ -189,18 +204,60 @@ public sealed class BLLSuscripcion
         int aplicados = 0;
         foreach (RenovacionProveedorPendiente renovacion in _suscripcionMPP.ConsultarRenovacionesProveedor())
         {
-            List<MercadoPagoAuthorizedPayment> pagos = await _mercadoPagoService.ConsultarCobrosRecurrentes(renovacion.ReferenciaRenovacionProveedor);
-            foreach (MercadoPagoAuthorizedPayment pago in pagos)
+            if (string.Equals(renovacion.Proveedor, "Stripe", StringComparison.Ordinal))
             {
-                renovacion.ReferenciaPago = pago.PaymentId;
-                renovacion.Importe = pago.TransactionAmount;
-                renovacion.Moneda = pago.CurrencyId;
-                renovacion.Detalle = $"Cobro recurrente aprobado por Mercado Pago (autorización {renovacion.ReferenciaRenovacionProveedor}).";
-                _suscripcionMPP.AplicarCobroRecurrente(renovacion);
-                aplicados++;
+                List<(string ReferenciaPago, decimal Importe, string Moneda, string Estado)> pagosStripe = await _stripeService.ConsultarCobrosRecurrentes(renovacion.ReferenciaRenovacionProveedor);
+                foreach ((string ReferenciaPago, decimal Importe, string Moneda, string Estado) pago in pagosStripe)
+                {
+                    renovacion.ReferenciaPago = pago.ReferenciaPago;
+                    renovacion.Importe = pago.Importe;
+                    renovacion.Moneda = pago.Moneda;
+                    renovacion.Detalle = $"Cobro recurrente aprobado por Stripe (suscripción {renovacion.ReferenciaRenovacionProveedor}).";
+                    _suscripcionMPP.AplicarCobroRecurrente(renovacion);
+                    aplicados++;
+                }
+            }
+            else
+            {
+                List<MercadoPagoAuthorizedPayment> pagos = await _mercadoPagoService.ConsultarCobrosRecurrentes(renovacion.ReferenciaRenovacionProveedor);
+                foreach (MercadoPagoAuthorizedPayment pago in pagos)
+                {
+                    renovacion.ReferenciaPago = pago.PaymentId;
+                    renovacion.Importe = pago.TransactionAmount;
+                    renovacion.Moneda = pago.CurrencyId;
+                    renovacion.Detalle = $"Cobro recurrente aprobado por Mercado Pago (autorización {renovacion.ReferenciaRenovacionProveedor}).";
+                    _suscripcionMPP.AplicarCobroRecurrente(renovacion);
+                    aplicados++;
+                }
             }
         }
         return aplicados;
+    }
+
+    public async Task<InicioActualizacionSuscripcion> SolicitarRenovacionAutomaticaStripe(Usuario solicitante)
+    {
+        ValidarDueño(solicitante);
+        Suscripcion actual = _suscripcionMPP.ConsultarActual(solicitante) ?? throw new KeyNotFoundException("La agencia no tiene una suscripción registrada.");
+        if (!actual.Activo || !actual.Estado.Equals("Activa", StringComparison.OrdinalIgnoreCase) || actual.FechaVencimiento <= DateTime.Now) throw new InvalidOperationException("La suscripción debe estar activa para autorizar la renovación automática.");
+        if (!string.IsNullOrWhiteSpace(actual.ReferenciaRenovacionProveedor)) throw new InvalidOperationException("La suscripción ya tiene una autorización recurrente configurada.");
+        PlanComercial plan = _planMPP.ConsultarPlan(new PlanComercial(actual.IdPlanComercial));
+        string urlPago = await _stripeService.CrearRenovacionAutomatica(actual, plan);
+        return new InicioActualizacionSuscripcion(urlPago, $"ren-{actual.ID}", plan.PrecioVigente, plan.Moneda, actual.FechaVencimiento);
+    }
+
+    public async Task<ResultadoGestionSuscripcion> VerificarRenovacionAutomaticaStripe(string sessionId)
+    {
+        (string id, string estado, string referencia, decimal importe, string moneda, string referenciaRenovacion) = await _stripeService.ConsultarPago(sessionId);
+        if (!referencia.StartsWith("ren-", StringComparison.Ordinal) || !int.TryParse(referencia.AsSpan(4), out int idSuscripcion)) throw new InvalidOperationException("La sesión de Stripe no corresponde a una renovación automática.");
+        if (!string.Equals(estado, "approved", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(referenciaRenovacion)) throw new InvalidOperationException("Stripe todavía no confirmó la autorización de la renovación automática.");
+
+        Suscripcion suscripcion = new Suscripcion();
+        suscripcion.ID = idSuscripcion;
+        suscripcion.ReferenciaRenovacionProveedor = referenciaRenovacion;
+        suscripcion.EstadoRenovacionProveedor = "active";
+        suscripcion.ProveedorRenovacion = "Stripe";
+        _suscripcionMPP.RegistrarRenovacionProveedor(suscripcion);
+        return new ResultadoGestionSuscripcion("Renovación automática autorizada correctamente. Stripe realizará los cobros según el calendario del plan.", "Activa");
     }
 
     private void ValidarDueño(Usuario solicitante)

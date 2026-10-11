@@ -39,15 +39,18 @@ BEGIN
     IF @Importe IS NULL
         THROW 50002, 'No existe un plan comercial activo con el identificador indicado.', 1;
 
-    -- Checkout Pro TEST: mantener el importe temporal dentro del límite de las
-    -- cuentas de prueba. El plan comercial real se aplicará al pasar a producción.
-    SET @Importe = CASE @NombrePlan
-        WHEN N'Entry' THEN 1000.00
-        WHEN N'Business' THEN 1500.00
-        WHEN N'Corporate' THEN 2000.00
-        ELSE 1000.00
+    -- Mercado Pago de prueba trabaja con los importes ARS configurados. Stripe
+    -- usa la cotizacion real del plan, que en TeamBalance es USD.
+    IF @ProveedorPagoSeleccionado = N'MercadoPago'
+    BEGIN
+        SET @Importe = CASE @NombrePlan
+            WHEN N'Entry' THEN 1000.00
+            WHEN N'Business' THEN 1500.00
+            WHEN N'Corporate' THEN 2000.00
+            ELSE 1000.00
+        END;
+        SET @Moneda = N'ARS';
     END;
-    SET @Moneda = N'ARS';
 
     INSERT INTO dbo.ContratacionServicio
     (
@@ -130,6 +133,9 @@ BEGIN
     SELECT TOP (1)
         contratacion.ReferenciaContratacion,
         contratacion.EstadoContratacion,
+        contratacion.ProveedorPagoSeleccionado,
+        contratacion.IdAgencia,
+        contratacion.IdUsuario,
         operacion.Importe,
         operacion.Moneda
     FROM dbo.ContratacionServicio AS contratacion

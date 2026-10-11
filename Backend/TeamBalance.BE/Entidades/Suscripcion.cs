@@ -53,6 +53,8 @@ public partial class Suscripcion
 
     public string? EstadoRenovacionProveedor { get; set; }
 
+    public string? ProveedorRenovacion { get; set; }
+
     public DateTime? FechaSincronizacionRenovacion { get; set; }
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]

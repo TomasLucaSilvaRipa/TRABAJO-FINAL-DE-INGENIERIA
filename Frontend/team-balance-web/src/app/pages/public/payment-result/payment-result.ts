@@ -26,14 +26,29 @@ export class PaymentResultComponent {
   constructor() {
     this.route.queryParamMap.subscribe((params) => {
       const referencia = params.get('external_reference');
-      // Mercado Pago puede devolver `payment_id` o `collection_id` según la
-      // modalidad/version del Checkout Pro. Ambos identifican el mismo pago
-      // para la verificación del lado del servidor.
-      const paymentId = params.get('payment_id') ?? params.get('collection_id');
+      // Mercado Pago devuelve payment_id o collection_id; Stripe devuelve
+      // session_id. El backend identifica el proveedor de la operación.
+      const paymentId = params.get('payment_id') ?? params.get('collection_id') ?? params.get('session_id');
 
       if (!referencia) {
         this.loading.set(false);
         this.errorMessage.set('No recibimos la referencia de tu contratación. Volvé a iniciar el proceso desde los planes.');
+        return;
+      }
+
+      if (referencia.startsWith('ren-')) {
+        if (!paymentId) {
+          this.loading.set(false);
+          this.errorMessage.set('La autorización de renovación quedó pendiente de confirmación. Volvé a la suscripción para intentarlo nuevamente.');
+          return;
+        }
+        this.suscripcionService.verificarRenovacionStripe(paymentId).subscribe({
+          next: resultado => { this.resultadoSuscripcion.set(resultado); this.loading.set(false); },
+          error: error => {
+            this.loading.set(false);
+            this.errorMessage.set(error?.error?.message ?? error?.error ?? 'No pudimos verificar la autorización de renovación en este momento.');
+          },
+        });
         return;
       }
 

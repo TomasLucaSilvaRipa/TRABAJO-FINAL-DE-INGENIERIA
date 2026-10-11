@@ -60,7 +60,7 @@ public sealed class MPPContratacion
 
         DataRow fila = resultado.Rows[0];
 
-        EstadoContratacionPersistido estado = new EstadoContratacionPersistido(Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty, Convert.ToString(fila["EstadoContratacion"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty);
+        EstadoContratacionPersistido estado = new EstadoContratacionPersistido(Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty, Convert.ToString(fila["EstadoContratacion"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty, Convert.ToString(fila["ProveedorPagoSeleccionado"]) ?? string.Empty, fila["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAgencia"]), fila["IdUsuario"] == DBNull.Value ? null : Convert.ToInt32(fila["IdUsuario"]));
         return estado;
     }
 
@@ -118,23 +118,29 @@ public sealed class MPPContratacion
 
         DataRow fila = resultado.Rows[0];
 
-        EstadoContratacionPersistido estado = new EstadoContratacionPersistido(Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty, Convert.ToString(fila["EstadoContratacion"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty);
+        EstadoContratacionPersistido estado = new EstadoContratacionPersistido(Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty, Convert.ToString(fila["EstadoContratacion"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty, Convert.ToString(fila["ProveedorPagoSeleccionado"]) ?? string.Empty, fila["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAgencia"]), fila["IdUsuario"] == DBNull.Value ? null : Convert.ToInt32(fila["IdUsuario"]));
         return estado;
     }
 }
 
 public sealed class EstadoContratacionPersistido
 {
-    public EstadoContratacionPersistido(string referenciaContratacion, string estadoContratacion, decimal importe, string moneda)
+    public EstadoContratacionPersistido(string referenciaContratacion, string estadoContratacion, decimal importe, string moneda, string proveedorPagoSeleccionado, int? idAgencia, int? idUsuario)
     {
         ReferenciaContratacion = referenciaContratacion;
         EstadoContratacion = estadoContratacion;
         Importe = importe;
         Moneda = moneda;
+        ProveedorPagoSeleccionado = proveedorPagoSeleccionado;
+        IdAgencia = idAgencia;
+        IdUsuario = idUsuario;
     }
 
     public string ReferenciaContratacion { get; set; }
     public string EstadoContratacion { get; set; }
     public decimal Importe { get; set; }
     public string Moneda { get; set; }
+    public string ProveedorPagoSeleccionado { get; set; }
+    public int? IdAgencia { get; set; }
+    public int? IdUsuario { get; set; }
 }

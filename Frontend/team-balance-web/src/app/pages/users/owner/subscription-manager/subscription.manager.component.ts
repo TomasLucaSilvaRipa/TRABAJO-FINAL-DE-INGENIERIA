@@ -11,6 +11,7 @@ import { LocalizationService } from '../../../../services/localization.service';
   selector: 'app-subscription',
   imports: [CommonModule, RouterModule, ReactiveFormsModule],
   templateUrl: './subscription-manager.component.html',
+  styleUrl: './subscription-manager.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Subscription {
@@ -33,7 +34,7 @@ export class Subscription {
   readonly mostrandoAutorizacion = signal(false);
   readonly cargandoFormularioMp = signal(false);
   readonly configuracionRenovacion = signal<ConfiguracionRenovacionAutomatica | null>(null);
-  readonly cambioForm = this.formBuilder.nonNullable.group({ idPlanComercial: [0, [Validators.min(1)] ] });
+  readonly cambioForm = this.formBuilder.nonNullable.group({ idPlanComercial: [0, [Validators.min(1)] ], proveedor: ['MercadoPago', [Validators.required]] });
   readonly bajaForm = this.formBuilder.nonNullable.group({ motivo: ['', [Validators.required, Validators.maxLength(1000)]] });
   readonly cancelacionServicioForm = this.formBuilder.nonNullable.group({ motivo: ['', [Validators.required, Validators.maxLength(1000)]] });
   private cardForm: any;
@@ -48,13 +49,14 @@ export class Subscription {
   }
 
   abrirActualizacion(): void { this.mostrandoActualizacion.set(true); this.mensaje.set(''); }
-  cerrarActualizacion(): void { this.mostrandoActualizacion.set(false); this.cambioForm.reset({ idPlanComercial: 0 }); }
+  cerrarActualizacion(): void { this.mostrandoActualizacion.set(false); this.cambioForm.reset({ idPlanComercial: 0, proveedor: 'MercadoPago' }); }
   alternarHistorial(): void { this.mostrandoHistorial.update(valor => !valor); }
 
   actualizar(): void {
     this.cambioForm.markAllAsTouched(); if (this.cambioForm.invalid) return;
     this.procesando.set(true); this.error.set(''); this.mensaje.set('');
-    this.suscripcionService.solicitarActualizacion(this.cambioForm.getRawValue().idPlanComercial).pipe(finalize(() => this.procesando.set(false))).subscribe({ next: respuesta => window.location.assign(respuesta.urlPago), error: error => this.error.set(error?.error?.message ?? error?.error ?? 'No se pudo solicitar la actualización al proveedor.') });
+    const cambio = this.cambioForm.getRawValue();
+    this.suscripcionService.solicitarActualizacion(cambio.idPlanComercial, cambio.proveedor).pipe(finalize(() => this.procesando.set(false))).subscribe({ next: respuesta => window.location.assign(respuesta.urlPago), error: error => this.error.set(error?.error?.message ?? error?.error ?? 'No se pudo solicitar la actualización al proveedor.') });
   }
 
   cancelarRenovacion(): void {
@@ -68,17 +70,17 @@ export class Subscription {
     if (this.cancelacionServicioForm.invalid || !this.suscripcion()) return;
     this.procesando.set(true); this.error.set(''); this.mensaje.set('');
     const suscripcionActual = this.suscripcion()!;
-    const documento: DocumentoComercial = { id: 0, idAgencia: suscripcionActual.idAgencia, idSuscripcion: suscripcionActual.id, tipo: '', numero: '', concepto: '', importe: 0, saldoPendiente: 0, moneda: suscripcionActual.moneda || 'ARS', estado: '', fechaEmision: '', motivo: this.cancelacionServicioForm.getRawValue().motivo };
-    this.suscripcionService.cancelarServicio(documento).pipe(finalize(() => this.procesando.set(false))).subscribe({ next: notaCredito => { this.mensaje.set(`Servicio cancelado. Se emitió ${notaCredito.numero} por ${this.localization.formatearMoneda(notaCredito.importe, notaCredito.moneda)} como crédito interno de la agencia.`); this.cancelandoServicio.set(false); this.cancelacionServicioForm.reset({ motivo: '' }); this.recargar(); }, error: error => this.error.set(error?.error?.message ?? error?.error ?? 'No se pudo cancelar el servicio.') });
+    const documento: DocumentoComercial = { id: 0, idAgencia: suscripcionActual.idAgencia, idSuscripcion: suscripcionActual.id, tipo: '', numero: '', concepto: '', importe: 0, saldoPendiente: 0, moneda: suscripcionActual.moneda || 'ARS', estado: '', fechaEmision: new Date().toISOString(), motivo: this.cancelacionServicioForm.getRawValue().motivo };
+    this.suscripcionService.cancelarServicio(documento).pipe(finalize(() => this.procesando.set(false))).subscribe({ next: notaCredito => { this.mensaje.set(`Servicio cancelado. Se emitió ${notaCredito.numero} por ${this.localization.formatearMoneda(notaCredito.importe, notaCredito.moneda)} como crédito interno de la agencia.`); this.cancelandoServicio.set(false); this.cancelacionServicioForm.reset({ motivo: '' }); this.recargar(); }, error: error => this.error.set(this.obtenerMensajeError(error, 'No se pudo cancelar el servicio.')) });
   }
 
   abrirReactivacionConCredito(): void {
-    this.cambioForm.reset({ idPlanComercial: 0 });
+    this.cambioForm.reset({ idPlanComercial: 0, proveedor: 'MercadoPago' });
     this.regularizandoConCredito.set(true);
   }
 
   cancelarReactivacionConCredito(): void {
-    this.cambioForm.reset({ idPlanComercial: 0 });
+    this.cambioForm.reset({ idPlanComercial: 0, proveedor: 'MercadoPago' });
     this.regularizandoConCredito.set(false);
   }
 
@@ -87,8 +89,8 @@ export class Subscription {
     if (this.cambioForm.invalid || !this.suscripcion()) return;
     this.procesando.set(true); this.error.set(''); this.mensaje.set('');
     const suscripcionActual = this.suscripcion()!;
-    const documento: DocumentoComercial = { id: 0, idAgencia: suscripcionActual.idAgencia, idSuscripcion: suscripcionActual.id, idPlanComercial: this.cambioForm.getRawValue().idPlanComercial, tipo: '', numero: '', concepto: '', importe: 0, saldoPendiente: 0, moneda: suscripcionActual.moneda || 'ARS', estado: '', fechaEmision: '' };
-    this.suscripcionService.reactivarConNotaCredito(documento).pipe(finalize(() => this.procesando.set(false))).subscribe({ next: factura => { this.mensaje.set(`Servicio reactivado. La factura ${factura.numero} fue cubierta con el saldo a favor disponible.`); this.cancelarReactivacionConCredito(); this.recargar(); }, error: error => this.error.set(error?.error?.message ?? error?.error ?? 'No se pudo aplicar el saldo a favor.') });
+    const documento: DocumentoComercial = { id: 0, idAgencia: suscripcionActual.idAgencia, idSuscripcion: suscripcionActual.id, idPlanComercial: this.cambioForm.getRawValue().idPlanComercial, tipo: '', numero: '', concepto: '', importe: 0, saldoPendiente: 0, moneda: suscripcionActual.moneda || 'ARS', estado: '', fechaEmision: new Date().toISOString() };
+    this.suscripcionService.reactivarConNotaCredito(documento).pipe(finalize(() => this.procesando.set(false))).subscribe({ next: factura => { this.mensaje.set(`Servicio reactivado. La factura ${factura.numero} fue cubierta con el saldo a favor disponible.`); this.cancelarReactivacionConCredito(); this.recargar(); }, error: error => this.error.set(this.obtenerMensajeError(error, 'No se pudo aplicar el saldo a favor.')) });
   }
 
   totalSaldoAFavor(): number { return this.documentos().filter((documento: DocumentoComercial) => documento.tipo === 'NotaCredito' && documento.estado === 'Disponible').reduce((total: number, documento: DocumentoComercial) => total + documento.saldoPendiente, 0); }
@@ -108,6 +110,11 @@ export class Subscription {
       },
       error: error => this.error.set(error?.error?.message ?? error?.error ?? 'No se pudo preparar el formulario seguro de Mercado Pago.')
     });
+  }
+
+  solicitarRenovacionStripe(): void {
+    this.procesando.set(true); this.error.set(''); this.mensaje.set('');
+    this.suscripcionService.solicitarRenovacionStripe().pipe(finalize(() => this.procesando.set(false))).subscribe({ next: respuesta => window.location.assign(respuesta.urlPago), error: error => this.error.set(error?.error?.message ?? error?.error ?? 'No se pudo preparar la renovación automática con Stripe.') });
   }
 
   cerrarAutorizacionRenovacion(): void {
@@ -167,6 +174,24 @@ export class Subscription {
       script.src = 'https://sdk.mercadopago.com/js/v2'; script.async = true; script.dataset['teamBalanceMpSdk'] = 'true';
       script.onload = () => resolve(); script.onerror = () => reject(); document.head.appendChild(script);
     });
+  }
+
+  private obtenerMensajeError(error: { error?: unknown }, mensajePredeterminado: string): string {
+    if (typeof error.error === 'string' && error.error.trim()) { return error.error; }
+    if (!error.error || typeof error.error !== 'object') { return mensajePredeterminado; }
+
+    const respuesta = error.error as { message?: unknown; detail?: unknown; title?: unknown; errors?: Record<string, unknown> };
+    if (typeof respuesta.message === 'string' && respuesta.message.trim()) { return respuesta.message; }
+    if (typeof respuesta.detail === 'string' && respuesta.detail.trim()) { return respuesta.detail; }
+
+    if (respuesta.errors)
+    {
+      const mensajeValidacion = Object.values(respuesta.errors).flat().find((mensaje: unknown) => typeof mensaje === 'string' && mensaje.trim());
+      if (typeof mensajeValidacion === 'string') { return mensajeValidacion; }
+    }
+
+    if (typeof respuesta.title === 'string' && respuesta.title.trim()) { return respuesta.title; }
+    return mensajePredeterminado;
   }
 }
 

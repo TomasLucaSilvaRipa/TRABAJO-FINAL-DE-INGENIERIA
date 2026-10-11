@@ -1,0 +1,4 @@
+# Salidas temporales de compilaciones locales de la API.
+/api-build-*/
+/stripe-api-build*/
+/registration-fix-build/

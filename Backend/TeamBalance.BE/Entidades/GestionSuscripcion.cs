@@ -107,6 +107,7 @@ public sealed class RenovacionProveedorPendiente
     public int IdAgencia { get; set; }
     public int IdPlanComercial { get; set; }
     public string ReferenciaRenovacionProveedor { get; set; } = string.Empty;
+    public string Proveedor { get; set; } = string.Empty;
     public string ReferenciaPago { get; set; } = string.Empty;
     public decimal Importe { get; set; }
     public string Moneda { get; set; } = string.Empty;
