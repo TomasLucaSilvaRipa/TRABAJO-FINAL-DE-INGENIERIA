@@ -52,9 +52,7 @@ export class SigninFormComponent {
       this.authService.logIn( { email: form.email, passwordHash: form.password, recaptchaToken, }, form.mantenerSesion,)
       .pipe(finalize(() => this.submitting.set(false))).subscribe({
           next: (respuesta) => {
-            localStorage.setItem('token', respuesta.accessToken);
-            localStorage.setItem('tokenExpiresAt', respuesta.expiresAt);
-            this.authService.guardarUsuario(respuesta.usuario);
+            this.authService.guardarSesion(respuesta, form.mantenerSesion);
             window.location.assign('/dashboard');
           },
           error: (error) => { this.requestError.set( typeof error.error === 'string' ? error.error : 'No fue posible iniciar sesión. Intentá nuevamente.',);},

@@ -20,8 +20,9 @@
 
             <form class="grid gap-4 md:grid-cols-2" [formGroup]="form" (ngSubmit)="guardar()">
                 <label class="tb-field-label">
-                    Título
+                    <span>Título <span class="text-amber-400" aria-label="Obligatorio">*</span></span>
                     <input formControlName="titulo" />
+                    @if(form.controls.titulo.touched && form.controls.titulo.invalid){<span class="mt-1 block text-xs text-red-500">El título es obligatorio.</span>}
                 </label>
 
                 @if(!form.controls.id.value){
@@ -37,17 +38,18 @@
                 }
 
                 <label class="tb-field-label">
-                    Proyecto
+                    <span>Proyecto <span class="text-amber-400" aria-label="Obligatorio">*</span></span>
                     <select formControlName="idProyecto">
                         <option [ngValue]="0">Seleccioná un proyecto</option>
                         @for(p of opciones().proyectos;track p.id){
                             <option [ngValue]="p.id">{{p.nombre}}</option>
                         }
                     </select>
+                    @if(form.controls.idProyecto.touched && form.controls.idProyecto.invalid){<span class="mt-1 block text-xs text-red-500">Seleccioná un proyecto.</span>}
                 </label>
 
                 <label class="tb-field-label">
-                    Skill requerida
+                    <span>Skill requerida <span class="text-amber-400" aria-label="Obligatorio">*</span></span>
                     <div class="flex gap-2">
                         <select formControlName="idSkillRequerido">
                             <option [ngValue]="0">Seleccioná una skill</option>
@@ -59,24 +61,26 @@
                         </select>
                         <button class="tb-button tb-button--secondary shrink-0" type="button" (click)="abrirSkills()">+ Skill</button>
                     </div>
+                    @if(form.controls.idSkillRequerido.touched && form.controls.idSkillRequerido.invalid){<span class="mt-1 block text-xs text-red-500">Seleccioná una skill.</span>}
                 </label>
 
                 <label class="tb-field-label">
-                    Estado
+                    <span>Estado <span class="text-amber-400" aria-label="Obligatorio">*</span></span>
                     <select formControlName="idEstadoTarea">
                         <option [ngValue]="0">Seleccioná un estado</option>
                         @for(e of opciones().estados;track e.id){
                             <option [ngValue]="e.id">{{e.nombre}}</option>
                         }
                     </select>
+                    @if(form.controls.idEstadoTarea.touched && form.controls.idEstadoTarea.invalid){<span class="mt-1 block text-xs text-red-500">Seleccioná un estado.</span>}
                 </label>
 
                 <label class="tb-field-label">
                     Asignado
                     <select formControlName="idEmpleadoAsignado">
                         <option [ngValue]="null">Sin asignar</option>
-                        @for(e of opciones().empleados;track e.id){
-                            <option [ngValue]="e.id">{{e.nombre}} {{e.apellido}}</option>
+                        @for(e of empleadosParaAsignar();track e.id){
+                            <option [ngValue]="e.id">{{textoEmpleadoParaAsignar(e.id, e.nombre, e.apellido)}}</option>
                         }
                     </select>
                 </label>
@@ -111,17 +115,17 @@
                 </label>
 
                 <label class="tb-field-label">
-                    Inicio
+                    <span>Inicio <span class="text-cyan-300" aria-label="Necesario para Best Fit">*</span></span>
                     <input type="date" formControlName="fechaInicio" />
                 </label>
 
                 <label class="tb-field-label">
-                    Deadline
+                    <span>Deadline <span class="text-cyan-300" aria-label="Necesario para Best Fit">*</span></span>
                     <input type="date" formControlName="deadline" />
                 </label>
 
                 <label class="tb-field-label">
-                    Horas estimadas
+                    <span>Horas estimadas <span class="text-cyan-300" aria-label="Necesario para Best Fit">*</span></span>
                     <input type="number" formControlName="horasEstimadas" />
                 </label>
 
@@ -168,10 +172,10 @@
 
                 <section class="rounded-xl border border-cyan-700/40 bg-cyan-950/20 p-4 md:col-span-2">
                     <div class="flex flex-wrap items-center justify-between gap-3">
-                        <div><p class="text-sm font-semibold">Sugerir responsable con Best Fit</p><p class="mt-1 text-xs text-slate-400">Evalúa skill requerida, disponibilidad y carga operativa. Elegí una sugerencia y luego guardá la tarea.</p></div>
+                        <div><p class="text-sm font-semibold">Sugerir responsable con Best Fit</p><p class="mt-1 text-xs text-slate-400">Conservá alternativas y luego elegí una desde el selector Asignado. Guardar la tarea realiza la asignación.</p><p class="mt-2 text-xs text-slate-400"><span class="text-amber-400">*</span> obligatorio al guardar. <span class="text-cyan-300">*</span> necesario para sugerir con Best Fit: inicio, deadline y horas estimadas.</p></div>
                         <button class="tb-button tb-button--secondary" type="button" (click)="sugerirRecurso()" [disabled]="buscandoRecurso()">{{buscandoRecurso() ? 'Analizando…' : 'Sugerir recurso'}}</button>
                     </div>
-                    @if(recomendaciones().length){<div class="mt-4 space-y-2">@for(recomendacion of recomendaciones();track recomendacion.id){<article class="flex items-center justify-between gap-3 rounded-lg border border-slate-700 p-3"><div><strong>{{recomendacion.nombreEmpleado}}</strong><p class="text-xs text-slate-400">{{recomendacion.seniorityEmpleado}} · {{recomendacion.horasDisponibles}} h disponibles · {{recomendacion.puntajeCompatibilidad}}% compatible</p></div><button class="tb-link-button" type="button" (click)="seleccionarRecurso(recomendacion)">Elegir</button></article>}</div>}
+                    @if(recomendaciones().length){<div class="mt-4 space-y-2">@for(recomendacion of recomendaciones();track recomendacion.idEmpleadoSugerido){<article class="flex items-center justify-between gap-3 rounded-lg border border-slate-700 p-3"><div><strong>{{recomendacion.nombreEmpleado}}</strong><p class="text-xs text-slate-400">{{recomendacion.seniorityEmpleado}} · {{recomendacion.horasDisponibles}} h disponibles · {{recomendacion.puntajeCompatibilidad}}% compatible</p></div><button class="tb-link-button" type="button" (click)="conservarRecurso(recomendacion)" [disabled]="esRecomendacionConservada(recomendacion.idEmpleadoSugerido)">{{esRecomendacionConservada(recomendacion.idEmpleadoSugerido) ? 'Conservada' : 'Conservar'}}</button></article>}</div>}
                 </section>
 
                 <div class="flex items-center gap-3 md:col-span-2">

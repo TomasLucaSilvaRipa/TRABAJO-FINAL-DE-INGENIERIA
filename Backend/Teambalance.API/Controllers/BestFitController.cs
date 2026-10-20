@@ -24,10 +24,19 @@ public class BestFitController : ControllerBase
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
-    [HttpPatch("asignacion")]
-    public IActionResult ConfirmarAsignacion([FromBody] RecomendacionBestFit recomendacion)
+    [HttpPatch("seleccion")]
+    public IActionResult GuardarRecomendacion([FromBody] RecomendacionBestFit recomendacion)
     {
-        try { bool resultado = _bestFitBLL.ConfirmarAsignacion(recomendacion, ValidarSesion()); return Ok(resultado); }
+        try { bool resultado = _bestFitBLL.GuardarRecomendacion(recomendacion, ValidarSesion()); return Ok(resultado); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
+
+    [HttpGet("tareas/{idTarea}/recomendaciones")]
+    public IActionResult ConsultarRecomendaciones(int idTarea)
+    {
+        try { return Ok(_bestFitBLL.ConsultarRecomendaciones(idTarea, ValidarSesion())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }

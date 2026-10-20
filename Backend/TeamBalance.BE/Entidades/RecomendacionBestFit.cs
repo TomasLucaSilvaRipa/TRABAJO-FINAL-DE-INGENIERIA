@@ -61,4 +61,28 @@ public partial class RecomendacionBestFit
     public string SeniorityEmpleado { get; set; } = string.Empty;
 
     public decimal HorasDisponibles { get; set; }
+
+    public decimal HorasComprometidasSemanales { get; set; }
+
+    public decimal CargaActualPorcentaje { get; set; }
+
+    public decimal MargenHorasSemanales { get; set; }
+
+    public decimal PuntajeSkill { get; set; }
+
+    public decimal PuntajeSeniority { get; set; }
+
+    public decimal PuntajeCapacidad { get; set; }
+
+    public decimal PuntajeCargaActual { get; set; }
+
+    public decimal PuntajeHistorial { get; set; }
+
+    public int CantidadTareasHistoricasComparables { get; set; }
+
+    public string DetalleCompatibilidad { get; set; } = string.Empty;
+
+    public string Fortalezas { get; set; } = string.Empty;
+
+    public string Advertencias { get; set; } = string.Empty;
 }

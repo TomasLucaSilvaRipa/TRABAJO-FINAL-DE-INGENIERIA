@@ -29,6 +29,7 @@ public class BLLTarea
             return _tareaMPP.ConsultarPorEmpleado(usuario);
         }
         catch (UnauthorizedAccessException) { throw; }
+        catch (ArgumentException) { throw; }
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
     public List<Tarea> Consultar(Usuario usuario, FiltroTarea filtro)
@@ -96,6 +97,7 @@ public class BLLTarea
             }
             else { throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."); }
         }
+        catch (ArgumentException) { throw; }
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
     public bool CambiarEstado(Tarea tarea, Usuario usuario)

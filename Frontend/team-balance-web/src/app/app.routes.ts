@@ -34,6 +34,7 @@ import { ForgotPasswordComponent } from './pages/auth-pages/forgot-password/forg
 import { ResetPasswordComponent } from './pages/auth-pages/reset-password/reset-password.component';
 import { ChangePasswordComponent } from './pages/security/change-password/change-password.component';
 import { authGuard } from './guards/auth.guard';
+import { guestGuard } from './guards/guest.guard';
 import { permissionGuard } from './guards/permission.guard';
 import { supportGuard } from './guards/support.guard';
 import { PlansManager } from './pages/users/support/plans-manager/plans-manager.component';
@@ -68,6 +69,7 @@ import { BackupManagerComponent } from './pages/users/support/backup-manager/bac
 import { FaqManagerComponent } from './pages/users/support/faq-manager/faq-manager.component';
 import { PublicSurveysComponent } from './pages/public/surveys/surveys.component';
 import { SurveyManagerComponent } from './pages/users/support/survey-manager/survey-manager.component';
+import { SlackLinkingComponent } from './pages/users/support/slack-linking/slack-linking.component';
 
 export const routes: Routes = [
   {
@@ -148,6 +150,7 @@ export const routes: Routes = [
       {
         path: 'signin',
         component: SignInComponent,
+        canActivate: [guestGuard],
         title: 'Iniciar sesión | TeamBalance',
       },
       {
@@ -250,6 +253,7 @@ export const routes: Routes = [
       { path: 'gestion-faqs', component: FaqManagerComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarFaqs' }, title: 'Gestión de FAQs | TeamBalance' },
       { path: 'gestion-encuestas', component: SurveyManagerComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarEncuestas' }, title: 'Gestión de encuestas | TeamBalance' },
       { path: 'operadores', component: OperatorsManagementComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarOperadores' }, title: 'Gestión de operadores | TeamBalance' },
+      { path: 'vinculaciones-slack', component: SlackLinkingComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarOperadores' }, title: 'Vinculaciones de Slack | TeamBalance' },
       { path: 'respaldos', component: BackupManagerComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarRespaldos' }, title: 'Respaldo y restauración | TeamBalance' },
       {
         path:'form-elements',

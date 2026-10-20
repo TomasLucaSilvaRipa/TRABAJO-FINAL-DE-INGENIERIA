@@ -6,8 +6,8 @@ import { AuthService } from '../services/auth.service';
 export const authGuard: CanActivateFn = () => {
   const router = inject(Router);
   const authService = inject(AuthService);
-  const token = localStorage.getItem('token');
-  const tokenExpiresAt = localStorage.getItem('tokenExpiresAt');
+  const token = authService.obtenerToken();
+  const tokenExpiresAt = authService.obtenerVencimientoToken();
 
   if (!token || !tokenExpiresAt || new Date(tokenExpiresAt) <= new Date())
   {

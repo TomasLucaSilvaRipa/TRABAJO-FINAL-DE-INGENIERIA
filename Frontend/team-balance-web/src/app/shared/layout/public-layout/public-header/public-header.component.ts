@@ -1,7 +1,6 @@
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { LanguageSelector } from '../../../components/language-selector/language-selector.component';
-import { TranslatePipe } from '../../../../pipes/translate.pipe';
 import { LocalizationService } from '../../../../services/localization.service';
 
 @Component({
@@ -10,7 +9,6 @@ import { LocalizationService } from '../../../../services/localization.service';
     RouterLink,
     RouterLinkActive,
     LanguageSelector,
-    TranslatePipe,
   ],
   templateUrl: './public-header.component.html',
   // styleUrl: './public-header.component.css'

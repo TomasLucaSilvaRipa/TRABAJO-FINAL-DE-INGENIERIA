@@ -108,6 +108,21 @@ namespace TeamBalance.Services
             return await EnviarMail($"TeamBalance · {titulo}", descripcion, receptor);
         }
 
+        public async Task<bool> EnviarCorreoDesvioHoras(string receptor, string nombre, string nombreProyecto, decimal horasEstimadas, decimal horasReales, decimal desvioHoras, decimal porcentajeConsumo, List<string> tareasConMayorDesvio)
+        {
+            string tareas = tareasConMayorDesvio.Count == 0
+                ? "No se identificaron tareas con sobreconsumo en los filtros aplicados."
+                : string.Join("<br />", tareasConMayorDesvio.Select(tarea => "• " + System.Net.WebUtility.HtmlEncode(tarea)));
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p><p>El PM informó un desvío de horas en el proyecto <strong>{System.Net.WebUtility.HtmlEncode(nombreProyecto)}</strong>.</p><p><strong>Horas estimadas:</strong> {horasEstimadas:N2}<br /><strong>Horas reales:</strong> {horasReales:N2}<br /><strong>Diferencia:</strong> {desvioHoras:N2}<br /><strong>Consumo:</strong> {porcentajeConsumo:N2}%</p><p><strong>Tareas con mayor desvío</strong><br />{tareas}</p><p>Ingresá a TeamBalance para revisar el control operativo completo.</p>";
+            return await EnviarMail("Desvío de horas informado · TeamBalance", descripcion, receptor);
+        }
+
+        public async Task<bool> EnviarCorreoSolicitudRevisionOperativa(string receptor, string nombre, string nombreEmpleado, string nombreProyecto, string causaPrincipal, string accionSugerida)
+        {
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p><p>Tenés una nueva solicitud de revisión operativa para <strong>{System.Net.WebUtility.HtmlEncode(nombreEmpleado)}</strong> en el proyecto <strong>{System.Net.WebUtility.HtmlEncode(nombreProyecto)}</strong>.</p><p><strong>Causa identificada:</strong><br />{System.Net.WebUtility.HtmlEncode(causaPrincipal)}</p><p><strong>Acción sugerida:</strong><br />{System.Net.WebUtility.HtmlEncode(accionSugerida)}</p><p>Ingresá a TeamBalance para consultar el contexto completo de la revisión pendiente.</p>";
+            return await EnviarMail("Nueva revisión operativa pendiente · TeamBalance", descripcion, receptor);
+        }
+
         private async Task<bool> EnviarMail(string tema, string descripcion, string receptor)
         {
             if (string.IsNullOrWhiteSpace(emisor) || string.IsNullOrWhiteSpace(claveAplicacion) || string.IsNullOrWhiteSpace(receptor))

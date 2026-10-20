@@ -100,6 +100,14 @@ export class AuthService {
     return this.http.post<void>(`${this.authApiUrl}/logout`, {});
   }
 
+  guardarSesion(respuesta: LogInResponse, mantenerSesion: boolean): void {
+    this.logOut();
+    const almacenamiento = mantenerSesion ? localStorage : sessionStorage;
+    almacenamiento.setItem('token', respuesta.accessToken);
+    almacenamiento.setItem('tokenExpiresAt', respuesta.expiresAt);
+    almacenamiento.setItem('usuario', JSON.stringify(respuesta.usuario));
+  }
+
   solicitarRecuperoPassword(email: string): Observable<EmailValidationResponse> {
     return this.http.post<EmailValidationResponse>(`${this.authApiUrl}/recuperar-password`, { email });
   }
@@ -116,17 +124,28 @@ export class AuthService {
     localStorage.removeItem('token');
     localStorage.removeItem('tokenExpiresAt');
     localStorage.removeItem('usuario');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('tokenExpiresAt');
+    sessionStorage.removeItem('usuario');
   }
 
   guardarUsuario(usuario: UsuarioSesion): void {
-    localStorage.setItem('usuario', JSON.stringify(usuario));
+    this.obtenerAlmacenamientoSesion().setItem('usuario', JSON.stringify(usuario));
   }
 
   usuarioActual(): UsuarioSesion | null {
-    const usuario = localStorage.getItem('usuario');
+    const usuario = this.obtenerAlmacenamientoSesion().getItem('usuario');
     if (!usuario){ return null; }
     try { return JSON.parse(usuario) as UsuarioSesion; }
     catch { return null; }
+  }
+
+  obtenerToken(): string | null {
+    return this.obtenerAlmacenamientoSesion().getItem('token');
+  }
+
+  obtenerVencimientoToken(): string | null {
+    return this.obtenerAlmacenamientoSesion().getItem('tokenExpiresAt');
   }
 
   tienePermiso(codigoPermiso: string): boolean {
@@ -135,5 +154,9 @@ export class AuthService {
 
   esSoporte(): boolean {
     return this.usuarioActual()?.roles?.some(rol => rol.tipoUsuario === 'Soporte') ?? false;
+  }
+
+  private obtenerAlmacenamientoSesion(): Storage {
+    return sessionStorage.getItem('token') ? sessionStorage : localStorage;
   }
 }

@@ -54,4 +54,10 @@ public partial class Empleado : Usuario
     public List<Skill> Skills { get; set; }
 
     public List<Tarea> Tareas { get; set; }
+
+    public decimal HorasComprometidasSemanales { get; set; }
+
+    public int CantidadTareasHistoricasComparables { get; set; }
+
+    public decimal RatioHistoricoConsumo { get; set; } = 1;
 }

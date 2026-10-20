@@ -48,6 +48,7 @@ export class AppSidebarComponent {
     { key: 'menu.faqManagement', path: '/dashboard/gestion-faqs', permission: 'GestionarFaqs', soloSoporte: true },
     { key: 'menu.surveys', path: '/dashboard/gestion-encuestas', permission: 'GestionarEncuestas', soloSoporte: true },
     { key: 'menu.operators', path: '/dashboard/operadores', permission: 'GestionarOperadores', soloSoporte: true },
+    { key: 'menu.slackLinks', path: '/dashboard/vinculaciones-slack', permission: 'GestionarOperadores', soloSoporte: true },
     { key: 'menu.backups', path: '/dashboard/respaldos', permission: 'GestionarRespaldos', soloSoporte: true },
     { key: 'menu.teamCalendar', path: '/dashboard/calendario-equipo', permission: 'VerCalendarioEquipo' },
     { key: 'menu.simulation', path: '/dashboard/simulacion-impacto', permission: 'SimularImpacto' },

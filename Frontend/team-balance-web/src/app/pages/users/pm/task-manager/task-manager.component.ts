@@ -26,6 +26,7 @@ export class TaskManagerComponent {
     readonly mostrar = signal(false);
     readonly mostrarSkill = signal(false);
     readonly recomendaciones = signal<RecomendacionBestFit[]>([]);
+    readonly recomendacionesConservadas = signal<RecomendacionBestFit[]>([]);
     readonly buscandoRecurso = signal(false);
     readonly error = signal('');
     readonly checklist = signal<ChecklistItem[]>([]);
@@ -78,15 +79,23 @@ export class TaskManagerComponent {
         this.nuevoChecklist.set('');
         this.error.set('');
         this.recomendaciones.set([]);
+        this.recomendacionesConservadas.set([]);
         this.mostrar.set(true);
     }
 
     editar(tarea: Tarea): void
     {
-        this.form.patchValue({ ...tarea, idPlantillaTarea: 0, archivosAdjuntosJson: this.obtenerUrlsAdjuntas(tarea.archivosAdjuntosJson).join('\n') });
+        this.form.patchValue({
+            ...tarea,
+            idPlantillaTarea: 0,
+            fechaInicio: this.formatearFechaParaControl(tarea.fechaInicio),
+            deadline: this.formatearFechaParaControl(tarea.deadline),
+            archivosAdjuntosJson: this.obtenerUrlsAdjuntas(tarea.archivosAdjuntosJson).join('\n')
+        });
         this.checklist.set(this.obtenerChecklist(tarea.checklistJson));
         this.nuevoChecklist.set('');
         this.recomendaciones.set([]);
+        this.cargarRecomendacionesConservadas(tarea.id);
         this.mostrar.set(true);
     }
 
@@ -115,9 +124,13 @@ export class TaskManagerComponent {
 
     guardar(sugerirRecurso: boolean = false): void
     {
-        if (this.form.invalid)
+        if (!this.validarCamposObligatorios())
         {
-            this.error.set('Completá título, proyecto, skill y estado.');
+            return;
+        }
+
+        if (sugerirRecurso && !this.validarRequisitosBestFit())
+        {
             return;
         }
 
@@ -130,7 +143,13 @@ export class TaskManagerComponent {
             return;
         }
 
-        const tarea = { ...datos, checklistJson: JSON.stringify(this.checklist()), archivosAdjuntosJson: urls.length === 0 ? null : JSON.stringify(urls) } as unknown as Partial<Tarea>;
+        const tarea = {
+            ...datos,
+            fechaInicio: datos.fechaInicio || null,
+            deadline: datos.deadline || null,
+            checklistJson: JSON.stringify(this.checklist()),
+            archivosAdjuntosJson: urls.length === 0 ? null : JSON.stringify(urls)
+        } as unknown as Partial<Tarea>;
 
         this.service.guardar(tarea).subscribe({
             next: (resultado: Tarea) =>{
@@ -176,15 +195,49 @@ export class TaskManagerComponent {
             this.guardar(true);
             return;
         }
+        if (!this.validarRequisitosBestFit())
+        {
+            return;
+        }
         this.buscandoRecurso.set(true);
         this.error.set('');
-        this.bestFitService.sugerir({ idTarea }).subscribe({ next: (recomendaciones: RecomendacionBestFit[]) => { this.recomendaciones.set(recomendaciones); this.buscandoRecurso.set(false); }, error: () => { this.error.set('No se pudieron generar sugerencias para esta tarea.'); this.buscandoRecurso.set(false); } });
+        this.bestFitService.sugerir({ idTarea }).subscribe({ next: (recomendaciones: RecomendacionBestFit[]) => { this.recomendaciones.set(recomendaciones); this.buscandoRecurso.set(false); }, error: respuesta => { this.error.set(this.obtenerMensajeError(respuesta, 'No se pudieron generar sugerencias para esta tarea.')); this.buscandoRecurso.set(false); } });
     }
 
-    seleccionarRecurso(recomendacion: RecomendacionBestFit): void
+    conservarRecurso(recomendacion: RecomendacionBestFit): void
     {
-        this.form.controls.idEmpleadoAsignado.setValue(recomendacion.idEmpleadoSugerido);
-        this.recomendaciones.set([]);
+        this.error.set('');
+        this.bestFitService.guardarRecomendacion(recomendacion).subscribe({
+            next: () => {
+                this.recomendaciones.update((items: RecomendacionBestFit[]) => items.map((item: RecomendacionBestFit) => item.idEmpleadoSugerido === recomendacion.idEmpleadoSugerido ? { ...item, seleccionadaPorPM: true, estado: 'Recomendada' } : item));
+                this.cargarRecomendacionesConservadas(recomendacion.idTarea);
+            },
+            error: respuesta => this.error.set(this.obtenerMensajeError(respuesta, 'No se pudo conservar la recomendación.'))
+        });
+    }
+
+    empleadosParaAsignar(): TareaOpciones['empleados']
+    {
+        const recomendaciones = this.recomendacionesConservadas();
+        return [...this.opciones().empleados].sort((primero, segundo) => {
+            const recomendacionPrimero = recomendaciones.find((item: RecomendacionBestFit) => item.idEmpleadoSugerido === primero.id);
+            const recomendacionSegundo = recomendaciones.find((item: RecomendacionBestFit) => item.idEmpleadoSugerido === segundo.id);
+            if (recomendacionPrimero && recomendacionSegundo) { return Number(recomendacionSegundo.puntajeCompatibilidad) - Number(recomendacionPrimero.puntajeCompatibilidad); }
+            if (recomendacionPrimero) { return -1; }
+            if (recomendacionSegundo) { return 1; }
+            return `${primero.nombre} ${primero.apellido}`.localeCompare(`${segundo.nombre} ${segundo.apellido}`);
+        });
+    }
+
+    textoEmpleadoParaAsignar(idEmpleado: number, nombre: string, apellido: string): string
+    {
+        const recomendacion = this.recomendacionesConservadas().find((item: RecomendacionBestFit) => item.idEmpleadoSugerido === idEmpleado);
+        return recomendacion ? `${nombre} ${apellido} · Best Fit ${recomendacion.puntajeCompatibilidad}/100` : `${nombre} ${apellido}`;
+    }
+
+    esRecomendacionConservada(idEmpleado: number): boolean
+    {
+        return this.recomendacionesConservadas().some((item: RecomendacionBestFit) => item.idEmpleadoSugerido === idEmpleado);
     }
 
     agregarChecklist(): void
@@ -268,6 +321,58 @@ export class TaskManagerComponent {
         {
             return archivosAdjuntosJson.split(/\r?\n/).map(url => url.trim()).filter(Boolean);
         }
+    }
+
+    private formatearFechaParaControl(fecha?: string | null): string
+    {
+        if (!fecha) { return ''; }
+        const coincidencia = fecha.match(/^\d{4}-\d{2}-\d{2}/);
+        if (coincidencia) { return coincidencia[0]; }
+        const valorFecha = new Date(fecha);
+        if (Number.isNaN(valorFecha.getTime())) { return ''; }
+        const anio = valorFecha.getFullYear();
+        const mes = String(valorFecha.getMonth() + 1).padStart(2, '0');
+        const dia = String(valorFecha.getDate()).padStart(2, '0');
+        return `${anio}-${mes}-${dia}`;
+    }
+
+    private cargarRecomendacionesConservadas(idTarea: number): void
+    {
+        this.bestFitService.consultarRecomendaciones(idTarea).subscribe({
+            next: (recomendaciones: RecomendacionBestFit[]) => this.recomendacionesConservadas.set(recomendaciones),
+            error: () => this.recomendacionesConservadas.set([])
+        });
+    }
+
+    private validarCamposObligatorios(): boolean
+    {
+        const camposFaltantes: string[] = [];
+        if (!this.form.controls.titulo.value?.trim()) { camposFaltantes.push('Título'); }
+        if (!this.form.controls.idProyecto.value) { camposFaltantes.push('Proyecto'); }
+        if (!this.form.controls.idEstadoTarea.value) { camposFaltantes.push('Estado'); }
+        if (!this.form.controls.idSkillRequerido.value) { camposFaltantes.push('Skill requerida'); }
+        if (camposFaltantes.length)
+        {
+            this.form.markAllAsTouched();
+            this.error.set(`Completá los campos obligatorios: ${camposFaltantes.join(', ')}.`);
+            return false;
+        }
+        return true;
+    }
+
+    private validarRequisitosBestFit(): boolean
+    {
+        if (!this.validarCamposObligatorios()) { return false; }
+        const camposFaltantes: string[] = [];
+        if (!this.form.controls.deadline.value) { camposFaltantes.push('Deadline'); }
+        if (!this.form.controls.fechaInicio.value) { camposFaltantes.push('Inicio'); }
+        if (!this.form.controls.horasEstimadas.value || this.form.controls.horasEstimadas.value <= 0) { camposFaltantes.push('Horas estimadas'); }
+        if (camposFaltantes.length)
+        {
+            this.error.set(`Para sugerir recursos con Best Fit completá: ${camposFaltantes.join(', ')}.`);
+            return false;
+        }
+        return true;
     }
 
     private obtenerChecklist(checklistJson?: string | null): ChecklistItem[]
