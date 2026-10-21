@@ -4,7 +4,8 @@ import { Observable } from 'rxjs';
 import { Proyecto, UsuarioOpcion } from './projects.service';
 import { Skill } from './resources.service';
 export interface EstadoTarea { id: number; nombre: string; orden: number; }
-export interface Tarea { id: number; idProyecto: number; idEmpleadoAsignado?: number | null; idSkillRequerido?: number | null; idEstadoTarea: number; idTareaPredecesora?: number | null; titulo: string; descripcion?: string; estado?: string; prioridad?: string; complejidad?: string; fechaInicio?: string; deadline?: string; fechaFinReal?: string | null; seniorityRequerido?: string; checklistJson?: string | null; comentariosJson?: string | null; archivosAdjuntosJson?: string | null; bloqueada?: boolean; motivoBloqueo?: string | null; porcentajeAvance: number; horasEstimadas: number; activo: boolean; }
+export interface AsignacionTarea { id?: number; idTarea?: number; idEmpleado: number; idUsuarioAsignador?: number; fechaDesde?: string; fechaHasta?: string | null; motivo?: string | null; horasAsignadas: number; activa?: boolean; }
+export interface Tarea { id: number; idProyecto: number; idEmpleadoAsignado?: number | null; idSkillRequerido?: number | null; idEstadoTarea: number; idTareaPredecesora?: number | null; titulo: string; descripcion?: string; estado?: string; prioridad?: string; complejidad?: string; fechaInicio?: string; deadline?: string; fechaFinReal?: string | null; seniorityRequerido?: string; checklistJson?: string | null; comentariosJson?: string | null; archivosAdjuntosJson?: string | null; bloqueada?: boolean; motivoBloqueo?: string | null; porcentajeAvance: number; horasEstimadas: number; activo: boolean; asignaciones?: AsignacionTarea[]; }
 export interface FiltroTarea { idProyecto?: number | null; estado?: string | null; prioridad?: string | null; idEmpleadoAsignado?: number | null; idSkillRequerido?: number | null; deadlineDesde?: string | null; deadlineHasta?: string | null; }
 export interface TareaOpciones { proyectos: Proyecto[]; estados: EstadoTarea[]; empleados: UsuarioOpcion[]; skills: Skill[]; }
 @Injectable({ providedIn: 'root' })
@@ -24,6 +25,7 @@ export class TasksService {
   }
 
   opciones(): Observable<TareaOpciones> { return this.http.get<TareaOpciones>(`${this.url}/opciones`); }
+  consultarAsignaciones(idTarea: number): Observable<AsignacionTarea[]> { return this.http.get<AsignacionTarea[]>(`${this.url}/${idTarea}/asignaciones`); }
 
   guardar(tarea: Partial<Tarea>): Observable<Tarea> {
     return tarea.id ? this.http.put<Tarea>(this.url, tarea) : this.http.post<Tarea>(this.url, tarea);

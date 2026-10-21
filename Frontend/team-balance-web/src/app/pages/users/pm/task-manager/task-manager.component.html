@@ -76,7 +76,7 @@
                 </label>
 
                 <label class="tb-field-label">
-                    Asignado
+                    Responsable principal
                     <select formControlName="idEmpleadoAsignado">
                         <option [ngValue]="null">Sin asignar</option>
                         @for(e of empleadosParaAsignar();track e.id){
@@ -84,6 +84,28 @@
                         }
                     </select>
                 </label>
+
+                <section class="tb-assignment-panel rounded-xl border p-4 md:col-span-2">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <p class="text-sm font-semibold">Empleados asignados</p>
+                            <p class="tb-assignment-hint mt-1 text-xs">Seleccioná quiénes participarán. Al guardar, TeamBalance distribuye automáticamente las horas estimadas según la disponibilidad semanal configurada de cada empleado. El responsable principal también debe integrar esta lista.</p>
+                        </div>
+                        <span class="tb-status-badge">{{ asignaciones().length }} empleado{{asignaciones().length === 1 ? '' : 's'}}</span>
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <select #empleadoParaAgregar class="tb-assignment-select min-w-56 flex-1"><option value="">Seleccioná un empleado</option>@for(e of empleadosParaAsignar();track e.id){<option [value]="e.id">{{textoEmpleadoParaAsignar(e.id, e.nombre, e.apellido)}}</option>}</select>
+                        <button class="tb-assignment-add tb-button tb-button--secondary" type="button" (click)="agregarEmpleadoAsignado(+$any(empleadoParaAgregar.value)); empleadoParaAgregar.value=''">Agregar empleado</button>
+                    </div>
+                    <div class="mt-3 space-y-2">
+                        @for(asignacion of asignaciones();track asignacion.idEmpleado){
+                            <div class="grid gap-2 rounded-lg border border-slate-700 p-3 md:grid-cols-[1fr_auto] md:items-center">
+                                <div><strong class="text-sm">{{nombreEmpleado(asignacion.idEmpleado)}}</strong>@if(form.controls.idEmpleadoAsignado.value === asignacion.idEmpleado){<span class="ml-2 text-xs text-cyan-300">Responsable principal</span>}<p class="mt-1 text-xs text-slate-400">Participa en la distribución automática de la carga.</p></div>
+                                <button class="text-xs text-red-400" type="button" (click)="quitarEmpleadoAsignado(asignacion.idEmpleado)">Quitar</button>
+                            </div>
+                        } @empty { <p class="tb-assignment-empty text-sm">Todavía no hay empleados asignados. Podés guardar la tarea sin asignar o elegir un responsable principal.</p> }
+                    </div>
+                </section>
 
                 <label class="tb-field-label">
                     Tarea precedente
@@ -176,6 +198,7 @@
                         <button class="tb-button tb-button--secondary" type="button" (click)="sugerirRecurso()" [disabled]="buscandoRecurso()">{{buscandoRecurso() ? 'Analizando…' : 'Sugerir recurso'}}</button>
                     </div>
                     @if(recomendaciones().length){<div class="mt-4 space-y-2">@for(recomendacion of recomendaciones();track recomendacion.idEmpleadoSugerido){<article class="flex items-center justify-between gap-3 rounded-lg border border-slate-700 p-3"><div><strong>{{recomendacion.nombreEmpleado}}</strong><p class="text-xs text-slate-400">{{recomendacion.seniorityEmpleado}} · {{recomendacion.horasDisponibles}} h disponibles · {{recomendacion.puntajeCompatibilidad}}% compatible</p></div><button class="tb-link-button" type="button" (click)="conservarRecurso(recomendacion)" [disabled]="esRecomendacionConservada(recomendacion.idEmpleadoSugerido)">{{esRecomendacionConservada(recomendacion.idEmpleadoSugerido) ? 'Conservada' : 'Conservar'}}</button></article>}</div>}
+                    @if(mensajeSugerencias()){<p class="mt-3 text-sm text-amber-300">{{mensajeSugerencias()}}</p>}
                 </section>
 
                 <div class="flex items-center gap-3 md:col-span-2">

@@ -3,7 +3,18 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @IdEmpleado INT = (SELECT E.ID FROM dbo.Empleado E WHERE E.IdUsuario = @IdUsuario AND E.Activo = 1);
     IF @IdEmpleado IS NULL THROW 50020, 'Tu usuario no tiene un perfil de empleado activo.', 1;
-    IF NOT EXISTS (SELECT 1 FROM dbo.Tarea WHERE ID = @IdTarea AND IdEmpleadoAsignado = @IdEmpleado AND Activo = 1) THROW 50021, 'La tarea seleccionada no está asignada a tu usuario.', 1;
+    IF NOT EXISTS
+    (
+        SELECT 1 FROM dbo.Tarea T
+        WHERE T.ID = @IdTarea AND T.Activo = 1
+          AND (
+              EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.IdEmpleado = @IdEmpleado AND AT.Activa = 1
+                      AND CONVERT(DATE, AT.FechaDesde) <= CONVERT(DATE, @Fecha)
+                      AND (AT.FechaHasta IS NULL OR CONVERT(DATE, AT.FechaHasta) >= CONVERT(DATE, @Fecha)))
+              OR (NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.Activa = 1)
+                  AND T.IdEmpleadoAsignado = @IdEmpleado)
+          )
+    ) THROW 50021, 'La tarea seleccionada no está asignada a tu usuario.', 1;
     INSERT INTO dbo.RegistroHora(IdTarea, IdEmpleado, Fecha, CantidadHoras, Descripcion, Activo) VALUES(@IdTarea, @IdEmpleado, @Fecha, @CantidadHoras, @Descripcion, 1);
     SELECT ID, IdTarea, IdEmpleado, Fecha, CantidadHoras, Descripcion, Activo FROM dbo.RegistroHora WHERE ID = SCOPE_IDENTITY();
 END
@@ -30,7 +41,22 @@ BEGIN
     FROM OPENJSON(@RegistrosJson) WITH(IdTarea INT '$.idTarea', Fecha DATETIME2 '$.fecha', CantidadHoras DECIMAL(18,2) '$.cantidadHoras', Descripcion NVARCHAR(500) '$.descripcion');
 
     IF (SELECT COUNT(*) FROM @Registros) = 0 THROW 50023, 'No se recibieron horas para registrar.', 1;
-    IF EXISTS (SELECT 1 FROM @Registros R LEFT JOIN dbo.Tarea T ON T.ID = R.IdTarea AND T.IdEmpleadoAsignado = @IdEmpleado AND T.Activo = 1 WHERE T.ID IS NULL) THROW 50021, 'Una de las tareas seleccionadas no está asignada a tu usuario.', 1;
+    IF EXISTS
+    (
+        SELECT 1 FROM @Registros R
+        WHERE NOT EXISTS
+        (
+            SELECT 1 FROM dbo.Tarea T
+            WHERE T.ID = R.IdTarea AND T.Activo = 1
+              AND (
+                  EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.IdEmpleado = @IdEmpleado AND AT.Activa = 1
+                          AND CONVERT(DATE, AT.FechaDesde) <= CONVERT(DATE, R.Fecha)
+                          AND (AT.FechaHasta IS NULL OR CONVERT(DATE, AT.FechaHasta) >= CONVERT(DATE, R.Fecha)))
+                  OR (NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.Activa = 1)
+                      AND T.IdEmpleadoAsignado = @IdEmpleado)
+              )
+        )
+    ) THROW 50021, 'Una de las tareas seleccionadas no está asignada a tu usuario.', 1;
     IF EXISTS (SELECT 1 FROM @Registros R INNER JOIN dbo.Tarea T ON T.ID = R.IdTarea WHERE T.FechaInicio IS NOT NULL AND CONVERT(DATE, R.Fecha) < CONVERT(DATE, T.FechaInicio)) THROW 50025, 'La fecha de trabajo no puede ser anterior a la fecha de inicio de la tarea.', 1;
 
     ;WITH ConsumoActual AS
@@ -62,7 +88,22 @@ BEGIN
     FROM OPENJSON(@RegistrosJson) WITH(IdTarea INT '$.idTarea', Fecha DATETIME2 '$.fecha', CantidadHoras DECIMAL(18,2) '$.cantidadHoras', Descripcion NVARCHAR(500) '$.descripcion');
 
     IF (SELECT COUNT(*) FROM @Registros) = 0 THROW 50023, 'No se recibieron horas para registrar.', 1;
-    IF EXISTS (SELECT 1 FROM @Registros R LEFT JOIN dbo.Tarea T ON T.ID = R.IdTarea AND T.IdEmpleadoAsignado = @IdEmpleado AND T.Activo = 1 WHERE T.ID IS NULL) THROW 50021, 'Una de las tareas seleccionadas no está asignada a tu usuario.', 1;
+    IF EXISTS
+    (
+        SELECT 1 FROM @Registros R
+        WHERE NOT EXISTS
+        (
+            SELECT 1 FROM dbo.Tarea T
+            WHERE T.ID = R.IdTarea AND T.Activo = 1
+              AND (
+                  EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.IdEmpleado = @IdEmpleado AND AT.Activa = 1
+                          AND CONVERT(DATE, AT.FechaDesde) <= CONVERT(DATE, R.Fecha)
+                          AND (AT.FechaHasta IS NULL OR CONVERT(DATE, AT.FechaHasta) >= CONVERT(DATE, R.Fecha)))
+                  OR (NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.Activa = 1)
+                      AND T.IdEmpleadoAsignado = @IdEmpleado)
+              )
+        )
+    ) THROW 50021, 'Una de las tareas seleccionadas no está asignada a tu usuario.', 1;
     IF EXISTS (SELECT 1 FROM @Registros R INNER JOIN dbo.Tarea T ON T.ID = R.IdTarea WHERE T.FechaInicio IS NOT NULL AND CONVERT(DATE, R.Fecha) < CONVERT(DATE, T.FechaInicio)) THROW 50025, 'La fecha de trabajo no puede ser anterior a la fecha de inicio de la tarea.', 1;
 
     BEGIN TRANSACTION;
@@ -81,8 +122,14 @@ CREATE OR ALTER PROCEDURE dbo.usp_Tarea_ActualizarEstadoEmpleado @ID INT, @IdUsu
 BEGIN
     SET NOCOUNT ON;
     UPDATE T SET Estado = @Estado
-    FROM dbo.Tarea T INNER JOIN dbo.Empleado E ON E.ID = T.IdEmpleadoAsignado
-    WHERE T.ID = @ID AND E.IdUsuario = @IdUsuario AND T.Activo = 1;
+    FROM dbo.Tarea T
+    WHERE T.ID = @ID AND T.Activo = 1
+      AND (
+          EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT INNER JOIN dbo.Empleado E ON E.ID = AT.IdEmpleado
+                  WHERE AT.IdTarea = T.ID AND AT.Activa = 1 AND E.IdUsuario = @IdUsuario)
+          OR (NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.Activa = 1)
+              AND EXISTS (SELECT 1 FROM dbo.Empleado E WHERE E.ID = T.IdEmpleadoAsignado AND E.IdUsuario = @IdUsuario))
+      );
     IF @@ROWCOUNT = 0 THROW 50022, 'No se pudo actualizar el estado de la tarea asignada.', 1;
 END
 GO

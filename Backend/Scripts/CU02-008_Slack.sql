@@ -93,16 +93,17 @@ BEGIN
     ) DB
     OUTER APPLY
     (
-        SELECT SUM(CASE WHEN T.HorasEstimadas - ISNULL(Horas.HorasReales, 0) > 0 THEN T.HorasEstimadas - ISNULL(Horas.HorasReales, 0) ELSE 0 END) AS CargaActual,
+        SELECT SUM(CASE WHEN COALESCE(A.HorasAsignadas, T.HorasEstimadas) - ISNULL(Horas.HorasReales, 0) > 0 THEN COALESCE(A.HorasAsignadas, T.HorasEstimadas) - ISNULL(Horas.HorasReales, 0) ELSE 0 END) AS CargaActual,
                COUNT(*) AS TareasActivas
         FROM dbo.Tarea T
+        LEFT JOIN dbo.AsignacionTarea A ON A.IdTarea = T.ID AND A.IdEmpleado = E.ID AND A.Activa = 1
         OUTER APPLY
         (
             SELECT SUM(R.CantidadHoras) AS HorasReales
             FROM dbo.RegistroHora R
-            WHERE R.IdTarea = T.ID AND R.Activo = 1
+            WHERE R.IdTarea = T.ID AND R.IdEmpleado = E.ID AND R.Activo = 1
         ) Horas
-        WHERE T.IdEmpleadoAsignado = E.ID
+        WHERE (A.ID IS NOT NULL OR (T.IdEmpleadoAsignado = E.ID AND NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.Activa = 1)))
           AND T.Activo = 1
           AND ISNULL(T.Estado, N'Pendiente') NOT IN (N'Finalizada', N'Finalizado', N'Completada', N'Completado')
     ) Carga
@@ -116,7 +117,8 @@ BEGIN
           FROM dbo.Tarea TAlcance
           INNER JOIN dbo.Proyecto P ON P.ID = TAlcance.IdProyecto
           INNER JOIN dbo.PM PM ON PM.ID = P.IdPMResponsable
-          WHERE TAlcance.IdEmpleadoAsignado = E.ID
+          WHERE (EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = TAlcance.ID AND AT.IdEmpleado = E.ID AND AT.Activa = 1)
+                 OR (NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = TAlcance.ID AND AT.Activa = 1) AND TAlcance.IdEmpleadoAsignado = E.ID))
             AND TAlcance.Activo = 1
             AND P.Activo = 1
             AND PM.Activo = 1
@@ -148,16 +150,17 @@ BEGIN
     ) DB
     OUTER APPLY
     (
-        SELECT SUM(CASE WHEN T.HorasEstimadas - ISNULL(Horas.HorasReales, 0) > 0 THEN T.HorasEstimadas - ISNULL(Horas.HorasReales, 0) ELSE 0 END) AS CargaActual,
+        SELECT SUM(CASE WHEN COALESCE(A.HorasAsignadas, T.HorasEstimadas) - ISNULL(Horas.HorasReales, 0) > 0 THEN COALESCE(A.HorasAsignadas, T.HorasEstimadas) - ISNULL(Horas.HorasReales, 0) ELSE 0 END) AS CargaActual,
                COUNT(*) AS TareasActivas
         FROM dbo.Tarea T
+        LEFT JOIN dbo.AsignacionTarea A ON A.IdTarea = T.ID AND A.IdEmpleado = E.ID AND A.Activa = 1
         OUTER APPLY
         (
             SELECT SUM(R.CantidadHoras) AS HorasReales
             FROM dbo.RegistroHora R
-            WHERE R.IdTarea = T.ID AND R.Activo = 1
+            WHERE R.IdTarea = T.ID AND R.IdEmpleado = E.ID AND R.Activo = 1
         ) Horas
-        WHERE T.IdEmpleadoAsignado = E.ID
+        WHERE (A.ID IS NOT NULL OR (T.IdEmpleadoAsignado = E.ID AND NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.Activa = 1)))
           AND T.Activo = 1
           AND ISNULL(T.Estado, N'Pendiente') NOT IN (N'Finalizada', N'Finalizado', N'Completada', N'Completado')
     ) Carga
@@ -170,7 +173,8 @@ BEGIN
           FROM dbo.Tarea TAlcance
           INNER JOIN dbo.Proyecto P ON P.ID = TAlcance.IdProyecto
           INNER JOIN dbo.PM PM ON PM.ID = P.IdPMResponsable
-          WHERE TAlcance.IdEmpleadoAsignado = E.ID
+          WHERE (EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = TAlcance.ID AND AT.IdEmpleado = E.ID AND AT.Activa = 1)
+                 OR (NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = TAlcance.ID AND AT.Activa = 1) AND TAlcance.IdEmpleadoAsignado = E.ID))
             AND TAlcance.Activo = 1
             AND P.Activo = 1
             AND PM.Activo = 1
@@ -205,10 +209,11 @@ BEGIN
           (
               SELECT 1
               FROM dbo.Tarea T
-              INNER JOIN dbo.Empleado E ON E.ID = T.IdEmpleadoAsignado
+              INNER JOIN dbo.Empleado E ON E.IdUsuario = @IdUsuario
               WHERE T.IdProyecto = P.ID
                 AND T.Activo = 1
-                AND E.IdUsuario = @IdUsuario
+                AND (EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.IdEmpleado = E.ID AND AT.Activa = 1)
+                     OR (NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.Activa = 1) AND T.IdEmpleadoAsignado = E.ID))
           )
       )
     ORDER BY P.Nombre;

@@ -107,7 +107,11 @@ BEGIN
       AND (@IdProyecto IS NULL OR T.IdProyecto = @IdProyecto)
       AND (@Estado IS NULL OR @Estado = N'' OR T.Estado = @Estado)
       AND (@Prioridad IS NULL OR @Prioridad = N'' OR T.Prioridad = @Prioridad)
-      AND (@IdEmpleadoAsignado IS NULL OR T.IdEmpleadoAsignado = @IdEmpleadoAsignado)
+      AND (@IdEmpleadoAsignado IS NULL
+           OR EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT
+                      WHERE AT.IdTarea = T.ID AND AT.IdEmpleado = @IdEmpleadoAsignado AND AT.Activa = 1)
+           OR (NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.Activa = 1)
+               AND T.IdEmpleadoAsignado = @IdEmpleadoAsignado))
       AND (@IdSkillRequerido IS NULL OR T.IdSkillRequerido = @IdSkillRequerido)
       AND (@DeadlineDesde IS NULL OR T.Deadline >= @DeadlineDesde)
       AND (@DeadlineHasta IS NULL OR T.Deadline < DATEADD(DAY, 1, @DeadlineHasta))
@@ -149,7 +153,19 @@ CREATE OR ALTER PROCEDURE dbo.usp_Tarea_ConsultarTableroProyectoEmpleado @IdProy
 BEGIN
     SET NOCOUNT ON;
 
-    IF NOT EXISTS (SELECT 1 FROM dbo.Tarea T INNER JOIN dbo.Empleado E ON E.ID = T.IdEmpleadoAsignado WHERE T.IdProyecto = @IdProyecto AND E.IdUsuario = @IdUsuario AND T.Activo = 1)
+    IF NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.Tarea T
+        WHERE T.IdProyecto = @IdProyecto
+          AND T.Activo = 1
+          AND (
+              EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT INNER JOIN dbo.Empleado E ON E.ID = AT.IdEmpleado
+                      WHERE AT.IdTarea = T.ID AND AT.Activa = 1 AND E.IdUsuario = @IdUsuario)
+              OR (NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.Activa = 1)
+                  AND EXISTS (SELECT 1 FROM dbo.Empleado E WHERE E.ID = T.IdEmpleadoAsignado AND E.IdUsuario = @IdUsuario))
+          )
+    )
         THROW 50020, 'No tenés acceso al tablero de este proyecto.', 1;
 
     SELECT T.*
@@ -175,8 +191,13 @@ BEGIN
         MotivoBloqueo = CASE WHEN @Estado = N'Bloqueada' THEN LTRIM(RTRIM(@MotivoBloqueo)) ELSE NULL END,
         FechaFinReal = CASE WHEN @Estado IN (N'Finalizada', N'Completa') THEN COALESCE(T.FechaFinReal, GETDATE()) ELSE NULL END
     FROM dbo.Tarea T
-    INNER JOIN dbo.Empleado E ON E.ID = T.IdEmpleadoAsignado
-    WHERE T.ID = @ID AND E.IdUsuario = @IdUsuario AND T.Activo = 1;
+    WHERE T.ID = @ID AND T.Activo = 1
+      AND (
+          EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT INNER JOIN dbo.Empleado E ON E.ID = AT.IdEmpleado
+                  WHERE AT.IdTarea = T.ID AND AT.Activa = 1 AND E.IdUsuario = @IdUsuario)
+          OR (NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.Activa = 1)
+              AND EXISTS (SELECT 1 FROM dbo.Empleado E WHERE E.ID = T.IdEmpleadoAsignado AND E.IdUsuario = @IdUsuario))
+      );
 
     IF @@ROWCOUNT = 0
         THROW 50022, 'La tarea no está asignada a tu usuario.', 1;

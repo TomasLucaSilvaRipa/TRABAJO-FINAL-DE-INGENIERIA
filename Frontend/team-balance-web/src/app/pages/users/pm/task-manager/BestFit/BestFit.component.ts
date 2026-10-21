@@ -102,12 +102,17 @@ export class BestFit {
     return 'Junior';
   }
 
+  aporteSemanalEstimado(recomendacion: RecomendacionBestFit): number {
+    const aporte = recomendacion.horasDisponibles - recomendacion.horasComprometidasSemanales - recomendacion.margenHorasSemanales;
+    return Math.max(0, Math.round(aporte * 100) / 100);
+  }
+
   private esElegibleParaBestFit(tarea: Tarea): boolean {
     if (!tarea.fechaInicio || !tarea.deadline) { return false; }
     const deadline = new Date(tarea.deadline);
     const hoy = new Date();
     deadline.setHours(0, 0, 0, 0);
     hoy.setHours(0, 0, 0, 0);
-    return tarea.activo && !tarea.idEmpleadoAsignado && !!tarea.idSkillRequerido && !!tarea.complejidad && tarea.horasEstimadas > 0 && !Number.isNaN(deadline.getTime()) && deadline >= hoy;
+    return tarea.activo && !!tarea.idSkillRequerido && !!tarea.complejidad && tarea.horasEstimadas > 0 && !Number.isNaN(deadline.getTime()) && deadline >= hoy;
   }
 }

@@ -65,14 +65,14 @@ BEGIN
            ISNULL(DB.HorasSemanales, E.HorasDisponiblesSemanales) AS HorasSemanales,
            ISNULL(Carga.HorasEstimadas, 0) AS CargaActual,
            ISNULL(DB.HorasSemanales, E.HorasDisponiblesSemanales) - ISNULL(Carga.HorasEstimadas, 0) AS HorasDisponibles,
-           CONVERT(bit, CASE WHEN EXISTS (SELECT 1 FROM dbo.Tarea TP WHERE TP.IdProyecto=@IdProyecto AND TP.IdEmpleadoAsignado=E.ID AND TP.Activo=1 AND TP.Estado NOT IN (N'Finalizada', N'Finalizado')) THEN 1 ELSE 0 END) AS EsDelProyecto,
+           CONVERT(bit, CASE WHEN EXISTS (SELECT 1 FROM dbo.Tarea TP WHERE TP.IdProyecto=@IdProyecto AND TP.Activo=1 AND TP.Estado NOT IN (N'Finalizada', N'Finalizado') AND (EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea=TP.ID AND AT.IdEmpleado=E.ID AND AT.Activa=1) OR (NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea=TP.ID AND AT.Activa=1) AND TP.IdEmpleadoAsignado=E.ID))) THEN 1 ELSE 0 END) AS EsDelProyecto,
            CONVERT(bit, CASE WHEN EXISTS (SELECT 1 FROM dbo.EmpleadoSkill ESO WHERE ESO.IdEmpleado=E.ID AND ESO.IdSkill=@IdSkill AND ESO.Activo=1) THEN 1 ELSE 0 END) AS TieneSkillObjetivo,
            ISNULL(Afinidad.CantidadSkillsMismaArea, 0) AS CantidadSkillsMismaArea,
            ISNULL(Afinidad.SkillsRelacionadas, N'') AS SkillsRelacionadas
     FROM dbo.Empleado E
     INNER JOIN dbo.Usuario U ON U.ID=E.IdUsuario
     LEFT JOIN dbo.DisponibilidadBase DB ON DB.IdEmpleado=E.ID AND DB.Activo=1
-    OUTER APPLY (SELECT SUM(T.HorasEstimadas) AS HorasEstimadas FROM dbo.Tarea T WHERE T.IdEmpleadoAsignado=E.ID AND T.Activo=1 AND T.Estado NOT IN (N'Finalizada', N'Finalizado')) Carga
+    OUTER APPLY (SELECT SUM(COALESCE(AT.HorasAsignadas, T.HorasEstimadas)) AS HorasEstimadas FROM dbo.Tarea T LEFT JOIN dbo.AsignacionTarea AT ON AT.IdTarea=T.ID AND AT.IdEmpleado=E.ID AND AT.Activa=1 WHERE (AT.ID IS NOT NULL OR (T.IdEmpleadoAsignado=E.ID AND NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT2 WHERE AT2.IdTarea=T.ID AND AT2.Activa=1))) AND T.Activo=1 AND T.Estado NOT IN (N'Finalizada', N'Finalizado')) Carga
     OUTER APPLY
     (
         SELECT COUNT(*) AS CantidadSkillsMismaArea, STRING_AGG(SA.Nombre, N', ') AS SkillsRelacionadas
@@ -105,9 +105,10 @@ BEGIN
     LEFT JOIN dbo.DisponibilidadBase DB ON DB.IdEmpleado = E.ID AND DB.Activo = 1
     OUTER APPLY
     (
-        SELECT SUM(T.HorasEstimadas) AS HorasEstimadas
+        SELECT SUM(COALESCE(AT.HorasAsignadas, T.HorasEstimadas)) AS HorasEstimadas
         FROM dbo.Tarea T
-        WHERE T.IdEmpleadoAsignado = E.ID AND T.Activo = 1 AND T.Estado NOT IN (N'Finalizada', N'Finalizado')
+        LEFT JOIN dbo.AsignacionTarea AT ON AT.IdTarea=T.ID AND AT.IdEmpleado=E.ID AND AT.Activa=1
+        WHERE (AT.ID IS NOT NULL OR (T.IdEmpleadoAsignado=E.ID AND NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT2 WHERE AT2.IdTarea=T.ID AND AT2.Activa=1))) AND T.Activo = 1 AND T.Estado NOT IN (N'Finalizada', N'Finalizado')
     ) Carga
     WHERE U.IdAgencia = @IdAgencia AND U.Activo = 1 AND E.Activo = 1;
 END

@@ -6,10 +6,10 @@ namespace TeamBalance.BLL;
 
 public class MotorBestFit
 {
-    public List<RecomendacionBestFit> GenerarRanking(Tarea tarea, List<Empleado> empleados)
+    public List<RecomendacionBestFit> GenerarRanking(Tarea tarea, List<Empleado> empleados, decimal capacidadEquipoActual = 0)
     {
         decimal horasPendientes = CalcularHorasPendientes(tarea);
-        decimal horasRequeridasPorSemana = CalcularHorasRequeridasPorSemana(tarea, horasPendientes);
+        decimal horasRequeridasTotalesPorSemana = CalcularHorasRequeridasPorSemana(tarea, horasPendientes);
         string seniorityRequerido = ObtenerSeniorityRequerido(tarea);
         List<RecomendacionBestFit> recomendaciones = new List<RecomendacionBestFit>();
 
@@ -19,8 +19,8 @@ public class MotorBestFit
 
             decimal horasDisponibles = empleado.HorasDisponiblesSemanales;
             decimal horasComprometidas = Math.Max(0, empleado.HorasComprometidasSemanales);
+            decimal horasRequeridasPorSemana = CalcularAporteSemanal(horasRequeridasTotalesPorSemana, horasDisponibles, capacidadEquipoActual);
             decimal margen = horasDisponibles - horasComprometidas - horasRequeridasPorSemana;
-            if (margen < 0) { continue; }
 
             decimal puntajeSkill = CalcularPuntajeSkill(empleado);
             decimal puntajeSeniority = CalcularPuntajeSeniority(seniorityRequerido, empleado.Seniority);
@@ -55,7 +55,7 @@ public class MotorBestFit
             recomendaciones.Add(recomendacion);
         }
 
-        return recomendaciones.OrderByDescending(item => item.PuntajeCompatibilidad).ThenByDescending(item => item.MargenHorasSemanales).ThenBy(item => item.CargaActualPorcentaje).ThenBy(item => item.NombreEmpleado).ToList();
+        return recomendaciones.OrderByDescending(item => item.PuntajeCompatibilidad).ThenByDescending(item => item.MargenHorasSemanales).ThenBy(item => item.CargaActualPorcentaje).ThenBy(item => item.NombreEmpleado).Take(3).ToList();
     }
 
     private static decimal CalcularHorasPendientes(Tarea tarea)
@@ -79,6 +79,17 @@ public class MotorBestFit
         return Math.Round(horasPendientes / semanasDisponibles, 2);
     }
 
+    private static decimal CalcularAporteSemanal(decimal horasRequeridasTotales, decimal capacidadCandidato, decimal capacidadEquipoActual)
+    {
+        if (horasRequeridasTotales <= 0) return 0;
+        if (capacidadEquipoActual <= 0 || capacidadCandidato <= 0) return horasRequeridasTotales;
+
+        // Al sumar un empleado a una tarea ya asignada, la distribución se
+        // recalcula por disponibilidad. Se evalúa el aporte que le tocaría al
+        // candidato, no el total completo de una tarea que ya tiene equipo.
+        return Math.Round(horasRequeridasTotales * capacidadCandidato / (capacidadEquipoActual + capacidadCandidato), 2);
+    }
+
     private static decimal CalcularPuntajeSkill(Empleado empleado)
     {
         EmpleadoSkill? skill = empleado.EmpleadoSkills.FirstOrDefault(item => item.Activo);
@@ -100,7 +111,7 @@ public class MotorBestFit
     {
         if (horasRequeridasPorSemana <= 0) { return 25; }
         if (margen >= horasRequeridasPorSemana) { return 25; }
-        return Math.Round(15 + (margen / horasRequeridasPorSemana) * 10, 2);
+        return Math.Round(Math.Clamp(15 + (margen / horasRequeridasPorSemana) * 10, 0, 25), 2);
     }
 
     private static decimal CalcularPuntajeCarga(decimal horasDisponibles, decimal horasComprometidas)

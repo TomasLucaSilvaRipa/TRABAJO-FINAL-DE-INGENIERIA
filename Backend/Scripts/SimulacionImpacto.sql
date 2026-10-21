@@ -40,17 +40,18 @@ BEGIN
     ) DB
     OUTER APPLY
     (
-        SELECT SUM(CASE WHEN TareaActiva.HorasEstimadas - ISNULL(HorasReales.HorasReales, 0) > 0
-            THEN TareaActiva.HorasEstimadas - ISNULL(HorasReales.HorasReales, 0)
+        SELECT SUM(CASE WHEN COALESCE(Asignacion.HorasAsignadas, TareaActiva.HorasEstimadas) - ISNULL(HorasReales.HorasReales, 0) > 0
+            THEN COALESCE(Asignacion.HorasAsignadas, TareaActiva.HorasEstimadas) - ISNULL(HorasReales.HorasReales, 0)
             ELSE 0 END) AS CargaActual
         FROM dbo.Tarea TareaActiva
+        LEFT JOIN dbo.AsignacionTarea Asignacion ON Asignacion.IdTarea = TareaActiva.ID AND Asignacion.IdEmpleado = E.ID AND Asignacion.Activa = 1
         OUTER APPLY
         (
             SELECT SUM(Registro.CantidadHoras) AS HorasReales
             FROM dbo.RegistroHora Registro
             WHERE Registro.IdTarea = TareaActiva.ID AND Registro.Activo = 1
         ) HorasReales
-        WHERE TareaActiva.IdEmpleadoAsignado = E.ID
+        WHERE (Asignacion.ID IS NOT NULL OR (TareaActiva.IdEmpleadoAsignado = E.ID AND NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea Existente WHERE Existente.IdTarea = TareaActiva.ID AND Existente.Activa = 1)))
             AND TareaActiva.Activo = 1
             AND TareaActiva.ID <> @IdTarea
             AND ISNULL(TareaActiva.Estado, N'Pendiente') NOT IN (N'Finalizada', N'Finalizado')

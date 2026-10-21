@@ -50,11 +50,12 @@ public class RecursosController : ControllerBase
     }
 
     [HttpGet("empleados/{ID:int}/ficha")]
-    public IActionResult ConsultarFichaEmpleado([FromRoute] Usuario usuario)
+    public IActionResult ConsultarFichaEmpleado([FromRoute(Name = "ID")] int idUsuario)
     {
         try
         {
-            if (usuario.ID <= 0) { return BadRequest("Seleccioná un empleado válido."); }
+            if (idUsuario <= 0) { return BadRequest("Seleccioná un empleado válido."); }
+            Usuario usuario = new Usuario { ID = idUsuario };
             return Ok(_recursosBLL.ConsultarFichaEmpleado(usuario, ObtenerSolicitante()));
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
@@ -62,10 +63,11 @@ public class RecursosController : ControllerBase
     }
 
     [HttpPost("empleados/{ID:int}/ficha/exportacion")]
-    public IActionResult RegistrarExportacionFichaEmpleado([FromRoute] Usuario usuario)
+    public IActionResult RegistrarExportacionFichaEmpleado([FromRoute(Name = "ID")] int idUsuario)
     {
         try
         {
+            Usuario usuario = new Usuario { ID = idUsuario };
             _recursosBLL.RegistrarExportacionFichaEmpleado(usuario, ObtenerSolicitante());
             return NoContent();
         }

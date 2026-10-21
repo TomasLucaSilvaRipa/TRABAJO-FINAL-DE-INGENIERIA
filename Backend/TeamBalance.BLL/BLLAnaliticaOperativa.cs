@@ -8,17 +8,23 @@ public class BLLAnaliticaOperativa
 {
     private readonly MPPAnaliticaOperativa _analiticaMPP;
     private readonly MPPRiesgoRetraso _riesgoMPP;
+    private readonly MPPRecursos _recursosMPP;
+    private readonly MPPAsignacionTarea _asignacionMPP;
     private readonly BLLRol _rolBLL;
     private readonly BLLBitacora _bitacoraBLL;
     private readonly EmailService _emailService;
+    private readonly MotorCargaOperativa _motorCargaOperativa;
 
-    public BLLAnaliticaOperativa(MPPAnaliticaOperativa analiticaMPP, MPPRiesgoRetraso riesgoMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL, EmailService emailService)
+    public BLLAnaliticaOperativa(MPPAnaliticaOperativa analiticaMPP, MPPRiesgoRetraso riesgoMPP, MPPRecursos recursosMPP, MPPAsignacionTarea asignacionMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL, EmailService emailService, MotorCargaOperativa motorCargaOperativa)
     {
         _analiticaMPP = analiticaMPP;
         _riesgoMPP = riesgoMPP;
+        _recursosMPP = recursosMPP;
+        _asignacionMPP = asignacionMPP;
         _rolBLL = rolBLL;
         _bitacoraBLL = bitacoraBLL;
         _emailService = emailService;
+        _motorCargaOperativa = motorCargaOperativa;
     }
 
     public AnalisisOcupacionOperativa ConsultarOcupacion(Usuario usuario, FiltroOcupacionOperativa? filtro = null)
@@ -28,28 +34,41 @@ public class BLLAnaliticaOperativa
         ValidarFiltroOcupacion(filtroAplicado);
         List<Empleado> empleados = _analiticaMPP.ConsultarEmpleadosActivos(usuario).Where(empleado => !filtroAplicado.IdEmpleado.HasValue || empleado.ID == filtroAplicado.IdEmpleado.Value).ToList();
         List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, filtroAplicado.IdProyecto, filtroAplicado.IdCliente);
+        List<Tarea> tareas = contextos.SelectMany(contexto => contexto.Tareas).ToList();
+        List<AsignacionTarea> asignaciones = _asignacionMPP.ConsultarActivas(tareas.Select(tarea => tarea.ID), usuario);
+        List<RegistroHora> registros = contextos.SelectMany(contexto => contexto.Registros).ToList();
+        (DateTime desde, DateTime hasta) = _motorCargaOperativa.ObtenerPeriodo(filtroAplicado);
+        Dictionary<int, decimal> horasPlanificadasPorTarea = new Dictionary<int, decimal>();
+        Dictionary<(int IdTarea, int IdEmpleado), decimal> horasPlanificadasPorTareaEmpleado = new Dictionary<(int IdTarea, int IdEmpleado), decimal>();
         AnalisisOcupacionOperativa resultado = new AnalisisOcupacionOperativa();
         foreach (Empleado empleado in empleados)
         {
-            List<Tarea> tareasEmpleado = contextos.SelectMany(contexto => ObtenerTareasOcupacion(contexto, filtroAplicado)).Where(tarea => tarea.IdEmpleadoAsignado == empleado.ID).ToList();
-            List<RegistroHora> registrosEmpleado = contextos.SelectMany(contexto => contexto.Registros).Where(registro => registro.IdEmpleado == empleado.ID && registro.Activo && CumplePeriodoOcupacion(registro.Fecha, filtroAplicado)).ToList();
-            decimal horasEstimadas = tareasEmpleado.Sum(tarea => tarea.HorasEstimadas);
-            decimal porcentaje = CalcularPorcentaje(horasEstimadas, empleado.HorasDisponiblesSemanales);
+            List<AusenciaEmpleado> ausencias = _recursosMPP.ConsultarAusenciasEmpleado(new AusenciaEmpleado { IdEmpleado = empleado.ID }, usuario);
+            CargaOperativaEmpleado carga = _motorCargaOperativa.Calcular(empleado, tareas, asignaciones, registros, ausencias, desde, hasta);
+            foreach ((int idTarea, decimal horas) in carga.HorasPlanificadasPorTarea)
+            {
+                horasPlanificadasPorTarea[idTarea] = horasPlanificadasPorTarea.GetValueOrDefault(idTarea) + horas;
+                horasPlanificadasPorTareaEmpleado[(idTarea, empleado.ID)] = horas;
+            }
+            List<Tarea> tareasEmpleado = tareas.Where(tarea => carga.HorasPlanificadasPorTarea.ContainsKey(tarea.ID)).ToList();
+            decimal horasPlanificadas = carga.HorasPlanificadasPeriodo;
+            decimal porcentajeSemanal = CalcularPorcentaje(horasPlanificadas, carga.HorasCapacidadPeriodo);
+            decimal porcentaje = Math.Max(porcentajeSemanal, carga.MayorPorcentajeOcupacionDiaria);
             string estado = ObtenerEstadoOcupacion(porcentaje);
             if (!string.IsNullOrWhiteSpace(filtroAplicado.EstadoCarga) && !string.Equals(estado, filtroAplicado.EstadoCarga, StringComparison.OrdinalIgnoreCase)) { continue; }
-            Tarea? tareaPrincipal = tareasEmpleado.OrderByDescending(tarea => tarea.HorasEstimadas).FirstOrDefault();
+            Tarea? tareaPrincipal = tareasEmpleado.OrderByDescending(tarea => carga.HorasPlanificadasPorTarea[tarea.ID]).FirstOrDefault();
             OcupacionEmpleado detalle = new OcupacionEmpleado();
             detalle.IdEmpleado = empleado.ID;
             detalle.Nombre = empleado.Nombre;
             detalle.Seniority = empleado.Seniority;
-            detalle.HorasDisponibles = empleado.HorasDisponiblesSemanales;
-            detalle.HorasEstimadasActivas = horasEstimadas;
-            detalle.HorasRegistradas = registrosEmpleado.Sum(registro => registro.CantidadHoras);
+            detalle.HorasDisponibles = carga.HorasCapacidadPeriodo;
+            detalle.HorasEstimadasActivas = horasPlanificadas;
+            detalle.HorasRegistradas = carga.HorasRegistradasPeriodo;
             detalle.PorcentajeOcupacion = porcentaje;
             detalle.EstadoCarga = estado;
-            detalle.CausaPrincipal = tareaPrincipal is null ? "No tiene tareas activas asignadas en los filtros seleccionados." : "La tarea '" + tareaPrincipal.Titulo + "' concentra la mayor carga estimada.";
+            detalle.CausaPrincipal = tareaPrincipal is null ? "No tiene tareas planificables asignadas dentro del período seleccionado." : carga.TieneSobrecargaDiaria ? "La tarea '" + tareaPrincipal.Titulo + "' genera una sobrecarga en al menos un día laborable del período." : "La tarea '" + tareaPrincipal.Titulo + "' concentra la mayor carga planificada del período.";
             detalle.AccionSugerida = estado == "Sobrecargado" ? "Revisar la distribución de tareas o evaluar un recurso alternativo." : estado == "Subutilizado" ? "Evaluar la asignación de trabajo compatible con su disponibilidad." : "Mantener seguimiento de la carga vigente.";
-            detalle.Proyectos = contextos.Where(contexto => ObtenerTareasOcupacion(contexto, filtroAplicado).Any(tarea => tarea.IdEmpleadoAsignado == empleado.ID)).Select(contexto => contexto.Proyecto.Nombre).Distinct().OrderBy(nombre => nombre).ToList();
+            detalle.Proyectos = contextos.Where(contexto => contexto.Tareas.Any(tarea => carga.HorasPlanificadasPorTarea.ContainsKey(tarea.ID))).Select(contexto => contexto.Proyecto.Nombre).Distinct().OrderBy(nombre => nombre).ToList();
             resultado.Empleados.Add(detalle);
         }
         resultado.Empleados = resultado.Empleados.OrderByDescending(empleado => empleado.PorcentajeOcupacion).ThenBy(empleado => empleado.Nombre).ToList();
@@ -60,7 +79,7 @@ public class BLLAnaliticaOperativa
         resultado.CantidadBalanceados = resultado.Empleados.Count(empleado => empleado.EstadoCarga == "Balanceado");
         resultado.CantidadSobrecargados = resultado.Empleados.Count(empleado => empleado.EstadoCarga == "Sobrecargado");
         HashSet<int> empleadosIncluidos = resultado.Empleados.Select(empleado => empleado.IdEmpleado).ToHashSet();
-        resultado.Proyectos = CrearDistribucionProyectos(contextos, filtroAplicado, resultado.HorasEstimadasActivas, empleadosIncluidos);
+        resultado.Proyectos = CrearDistribucionProyectos(contextos, resultado.HorasEstimadasActivas, empleadosIncluidos, horasPlanificadasPorTarea, horasPlanificadasPorTareaEmpleado);
         resultado.Clientes = CrearDistribucionClientes(resultado.Proyectos, resultado.HorasEstimadasActivas);
         return resultado;
     }
@@ -72,11 +91,18 @@ public class BLLAnaliticaOperativa
         AnalisisOcupacionOperativa analisis = ConsultarOcupacion(usuario, filtro);
         OcupacionEmpleado empleado = analisis.Empleados.FirstOrDefault(item => item.IdEmpleado == filtro.IdEmpleado.Value) ?? throw new KeyNotFoundException("No se encontró el empleado dentro de los filtros seleccionados.");
         List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, filtro.IdProyecto, filtro.IdCliente);
+        List<Tarea> tareas = contextos.SelectMany(contexto => contexto.Tareas).ToList();
+        List<AsignacionTarea> asignaciones = _asignacionMPP.ConsultarActivas(tareas.Select(tarea => tarea.ID), usuario);
+        List<RegistroHora> registros = contextos.SelectMany(contexto => contexto.Registros).ToList();
+        Empleado empleadoBase = _analiticaMPP.ConsultarEmpleadosActivos(usuario).First(item => item.ID == empleado.IdEmpleado);
+        (DateTime desde, DateTime hasta) = _motorCargaOperativa.ObtenerPeriodo(filtro);
+        List<AusenciaEmpleado> ausencias = _recursosMPP.ConsultarAusenciasEmpleado(new AusenciaEmpleado { IdEmpleado = empleadoBase.ID }, usuario);
+        CargaOperativaEmpleado carga = _motorCargaOperativa.Calcular(empleadoBase, tareas, asignaciones, registros, ausencias, desde, hasta);
         DetalleOcupacionEmpleado detalle = new DetalleOcupacionEmpleado();
         detalle.Empleado = empleado;
         foreach (ContextoProyectoAnalitico contexto in contextos)
         {
-            foreach (Tarea tarea in ObtenerTareasOcupacion(contexto, filtro).Where(item => item.IdEmpleadoAsignado == empleado.IdEmpleado))
+            foreach (Tarea tarea in contexto.Tareas.Where(item => carga.HorasPlanificadasPorTarea.ContainsKey(item.ID)))
             {
                 DetalleOcupacionTarea tareaDetalle = new DetalleOcupacionTarea();
                 tareaDetalle.IdTarea = tarea.ID;
@@ -85,8 +111,8 @@ public class BLLAnaliticaOperativa
                 tareaDetalle.Titulo = tarea.Titulo;
                 tareaDetalle.NombreProyecto = contexto.Proyecto.Nombre;
                 tareaDetalle.NombreCliente = contexto.Proyecto.NombreCliente ?? "Cliente sin nombre";
-                tareaDetalle.HorasEstimadas = tarea.HorasEstimadas;
-                tareaDetalle.IncidenciaSobreCargaEmpleado = CalcularPorcentaje(tarea.HorasEstimadas, empleado.HorasEstimadasActivas);
+                tareaDetalle.HorasEstimadas = carga.HorasPlanificadasPorTarea[tarea.ID];
+                tareaDetalle.IncidenciaSobreCargaEmpleado = CalcularPorcentaje(tareaDetalle.HorasEstimadas, empleado.HorasEstimadasActivas);
                 detalle.Tareas.Add(tareaDetalle);
             }
         }
@@ -239,6 +265,7 @@ public class BLLAnaliticaOperativa
     {
         ValidarDueno(usuario);
         List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, null);
+        List<AsignacionTarea> asignaciones = ConsultarAsignacionesActivas(contextos, usuario);
         AnalisisConvenienciaOperativa resultado = new AnalisisConvenienciaOperativa();
         foreach (ContextoProyectoAnalitico contexto in contextos)
         {
@@ -250,8 +277,11 @@ public class BLLAnaliticaOperativa
             detalle.HorasReales = contexto.Registros.Sum(registro => registro.CantidadHoras);
             foreach (Tarea tarea in contexto.Tareas)
             {
-                Empleado? empleado = contexto.Equipo.FirstOrDefault(item => item.ID == tarea.IdEmpleadoAsignado);
-                if (empleado is not null) { detalle.CostoPlanificado += tarea.HorasEstimadas * empleado.CostoHora; }
+                foreach (AsignacionTarea asignacion in ObtenerDistribucionTarea(tarea, asignaciones))
+                {
+                    Empleado? empleado = contexto.Equipo.FirstOrDefault(item => item.ID == asignacion.IdEmpleado);
+                    if (empleado is not null) { detalle.CostoPlanificado += asignacion.HorasAsignadas * empleado.CostoHora; }
+                }
             }
             foreach (RegistroHora registro in contexto.Registros)
             {
@@ -274,28 +304,32 @@ public class BLLAnaliticaOperativa
     {
         ValidarDueno(usuario);
         List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, null);
+        List<AsignacionTarea> asignaciones = ConsultarAsignacionesActivas(contextos, usuario);
         AnalisisSobrecalificacionPerfiles resultado = new AnalisisSobrecalificacionPerfiles();
         foreach (ContextoProyectoAnalitico contexto in contextos)
         {
             foreach (Tarea tarea in contexto.Tareas)
             {
-                Empleado? empleado = contexto.Equipo.FirstOrDefault(item => item.ID == tarea.IdEmpleadoAsignado);
-                if (empleado is null || string.IsNullOrWhiteSpace(tarea.SeniorityRequerido) || ObtenerNivelSeniority(empleado.Seniority) <= ObtenerNivelSeniority(tarea.SeniorityRequerido)) { continue; }
-                decimal horasRegistradas = contexto.Registros.Where(registro => registro.IdTarea == tarea.ID).Sum(registro => registro.CantidadHoras);
-                decimal horasAfectadas = horasRegistradas > 0 ? horasRegistradas : tarea.HorasEstimadas;
-                SobrecalificacionTarea detalle = new SobrecalificacionTarea();
-                detalle.IdTarea = tarea.ID;
-                detalle.IdProyecto = contexto.Proyecto.ID;
-                detalle.Titulo = tarea.Titulo;
-                detalle.NombreProyecto = contexto.Proyecto.Nombre;
-                detalle.NombreCliente = contexto.Proyecto.NombreCliente ?? "Cliente sin nombre";
-                detalle.SeniorityRequerido = tarea.SeniorityRequerido;
-                detalle.SeniorityAsignado = empleado.Seniority;
-                detalle.EmpleadoAsignado = empleado.Nombre;
-                detalle.HorasAfectadas = horasAfectadas;
-                detalle.ImpactoOperativoEstimado = horasAfectadas * empleado.CostoHora;
-                detalle.Nivel = ObtenerNivelSeniority(empleado.Seniority) - ObtenerNivelSeniority(tarea.SeniorityRequerido) > 1 ? "Alto" : "Moderado";
-                resultado.Tareas.Add(detalle);
+                foreach (AsignacionTarea asignacion in ObtenerDistribucionTarea(tarea, asignaciones))
+                {
+                    Empleado? empleado = contexto.Equipo.FirstOrDefault(item => item.ID == asignacion.IdEmpleado);
+                    if (empleado is null || string.IsNullOrWhiteSpace(tarea.SeniorityRequerido) || ObtenerNivelSeniority(empleado.Seniority) <= ObtenerNivelSeniority(tarea.SeniorityRequerido)) { continue; }
+                    decimal horasRegistradas = contexto.Registros.Where(registro => registro.IdTarea == tarea.ID && registro.IdEmpleado == empleado.ID).Sum(registro => registro.CantidadHoras);
+                    decimal horasAfectadas = horasRegistradas > 0 ? horasRegistradas : asignacion.HorasAsignadas;
+                    SobrecalificacionTarea detalle = new SobrecalificacionTarea();
+                    detalle.IdTarea = tarea.ID;
+                    detalle.IdProyecto = contexto.Proyecto.ID;
+                    detalle.Titulo = tarea.Titulo;
+                    detalle.NombreProyecto = contexto.Proyecto.Nombre;
+                    detalle.NombreCliente = contexto.Proyecto.NombreCliente ?? "Cliente sin nombre";
+                    detalle.SeniorityRequerido = tarea.SeniorityRequerido;
+                    detalle.SeniorityAsignado = empleado.Seniority;
+                    detalle.EmpleadoAsignado = empleado.Nombre;
+                    detalle.HorasAfectadas = horasAfectadas;
+                    detalle.ImpactoOperativoEstimado = horasAfectadas * empleado.CostoHora;
+                    detalle.Nivel = ObtenerNivelSeniority(empleado.Seniority) - ObtenerNivelSeniority(tarea.SeniorityRequerido) > 1 ? "Alto" : "Moderado";
+                    resultado.Tareas.Add(detalle);
+                }
             }
         }
         resultado.Tareas = resultado.Tareas.OrderByDescending(tarea => tarea.ImpactoOperativoEstimado).ThenByDescending(tarea => tarea.HorasAfectadas).ToList();
@@ -321,6 +355,24 @@ public class BLLAnaliticaOperativa
             contextos.Add(contexto);
         }
         return contextos;
+    }
+
+    private List<AsignacionTarea> ConsultarAsignacionesActivas(IEnumerable<ContextoProyectoAnalitico> contextos, Usuario usuario)
+    {
+        return _asignacionMPP.ConsultarActivas(contextos.SelectMany(contexto => contexto.Tareas).Select(tarea => tarea.ID), usuario);
+    }
+
+    private static List<AsignacionTarea> ObtenerDistribucionTarea(Tarea tarea, IEnumerable<AsignacionTarea> asignaciones)
+    {
+        List<AsignacionTarea> activas = asignaciones.Where(asignacion => asignacion.IdTarea == tarea.ID && asignacion.Activa).ToList();
+        if (activas.Count > 0) { return activas; }
+        if (!tarea.IdEmpleadoAsignado.HasValue || tarea.HorasEstimadas <= 0) { return new List<AsignacionTarea>(); }
+
+        // Compatibilidad temporal para tareas creadas antes de habilitar la distribución.
+        return new List<AsignacionTarea>
+        {
+            new AsignacionTarea { IdTarea = tarea.ID, IdEmpleado = tarea.IdEmpleadoAsignado.Value, HorasAsignadas = tarea.HorasEstimadas, Activa = true }
+        };
     }
 
     private void ValidarDueno(Usuario usuario)
@@ -392,12 +444,12 @@ public class BLLAnaliticaOperativa
         return "Sobrecargado";
     }
 
-    private static List<OcupacionProyecto> CrearDistribucionProyectos(List<ContextoProyectoAnalitico> contextos, FiltroOcupacionOperativa filtro, decimal horasTotales, HashSet<int> empleadosIncluidos)
+    private static List<OcupacionProyecto> CrearDistribucionProyectos(List<ContextoProyectoAnalitico> contextos, decimal horasTotales, HashSet<int> empleadosIncluidos, IReadOnlyDictionary<int, decimal> horasPlanificadasPorTarea, IReadOnlyDictionary<(int IdTarea, int IdEmpleado), decimal> horasPlanificadasPorTareaEmpleado)
     {
         List<OcupacionProyecto> proyectos = new List<OcupacionProyecto>();
         foreach (ContextoProyectoAnalitico contexto in contextos)
         {
-            List<Tarea> tareas = ObtenerTareasOcupacion(contexto, filtro).Where(tarea => tarea.IdEmpleadoAsignado.HasValue && empleadosIncluidos.Contains(tarea.IdEmpleadoAsignado.Value)).ToList();
+            List<Tarea> tareas = contexto.Tareas.Where(tarea => horasPlanificadasPorTarea.ContainsKey(tarea.ID) && horasPlanificadasPorTareaEmpleado.Keys.Any(item => item.IdTarea == tarea.ID && empleadosIncluidos.Contains(item.IdEmpleado))).ToList();
             if (tareas.Count == 0) { continue; }
             OcupacionProyecto proyecto = new OcupacionProyecto();
             proyecto.IdProyecto = contexto.Proyecto.ID;
@@ -405,15 +457,15 @@ public class BLLAnaliticaOperativa
             proyecto.IdPMResponsable = contexto.Proyecto.IdPMResponsable;
             proyecto.NombreProyecto = contexto.Proyecto.Nombre;
             proyecto.NombreCliente = contexto.Proyecto.NombreCliente ?? "Cliente sin nombre";
-            proyecto.HorasEstimadasActivas = tareas.Sum(tarea => tarea.HorasEstimadas);
+            proyecto.HorasEstimadasActivas = tareas.Sum(tarea => horasPlanificadasPorTarea[tarea.ID]);
             proyecto.PorcentajeSobreCargaAgencia = CalcularPorcentaje(proyecto.HorasEstimadasActivas, horasTotales);
-            foreach (IGrouping<int?, Tarea> grupo in tareas.Where(tarea => tarea.IdEmpleadoAsignado.HasValue).GroupBy(tarea => tarea.IdEmpleadoAsignado))
+            foreach (IGrouping<int, KeyValuePair<(int IdTarea, int IdEmpleado), decimal>> grupo in horasPlanificadasPorTareaEmpleado.Where(item => empleadosIncluidos.Contains(item.Key.IdEmpleado) && tareas.Any(tarea => tarea.ID == item.Key.IdTarea)).GroupBy(item => item.Key.IdEmpleado))
             {
                 Empleado? empleado = contexto.Equipo.FirstOrDefault(item => item.ID == grupo.Key);
                 OcupacionEmpleadoProyecto empleadoProyecto = new OcupacionEmpleadoProyecto();
-                empleadoProyecto.IdEmpleado = grupo.Key ?? 0;
+                empleadoProyecto.IdEmpleado = grupo.Key;
                 empleadoProyecto.NombreEmpleado = empleado?.Nombre ?? "Sin asignar";
-                empleadoProyecto.HorasEstimadas = grupo.Sum(tarea => tarea.HorasEstimadas);
+                empleadoProyecto.HorasEstimadas = grupo.Sum(item => item.Value);
                 empleadoProyecto.PorcentajeSobreCargaProyecto = CalcularPorcentaje(empleadoProyecto.HorasEstimadas, proyecto.HorasEstimadasActivas);
                 proyecto.Empleados.Add(empleadoProyecto);
             }

@@ -8,6 +8,7 @@ import { AccionAjusteDesvioHoras, AnalisisConvenienciaOperativa, AnalisisDesvioH
 import { AuthService } from '../../../../services/auth.service';
 
 type VistaAnalisis = 'riesgo' | 'ocupacion' | 'desvio' | 'conveniencia' | 'sobrecalificacion' | 'revisiones';
+type EstadoVisualOcupacion = 'subutilizada' | 'balanceada' | 'sobrecargada' | 'critica';
 
 @Component({ selector: 'app-reports', imports: [DatePipe, DecimalPipe, FormsModule], templateUrl: './reports.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
 export class Reports {
@@ -22,6 +23,7 @@ export class Reports {
   protected readonly riesgoSeleccionado = signal<DetalleRiesgoProyecto | null>(null);
   protected readonly ocupacion = signal<AnalisisOcupacionOperativa | null>(null);
   protected readonly detalleOcupacion = signal<DetalleOcupacionEmpleado | null>(null);
+  protected readonly cerrandoDetalleOcupacion = signal(false);
   protected readonly situacionARevisar = signal<DetalleOcupacionEmpleado | null>(null);
   protected readonly tareaARevisar = signal<DetalleOcupacionTarea | null>(null);
   protected readonly solicitudesRevision = signal<SolicitudRevisionOperativa[]>([]);
@@ -82,7 +84,14 @@ export class Reports {
 
   protected consultarOcupacion(): void {
     this.cargando.set(true); this.error.set('');
-    this.analiticaService.consultarOcupacion(this.filtroOcupacion).subscribe({ next: resultado => { this.ocupacion.set(resultado); this.detalleOcupacion.set(null); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar la ocupación operativa.'); this.cargando.set(false); } });
+    this.analiticaService.consultarOcupacion(this.filtroOcupacion).subscribe({ next: resultado => { this.ocupacion.set(resultado); this.detalleOcupacion.set(null); this.cerrandoDetalleOcupacion.set(false); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar la ocupación operativa.'); this.cargando.set(false); } });
+  }
+
+  protected estadoVisualOcupacion(porcentaje: number): EstadoVisualOcupacion {
+    if (porcentaje > 100) { return 'critica'; }
+    if (porcentaje >= 86) { return 'sobrecargada'; }
+    if (porcentaje >= 50) { return 'balanceada'; }
+    return 'subutilizada';
   }
 
   protected abrirDetalleOcupacion(empleado: OcupacionEmpleado, proyecto?: OcupacionProyecto): void {
@@ -92,7 +101,13 @@ export class Reports {
       idProyecto: proyecto?.idProyecto ?? this.filtroOcupacion.idProyecto,
     };
     this.error.set('');
-    this.analiticaService.consultarDetalleOcupacionEmpleado(filtroDetalle).subscribe({ next: detalle => this.detalleOcupacion.set(detalle), error: error => this.error.set(error?.error || 'No se pudo consultar el detalle del empleado.') });
+    this.analiticaService.consultarDetalleOcupacionEmpleado(filtroDetalle).subscribe({ next: detalle => { this.cerrandoDetalleOcupacion.set(false); this.detalleOcupacion.set(detalle); }, error: error => this.error.set(error?.error || 'No se pudo consultar el detalle del empleado.') });
+  }
+
+  protected cerrarDetalleOcupacion(): void {
+    if (!this.detalleOcupacion() || this.cerrandoDetalleOcupacion()) { return; }
+    this.cerrandoDetalleOcupacion.set(true);
+    setTimeout(() => { this.detalleOcupacion.set(null); this.cerrandoDetalleOcupacion.set(false); }, 180);
   }
 
   protected prepararSolicitudRevision(detalle: DetalleOcupacionEmpleado, tarea: DetalleOcupacionTarea): void {
@@ -106,7 +121,7 @@ export class Reports {
     const tarea = this.tareaARevisar();
     if (!detalle || !tarea) { return; }
     this.procesandoDesvio.set(true); this.error.set('');
-    this.analiticaService.solicitarRevisionOperativa(detalle.empleado.idEmpleado, tarea.idProyecto, tarea.idTarea).subscribe({ next: mensaje => { this.mensajeDesvio.set(mensaje); this.situacionARevisar.set(null); this.tareaARevisar.set(null); this.detalleOcupacion.set(null); this.procesandoDesvio.set(false); }, error: error => { this.error.set(error?.error || 'No fue posible enviar la solicitud de revisión.'); this.procesandoDesvio.set(false); } });
+    this.analiticaService.solicitarRevisionOperativa(detalle.empleado.idEmpleado, tarea.idProyecto, tarea.idTarea).subscribe({ next: mensaje => { this.mensajeDesvio.set(mensaje); this.situacionARevisar.set(null); this.tareaARevisar.set(null); this.cerrarDetalleOcupacion(); this.procesandoDesvio.set(false); }, error: error => { this.error.set(error?.error || 'No fue posible enviar la solicitud de revisión.'); this.procesandoDesvio.set(false); } });
   }
 
   protected consultarSolicitudesRevision(): void {

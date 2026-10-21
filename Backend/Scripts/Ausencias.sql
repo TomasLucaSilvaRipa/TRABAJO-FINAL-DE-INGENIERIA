@@ -42,7 +42,7 @@ BEGIN
 END;
 GO
 CREATE OR ALTER PROCEDURE dbo.usp_Disponibilidad_ConsultarTareasAfectadas @IdEmpleado INT, @FechaDesde DATETIME2, @FechaHasta DATETIME2, @IdAgencia INT AS
-BEGIN SET NOCOUNT ON; SELECT T.ID AS IdTarea, T.Titulo, P.Nombre AS NombreProyecto, T.Deadline FROM dbo.Tarea T INNER JOIN dbo.Proyecto P ON P.ID = T.IdProyecto WHERE T.IdEmpleadoAsignado = @IdEmpleado AND T.Activo = 1 AND P.Activo = 1 AND P.IdAgencia = @IdAgencia AND T.Estado NOT IN (N'Finalizada', N'Finalizado') AND T.Deadline >= @FechaDesde AND T.Deadline < DATEADD(DAY, 1, @FechaHasta) ORDER BY T.Deadline, T.ID; END;
+BEGIN SET NOCOUNT ON; SELECT T.ID AS IdTarea, T.Titulo, P.Nombre AS NombreProyecto, T.Deadline FROM dbo.Tarea T INNER JOIN dbo.Proyecto P ON P.ID = T.IdProyecto WHERE (EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea=T.ID AND AT.IdEmpleado=@IdEmpleado AND AT.Activa=1) OR (NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea=T.ID AND AT.Activa=1) AND T.IdEmpleadoAsignado=@IdEmpleado)) AND T.Activo = 1 AND P.Activo = 1 AND P.IdAgencia = @IdAgencia AND T.Estado NOT IN (N'Finalizada', N'Finalizado') AND T.Deadline >= @FechaDesde AND T.Deadline < DATEADD(DAY, 1, @FechaHasta) ORDER BY T.Deadline, T.ID; END;
 GO
 CREATE OR ALTER PROCEDURE dbo.usp_Disponibilidad_EsGestor @IdUsuario INT, @IdAgencia INT AS
 BEGIN SET NOCOUNT ON; SELECT CONVERT(bit, CASE WHEN EXISTS (SELECT 1 FROM dbo.UsuarioRol UR INNER JOIN dbo.Rol R ON R.ID = UR.IdRol WHERE UR.IdUsuario = @IdUsuario AND R.Activo = 1 AND (R.TipoUsuario = N'Dueno' OR (R.TipoUsuario = N'PM' AND EXISTS (SELECT 1 FROM dbo.PM PM WHERE PM.IdUsuario = @IdUsuario AND PM.Activo = 1 AND PM.AutorizadoGestionRecursos = 1)))) THEN 1 ELSE 0 END) AS EsGestor; END;

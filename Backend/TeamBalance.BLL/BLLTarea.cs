@@ -5,10 +5,11 @@ namespace TeamBalance.BLL;
 public class BLLTarea
 {
     private readonly MPPTarea _tareaMPP;
+    private readonly MPPAsignacionTarea _asignacionMPP;
     private readonly MPPRecursos _recursosMPP;
     private readonly BLLRol _rolBLL;
     private readonly BLLBitacora _bitacoraBLL;
-    public BLLTarea(MPPTarea tareaMPP, MPPRecursos recursosMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL) { _tareaMPP = tareaMPP; _recursosMPP = recursosMPP; _rolBLL = rolBLL; _bitacoraBLL = bitacoraBLL; }
+    public BLLTarea(MPPTarea tareaMPP, MPPAsignacionTarea asignacionMPP, MPPRecursos recursosMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL) { _tareaMPP = tareaMPP; _asignacionMPP = asignacionMPP; _recursosMPP = recursosMPP; _rolBLL = rolBLL; _bitacoraBLL = bitacoraBLL; }
     public List<Tarea> Consultar(Usuario usuario)
     {
         try
@@ -93,12 +94,117 @@ public class BLLTarea
             tarea.Titulo = tarea.Titulo.Trim();
             if (ObtenerAgencia(usuario))
             {
-                return _tareaMPP.Guardar(tarea, usuario);
+                PrepararAsignaciones(tarea, usuario);
+                ValidarAsignaciones(tarea);
+                Tarea resultado = _tareaMPP.Guardar(tarea, usuario);
+                if (tarea.Asignaciones is not null)
+                {
+                    resultado.Asignaciones = _asignacionMPP.Sincronizar(resultado.ID, tarea.Asignaciones, usuario);
+                }
+                return resultado;
             }
             else { throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."); }
         }
         catch (ArgumentException) { throw; }
         catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    public List<AsignacionTarea> ConsultarAsignaciones(int idTarea, Usuario usuario)
+    {
+        ValidarGestionTareas(usuario);
+        if (idTarea <= 0 || !_tareaMPP.ConsultarPorPM(usuario).Any(item => item.ID == idTarea && item.Activo))
+        {
+            throw new ArgumentException("La tarea no existe o no pertenece a uno de tus proyectos.");
+        }
+        return _asignacionMPP.Consultar(idTarea, usuario);
+    }
+
+    /// <summary>
+    /// Convierte la selección de empleados en una distribución planificada.
+    /// No se aceptan horas cargadas desde la UI: se reparte el total de la tarea
+    /// en proporción a la disponibilidad semanal que cada empleado configuró.
+    /// </summary>
+    private void PrepararAsignaciones(Tarea tarea, Usuario usuario)
+    {
+        if (tarea.Asignaciones is null) return;
+
+        Dictionary<int, AsignacionTarea> porEmpleado = tarea.Asignaciones
+            .Where(item => item.IdEmpleado > 0)
+            .GroupBy(item => item.IdEmpleado)
+            .ToDictionary(grupo => grupo.Key, grupo => grupo.First());
+
+        if (tarea.IdEmpleadoAsignado.HasValue && !porEmpleado.ContainsKey(tarea.IdEmpleadoAsignado.Value))
+        {
+            porEmpleado[tarea.IdEmpleadoAsignado.Value] = new AsignacionTarea
+            {
+                IdEmpleado = tarea.IdEmpleadoAsignado.Value,
+                Activa = true
+            };
+        }
+
+        if (porEmpleado.Count == 0)
+        {
+            tarea.Asignaciones = new List<AsignacionTarea>();
+            return;
+        }
+
+        if (!tarea.IdEmpleadoAsignado.HasValue)
+        {
+            throw new ArgumentException("Seleccioná un responsable principal de los empleados asignados.");
+        }
+        if (tarea.HorasEstimadas <= 0)
+        {
+            throw new ArgumentException("Indicá horas estimadas mayores a cero para distribuir el trabajo entre los empleados.");
+        }
+
+        List<Empleado> capacidades = _asignacionMPP.ConsultarCapacidades(porEmpleado.Keys, usuario);
+        if (capacidades.Count != porEmpleado.Count)
+        {
+            throw new ArgumentException("Uno de los empleados asignados no está activo o no pertenece a la agencia.");
+        }
+
+        decimal capacidadTotal = capacidades.Sum(empleado => Math.Max(0, empleado.HorasDisponiblesSemanales));
+        if (capacidadTotal <= 0)
+        {
+            throw new ArgumentException("Los empleados asignados no tienen una disponibilidad semanal válida configurada.");
+        }
+
+        Dictionary<int, decimal> capacidadPorEmpleado = capacidades.ToDictionary(empleado => empleado.ID, empleado => Math.Max(0, empleado.HorasDisponiblesSemanales));
+        decimal horasDistribuidas = 0;
+        List<AsignacionTarea> distribuidas = new List<AsignacionTarea>();
+        List<AsignacionTarea> seleccionadas = porEmpleado.Values.OrderBy(item => item.IdEmpleado).ToList();
+
+        for (int indice = 0; indice < seleccionadas.Count; indice++)
+        {
+            AsignacionTarea asignacion = seleccionadas[indice];
+            decimal horas = indice == seleccionadas.Count - 1
+                ? tarea.HorasEstimadas - horasDistribuidas
+                : Math.Round(tarea.HorasEstimadas * capacidadPorEmpleado[asignacion.IdEmpleado] / capacidadTotal, 2, MidpointRounding.AwayFromZero);
+            horasDistribuidas += horas;
+            asignacion.HorasAsignadas = horas;
+            asignacion.Activa = true;
+            distribuidas.Add(asignacion);
+        }
+
+        tarea.Asignaciones = distribuidas;
+    }
+
+    private static void ValidarAsignaciones(Tarea tarea)
+    {
+        if (tarea.Asignaciones is null) return;
+        List<AsignacionTarea> activas = tarea.Asignaciones.Where(item => item.IdEmpleado > 0 && item.HorasAsignadas > 0).ToList();
+        if (activas.Count != tarea.Asignaciones.Count) throw new ArgumentException("No se pudo distribuir las horas entre los empleados asignados.");
+        if (activas.GroupBy(item => item.IdEmpleado).Any(grupo => grupo.Count() > 1)) throw new ArgumentException("No podés asignar dos veces al mismo empleado en una tarea.");
+        decimal total = activas.Sum(item => item.HorasAsignadas);
+        if (Math.Abs(total - tarea.HorasEstimadas) > 0.01m) throw new ArgumentException("Distribuí exactamente las horas estimadas de la tarea entre los empleados asignados.");
+        if (tarea.IdEmpleadoAsignado.HasValue && !activas.Any(item => item.IdEmpleado == tarea.IdEmpleadoAsignado.Value))
+        {
+            throw new ArgumentException("El responsable principal debe integrar los empleados asignados.");
+        }
+        if (!tarea.IdEmpleadoAsignado.HasValue && activas.Count > 0)
+        {
+            throw new ArgumentException("Seleccioná un responsable principal para los empleados asignados.");
+        }
     }
     public bool CambiarEstado(Tarea tarea, Usuario usuario)
     {

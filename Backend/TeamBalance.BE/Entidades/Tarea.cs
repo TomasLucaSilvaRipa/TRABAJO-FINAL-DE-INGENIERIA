@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace TeamBalance.BE.Entidades;
 
@@ -7,12 +8,14 @@ public partial class Tarea
 {
     public Tarea()
     {
+        AsignacionTareas = new List<AsignacionTarea>();
     }
 
     public Tarea(int id, bool activo)
     {
         ID = id;
         Activo = activo;
+        AsignacionTareas = new List<AsignacionTarea>();
     }
 
     public Tarea(int id, int idProyecto, int? idEmpleadoAsignado, int? idSkillRequerido, int idEstadoTarea, int? idTareaPredecesora, string titulo, string? descripcion, string? estado, string? prioridad, string? complejidad, DateTime? fechaInicio, DateTime? deadline, DateTime? fechaFinReal, string? seniorityRequerido, string? checklistJson, string? comentariosJson, string? archivosAdjuntosJson, bool bloqueada, string? motivoBloqueo, decimal porcentajeAvance, decimal horasEstimadas, bool activo, DateTime? fechaBaja)
@@ -90,4 +93,11 @@ public partial class Tarea
     public bool Activo { get; set; }
 
     public DateTime? FechaBaja { get; set; }
+
+    public List<AsignacionTarea> AsignacionTareas { get; set; } = new List<AsignacionTarea>();
+
+    // La relación existe en la base desde el modelo original. No representa otro tipo de usuario:
+    // cada elemento vincula esta tarea con un Empleado y sus horas planificadas.
+    [NotMapped]
+    public List<AsignacionTarea>? Asignaciones { get; set; }
 }

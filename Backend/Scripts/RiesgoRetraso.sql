@@ -27,10 +27,12 @@ BEGIN
         COALESCE(D.HorasSemanales, E.HorasDisponiblesSemanales, 0) AS HorasDisponiblesSemanales,
         E.Seniority, E.EstadoLaboral, E.FechaIngreso
     FROM dbo.Tarea T
-    INNER JOIN dbo.Empleado E ON E.ID = T.IdEmpleadoAsignado
+    INNER JOIN dbo.Empleado E ON E.Activo = 1
     INNER JOIN dbo.Usuario U ON U.ID = E.IdUsuario
     OUTER APPLY (SELECT TOP (1) DB.HorasSemanales FROM dbo.DisponibilidadBase DB WHERE DB.IdEmpleado = E.ID AND DB.Activo = 1 ORDER BY DB.ID DESC) D
-    WHERE T.IdProyecto = @IdProyecto AND T.Activo = 1 AND E.Activo = 1 AND U.Activo = 1;
+    WHERE T.IdProyecto = @IdProyecto AND T.Activo = 1 AND U.Activo = 1
+      AND (EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.IdEmpleado = E.ID AND AT.Activa = 1)
+           OR (NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.Activa = 1) AND T.IdEmpleadoAsignado = E.ID));
 END
 GO
 

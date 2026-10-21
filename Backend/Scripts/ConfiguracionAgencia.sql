@@ -23,13 +23,30 @@ GO
 CREATE OR ALTER PROCEDURE dbo.usp_Tarea_ConsultarPorEmpleado @IdUsuario INT AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT T.* FROM dbo.Tarea T INNER JOIN dbo.Empleado E ON E.ID = T.IdEmpleadoAsignado WHERE E.IdUsuario = @IdUsuario AND E.Activo = 1 AND T.Activo = 1 ORDER BY T.Deadline, T.ID;
+    SELECT T.*
+    FROM dbo.Tarea T
+    INNER JOIN dbo.Empleado E ON E.IdUsuario = @IdUsuario AND E.Activo = 1
+    WHERE T.Activo = 1
+      AND (
+          EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.IdEmpleado = E.ID AND AT.Activa = 1)
+          OR (NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.Activa = 1)
+              AND T.IdEmpleadoAsignado = E.ID)
+      )
+    ORDER BY T.Deadline, T.ID;
 END;
 GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Tarea_ActualizarComentarios @ID INT, @IdUsuario INT, @ComentariosJson NVARCHAR(MAX) AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE T SET ComentariosJson = @ComentariosJson FROM dbo.Tarea T INNER JOIN dbo.Empleado E ON E.ID = T.IdEmpleadoAsignado WHERE T.ID = @ID AND E.IdUsuario = @IdUsuario;
+    UPDATE T SET ComentariosJson = @ComentariosJson
+    FROM dbo.Tarea T
+    INNER JOIN dbo.Empleado E ON E.IdUsuario = @IdUsuario AND E.Activo = 1
+    WHERE T.ID = @ID
+      AND (
+          EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.IdEmpleado = E.ID AND AT.Activa = 1)
+          OR (NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.Activa = 1)
+              AND T.IdEmpleadoAsignado = E.ID)
+      );
 END;
 GO

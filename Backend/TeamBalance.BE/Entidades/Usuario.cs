@@ -11,6 +11,7 @@ public partial class Usuario
         Rol = new Rol();
         Roles = new List<Rol>();
         Permisos = new List<Permiso>();
+        AsignacionesComoAsignador = new List<AsignacionTarea>();
     }
 
     public Usuario(int id, int? idAgencia, Rol rol, string nombre, string apellido, string email, string passwordHash, string estado, DateTime fechaAlta, bool activo)
@@ -27,6 +28,7 @@ public partial class Usuario
         Activo = activo;
         Roles = new List<Rol>();
         Permisos = new List<Permiso>();
+        AsignacionesComoAsignador = new List<AsignacionTarea>();
     }
 
     public int ID { get; set; }
@@ -70,6 +72,8 @@ public partial class Usuario
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public Empleado? Empleado { get; set; }
+
+    public List<AsignacionTarea> AsignacionesComoAsignador { get; set; }
 
 
     

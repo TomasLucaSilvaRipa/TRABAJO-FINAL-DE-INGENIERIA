@@ -154,6 +154,7 @@ public partial class TeamBalanceContext : DbContext
                 .HasPrecision(0)
                 .HasDefaultValueSql("(sysdatetime())");
             entity.Property(e => e.FechaHasta).HasPrecision(0);
+            entity.Property(e => e.HorasAsignadas).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Motivo).HasMaxLength(500);
 
             entity.HasOne(d => d.IdEmpleadoNavigation).WithMany(p => p.AsignacionTareas)
@@ -166,7 +167,7 @@ public partial class TeamBalanceContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_AsignacionTarea_Tarea");
 
-            entity.HasOne(d => d.IdUsuarioAsignadorNavigation).WithMany(p => p.AsignacionTareas)
+            entity.HasOne(d => d.IdUsuarioAsignadorNavigation).WithMany(p => p.AsignacionesComoAsignador)
                 .HasForeignKey(d => d.IdUsuarioAsignador)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_AsignacionTarea_Usuario");

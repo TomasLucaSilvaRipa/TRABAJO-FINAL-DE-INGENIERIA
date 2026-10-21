@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Skill } from '../../../../services/resources.service';
-import { FiltroTarea, Tarea, TareaOpciones, TasksService } from '../../../../services/tasks.service';
+import { AsignacionTarea, FiltroTarea, Tarea, TareaOpciones, TasksService } from '../../../../services/tasks.service';
 import { LocalizationService } from '../../../../services/localization.service';
 import { BestFitService, RecomendacionBestFit } from '../../../../services/best-fit.service';
 import { PlantillaTarea, TaskTemplatesService } from '../../../../services/task-templates.service';
@@ -27,10 +27,12 @@ export class TaskManagerComponent {
     readonly mostrarSkill = signal(false);
     readonly recomendaciones = signal<RecomendacionBestFit[]>([]);
     readonly recomendacionesConservadas = signal<RecomendacionBestFit[]>([]);
+    readonly mensajeSugerencias = signal('');
     readonly buscandoRecurso = signal(false);
     readonly error = signal('');
     readonly checklist = signal<ChecklistItem[]>([]);
     readonly nuevoChecklist = signal('');
+    readonly asignaciones = signal<AsignacionTarea[]>([]);
 
     readonly form = this.fb.group({
         id: [0],
@@ -80,6 +82,8 @@ export class TaskManagerComponent {
         this.error.set('');
         this.recomendaciones.set([]);
         this.recomendacionesConservadas.set([]);
+        this.mensajeSugerencias.set('');
+        this.asignaciones.set([]);
         this.mostrar.set(true);
     }
 
@@ -95,6 +99,9 @@ export class TaskManagerComponent {
         this.checklist.set(this.obtenerChecklist(tarea.checklistJson));
         this.nuevoChecklist.set('');
         this.recomendaciones.set([]);
+        this.mensajeSugerencias.set('');
+        this.asignaciones.set([]);
+        this.service.consultarAsignaciones(tarea.id).subscribe({ next: asignaciones => this.asignaciones.set(asignaciones.filter(item => item.activa !== false)) });
         this.cargarRecomendacionesConservadas(tarea.id);
         this.mostrar.set(true);
     }
@@ -143,12 +150,19 @@ export class TaskManagerComponent {
             return;
         }
 
+        const asignaciones = this.prepararAsignaciones(datos.idEmpleadoAsignado, Number(datos.horasEstimadas ?? 0));
+        if (!this.validarAsignaciones(datos.idEmpleadoAsignado, asignaciones, Number(datos.horasEstimadas ?? 0)))
+        {
+            return;
+        }
+
         const tarea = {
             ...datos,
             fechaInicio: datos.fechaInicio || null,
             deadline: datos.deadline || null,
             checklistJson: JSON.stringify(this.checklist()),
-            archivosAdjuntosJson: urls.length === 0 ? null : JSON.stringify(urls)
+            archivosAdjuntosJson: urls.length === 0 ? null : JSON.stringify(urls),
+            asignaciones
         } as unknown as Partial<Tarea>;
 
         this.service.guardar(tarea).subscribe({
@@ -156,7 +170,7 @@ export class TaskManagerComponent {
                 if (sugerirRecurso)
                 {
                     this.form.patchValue({ id: resultado.id });
-                    this.sugerirRecurso();
+                    this.sugerirRecurso(true);
                 }
                 else
                 {
@@ -187,12 +201,20 @@ export class TaskManagerComponent {
         return this.tareas().filter(tarea => tarea.activo && tarea.idProyecto === idProyecto && tarea.id !== idTarea);
     }
 
-    sugerirRecurso(): void
+    sugerirRecurso(usarTareaGuardada: boolean = false): void
     {
+        // La recomendación se calcula sobre lo persistido. Si el PM acaba de
+        // agregar o quitar participantes, primero se guarda la distribución
+        // automática para que Best Fit evalúe la composición actual.
+        if (!usarTareaGuardada)
+        {
+            this.guardar(true);
+            return;
+        }
+
         const idTarea = this.form.controls.id.value;
         if (!idTarea)
         {
-            this.guardar(true);
             return;
         }
         if (!this.validarRequisitosBestFit())
@@ -201,7 +223,19 @@ export class TaskManagerComponent {
         }
         this.buscandoRecurso.set(true);
         this.error.set('');
-        this.bestFitService.sugerir({ idTarea }).subscribe({ next: (recomendaciones: RecomendacionBestFit[]) => { this.recomendaciones.set(recomendaciones); this.buscandoRecurso.set(false); }, error: respuesta => { this.error.set(this.obtenerMensajeError(respuesta, 'No se pudieron generar sugerencias para esta tarea.')); this.buscandoRecurso.set(false); } });
+        this.recomendaciones.set([]);
+        this.mensajeSugerencias.set('');
+        this.bestFitService.sugerir({ idTarea }).subscribe({
+            next: (recomendaciones: RecomendacionBestFit[]) => {
+                this.recomendaciones.set(recomendaciones);
+                if (recomendaciones.length === 0)
+                {
+                    this.mensajeSugerencias.set('No hay otros empleados compatibles disponibles para esta tarea. Revisá la skill requerida o la disponibilidad del equipo.');
+                }
+                this.buscandoRecurso.set(false);
+            },
+            error: respuesta => { this.error.set(this.obtenerMensajeError(respuesta, 'No se pudieron generar sugerencias para esta tarea.')); this.buscandoRecurso.set(false); }
+        });
     }
 
     conservarRecurso(recomendacion: RecomendacionBestFit): void
@@ -233,6 +267,48 @@ export class TaskManagerComponent {
     {
         const recomendacion = this.recomendacionesConservadas().find((item: RecomendacionBestFit) => item.idEmpleadoSugerido === idEmpleado);
         return recomendacion ? `${nombre} ${apellido} · Best Fit ${recomendacion.puntajeCompatibilidad}/100` : `${nombre} ${apellido}`;
+    }
+
+    agregarEmpleadoAsignado(idEmpleado: number): void
+    {
+        if (!idEmpleado || this.asignaciones().some(item => item.idEmpleado === idEmpleado)) { return; }
+        this.asignaciones.update(items => [...items, { idEmpleado, horasAsignadas: 0, motivo: null, activa: true }]);
+    }
+
+    quitarEmpleadoAsignado(idEmpleado: number): void
+    {
+        if (this.form.controls.idEmpleadoAsignado.value === idEmpleado)
+        {
+            this.error.set('Elegí otro responsable principal o dejá la tarea sin asignar antes de quitarlo.');
+            return;
+        }
+        this.asignaciones.update(items => items.filter(item => item.idEmpleado !== idEmpleado));
+    }
+
+    nombreEmpleado(idEmpleado: number): string
+    {
+        const empleado = this.opciones().empleados.find(item => item.id === idEmpleado);
+        return empleado ? `${empleado.nombre} ${empleado.apellido}` : `Empleado #${idEmpleado}`;
+    }
+
+    private prepararAsignaciones(idResponsable: number | null, _horasEstimadas: number): AsignacionTarea[]
+    {
+        const asignaciones = this.asignaciones().map(item => ({ ...item, horasAsignadas: 0 }));
+        if (idResponsable && !asignaciones.some(item => item.idEmpleado === idResponsable))
+        {
+            asignaciones.push({ idEmpleado: idResponsable, horasAsignadas: 0, motivo: null, activa: true });
+        }
+        return asignaciones;
+    }
+
+    private validarAsignaciones(idResponsable: number | null, asignaciones: AsignacionTarea[], horasEstimadas: number): boolean
+    {
+        if (asignaciones.length === 0) { return true; }
+        if (!idResponsable) { this.error.set('Seleccioná el responsable principal de los empleados asignados.'); return false; }
+        if (asignaciones.some(item => !item.idEmpleado)) { this.error.set('Uno de los empleados asignados no es válido.'); return false; }
+        if (asignaciones.some((item, indice) => asignaciones.findIndex(otro => otro.idEmpleado === item.idEmpleado) !== indice)) { this.error.set('No podés asignar dos veces al mismo empleado en una tarea.'); return false; }
+        if (horasEstimadas <= 0) { this.error.set('Indicá horas estimadas mayores a cero para distribuir el trabajo entre los empleados.'); return false; }
+        return true;
     }
 
     esRecomendacionConservada(idEmpleado: number): boolean

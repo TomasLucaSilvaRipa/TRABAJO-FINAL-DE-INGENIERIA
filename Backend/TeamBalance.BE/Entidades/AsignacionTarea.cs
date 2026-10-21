@@ -9,7 +9,7 @@ public partial class AsignacionTarea
     {
     }
 
-    public AsignacionTarea(int iD, int idTarea, int idEmpleado, int idUsuarioAsignador, DateTime fechaDesde, DateTime? fechaHasta, string? motivo, bool activa)
+    public AsignacionTarea(int iD, int idTarea, int idEmpleado, int idUsuarioAsignador, DateTime fechaDesde, DateTime? fechaHasta, string? motivo, decimal horasAsignadas, bool activa)
     {
         ID = iD;
         IdTarea = idTarea;
@@ -18,6 +18,7 @@ public partial class AsignacionTarea
         FechaDesde = fechaDesde;
         FechaHasta = fechaHasta;
         Motivo = motivo;
+        HorasAsignadas = horasAsignadas;
         Activa = activa;
     }
 
@@ -35,5 +36,16 @@ public partial class AsignacionTarea
 
     public string? Motivo { get; set; }
 
+    // Horas de la tarea que forman parte de la carga planificada de este empleado.
+    public decimal HorasAsignadas { get; set; }
+
     public bool Activa { get; set; }
+
+    // Navegaciones del modelo de persistencia. No crean una entidad nueva ni un
+    // nuevo tipo de persona: la asignación siempre apunta a un Empleado existente.
+    public virtual Empleado? IdEmpleadoNavigation { get; set; }
+
+    public virtual Tarea? IdTareaNavigation { get; set; }
+
+    public virtual Usuario? IdUsuarioAsignadorNavigation { get; set; }
 }

@@ -54,7 +54,7 @@
               <div>
                 <h2>{{recomendacion.nombreEmpleado}}</h2>
                 <p>{{recomendacion.seniorityEmpleado}} · {{recomendacion.horasDisponibles}} h disponibles · {{recomendacion.cargaActualPorcentaje}}% de carga actual</p>
-                <p class="mt-1 text-xs text-slate-500">Margen semanal luego de esta tarea: {{recomendacion.margenHorasSemanales}} h</p>
+                <p class="mt-1 text-xs text-slate-500">Aporte previsto a esta tarea: {{aporteSemanalEstimado(recomendacion)}} h/semana · Margen semanal restante: {{recomendacion.margenHorasSemanales}} h</p>
               </div>
               <div class="flex flex-wrap items-center justify-end gap-3">
                 <span class="tb-status-badge">{{recomendacion.puntajeCompatibilidad}}/100</span>
@@ -69,7 +69,7 @@
   } @else if(tareaActual()) {
     <section class="tb-panel tb-empty-state"><h2>No hay candidatos operativamente viables</h2><p>La tarea cumple las condiciones, pero ningún empleado puede asumirla sin comprometer su capacidad o el deadline.</p></section>
   } @else {
-    <section class="tb-panel tb-empty-state"><h2>Seleccioná una tarea para continuar</h2><p>Solo se muestran tareas propias sin responsable, con skill, complejidad, horas estimadas, inicio y deadline definidos. Completá esos datos desde la edición de la tarea antes de usar Best Fit.</p></section>
+    <section class="tb-panel tb-empty-state"><h2>Seleccioná una tarea para continuar</h2><p>Solo se muestran tareas propias con skill, complejidad, horas estimadas, inicio y deadline definidos. Aunque ya tenga empleados asignados, Best Fit puede proponer otro recurso para distribuir horas pendientes.</p></section>
   }
 
   @if(detalle()){
