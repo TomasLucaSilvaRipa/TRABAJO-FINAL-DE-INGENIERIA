@@ -135,6 +135,25 @@ BEGIN
 END;
 GO
 
+CREATE OR ALTER PROCEDURE dbo.usp_SolicitudRevisionOperativa_MarcarResuelta
+    @IdSolicitud INT,
+    @IdAgencia INT,
+    @IdPMResponsable INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.SolicitudRevisionOperativa
+    SET Estado = N'Resuelta'
+    WHERE ID = @IdSolicitud
+      AND IdAgencia = @IdAgencia
+      AND IdPMResponsable = @IdPMResponsable
+      AND Estado = N'Pendiente';
+
+    SELECT CONVERT(bit, CASE WHEN @@ROWCOUNT = 1 THEN 1 ELSE 0 END) AS Actualizada;
+END;
+GO
+
 CREATE OR ALTER PROCEDURE dbo.usp_Analitica_ConsultarDestinatarioPM
     @IdPMResponsable INT
 AS
@@ -144,5 +163,229 @@ BEGIN
     FROM dbo.PM PM
     INNER JOIN dbo.Usuario U ON U.ID = PM.IdUsuario
     WHERE PM.ID = @IdPMResponsable AND PM.Activo = 1 AND U.Activo = 1;
+END;
+GO
+
+IF OBJECT_ID(N'dbo.SeguimientoConvenienciaOperativa', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.SeguimientoConvenienciaOperativa
+    (
+        ID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_SeguimientoConvenienciaOperativa PRIMARY KEY,
+        IdAgencia INT NOT NULL,
+        IdCliente INT NOT NULL,
+        IdProyecto INT NULL,
+        IdUsuario INT NOT NULL,
+        Observacion NVARCHAR(1500) NOT NULL,
+        AccionSugerida NVARCHAR(1500) NOT NULL,
+        FechaAlta DATETIME2 NOT NULL CONSTRAINT DF_SeguimientoConvenienciaOperativa_FechaAlta DEFAULT SYSDATETIME(),
+        CONSTRAINT FK_SeguimientoConvenienciaOperativa_Agencia FOREIGN KEY(IdAgencia) REFERENCES dbo.Agencia(ID),
+        CONSTRAINT FK_SeguimientoConvenienciaOperativa_Cliente FOREIGN KEY(IdCliente) REFERENCES dbo.Cliente(ID),
+        CONSTRAINT FK_SeguimientoConvenienciaOperativa_Proyecto FOREIGN KEY(IdProyecto) REFERENCES dbo.Proyecto(ID),
+        CONSTRAINT FK_SeguimientoConvenienciaOperativa_Usuario FOREIGN KEY(IdUsuario) REFERENCES dbo.Usuario(ID)
+    );
+    CREATE INDEX IX_SeguimientoConvenienciaOperativa_ClienteProyecto ON dbo.SeguimientoConvenienciaOperativa(IdAgencia, IdCliente, IdProyecto, FechaAlta DESC);
+END;
+GO
+
+IF OBJECT_ID(N'dbo.ClienteRevisionConveniencia', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ClienteRevisionConveniencia
+    (
+        ID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ClienteRevisionConveniencia PRIMARY KEY,
+        IdAgencia INT NOT NULL,
+        IdCliente INT NOT NULL,
+        IdUsuarioMarcador INT NOT NULL,
+        Estado NVARCHAR(30) NOT NULL CONSTRAINT DF_ClienteRevisionConveniencia_Estado DEFAULT N'Marcado',
+        FechaMarcado DATETIME2 NOT NULL CONSTRAINT DF_ClienteRevisionConveniencia_FechaMarcado DEFAULT SYSDATETIME(),
+        CONSTRAINT UQ_ClienteRevisionConveniencia UNIQUE(IdAgencia, IdCliente),
+        CONSTRAINT FK_ClienteRevisionConveniencia_Agencia FOREIGN KEY(IdAgencia) REFERENCES dbo.Agencia(ID),
+        CONSTRAINT FK_ClienteRevisionConveniencia_Cliente FOREIGN KEY(IdCliente) REFERENCES dbo.Cliente(ID),
+        CONSTRAINT FK_ClienteRevisionConveniencia_Usuario FOREIGN KEY(IdUsuarioMarcador) REFERENCES dbo.Usuario(ID)
+    );
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Conveniencia_ConsultarClientesEnRevision
+    @IdAgencia INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT IdCliente
+    FROM dbo.ClienteRevisionConveniencia
+    WHERE IdAgencia = @IdAgencia AND Estado = N'Marcado';
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Conveniencia_RegistrarSeguimiento
+    @IdAgencia INT,
+    @IdCliente INT,
+    @IdProyecto INT = NULL,
+    @IdUsuario INT,
+    @Observacion NVARCHAR(1500),
+    @AccionSugerida NVARCHAR(1500)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO dbo.SeguimientoConvenienciaOperativa(IdAgencia, IdCliente, IdProyecto, IdUsuario, Observacion, AccionSugerida)
+    VALUES(@IdAgencia, @IdCliente, @IdProyecto, @IdUsuario, @Observacion, @AccionSugerida);
+    SELECT CONVERT(INT, SCOPE_IDENTITY()) AS ID;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Conveniencia_ConsultarSeguimientos
+    @IdAgencia INT,
+    @IdCliente INT,
+    @IdProyecto INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT S.ID, S.IdCliente, S.IdProyecto, S.Observacion, S.AccionSugerida, S.FechaAlta,
+           CONCAT(U.Nombre, N' ', U.Apellido) AS Usuario
+    FROM dbo.SeguimientoConvenienciaOperativa S
+    INNER JOIN dbo.Usuario U ON U.ID = S.IdUsuario
+    WHERE S.IdAgencia = @IdAgencia
+      AND S.IdCliente = @IdCliente
+      AND (S.IdProyecto IS NULL OR S.IdProyecto = @IdProyecto)
+    ORDER BY S.FechaAlta DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Conveniencia_MarcarClienteRevision
+    @IdAgencia INT,
+    @IdCliente INT,
+    @IdUsuario INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.ClienteRevisionConveniencia
+    SET Estado = N'Marcado', IdUsuarioMarcador = @IdUsuario, FechaMarcado = SYSDATETIME()
+    WHERE IdAgencia = @IdAgencia AND IdCliente = @IdCliente;
+
+    IF @@ROWCOUNT = 0
+        INSERT INTO dbo.ClienteRevisionConveniencia(IdAgencia, IdCliente, IdUsuarioMarcador, Estado)
+        VALUES(@IdAgencia, @IdCliente, @IdUsuario, N'Marcado');
+END;
+GO
+
+/* Las revisiones de conveniencia son de cliente/PM, no de una asignación puntual.
+   Se guardan por separado para no forzar un empleado ficticio en la bandeja del PM. */
+IF OBJECT_ID(N'dbo.SolicitudRevisionConveniencia', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.SolicitudRevisionConveniencia
+    (
+        ID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_SolicitudRevisionConveniencia PRIMARY KEY,
+        IdAgencia INT NOT NULL,
+        IdCliente INT NOT NULL,
+        IdPMResponsable INT NOT NULL,
+        IdUsuarioSolicitante INT NOT NULL,
+        CausaPrincipal NVARCHAR(1500) NOT NULL,
+        AccionSugerida NVARCHAR(1500) NOT NULL,
+        Estado NVARCHAR(30) NOT NULL CONSTRAINT DF_SolicitudRevisionConveniencia_Estado DEFAULT N'Pendiente',
+        FechaAlta DATETIME2 NOT NULL CONSTRAINT DF_SolicitudRevisionConveniencia_FechaAlta DEFAULT SYSDATETIME(),
+        FechaResolucion DATETIME2 NULL,
+        CONSTRAINT FK_SolicitudRevisionConveniencia_Agencia FOREIGN KEY(IdAgencia) REFERENCES dbo.Agencia(ID),
+        CONSTRAINT FK_SolicitudRevisionConveniencia_Cliente FOREIGN KEY(IdCliente) REFERENCES dbo.Cliente(ID),
+        CONSTRAINT FK_SolicitudRevisionConveniencia_PM FOREIGN KEY(IdPMResponsable) REFERENCES dbo.PM(ID),
+        CONSTRAINT FK_SolicitudRevisionConveniencia_Usuario FOREIGN KEY(IdUsuarioSolicitante) REFERENCES dbo.Usuario(ID)
+    );
+    CREATE INDEX IX_SolicitudRevisionConveniencia_PM_Estado ON dbo.SolicitudRevisionConveniencia(IdPMResponsable, Estado, FechaAlta DESC);
+    CREATE INDEX IX_SolicitudRevisionConveniencia_Cliente_Estado ON dbo.SolicitudRevisionConveniencia(IdAgencia, IdCliente, Estado);
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Conveniencia_RegistrarSolicitudRevision
+    @IdAgencia INT,
+    @IdCliente INT,
+    @IdPMResponsable INT,
+    @IdUsuarioSolicitante INT,
+    @CausaPrincipal NVARCHAR(1500),
+    @AccionSugerida NVARCHAR(1500)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @IdExistente INT =
+    (
+        SELECT TOP (1) ID
+        FROM dbo.SolicitudRevisionConveniencia
+        WHERE IdAgencia = @IdAgencia AND IdCliente = @IdCliente
+          AND IdPMResponsable = @IdPMResponsable AND Estado = N'Pendiente'
+        ORDER BY FechaAlta DESC
+    );
+
+    IF @IdExistente IS NOT NULL
+    BEGIN
+        SELECT @IdExistente AS ID, CONVERT(bit, 0) AS Creada;
+        RETURN;
+    END;
+
+    INSERT INTO dbo.SolicitudRevisionConveniencia(IdAgencia, IdCliente, IdPMResponsable, IdUsuarioSolicitante, CausaPrincipal, AccionSugerida)
+    VALUES(@IdAgencia, @IdCliente, @IdPMResponsable, @IdUsuarioSolicitante, @CausaPrincipal, @AccionSugerida);
+
+    SELECT CONVERT(INT, SCOPE_IDENTITY()) AS ID, CONVERT(bit, 1) AS Creada;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Conveniencia_ConsultarSolicitudesPendientesPM
+    @IdAgencia INT,
+    @IdPMResponsable INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT S.*, C.Nombre AS NombreCliente, CONCAT(U.Nombre, N' ', U.Apellido) AS NombrePM
+    FROM dbo.SolicitudRevisionConveniencia S
+    INNER JOIN dbo.Cliente C ON C.ID = S.IdCliente
+    INNER JOIN dbo.PM PM ON PM.ID = S.IdPMResponsable
+    INNER JOIN dbo.Usuario U ON U.ID = PM.IdUsuario
+    WHERE S.IdAgencia = @IdAgencia AND S.IdPMResponsable = @IdPMResponsable AND S.Estado = N'Pendiente'
+    ORDER BY S.FechaAlta DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Conveniencia_MarcarSolicitudRevisionResuelta
+    @IdSolicitud INT,
+    @IdAgencia INT,
+    @IdPMResponsable INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @IdCliente INT;
+    SELECT @IdCliente = IdCliente
+    FROM dbo.SolicitudRevisionConveniencia
+    WHERE ID = @IdSolicitud AND IdAgencia = @IdAgencia AND IdPMResponsable = @IdPMResponsable AND Estado = N'Pendiente';
+
+    UPDATE dbo.SolicitudRevisionConveniencia
+    SET Estado = N'Resuelta', FechaResolucion = SYSDATETIME()
+    WHERE ID = @IdSolicitud AND IdAgencia = @IdAgencia AND IdPMResponsable = @IdPMResponsable AND Estado = N'Pendiente';
+
+    DECLARE @Actualizada bit = CONVERT(bit, CASE WHEN @@ROWCOUNT = 1 THEN 1 ELSE 0 END);
+
+    IF @Actualizada = 1
+       AND NOT EXISTS
+       (
+           SELECT 1 FROM dbo.SolicitudRevisionConveniencia
+           WHERE IdAgencia = @IdAgencia AND IdCliente = @IdCliente AND Estado = N'Pendiente'
+       )
+    BEGIN
+        UPDATE dbo.ClienteRevisionConveniencia
+        SET Estado = N'Resuelta', FechaMarcado = SYSDATETIME()
+        WHERE IdAgencia = @IdAgencia AND IdCliente = @IdCliente;
+    END;
+
+    SELECT @Actualizada AS Actualizada;
+END;
+GO
+
+/* Un cliente aparece "en revisión" sólo mientras al menos un PM tenga una solicitud pendiente. */
+CREATE OR ALTER PROCEDURE dbo.usp_Conveniencia_ConsultarClientesEnRevision
+    @IdAgencia INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT DISTINCT C.IdCliente
+    FROM dbo.ClienteRevisionConveniencia C
+    INNER JOIN dbo.SolicitudRevisionConveniencia S ON S.IdAgencia = C.IdAgencia AND S.IdCliente = C.IdCliente AND S.Estado = N'Pendiente'
+    WHERE C.IdAgencia = @IdAgencia AND C.Estado = N'Marcado';
 END;
 GO

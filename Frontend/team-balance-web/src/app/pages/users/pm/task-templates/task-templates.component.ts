@@ -40,7 +40,7 @@ export class TaskTemplatesComponent {
     complejidad: ['Media'],
     prioridadSugerida: ['Media'],
     idSkillRequerido: [0, Validators.min(1)],
-    seniorityRecomendado: [''],
+    seniorityRecomendado: ['Semisenior', Validators.required],
     archivosAdjuntosJson: [''],
   });
 
@@ -60,7 +60,7 @@ export class TaskTemplatesComponent {
   }
 
   nueva(): void {
-    this.form.reset({ id: 0, nombre: '', tituloSugerido: '', descripcionBase: '', horasEstimadas: 0, complejidad: 'Media', prioridadSugerida: 'Media', idSkillRequerido: 0, seniorityRecomendado: '', archivosAdjuntosJson: '' });
+    this.form.reset({ id: 0, nombre: '', tituloSugerido: '', descripcionBase: '', horasEstimadas: 0, complejidad: 'Media', prioridadSugerida: 'Media', idSkillRequerido: 0, seniorityRecomendado: 'Semisenior', archivosAdjuntosJson: '' });
     this.checklist.set([]);
     this.nuevoChecklist.set('');
     this.limpiarMensajes();
@@ -68,7 +68,11 @@ export class TaskTemplatesComponent {
   }
 
   editar(plantilla: PlantillaTarea): void {
-    this.form.patchValue({ ...plantilla, archivosAdjuntosJson: this.urls(plantilla.archivosAdjuntosJson).join('\n') });
+    this.form.patchValue({
+      ...plantilla,
+      seniorityRecomendado: plantilla.seniorityRecomendado || this.senioritySegunComplejidad(plantilla.complejidad),
+      archivosAdjuntosJson: this.urls(plantilla.archivosAdjuntosJson).join('\n'),
+    });
     this.checklist.set(this.obtenerChecklist(plantilla.checklistBaseJson));
     this.nuevoChecklist.set('');
     this.limpiarMensajes();
@@ -83,7 +87,12 @@ export class TaskTemplatesComponent {
   seleccionarTareaBase(tarea: Tarea): void {
     this.service.crearDesdeTarea(tarea).subscribe({
       next: (plantilla: PlantillaTarea) => {
-        this.form.patchValue({ ...plantilla, id: 0, archivosAdjuntosJson: this.urls(plantilla.archivosAdjuntosJson).join('\n') });
+        this.form.patchValue({
+          ...plantilla,
+          id: 0,
+          seniorityRecomendado: plantilla.seniorityRecomendado || this.senioritySegunComplejidad(plantilla.complejidad),
+          archivosAdjuntosJson: this.urls(plantilla.archivosAdjuntosJson).join('\n'),
+        });
         this.checklist.set(this.obtenerChecklist(plantilla.checklistBaseJson));
         this.mostrarDesdeTarea.set(false);
         this.mostrarFormulario.set(true);
@@ -94,7 +103,7 @@ export class TaskTemplatesComponent {
 
   guardar(): void {
     if (this.form.invalid) {
-      this.error.set('Completá nombre, título sugerido, horas estimadas y skill requerida.');
+      this.error.set('Completá nombre, título sugerido, horas estimadas, skill y seniority requeridos.');
       return;
     }
 
@@ -189,6 +198,14 @@ export class TaskTemplatesComponent {
 
   private esUrl(url: string): boolean {
     try { const direccion = new URL(url); return direccion.protocol === 'https:' || direccion.protocol === 'http:'; } catch { return false; }
+  }
+
+  private senioritySegunComplejidad(complejidad?: string | null): string {
+    switch (complejidad?.trim().toLowerCase()) {
+      case 'baja': return 'Junior';
+      case 'alta': return 'Senior';
+      default: return 'Semisenior';
+    }
   }
 
   private limpiarMensajes(): void { this.error.set(''); this.mensaje.set(''); }

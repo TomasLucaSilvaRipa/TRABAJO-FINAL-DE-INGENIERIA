@@ -137,6 +137,15 @@
                 </label>
 
                 <label class="tb-field-label">
+                    Seniority requerido
+                    <select formControlName="seniorityRequerido">
+                        <option>Junior</option>
+                        <option>Semisenior</option>
+                        <option>Senior</option>
+                    </select>
+                </label>
+
+                <label class="tb-field-label">
                     <span>Inicio <span class="text-cyan-300" aria-label="Necesario para Best Fit">*</span></span>
                     <input type="date" formControlName="fechaInicio" />
                 </label>
@@ -219,7 +228,7 @@
                 <button class="tb-dialog__close" type="button" (click)="mostrarSkill.set(false)">×</button>
                 <p class="tb-page-kicker">CATÁLOGO</p>
                 <h2>Skills para tareas</h2>
-                <p class="tb-muted-text">Creá una skill para usarla inmediatamente en esta tarea.</p>
+                <p class="tb-muted-text">Creá o editá una skill y definí el área a la que pertenece.</p>
 
                 <form [formGroup]="skillForm" (ngSubmit)="crearSkill()" class="mt-5 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
                     <label class="tb-field-label">
@@ -228,12 +237,12 @@
                     </label>
 
                     <label class="tb-field-label">
-                        Categoría
-                        <input formControlName="categoria" />
+                        Área
+                        <select formControlName="idAreaSkill"><option [ngValue]="0">Seleccioná un área</option>@for(area of areasSkills();track area.id){<option [ngValue]="area.id">{{area.nombre}}</option>}</select>
                     </label>
 
                     <div class="flex items-end">
-                        <button class="tb-action-button" type="submit">Crear</button>
+                        <button class="tb-action-button" type="submit">{{skillEnEdicion() ? 'Guardar cambios' : 'Crear'}}</button>
                     </div>
                 </form>
 
@@ -241,7 +250,7 @@
                     <p class="text-sm font-semibold">Skills disponibles</p>
                     <div class="mt-3 flex flex-wrap gap-2">
                         @for(skill of opciones().skills;track skill.id){
-                            <span class="tb-status-badge" [class.opacity-50]="!skill.activo">{{skill.nombre}}<button type="button" class="ml-2 underline" (click)="cambiarEstadoSkill(skill)"> {{skill.activo?'Baja':'Reactivar'}}</button></span>
+                            <span class="tb-status-badge" [class.opacity-50]="!skill.activo">{{skill.nombre}}<small class="ml-1">· {{skill.nombreArea || skill.categoria}}</small><button type="button" class="ml-2 underline" (click)="editarSkill(skill)">Editar</button><button type="button" class="ml-2 underline" (click)="cambiarEstadoSkill(skill)"> {{skill.activo?'Baja':'Reactivar'}}</button></span>
                         }
                     </div>
                 </div>

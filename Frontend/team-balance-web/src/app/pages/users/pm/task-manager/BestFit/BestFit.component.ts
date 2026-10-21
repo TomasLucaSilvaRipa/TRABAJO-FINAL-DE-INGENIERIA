@@ -97,8 +97,10 @@ export class BestFit {
 
   nivelExperienciaConsiderado(tarea: Tarea | null): string {
     if (!tarea) { return ''; }
+    if (tarea.seniorityRequerido) { return tarea.seniorityRequerido; }
+    // Compatibilidad visual para tareas previas a la carga inicial de seniority.
     if (tarea.complejidad === 'Alta') { return 'Senior'; }
-    if (tarea.complejidad === 'Media') { return 'Semi Senior'; }
+    if (tarea.complejidad === 'Media') { return 'Semisenior'; }
     return 'Junior';
   }
 
@@ -113,6 +115,6 @@ export class BestFit {
     const hoy = new Date();
     deadline.setHours(0, 0, 0, 0);
     hoy.setHours(0, 0, 0, 0);
-    return tarea.activo && !!tarea.idSkillRequerido && !!tarea.complejidad && tarea.horasEstimadas > 0 && !Number.isNaN(deadline.getTime()) && deadline >= hoy;
+    return tarea.activo && !!tarea.idSkillRequerido && !!this.nivelExperienciaConsiderado(tarea) && tarea.horasEstimadas > 0 && !Number.isNaN(deadline.getTime()) && deadline >= hoy;
   }
 }

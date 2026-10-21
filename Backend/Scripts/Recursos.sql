@@ -18,6 +18,17 @@ GO
 CREATE OR ALTER PROCEDURE dbo.usp_Skill_CambiarEstado @ID INT, @Activo BIT AS
 BEGIN UPDATE dbo.Skill SET Activo=@Activo WHERE ID=@ID; END
 GO
+CREATE OR ALTER PROCEDURE dbo.usp_Skill_Modificar @ID INT, @Nombre NVARCHAR(150), @IdAreaSkill INT AS
+BEGIN
+    SET NOCOUNT ON;
+    IF NOT EXISTS (SELECT 1 FROM dbo.Skill WHERE ID = @ID) THROW 51022, 'La skill seleccionada no existe.', 1;
+    IF NOT EXISTS (SELECT 1 FROM dbo.AreaSkill WHERE ID = @IdAreaSkill AND Activo = 1) THROW 51020, 'El área de la skill no es válida.', 1;
+    IF EXISTS (SELECT 1 FROM dbo.Skill WHERE Nombre = @Nombre AND ID <> @ID) THROW 51021, 'Ya existe una skill con ese nombre.', 1;
+    DECLARE @Categoria NVARCHAR(150) = (SELECT Nombre FROM dbo.AreaSkill WHERE ID = @IdAreaSkill);
+    UPDATE dbo.Skill SET Nombre = @Nombre, Categoria = @Categoria, IdAreaSkill = @IdAreaSkill WHERE ID = @ID;
+    SELECT S.ID, S.Nombre, S.Categoria, S.IdAreaSkill, A.Nombre AS NombreArea, S.Activo FROM dbo.Skill S INNER JOIN dbo.AreaSkill A ON A.ID = S.IdAreaSkill WHERE S.ID = @ID;
+END
+GO
 CREATE OR ALTER PROCEDURE dbo.usp_Empleado_ConsultarIdPorUsuarioAgencia @IdUsuario INT, @IdAgencia INT AS
 BEGIN SELECT E.ID FROM dbo.Empleado E INNER JOIN dbo.Usuario U ON U.ID=E.IdUsuario WHERE E.IdUsuario=@IdUsuario AND U.IdAgencia=@IdAgencia; END
 GO

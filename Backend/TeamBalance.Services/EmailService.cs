@@ -123,6 +123,15 @@ namespace TeamBalance.Services
             return await EnviarMail("Nueva revisión operativa pendiente · TeamBalance", descripcion, receptor);
         }
 
+        public async Task<bool> EnviarCorreoRevisionConveniencia(string receptor, string nombre, string nombreCliente, List<string> proyectos, string causaPrincipal, string accionSugerida)
+        {
+            string proyectosAfectados = proyectos.Count == 0
+                ? "los proyectos activos del cliente"
+                : string.Join(", ", proyectos.Select(System.Net.WebUtility.HtmlEncode));
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p><p>Dirección marcó al cliente <strong>{System.Net.WebUtility.HtmlEncode(nombreCliente)}</strong> para una revisión de conveniencia operativa en los proyectos: <strong>{proyectosAfectados}</strong>.</p><p><strong>Motivo:</strong><br />{System.Net.WebUtility.HtmlEncode(causaPrincipal)}</p><p><strong>Acción solicitada:</strong><br />{System.Net.WebUtility.HtmlEncode(accionSugerida)}</p><p>Ingresá a TeamBalance y resolvé la revisión cuando finalices la gestión.</p>";
+            return await EnviarMail("Revisión de conveniencia pendiente · TeamBalance", descripcion, receptor);
+        }
+
         private async Task<bool> EnviarMail(string tema, string descripcion, string receptor)
         {
             if (string.IsNullOrWhiteSpace(emisor) || string.IsNullOrWhiteSpace(claveAplicacion) || string.IsNullOrWhiteSpace(receptor))

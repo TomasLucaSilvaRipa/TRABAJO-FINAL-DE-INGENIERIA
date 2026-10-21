@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Cliente, ProjectsService, Proyecto } from '../../../../services/projects.service';
 import { ConfiguracionReporteEjecutivo, ReporteEjecutivo, ReporteEjecutivoService } from '../../../../services/reporte-ejecutivo.service';
 import { DetalleRiesgoProyecto, FiltroRiesgoRetraso, RiesgoRetrasoService } from '../../../../services/riesgo-retraso.service';
-import { AccionAjusteDesvioHoras, AnalisisConvenienciaOperativa, AnalisisDesvioHoras, AnalisisOcupacionOperativa, AnalisisSobrecalificacionPerfiles, AnaliticaOperativaService, DesvioHorasProyecto, DesvioHorasTarea, DetalleDesvioHorasTarea, DetalleOcupacionEmpleado, DetalleOcupacionTarea, FiltroDesvioHoras, FiltroOcupacionOperativa, OcupacionEmpleado, OcupacionProyecto, SolicitudRevisionOperativa } from '../../../../services/analitica-operativa.service';
+import { AccionAjusteDesvioHoras, AnalisisConvenienciaOperativa, AnalisisDesvioHoras, AnalisisOcupacionOperativa, AnalisisSobrecalificacionPerfiles, AnaliticaOperativaService, ConvenienciaOperativaCliente, ConvenienciaOperativaProyecto, DesvioHorasProyecto, DesvioHorasTarea, DetalleConvenienciaOperativa, DetalleDesvioHorasTarea, DetalleOcupacionEmpleado, DetalleOcupacionTarea, FiltroConvenienciaOperativa, FiltroDesvioHoras, FiltroOcupacionOperativa, NuevoSeguimientoConvenienciaOperativa, OcupacionEmpleado, OcupacionProyecto, RevisionOperativaPendiente, SobrecalificacionTarea } from '../../../../services/analitica-operativa.service';
 import { AuthService } from '../../../../services/auth.service';
 
 type VistaAnalisis = 'riesgo' | 'ocupacion' | 'desvio' | 'conveniencia' | 'sobrecalificacion' | 'revisiones';
@@ -26,12 +26,21 @@ export class Reports {
   protected readonly cerrandoDetalleOcupacion = signal(false);
   protected readonly situacionARevisar = signal<DetalleOcupacionEmpleado | null>(null);
   protected readonly tareaARevisar = signal<DetalleOcupacionTarea | null>(null);
-  protected readonly solicitudesRevision = signal<SolicitudRevisionOperativa[]>([]);
+  protected readonly solicitudesRevision = signal<RevisionOperativaPendiente[]>([]);
   protected readonly desvioHoras = signal<AnalisisDesvioHoras | null>(null);
   protected readonly detalleDesvio = signal<DetalleDesvioHorasTarea | null>(null);
+  protected readonly cerrandoDetalleDesvio = signal(false);
   protected readonly proyectoAComunicar = signal<DesvioHorasProyecto | null>(null);
   protected readonly conveniencia = signal<AnalisisConvenienciaOperativa | null>(null);
+  protected readonly detalleConveniencia = signal<DetalleConvenienciaOperativa | null>(null);
+  protected readonly cerrandoDetalleConveniencia = signal(false);
+  protected readonly clienteConvenienciaARevisar = signal<ConvenienciaOperativaCliente | null>(null);
+  protected readonly mensajeConveniencia = signal('');
+  protected readonly hayFiltrosConvenienciaAplicados = signal(false);
   protected readonly sobrecalificacion = signal<AnalisisSobrecalificacionPerfiles | null>(null);
+  protected readonly sobrecalificacionARevisar = signal<SobrecalificacionTarea | null>(null);
+  protected readonly observacionSobrecalificacion = signal('');
+  protected readonly mensajeSobrecalificacion = signal('');
   protected readonly vista = signal<VistaAnalisis>('riesgo');
   protected readonly cargando = signal(false);
   protected readonly error = signal('');
@@ -44,7 +53,9 @@ export class Reports {
   protected filtro: FiltroRiesgoRetraso = {};
   protected filtroOcupacion: FiltroOcupacionOperativa = {};
   protected filtroDesvio: FiltroDesvioHoras = {};
+  protected filtroConveniencia: FiltroConvenienciaOperativa = {};
   protected accionAjuste: AccionAjusteDesvioHoras = { idProyecto: 0, idTarea: null, observacion: '' };
+  protected seguimientoConveniencia: NuevoSeguimientoConvenienciaOperativa = { idCliente: 0, idProyecto: null, observacion: '', accionSugerida: '' };
   protected configuracionReporte: ConfiguracionReporteEjecutivo = {
     titulo: 'Reporte ejecutivo de gestión', filtro: { alcanceGeneral: true }, incluirOcupacionOperativa: true,
     incluirRiesgoRetraso: true, incluirDesvioHoras: true, incluirEficienciaPerfiles: true,
@@ -129,14 +140,32 @@ export class Reports {
     this.analiticaService.consultarSolicitudesRevisionPendientes().subscribe({ next: solicitudes => { this.solicitudesRevision.set(solicitudes); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudieron consultar las revisiones pendientes.'); this.cargando.set(false); } });
   }
 
+  protected resolverSolicitudRevision(solicitud: RevisionOperativaPendiente): void {
+    this.procesandoDesvio.set(true); this.error.set('');
+    this.analiticaService.resolverSolicitudRevision(solicitud.id, solicitud.tipo).subscribe({
+      next: mensaje => {
+        this.mensajeDesvio.set(mensaje);
+        this.solicitudesRevision.update(solicitudes => solicitudes.filter(item => item.id !== solicitud.id || item.tipo !== solicitud.tipo));
+        this.procesandoDesvio.set(false);
+      },
+      error: error => { this.error.set(error?.error || 'No fue posible marcar la revisión como resuelta.'); this.procesandoDesvio.set(false); }
+    });
+  }
+
   protected consultarDesvioHoras(): void {
     this.cargando.set(true); this.error.set('');
-    this.analiticaService.consultarDesvioHoras(this.filtroDesvio).subscribe({ next: resultado => { this.desvioHoras.set(resultado); this.detalleDesvio.set(null); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar el desvío de horas.'); this.cargando.set(false); } });
+    this.analiticaService.consultarDesvioHoras(this.filtroDesvio).subscribe({ next: resultado => { this.desvioHoras.set(resultado); this.detalleDesvio.set(null); this.cerrandoDetalleDesvio.set(false); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar el desvío de horas.'); this.cargando.set(false); } });
   }
 
   protected abrirDetalleDesvio(proyecto: DesvioHorasProyecto, tarea: DesvioHorasTarea): void {
     this.error.set(''); this.mensajeDesvio.set('');
-    this.analiticaService.consultarDetalleDesvioHorasTarea(proyecto.idProyecto, tarea.idTarea, this.filtroDesvio.desde, this.filtroDesvio.hasta).subscribe({ next: detalle => this.detalleDesvio.set(detalle), error: error => this.error.set(error?.error || 'No se pudo consultar el detalle del desvío.') });
+    this.analiticaService.consultarDetalleDesvioHorasTarea(proyecto.idProyecto, tarea.idTarea, this.filtroDesvio.desde, this.filtroDesvio.hasta).subscribe({ next: detalle => { this.cerrandoDetalleDesvio.set(false); this.detalleDesvio.set(detalle); }, error: error => this.error.set(error?.error || 'No se pudo consultar el detalle del desvío.') });
+  }
+
+  protected cerrarDetalleDesvio(): void {
+    if (!this.detalleDesvio() || this.cerrandoDetalleDesvio()) { return; }
+    this.cerrandoDetalleDesvio.set(true);
+    setTimeout(() => { this.detalleDesvio.set(null); this.cerrandoDetalleDesvio.set(false); }, 180);
   }
 
   protected abrirAccionAjuste(proyecto: DesvioHorasProyecto, tarea?: DesvioHorasTarea): void {
@@ -149,7 +178,7 @@ export class Reports {
   protected registrarAccionAjuste(): void {
     if (!this.accionAjuste.idProyecto || !this.accionAjuste.observacion.trim()) { this.error.set('Describí la acción de ajuste antes de confirmarla.'); return; }
     this.procesandoDesvio.set(true); this.error.set('');
-    this.analiticaService.registrarAccionAjuste(this.accionAjuste).subscribe({ next: mensaje => { this.mensajeDesvio.set(mensaje); this.cerrarAccionAjuste(); this.procesandoDesvio.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo registrar la acción de ajuste.'); this.procesandoDesvio.set(false); } });
+    this.analiticaService.registrarAccionAjuste(this.accionAjuste).subscribe({ next: mensaje => { this.mensajeDesvio.set(`${mensaje} No se envió un correo: usá “Informar al Dueño” si necesitás notificarlo.`); this.cerrarAccionAjuste(); this.procesandoDesvio.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo registrar la acción de ajuste.'); this.procesandoDesvio.set(false); } });
   }
 
   protected prepararComunicacion(proyecto: DesvioHorasProyecto): void { this.proyectoAComunicar.set(proyecto); this.mensajeDesvio.set(''); }
@@ -176,13 +205,78 @@ export class Reports {
   }
 
   protected consultarConveniencia(): void {
+    const filtroAplicado: FiltroConvenienciaOperativa = { ...this.filtroConveniencia };
     this.cargando.set(true); this.error.set('');
-    this.analiticaService.consultarConveniencia().subscribe({ next: resultado => { this.conveniencia.set(resultado); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar la conveniencia operativa.'); this.cargando.set(false); } });
+    this.analiticaService.consultarConveniencia(filtroAplicado).subscribe({ next: resultado => { this.conveniencia.set(resultado); this.detalleConveniencia.set(null); this.cerrandoDetalleConveniencia.set(false); this.hayFiltrosConvenienciaAplicados.set(this.tieneFiltrosConveniencia(filtroAplicado)); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar la conveniencia operativa.'); this.cargando.set(false); } });
+  }
+
+  protected limpiarFiltrosConveniencia(): void {
+    this.filtroConveniencia = {};
+    this.consultarConveniencia();
+  }
+
+  private tieneFiltrosConveniencia(filtro: FiltroConvenienciaOperativa): boolean {
+    return Object.values(filtro).some(valor => valor !== null && valor !== undefined && valor !== '');
+  }
+
+  protected estadosProyectoConveniencia(): string[] { return [...new Set(this.proyectos().map(proyecto => proyecto.estado).filter(Boolean))].sort(); }
+
+  protected abrirDetalleConveniencia(proyecto: ConvenienciaOperativaProyecto): void {
+    this.error.set('');
+    this.analiticaService.consultarDetalleConveniencia(proyecto.idProyecto, this.filtroConveniencia).subscribe({ next: detalle => { this.cerrandoDetalleConveniencia.set(false); this.detalleConveniencia.set(detalle); }, error: error => this.error.set(error?.error || 'No se pudo consultar la composición del costo operativo.') });
+  }
+
+  protected cerrarDetalleConveniencia(): void {
+    if (!this.detalleConveniencia() || this.cerrandoDetalleConveniencia()) { return; }
+    this.cerrandoDetalleConveniencia.set(true);
+    setTimeout(() => { this.detalleConveniencia.set(null); this.cerrandoDetalleConveniencia.set(false); }, 180);
+  }
+
+  protected abrirSeguimientoConveniencia(proyecto: ConvenienciaOperativaProyecto): void {
+    this.seguimientoConveniencia = { idCliente: proyecto.idCliente, idProyecto: proyecto.idProyecto, observacion: '', accionSugerida: '' };
+  }
+
+  protected cerrarSeguimientoConveniencia(): void { this.seguimientoConveniencia = { idCliente: 0, idProyecto: null, observacion: '', accionSugerida: '' }; }
+
+  protected guardarSeguimientoConveniencia(): void {
+    if (!this.seguimientoConveniencia.idCliente || !this.seguimientoConveniencia.observacion.trim() || !this.seguimientoConveniencia.accionSugerida.trim()) { this.error.set('Completá la observación y la acción sugerida.'); return; }
+    this.procesandoDesvio.set(true); this.error.set('');
+    this.analiticaService.registrarSeguimientoConveniencia(this.seguimientoConveniencia).subscribe({ next: mensaje => { this.mensajeConveniencia.set(mensaje); this.cerrarSeguimientoConveniencia(); this.procesandoDesvio.set(false); const detalle = this.detalleConveniencia(); if (detalle) { this.abrirDetalleConveniencia(detalle.proyecto); } }, error: error => { this.error.set(error?.error || 'No se pudo registrar el seguimiento.'); this.procesandoDesvio.set(false); } });
+  }
+
+  protected marcarClienteRevisionConveniencia(): void {
+    const cliente = this.clienteConvenienciaARevisar();
+    if (!cliente) { return; }
+    this.procesandoDesvio.set(true); this.error.set('');
+    this.analiticaService.marcarClienteRevisionConveniencia(cliente.idCliente).subscribe({ next: mensaje => { this.mensajeConveniencia.set(mensaje); this.clienteConvenienciaARevisar.set(null); this.procesandoDesvio.set(false); this.consultarConveniencia(); }, error: error => { this.error.set(error?.error || 'No se pudo marcar el cliente para revisión.'); this.procesandoDesvio.set(false); } });
+  }
+
+  protected verProyectosClienteConveniencia(idCliente: number): void {
+    this.filtroConveniencia.idCliente = idCliente;
+    this.filtroConveniencia.idProyecto = null;
+    this.consultarConveniencia();
   }
 
   protected consultarSobrecalificacion(): void {
     this.cargando.set(true); this.error.set('');
-    this.analiticaService.consultarSobrecalificacion().subscribe({ next: resultado => { this.sobrecalificacion.set(resultado); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar la sobrecalificación de perfiles.'); this.cargando.set(false); } });
+    this.analiticaService.consultarSobrecalificacion({ idProyecto: this.filtro.idProyecto ?? null }).subscribe({ next: resultado => { this.sobrecalificacion.set(resultado); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar la sobrecalificación de perfiles.'); this.cargando.set(false); } });
+  }
+
+  protected prepararSolicitudSobrecalificacion(tarea: SobrecalificacionTarea): void {
+    this.observacionSobrecalificacion.set('');
+    this.mensajeSobrecalificacion.set('');
+    this.sobrecalificacionARevisar.set(tarea);
+  }
+
+  protected enviarSolicitudSobrecalificacion(): void {
+    const tarea = this.sobrecalificacionARevisar();
+    const observacion = this.observacionSobrecalificacion().trim();
+    if (!tarea || !observacion) { this.error.set('Describí el criterio de asignación que debe revisar el PM.'); return; }
+    this.procesandoDesvio.set(true); this.error.set('');
+    this.analiticaService.solicitarRevisionSobrecalificacion({ idEmpleado: tarea.idEmpleado, idProyecto: tarea.idProyecto, idTarea: tarea.idTarea, observacion }).subscribe({
+      next: mensaje => { this.mensajeSobrecalificacion.set(mensaje); this.sobrecalificacionARevisar.set(null); this.procesandoDesvio.set(false); },
+      error: error => { this.error.set(error?.error || 'No fue posible enviar la solicitud de revisión.'); this.procesandoDesvio.set(false); }
+    });
   }
 
   protected verDetalleRiesgo(riesgo: DetalleRiesgoProyecto): void { this.riesgoSeleccionado.set(riesgo); }

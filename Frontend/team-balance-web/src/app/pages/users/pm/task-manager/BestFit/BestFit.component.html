@@ -2,7 +2,7 @@
   <header>
     <p class="tb-page-kicker">ASIGNACIÓN DE RECURSOS</p>
     <h1 class="tb-page-title">Best Fit</h1>
-    <p class="tb-page-description">Compará recursos compatibles según skill, complejidad, capacidad para el deadline, carga actual e historial operativo.</p>
+    <p class="tb-page-description">Compará recursos compatibles según skill, seniority requerido, capacidad para el deadline, carga actual e historial operativo.</p>
   </header>
 
   <section class="tb-panel space-y-4">
@@ -16,7 +16,7 @@
       <p class="tb-page-kicker">RESUMEN DE LA TAREA</p>
       <div class="mt-3 grid gap-3 text-sm md:grid-cols-4">
         <p><strong>Complejidad:</strong> {{tareaActual()?.complejidad}}</p>
-        <p><strong>Nivel considerado:</strong> {{nivelExperienciaConsiderado(tareaActual())}}</p>
+        <p><strong>Seniority requerido:</strong> {{nivelExperienciaConsiderado(tareaActual())}}</p>
         <p><strong>Horas estimadas:</strong> {{tareaActual()?.horasEstimadas}} h</p>
         <p><strong>Prioridad:</strong> {{tareaActual()?.prioridad || 'Sin definir'}}</p>
         <p><strong>Inicio:</strong> {{tareaActual()?.fechaInicio | date:'dd/MM/yyyy'}}</p>
@@ -69,7 +69,7 @@
   } @else if(tareaActual()) {
     <section class="tb-panel tb-empty-state"><h2>No hay candidatos operativamente viables</h2><p>La tarea cumple las condiciones, pero ningún empleado puede asumirla sin comprometer su capacidad o el deadline.</p></section>
   } @else {
-    <section class="tb-panel tb-empty-state"><h2>Seleccioná una tarea para continuar</h2><p>Solo se muestran tareas propias con skill, complejidad, horas estimadas, inicio y deadline definidos. Aunque ya tenga empleados asignados, Best Fit puede proponer otro recurso para distribuir horas pendientes.</p></section>
+    <section class="tb-panel tb-empty-state"><h2>Seleccioná una tarea para continuar</h2><p>Solo se muestran tareas propias con skill, seniority requerido, horas estimadas, inicio y deadline definidos. Aunque ya tenga empleados asignados, Best Fit puede proponer otro recurso para distribuir horas pendientes.</p></section>
   }
 
   @if(detalle()){

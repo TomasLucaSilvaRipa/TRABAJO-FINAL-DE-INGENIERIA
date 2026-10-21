@@ -16,7 +16,10 @@ GO
 CREATE OR ALTER PROCEDURE dbo.usp_RiesgoRetraso_ConsultarTareasProyecto @IdProyecto INT AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT T.* FROM dbo.Tarea T WHERE T.IdProyecto = @IdProyecto AND T.Activo = 1;
+    SELECT T.*, COALESCE(NULLIF(LTRIM(RTRIM(T.Estado)), N''), ET.Nombre, N'Sin estado') AS NombreEstadoTarea
+    FROM dbo.Tarea T
+    LEFT JOIN dbo.EstadoTarea ET ON ET.ID = T.IdEstadoTarea
+    WHERE T.IdProyecto = @IdProyecto AND T.Activo = 1;
 END
 GO
 

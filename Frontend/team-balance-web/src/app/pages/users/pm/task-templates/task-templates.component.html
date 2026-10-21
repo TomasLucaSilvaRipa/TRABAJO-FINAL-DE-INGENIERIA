@@ -28,7 +28,7 @@
         <label class="tb-field-label">Nombre de la plantilla<input formControlName="nombre" placeholder="Ej.: Landing de campaña" /></label>
         <label class="tb-field-label">Título sugerido<input formControlName="tituloSugerido" placeholder="Ej.: Diseñar landing de campaña" /></label>
         <label class="tb-field-label">Skill requerida<select formControlName="idSkillRequerido"><option [ngValue]="0">Seleccioná una skill</option>@for (skill of skills(); track skill.id) { <option [ngValue]="skill.id">{{ skill.nombre }}</option> }</select></label>
-        <label class="tb-field-label">Seniority recomendado<select formControlName="seniorityRecomendado"><option value="">Sin definir</option><option>Junior</option><option>Semisenior</option><option>Senior</option></select></label>
+        <label class="tb-field-label">Seniority requerido<select formControlName="seniorityRecomendado"><option>Junior</option><option>Semisenior</option><option>Senior</option></select></label>
         <label class="tb-field-label">Prioridad sugerida<select formControlName="prioridadSugerida"><option>Baja</option><option>Media</option><option>Alta</option></select></label>
         <label class="tb-field-label">Complejidad<select formControlName="complejidad"><option>Baja</option><option>Media</option><option>Alta</option></select></label>
         <label class="tb-field-label">Horas estimadas<input type="number" min="0.25" step="0.25" formControlName="horasEstimadas" /></label>

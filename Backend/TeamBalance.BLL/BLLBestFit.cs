@@ -99,7 +99,9 @@ public class BLLBestFit
     private static void ValidarTareaParaBestFit(Tarea tarea)
     {
         if (!tarea.IdSkillRequerido.HasValue || tarea.IdSkillRequerido.Value <= 0) { throw new ArgumentException("La tarea debe tener una skill requerida para usar Best Fit."); }
-        if (string.IsNullOrWhiteSpace(tarea.Complejidad)) { throw new ArgumentException("La tarea debe tener una complejidad definida para usar Best Fit."); }
+        // Las tareas históricas sin este dato conservan temporalmente el mapeo
+        // previo de complejidad. Las tareas nuevas lo validan al guardarse.
+        if (string.IsNullOrWhiteSpace(tarea.SeniorityRequerido) && string.IsNullOrWhiteSpace(tarea.Complejidad)) { throw new ArgumentException("La tarea debe tener un seniority requerido para usar Best Fit."); }
         if (!tarea.FechaInicio.HasValue) { throw new ArgumentException("La tarea debe tener una fecha de inicio para usar Best Fit."); }
         if (tarea.HorasEstimadas <= 0) { throw new ArgumentException("La tarea debe tener horas estimadas para usar Best Fit."); }
         if (!tarea.Deadline.HasValue) { throw new ArgumentException("La tarea debe tener un deadline para usar Best Fit."); }

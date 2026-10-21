@@ -42,6 +42,17 @@ public class MPPRecursos
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
+    public Skill ModificarSkill(Skill skill)
+    {
+        try
+        {
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@ID", skill.ID), new SqlParameter("@Nombre", skill.Nombre), new SqlParameter("@IdAreaSkill", skill.IdAreaSkill!.Value) };
+            DataTable tabla = _conexion.Leer("dbo.usp_Skill_Modificar", parametros);
+            return CrearSkills(tabla).Single();
+        }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
     public bool CambiarEstadoSkill(Skill skill)
     {
         try

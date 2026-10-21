@@ -66,6 +66,9 @@ public class MotorBestFit
 
     private static string ObtenerSeniorityRequerido(Tarea tarea)
     {
+        if (!string.IsNullOrWhiteSpace(tarea.SeniorityRequerido)) { return tarea.SeniorityRequerido; }
+
+        // Compatibilidad con tareas creadas antes del campo obligatorio.
         string complejidad = Normalizar(tarea.Complejidad);
         if (complejidad.Contains("alta")) { return "Senior"; }
         if (complejidad.Contains("media")) { return "Semi Senior"; }

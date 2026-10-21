@@ -91,6 +91,7 @@ public class BLLTarea
             if (tarea.IdProyecto <= 0) { throw new ArgumentException("Seleccioná el proyecto de la tarea."); }
             if (tarea.IdEstadoTarea <= 0) { throw new ArgumentException("Seleccioná el estado inicial de la tarea."); }
             if (!tarea.IdSkillRequerido.HasValue || tarea.IdSkillRequerido.Value <= 0) { throw new ArgumentException("Seleccioná la skill requerida para la tarea."); }
+            NormalizarSeniorityRequerido(tarea);
             tarea.Titulo = tarea.Titulo.Trim();
             if (ObtenerAgencia(usuario))
             {
@@ -269,11 +270,30 @@ public class BLLTarea
         try
         {
             ValidarGestionTareas(usuario);
-            if (string.IsNullOrWhiteSpace(skill.Nombre)) { throw new ArgumentException("Ingresá el nombre de la skill."); }
-            skill.Nombre = skill.Nombre.Trim();
+            ValidarSkill(skill);
             return _recursosMPP.RegistrarSkill(skill);
-        }catch(Exception ex) { throw new Exception(ex.Message); }
-        
+        }
+        catch (ArgumentException) { throw; }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    public Skill ModificarSkill(Skill skill, Usuario usuario)
+    {
+        try
+        {
+            ValidarGestionTareas(usuario);
+            if (skill.ID <= 0) { throw new ArgumentException("Seleccioná una skill válida para modificar."); }
+            ValidarSkill(skill);
+            return _recursosMPP.ModificarSkill(skill);
+        }
+        catch (ArgumentException) { throw; }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    public List<AreaSkill> ConsultarAreasSkills(Usuario usuario)
+    {
+        ValidarGestionTareas(usuario);
+        return _recursosMPP.ConsultarAreasSkills().Where(area => area.Activo).ToList();
     }
     public bool CambiarEstadoSkill(Skill skill, Usuario usuario) { 
         ValidarGestionTareas(usuario); 
@@ -281,6 +301,29 @@ public class BLLTarea
     }
     private void ValidarGestionTareas(Usuario usuario) { 
         if (!_rolBLL.TienePermiso(usuario, "GestionarTareas")) { throw new UnauthorizedAccessException("No tenés permiso para gestionar tareas."); } 
+    }
+
+    private void ValidarSkill(Skill skill)
+    {
+        if (string.IsNullOrWhiteSpace(skill.Nombre)) { throw new ArgumentException("Ingresá el nombre de la skill."); }
+        if (!skill.IdAreaSkill.HasValue || !_recursosMPP.ConsultarAreasSkills().Any(area => area.ID == skill.IdAreaSkill.Value && area.Activo))
+        {
+            throw new ArgumentException("Seleccioná un área válida para la skill.");
+        }
+
+        skill.Nombre = skill.Nombre.Trim();
+    }
+
+    private static void NormalizarSeniorityRequerido(Tarea tarea)
+    {
+        string valor = (tarea.SeniorityRequerido ?? string.Empty).Trim().Replace(" ", string.Empty).ToLowerInvariant();
+        tarea.SeniorityRequerido = valor switch
+        {
+            "junior" => "Junior",
+            "semisenior" or "ssr" => "Semisenior",
+            "senior" or "sr" => "Senior",
+            _ => throw new ArgumentException("Seleccioná el seniority requerido para la tarea.")
+        };
     }
     private bool ObtenerAgencia(Usuario usuario) { 
         if (!usuario.IdAgencia.HasValue) { throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."); } 

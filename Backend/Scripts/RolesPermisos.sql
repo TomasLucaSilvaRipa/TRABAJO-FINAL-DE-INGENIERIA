@@ -136,15 +136,8 @@ DELETE rolPermiso
 FROM dbo.RolPermiso rolPermiso
 INNER JOIN dbo.Rol rol ON rol.ID = rolPermiso.IdRol
 INNER JOIN dbo.Permiso permiso ON permiso.ID = rolPermiso.IdPermiso
-WHERE rol.TipoUsuario <> N'Soporte' AND permiso.Codigo = N'ConsultarBitacora';
-GO
-
-DELETE rolPermiso
-FROM dbo.RolPermiso rolPermiso
-INNER JOIN dbo.Rol rol ON rol.ID = rolPermiso.IdRol
-INNER JOIN dbo.Permiso permiso ON permiso.ID = rolPermiso.IdPermiso
 WHERE rol.TipoUsuario <> N'Soporte'
-  AND permiso.Codigo IN (N'GestionarBandejaSoporte', N'GestionarNovedades', N'GestionarFaqs', N'GestionarEncuestas', N'GestionarOperadores', N'GestionarRespaldos');
+  AND permiso.Codigo IN (N'ConsultarBitacora', N'GestionarPlanes', N'GestionarBandejaSoporte', N'GestionarNovedades', N'GestionarFaqs', N'GestionarEncuestas', N'GestionarOperadores', N'GestionarRespaldos');
 GO
 
 DELETE rolPermiso

@@ -64,7 +64,7 @@ public class BLLPlantillaTarea
                 HorasEstimadas = tareaBase.HorasEstimadas,
                 Complejidad = tareaBase.Complejidad,
                 PrioridadSugerida = tareaBase.Prioridad,
-                SeniorityRecomendado = tareaBase.SeniorityRequerido,
+                SeniorityRecomendado = ObtenerSeniorityRequerido(tareaBase),
                 ChecklistBaseJson = tareaBase.ChecklistJson,
                 ArchivosAdjuntosJson = tareaBase.ArchivosAdjuntosJson
             };
@@ -150,8 +150,28 @@ public class BLLPlantillaTarea
             throw new ArgumentException("Indicá una skill requerida y horas estimadas mayores a cero.");
         }
 
+        if (string.IsNullOrWhiteSpace(plantilla.SeniorityRecomendado))
+        {
+            throw new ArgumentException("Indicá el seniority requerido para la plantilla.");
+        }
+
         ValidarJson(plantilla.ChecklistBaseJson, "el checklist base");
         ValidarJson(plantilla.ArchivosAdjuntosJson, "los archivos modelo");
+    }
+
+    private static string ObtenerSeniorityRequerido(Tarea tarea)
+    {
+        if (!string.IsNullOrWhiteSpace(tarea.SeniorityRequerido))
+        {
+            return tarea.SeniorityRequerido;
+        }
+
+        return tarea.Complejidad?.Trim().ToLowerInvariant() switch
+        {
+            "baja" => "Junior",
+            "alta" => "Senior",
+            _ => "Semisenior"
+        };
     }
 
     private static void ValidarJson(string? json, string campo)

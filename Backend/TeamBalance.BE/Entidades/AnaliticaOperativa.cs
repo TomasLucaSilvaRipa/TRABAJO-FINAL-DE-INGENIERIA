@@ -110,6 +110,35 @@ public class SolicitudRevisionOperativaNueva
     public int? IdTarea { get; set; }
 }
 
+public class RevisionOperativaPendiente
+{
+    public int ID { get; set; }
+    public string Tipo { get; set; } = string.Empty;
+    public int? IdCliente { get; set; }
+    public string Cliente { get; set; } = string.Empty;
+    public string Referencia { get; set; } = string.Empty;
+    public string NombreProyecto { get; set; } = string.Empty;
+    public string CausaPrincipal { get; set; } = string.Empty;
+    public string AccionSugerida { get; set; } = string.Empty;
+    public string Estado { get; set; } = string.Empty;
+    public DateTime FechaAlta { get; set; }
+}
+
+public class SolicitudRevisionConveniencia
+{
+    public int ID { get; set; }
+    public int IdAgencia { get; set; }
+    public int IdCliente { get; set; }
+    public int IdPMResponsable { get; set; }
+    public int IdUsuarioSolicitante { get; set; }
+    public string CausaPrincipal { get; set; } = string.Empty;
+    public string AccionSugerida { get; set; } = string.Empty;
+    public string Estado { get; set; } = string.Empty;
+    public DateTime FechaAlta { get; set; }
+    public string NombreCliente { get; set; } = string.Empty;
+    public string NombrePM { get; set; } = string.Empty;
+}
+
 public class AnalisisDesvioHoras
 {
     public decimal HorasEstimadas { get; set; }
@@ -198,12 +227,45 @@ public class AnalisisConvenienciaOperativa
     public decimal CostoPlanificado { get; set; }
     public decimal CostoReal { get; set; }
     public decimal DesvioCosto { get; set; }
+    public decimal PresupuestoNoConsumido { get; set; }
+    public decimal Sobrecosto { get; set; }
+    public decimal HorasRealesSinCosto { get; set; }
+    public int CantidadClientesEnRevision { get; set; }
+    public List<ConvenienciaOperativaCliente> Clientes { get; set; } = new List<ConvenienciaOperativaCliente>();
+    public List<ConvenienciaOperativaProyecto> Proyectos { get; set; } = new List<ConvenienciaOperativaProyecto>();
+}
+
+public class FiltroConvenienciaOperativa
+{
+    public int? IdCliente { get; set; }
+    public int? IdProyecto { get; set; }
+    public string? EstadoProyecto { get; set; }
+    public string? NivelDesvioCosto { get; set; }
+    public DateTime? Desde { get; set; }
+    public DateTime? Hasta { get; set; }
+}
+
+public class ConvenienciaOperativaCliente
+{
+    public int IdCliente { get; set; }
+    public string NombreCliente { get; set; } = string.Empty;
+    public decimal HorasEstimadas { get; set; }
+    public decimal HorasReales { get; set; }
+    public decimal CostoPlanificado { get; set; }
+    public decimal CostoReal { get; set; }
+    public decimal DesvioCosto { get; set; }
+    public decimal PresupuestoNoConsumido { get; set; }
+    public decimal Sobrecosto { get; set; }
+    public decimal HorasRealesSinCosto { get; set; }
+    public bool EnRevisionOperativa { get; set; }
+    public string EstadoConveniencia { get; set; } = string.Empty;
     public List<ConvenienciaOperativaProyecto> Proyectos { get; set; } = new List<ConvenienciaOperativaProyecto>();
 }
 
 public class ConvenienciaOperativaProyecto
 {
     public int IdProyecto { get; set; }
+    public int IdCliente { get; set; }
     public string NombreProyecto { get; set; } = string.Empty;
     public string NombreCliente { get; set; } = string.Empty;
     public decimal HorasEstimadas { get; set; }
@@ -211,8 +273,54 @@ public class ConvenienciaOperativaProyecto
     public decimal CostoPlanificado { get; set; }
     public decimal CostoReal { get; set; }
     public decimal DesvioCosto { get; set; }
+    public decimal PresupuestoNoConsumido { get; set; }
+    public decimal Sobrecosto { get; set; }
+    public decimal HorasRealesSinCosto { get; set; }
+    public decimal HorasPlanificadasSinCosto { get; set; }
+    public bool CostoRealIncompleto { get; set; }
     public string EstadoConveniencia { get; set; } = string.Empty;
     public string FactorPrincipal { get; set; } = string.Empty;
+}
+
+public class DetalleConvenienciaOperativa
+{
+    public ConvenienciaOperativaProyecto Proyecto { get; set; } = new ConvenienciaOperativaProyecto();
+    public List<ComposicionCostoOperativo> ComposicionCosto { get; set; } = new List<ComposicionCostoOperativo>();
+    public List<SeguimientoConvenienciaOperativa> Seguimientos { get; set; } = new List<SeguimientoConvenienciaOperativa>();
+}
+
+public class ComposicionCostoOperativo
+{
+    public int IdTarea { get; set; }
+    public int IdEmpleado { get; set; }
+    public string Tarea { get; set; } = string.Empty;
+    public string Empleado { get; set; } = string.Empty;
+    public string Seniority { get; set; } = string.Empty;
+    public decimal CostoHora { get; set; }
+    public decimal HorasPlanificadas { get; set; }
+    public decimal HorasReales { get; set; }
+    public decimal CostoPlanificado { get; set; }
+    public decimal CostoReal { get; set; }
+    public bool CostoNoConfigurado { get; set; }
+}
+
+public class SeguimientoConvenienciaOperativa
+{
+    public int ID { get; set; }
+    public int IdCliente { get; set; }
+    public int? IdProyecto { get; set; }
+    public string Observacion { get; set; } = string.Empty;
+    public string AccionSugerida { get; set; } = string.Empty;
+    public DateTime FechaAlta { get; set; }
+    public string Usuario { get; set; } = string.Empty;
+}
+
+public class NuevoSeguimientoConvenienciaOperativa
+{
+    public int IdCliente { get; set; }
+    public int? IdProyecto { get; set; }
+    public string Observacion { get; set; } = string.Empty;
+    public string AccionSugerida { get; set; } = string.Empty;
 }
 
 public class AnalisisSobrecalificacionPerfiles
@@ -227,6 +335,7 @@ public class SobrecalificacionTarea
 {
     public int IdTarea { get; set; }
     public int IdProyecto { get; set; }
+    public int IdEmpleado { get; set; }
     public string Titulo { get; set; } = string.Empty;
     public string NombreProyecto { get; set; } = string.Empty;
     public string NombreCliente { get; set; } = string.Empty;
@@ -236,4 +345,12 @@ public class SobrecalificacionTarea
     public decimal HorasAfectadas { get; set; }
     public decimal ImpactoOperativoEstimado { get; set; }
     public string Nivel { get; set; } = string.Empty;
+}
+
+public class SolicitudRevisionSobrecalificacionNueva
+{
+    public int IdEmpleado { get; set; }
+    public int IdProyecto { get; set; }
+    public int IdTarea { get; set; }
+    public string Observacion { get; set; } = string.Empty;
 }

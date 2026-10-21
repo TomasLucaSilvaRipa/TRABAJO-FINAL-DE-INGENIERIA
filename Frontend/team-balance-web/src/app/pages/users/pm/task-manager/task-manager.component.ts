@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Skill } from '../../../../services/resources.service';
+import { AreaSkill, Skill } from '../../../../services/resources.service';
 import { AsignacionTarea, FiltroTarea, Tarea, TareaOpciones, TasksService } from '../../../../services/tasks.service';
 import { LocalizationService } from '../../../../services/localization.service';
 import { BestFitService, RecomendacionBestFit } from '../../../../services/best-fit.service';
@@ -33,6 +33,8 @@ export class TaskManagerComponent {
     readonly checklist = signal<ChecklistItem[]>([]);
     readonly nuevoChecklist = signal('');
     readonly asignaciones = signal<AsignacionTarea[]>([]);
+    readonly areasSkills = signal<AreaSkill[]>([]);
+    readonly skillEnEdicion = signal<Skill | null>(null);
 
     readonly form = this.fb.group({
         id: [0],
@@ -48,7 +50,7 @@ export class TaskManagerComponent {
         complejidad: ['Media'],
         fechaInicio: [''],
         deadline: [''],
-        seniorityRequerido: [''],
+        seniorityRequerido: ['Semisenior', Validators.required],
         porcentajeAvance: [0],
         horasEstimadas: [0],
         checklistJson: [''],
@@ -56,8 +58,9 @@ export class TaskManagerComponent {
     });
 
     readonly skillForm = this.fb.group({
+        id: [0],
         nombre: ['', Validators.required],
-        categoria: ['']
+        idAreaSkill: [0, Validators.min(1)]
     });
     readonly filtroForm = this.fb.group({ idProyecto: [null as number | null], estado: [''], prioridad: [''], idEmpleadoAsignado: [null as number | null], idSkillRequerido: [null as number | null], deadlineDesde: [''], deadlineHasta: [''] });
 
@@ -70,13 +73,14 @@ export class TaskManagerComponent {
     {
         this.service.consultar().subscribe((tareas: Tarea[]) => this.tareas.set(tareas));
         this.service.opciones().subscribe((opciones: TareaOpciones) => this.opciones.set(opciones));
+        this.service.consultarAreasSkills().subscribe({ next: areas => this.areasSkills.set(areas), error: () => this.areasSkills.set([]) });
         this.templatesService.consultar().subscribe({ next: (plantillas: PlantillaTarea[]) => this.plantillas.set(plantillas) });
     }
 
     nuevo(): void
     {
         const estadoPendiente = this.opciones().estados.find(estado => estado.nombre.toLowerCase() === 'pendiente')?.id ?? 0;
-        this.form.reset({ id: 0, idPlantillaTarea: 0, idProyecto: 0, idEstadoTarea: estadoPendiente, idEmpleadoAsignado: null, idTareaPredecesora: null, idSkillRequerido: 0, titulo: '', descripcion: '', prioridad: 'Media', complejidad: 'Media', fechaInicio: '', deadline: '', seniorityRequerido: '', porcentajeAvance: 0, horasEstimadas: 0, checklistJson: '', archivosAdjuntosJson: '' });
+        this.form.reset({ id: 0, idPlantillaTarea: 0, idProyecto: 0, idEstadoTarea: estadoPendiente, idEmpleadoAsignado: null, idTareaPredecesora: null, idSkillRequerido: 0, titulo: '', descripcion: '', prioridad: 'Media', complejidad: 'Media', fechaInicio: '', deadline: '', seniorityRequerido: 'Semisenior', porcentajeAvance: 0, horasEstimadas: 0, checklistJson: '', archivosAdjuntosJson: '' });
         this.checklist.set([]);
         this.nuevoChecklist.set('');
         this.error.set('');
@@ -92,6 +96,7 @@ export class TaskManagerComponent {
         this.form.patchValue({
             ...tarea,
             idPlantillaTarea: 0,
+            seniorityRequerido: tarea.seniorityRequerido || this.senioritySegunComplejidad(tarea.complejidad),
             fechaInicio: this.formatearFechaParaControl(tarea.fechaInicio),
             deadline: this.formatearFechaParaControl(tarea.deadline),
             archivosAdjuntosJson: this.obtenerUrlsAdjuntas(tarea.archivosAdjuntosJson).join('\n')
@@ -121,7 +126,7 @@ export class TaskManagerComponent {
             idSkillRequerido: plantilla.idSkillRequerido || 0,
             prioridad: plantilla.prioridadSugerida || 'Media',
             complejidad: plantilla.complejidad || 'Media',
-            seniorityRequerido: plantilla.seniorityRecomendado || '',
+            seniorityRequerido: plantilla.seniorityRecomendado || this.senioritySegunComplejidad(plantilla.complejidad),
             horasEstimadas: plantilla.horasEstimadas || 0,
             archivosAdjuntosJson: this.obtenerUrlsAdjuntas(plantilla.archivosAdjuntosJson).join('\n')
         });
@@ -344,6 +349,8 @@ export class TaskManagerComponent {
     abrirSkills(): void
     {
         this.error.set('');
+        this.skillEnEdicion.set(null);
+        this.skillForm.reset({ id: 0, nombre: '', idAreaSkill: 0 });
         this.mostrarSkill.set(true);
     }
 
@@ -355,24 +362,32 @@ export class TaskManagerComponent {
         }
 
         const datos = this.skillForm.getRawValue();
+        const skill: Partial<Skill> = { id: datos.id ?? 0, nombre: datos.nombre ?? '', idAreaSkill: datos.idAreaSkill ?? null };
+        const operacion = skill.id ? this.service.modificarSkill(skill) : this.service.crearSkill(skill);
 
-        this.service.crearSkill({ nombre: datos.nombre ?? '', categoria: datos.categoria ?? '' }).subscribe({
+        operacion.subscribe({
             next: (skill: Skill) =>{
-                this.skillForm.reset();
-                this.mostrarSkill.set(false);
+                this.skillForm.reset({ id: 0, nombre: '', idAreaSkill: 0 });
+                this.skillEnEdicion.set(null);
                 this.service.opciones().subscribe((opciones: TareaOpciones) =>{
                     this.opciones.set(opciones);
                     this.form.controls.idSkillRequerido.setValue(skill.id);
                 });
-            },error: () => this.error.set('No se pudo crear la skill.')
+            },error: (respuesta) => this.error.set(this.obtenerMensajeError(respuesta, 'No se pudo guardar la skill.'))
         });
+    }
+
+    editarSkill(skill: Skill): void
+    {
+        this.skillEnEdicion.set(skill);
+        this.skillForm.reset({ id: skill.id, nombre: skill.nombre, idAreaSkill: skill.idAreaSkill ?? 0 });
     }
 
     cambiarEstadoSkill(skill: Skill): void
     {
       this.service.cambiarEstadoSkill({ ...skill, activo: !skill.activo }).subscribe({
         next: () => this.service.opciones().subscribe((opciones: TareaOpciones) => this.opciones.set(opciones)),
-        error: () => this.error.set('No se pudo actualizar la skill.')
+        error: (respuesta) => this.error.set(this.obtenerMensajeError(respuesta, 'No se pudo actualizar la skill.'))
       });
     }
 
@@ -427,6 +442,7 @@ export class TaskManagerComponent {
         if (!this.form.controls.idProyecto.value) { camposFaltantes.push('Proyecto'); }
         if (!this.form.controls.idEstadoTarea.value) { camposFaltantes.push('Estado'); }
         if (!this.form.controls.idSkillRequerido.value) { camposFaltantes.push('Skill requerida'); }
+        if (!this.form.controls.seniorityRequerido.value) { camposFaltantes.push('Seniority requerido'); }
         if (camposFaltantes.length)
         {
             this.form.markAllAsTouched();
@@ -434,6 +450,16 @@ export class TaskManagerComponent {
             return false;
         }
         return true;
+    }
+
+    private senioritySegunComplejidad(complejidad?: string | null): string
+    {
+        switch (complejidad?.trim().toLowerCase())
+        {
+            case 'baja': return 'Junior';
+            case 'alta': return 'Senior';
+            default: return 'Semisenior';
+        }
     }
 
     private validarRequisitosBestFit(): boolean

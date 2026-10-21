@@ -96,6 +96,19 @@ export interface SolicitudRevisionOperativa {
   nombrePM: string;
 }
 
+export interface RevisionOperativaPendiente {
+  id: number;
+  tipo: 'Asignacion' | 'ConvenienciaCliente';
+  idCliente?: number | null;
+  cliente: string;
+  referencia: string;
+  nombreProyecto: string;
+  causaPrincipal: string;
+  accionSugerida: string;
+  estado: string;
+  fechaAlta: string;
+}
+
 export interface AnalisisDesvioHoras {
   horasEstimadas: number;
   horasReales: number;
@@ -173,11 +186,42 @@ export interface AnalisisConvenienciaOperativa {
   costoPlanificado: number;
   costoReal: number;
   desvioCosto: number;
+  presupuestoNoConsumido: number;
+  sobrecosto: number;
+  horasRealesSinCosto: number;
+  cantidadClientesEnRevision: number;
+  clientes: ConvenienciaOperativaCliente[];
+  proyectos: ConvenienciaOperativaProyecto[];
+}
+
+export interface FiltroConvenienciaOperativa {
+  idCliente?: number | null;
+  idProyecto?: number | null;
+  estadoProyecto?: string | null;
+  nivelDesvioCosto?: string | null;
+  desde?: string | null;
+  hasta?: string | null;
+}
+
+export interface ConvenienciaOperativaCliente {
+  idCliente: number;
+  nombreCliente: string;
+  horasEstimadas: number;
+  horasReales: number;
+  costoPlanificado: number;
+  costoReal: number;
+  desvioCosto: number;
+  presupuestoNoConsumido: number;
+  sobrecosto: number;
+  horasRealesSinCosto: number;
+  enRevisionOperativa: boolean;
+  estadoConveniencia: string;
   proyectos: ConvenienciaOperativaProyecto[];
 }
 
 export interface ConvenienciaOperativaProyecto {
   idProyecto: number;
+  idCliente: number;
   nombreProyecto: string;
   nombreCliente: string;
   horasEstimadas: number;
@@ -185,8 +229,50 @@ export interface ConvenienciaOperativaProyecto {
   costoPlanificado: number;
   costoReal: number;
   desvioCosto: number;
+  presupuestoNoConsumido: number;
+  sobrecosto: number;
+  horasRealesSinCosto: number;
+  horasPlanificadasSinCosto: number;
+  costoRealIncompleto: boolean;
   estadoConveniencia: string;
   factorPrincipal: string;
+}
+
+export interface DetalleConvenienciaOperativa {
+  proyecto: ConvenienciaOperativaProyecto;
+  composicionCosto: ComposicionCostoOperativo[];
+  seguimientos: SeguimientoConvenienciaOperativa[];
+}
+
+export interface ComposicionCostoOperativo {
+  idTarea: number;
+  idEmpleado: number;
+  tarea: string;
+  empleado: string;
+  seniority: string;
+  costoHora: number;
+  horasPlanificadas: number;
+  horasReales: number;
+  costoPlanificado: number;
+  costoReal: number;
+  costoNoConfigurado: boolean;
+}
+
+export interface SeguimientoConvenienciaOperativa {
+  id: number;
+  idCliente: number;
+  idProyecto?: number | null;
+  observacion: string;
+  accionSugerida: string;
+  fechaAlta: string;
+  usuario: string;
+}
+
+export interface NuevoSeguimientoConvenienciaOperativa {
+  idCliente: number;
+  idProyecto?: number | null;
+  observacion: string;
+  accionSugerida: string;
 }
 
 export interface AnalisisSobrecalificacionPerfiles {
@@ -196,9 +282,14 @@ export interface AnalisisSobrecalificacionPerfiles {
   tareas: SobrecalificacionTarea[];
 }
 
+export interface FiltroSobrecalificacion {
+  idProyecto?: number | null;
+}
+
 export interface SobrecalificacionTarea {
   idTarea: number;
   idProyecto: number;
+  idEmpleado: number;
   titulo: string;
   nombreProyecto: string;
   nombreCliente: string;
@@ -208,6 +299,13 @@ export interface SobrecalificacionTarea {
   horasAfectadas: number;
   impactoOperativoEstimado: number;
   nivel: string;
+}
+
+export interface SolicitudRevisionSobrecalificacion {
+  idEmpleado: number;
+  idProyecto: number;
+  idTarea: number;
+  observacion: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -227,8 +325,12 @@ export class AnaliticaOperativaService {
     return this.http.post(`${this.url}/ocupacion/solicitudes-revision`, { idEmpleado, idProyecto, idTarea }, { responseType: 'text' });
   }
 
-  consultarSolicitudesRevisionPendientes(): Observable<SolicitudRevisionOperativa[]> {
-    return this.http.get<SolicitudRevisionOperativa[]>(`${this.url}/ocupacion/solicitudes-revision/pendientes`);
+  consultarSolicitudesRevisionPendientes(): Observable<RevisionOperativaPendiente[]> {
+    return this.http.get<RevisionOperativaPendiente[]>(`${this.url}/ocupacion/solicitudes-revision/pendientes`);
+  }
+
+  resolverSolicitudRevision(idSolicitud: number, tipo: RevisionOperativaPendiente['tipo']): Observable<string> {
+    return this.http.patch(`${this.url}/ocupacion/solicitudes-revision/${idSolicitud}/resolver`, {}, { params: new HttpParams().set('tipo', tipo), responseType: 'text' });
   }
 
   consultarDesvioHoras(filtro: FiltroDesvioHoras = {}): Observable<AnalisisDesvioHoras> {
@@ -250,12 +352,28 @@ export class AnaliticaOperativaService {
     return this.http.post(`${this.url}/desvio-horas/comunicar-dueno`, { idProyecto, filtro }, { responseType: 'text' });
   }
 
-  consultarConveniencia(): Observable<AnalisisConvenienciaOperativa> {
-    return this.http.get<AnalisisConvenienciaOperativa>(`${this.url}/conveniencia`);
+  consultarConveniencia(filtro: FiltroConvenienciaOperativa = {}): Observable<AnalisisConvenienciaOperativa> {
+    return this.http.get<AnalisisConvenienciaOperativa>(`${this.url}/conveniencia`, { params: this.crearParametros(filtro) });
   }
 
-  consultarSobrecalificacion(): Observable<AnalisisSobrecalificacionPerfiles> {
-    return this.http.get<AnalisisSobrecalificacionPerfiles>(`${this.url}/sobrecalificacion`);
+  consultarDetalleConveniencia(idProyecto: number, filtro: FiltroConvenienciaOperativa): Observable<DetalleConvenienciaOperativa> {
+    return this.http.get<DetalleConvenienciaOperativa>(`${this.url}/conveniencia/detalle`, { params: this.crearParametros({ ...filtro, idProyecto }) });
+  }
+
+  registrarSeguimientoConveniencia(seguimiento: NuevoSeguimientoConvenienciaOperativa): Observable<string> {
+    return this.http.post(`${this.url}/conveniencia/seguimientos`, seguimiento, { responseType: 'text' });
+  }
+
+  marcarClienteRevisionConveniencia(idCliente: number): Observable<string> {
+    return this.http.post(`${this.url}/conveniencia/clientes/${idCliente}/marcar-revision`, {}, { responseType: 'text' });
+  }
+
+  consultarSobrecalificacion(filtro: FiltroSobrecalificacion = {}): Observable<AnalisisSobrecalificacionPerfiles> {
+    return this.http.get<AnalisisSobrecalificacionPerfiles>(`${this.url}/sobrecalificacion`, { params: this.crearParametros(filtro) });
+  }
+
+  solicitarRevisionSobrecalificacion(solicitud: SolicitudRevisionSobrecalificacion): Observable<string> {
+    return this.http.post(`${this.url}/sobrecalificacion/solicitudes-revision`, solicitud, { responseType: 'text' });
   }
 
   private crearParametros(filtro: object): HttpParams {

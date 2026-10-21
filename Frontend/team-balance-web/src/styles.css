@@ -402,6 +402,20 @@
 .tb-occupancy-diagnosis { border-left: 3px solid #13a5c3; background: #eef8f9; padding: 1rem 1.1rem; }.tb-occupancy-diagnosis h3, .tb-occupancy-tasks h3 { color: #173f55; font-weight: 800; }.tb-occupancy-diagnosis p { margin-top: .45rem; font-size: .9rem; line-height: 1.55; }.tb-occupancy-diagnosis p:last-child { color: #007eaa; font-weight: 650; }
 .tb-occupancy-tasks { border: 1px solid #d7e5e8; border-radius: .9rem; padding: 1rem; }.tb-occupancy-tasks h3 { margin-bottom: .6rem; }.tb-occupancy-tasks th { border-bottom: 1px solid #b8d2d8; padding: .7rem; color: #557482; font-size: .75rem; font-weight: 800; text-align: left; }.tb-occupancy-tasks td { border-bottom: 1px solid #e1ecee; padding: .8rem .7rem; }.tb-occupancy-tasks tr:last-child td { border-bottom: 0; }.tb-occupancy-tasks td span { display: block; margin-top: .15rem; color: #6f8992; font-size: .75rem; }
 .dark .tb-occupancy-detail-drawer { border-color: #31566a; background: #0e172a; color: #edf7fa; box-shadow: -18px 18px 48px rgba(0, 0, 0, .38); }.dark .tb-occupancy-detail-header { border-color: #2c4c60; }.dark .tb-occupancy-detail-header h2, .dark .tb-occupancy-diagnosis h3, .dark .tb-occupancy-tasks h3, .dark .tb-occupancy-metrics strong { color: #f3fbfd; }.dark .tb-occupancy-detail-header p:not(.tb-page-kicker), .dark .tb-occupancy-metrics span, .dark .tb-occupancy-tasks th, .dark .tb-occupancy-tasks td span { color: #9cbac5; }.dark .tb-occupancy-detail-close { border-color: #46788c; background: #13283a; color: #bceef3; }.dark .tb-occupancy-detail-close:hover { border-color: #6ec7d5; background: #17394d; }.dark .tb-occupancy-metrics > div { border-color: #42687b; background: #101f34; }.dark .tb-occupancy-diagnosis { background: #102e42; }.dark .tb-occupancy-diagnosis p:last-child { color: #5ee7f2; }.dark .tb-occupancy-tasks { border-color: #2c4c60; }.dark .tb-occupancy-tasks th { border-color: #42687b; }.dark .tb-occupancy-tasks td { border-color: #223d51; }
+
+/* Conveniencia: tres señales semánticas, sin presentar el saldo presupuestario como un desvío negativo. */
+.tb-convenience-metric { display: grid; min-height: 8.2rem; align-content: start; gap: .38rem; border-width: 1px; box-shadow: none; }
+.tb-convenience-metric p { font-size: .86rem; font-weight: 700; }.tb-convenience-metric strong { font-size: clamp(1.45rem, 2vw, 1.85rem); line-height: 1.1; }.tb-convenience-metric span { font-size: .78rem; line-height: 1.35; }
+.tb-convenience-metric--planned { border-color: #d59a46; background: rgba(245, 158, 11, .11); color: #7a4308; }.tb-convenience-metric--planned p, .tb-convenience-metric--planned span { color: #9b5b10; }
+.tb-convenience-metric--real { border-color: #c7a94b; background: rgba(234, 179, 8, .12); color: #6f5600; }.tb-convenience-metric--real p, .tb-convenience-metric--real span { color: #806a16; }
+.tb-convenience-metric--budget { border-color: #6cab82; background: rgba(34, 197, 94, .10); color: #17633e; }.tb-convenience-metric--budget p, .tb-convenience-metric--budget span { color: #28744b; }
+.tb-convenience-metric--overcost { border-color: #d77b7b; background: rgba(239, 68, 68, .10); color: #8f2525; }.tb-convenience-metric--overcost p, .tb-convenience-metric--overcost span { color: #a43a3a; }
+.tb-convenience-summary-line { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; border-bottom: 1px solid #d7e5e8; padding: 0 .1rem .75rem; color: #557482; font-size: .83rem; }.tb-convenience-summary-line span + span { border-left: 1px solid #c9dbdf; padding-left: 1rem; }.tb-convenience-summary-line strong { color: #a16207; }
+.dark .tb-convenience-metric--planned { border-color: #a96f25; background: rgba(245, 158, 11, .13); color: #ffe0a3; }.dark .tb-convenience-metric--planned p, .dark .tb-convenience-metric--planned span { color: #f0bd70; }
+.dark .tb-convenience-metric--real { border-color: #9a8130; background: rgba(234, 179, 8, .13); color: #fff0ae; }.dark .tb-convenience-metric--real p, .dark .tb-convenience-metric--real span { color: #e4ce80; }
+.dark .tb-convenience-metric--budget { border-color: #367f58; background: rgba(34, 197, 94, .13); color: #c9f6d9; }.dark .tb-convenience-metric--budget p, .dark .tb-convenience-metric--budget span { color: #8fd9ac; }
+.dark .tb-convenience-metric--overcost { border-color: #9b4b51; background: rgba(239, 68, 68, .14); color: #ffd4d4; }.dark .tb-convenience-metric--overcost p, .dark .tb-convenience-metric--overcost span { color: #f1a5a5; }
+.dark .tb-convenience-summary-line { border-color: #2c4c60; color: #9cbac5; }.dark .tb-convenience-summary-line span + span { border-color: #365569; }.dark .tb-convenience-summary-line strong { color: #f3d06a; }
 @keyframes tb-occupancy-backdrop-in { from { opacity: 0; } to { opacity: 1; } } @keyframes tb-occupancy-backdrop-out { from { opacity: 1; } to { opacity: 0; } } @keyframes tb-occupancy-drawer-in { from { opacity: 0; transform: translateX(2rem) scale(.985); } to { opacity: 1; transform: translateX(0) scale(1); } } @keyframes tb-occupancy-drawer-out { from { opacity: 1; transform: translateX(0) scale(1); } to { opacity: 0; transform: translateX(2rem) scale(.985); } }
 @media (prefers-reduced-motion: reduce) { .tb-occupancy-detail-backdrop, .tb-occupancy-detail-backdrop--closing, .tb-occupancy-detail-drawer, .tb-occupancy-detail-drawer--closing { animation: none; } }
 
@@ -428,6 +442,20 @@
 .dark .tb-occupancy-card--balanceada { border-color: rgba(52, 211, 153, .44); background: rgba(16, 185, 129, .15); color: #c2f5dc; }
 .dark .tb-occupancy-card--sobrecargada { border-color: rgba(252, 165, 165, .46); background: rgba(239, 68, 68, .16); color: #ffd0d0; }
 .dark .tb-occupancy-card--critica { border-color: rgba(254, 202, 202, .68); background: rgba(220, 38, 38, .31); color: #ffe3e3; }
+
+/* Preferencias de newsletter: checkbox junto a su categoría, no extendido por el estilo general de inputs. */
+.tb-newsletter-categories { display: grid; gap: .35rem 1.5rem; grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.tb-newsletter-category { display: flex; align-items: flex-start; gap: .6rem; padding: .75rem 0; border-bottom: 1px solid var(--tb-line); color: var(--tb-ink); cursor: pointer; }
+.tb-newsletter-category input[type="checkbox"] { width: 1rem !important; height: 1rem; min-width: 1rem; margin: .18rem 0 0; padding: 0 !important; accent-color: #008fb8; cursor: pointer; }
+.tb-newsletter-category > span { min-width: 0; }
+.tb-newsletter-category > span > span:last-child { color: var(--tb-muted); }
+.dark .tb-newsletter-category { border-color: #24475a; color: #e4f5f8; }
+.dark .tb-newsletter-category > span > span:last-child { color: #a6c4cc; }
+@media (min-width: 768px) { .tb-newsletter-categories { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Información institucional de solo lectura: se percibe como dato, no como campo editable. */
+.tb-readonly-field { display: flex; align-items: center; width: 100%; min-height: 2.7rem; border: 1px solid #ccd7da; border-radius: .65rem; background: #e8edef; padding: .65rem .75rem; color: #62767d; font-size: .875rem; font-weight: 650; pointer-events: none; }
+.dark .tb-readonly-field { border-color: #314b57; background: #162832; color: #a9c0c7; }
 
 /* Sistema visual operativo: superficies planas, densidad SaaS y estados consistentes. */
 :root { --tb-navy: #082f49; --tb-navy-strong: #06243a; --tb-cyan: #0799bd; --tb-cyan-hover: #087e9d; --tb-ink: #183b4c; --tb-muted: #617c88; --tb-line: #d9e4e6; --tb-surface: #fffefa; --tb-canvas: #f5f7f6; }

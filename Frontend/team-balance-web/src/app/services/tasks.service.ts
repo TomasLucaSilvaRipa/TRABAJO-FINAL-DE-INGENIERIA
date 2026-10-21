@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Proyecto, UsuarioOpcion } from './projects.service';
-import { Skill } from './resources.service';
+import { AreaSkill, Skill } from './resources.service';
 export interface EstadoTarea { id: number; nombre: string; orden: number; }
 export interface AsignacionTarea { id?: number; idTarea?: number; idEmpleado: number; idUsuarioAsignador?: number; fechaDesde?: string; fechaHasta?: string | null; motivo?: string | null; horasAsignadas: number; activa?: boolean; }
 export interface Tarea { id: number; idProyecto: number; idEmpleadoAsignado?: number | null; idSkillRequerido?: number | null; idEstadoTarea: number; idTareaPredecesora?: number | null; titulo: string; descripcion?: string; estado?: string; prioridad?: string; complejidad?: string; fechaInicio?: string; deadline?: string; fechaFinReal?: string | null; seniorityRequerido?: string; checklistJson?: string | null; comentariosJson?: string | null; archivosAdjuntosJson?: string | null; bloqueada?: boolean; motivoBloqueo?: string | null; porcentajeAvance: number; horasEstimadas: number; activo: boolean; asignaciones?: AsignacionTarea[]; }
@@ -46,6 +46,10 @@ export class TasksService {
   crearSkill(skill: Partial<Skill>): Observable<Skill> {
     return this.http.post<Skill>(`${this.url}/skills`, skill);
   }
+
+  consultarAreasSkills(): Observable<AreaSkill[]> { return this.http.get<AreaSkill[]>(`${this.url}/skills/areas`); }
+
+  modificarSkill(skill: Partial<Skill>): Observable<Skill> { return this.http.put<Skill>(`${this.url}/skills`, skill); }
 
   cambiarEstadoSkill(skill: Partial<Skill>): Observable<boolean>{
     return this.http.patch<boolean>(`${this.url}/skills/estado`, skill);

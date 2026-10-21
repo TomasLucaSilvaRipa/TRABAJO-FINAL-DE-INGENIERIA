@@ -55,6 +55,16 @@ public class AnaliticaOperativaController : ControllerBase
         catch (Exception) { return StatusCode(500, "No fue posible consultar las revisiones pendientes."); }
     }
 
+    [HttpPatch("ocupacion/solicitudes-revision/{idSolicitud:int}/resolver")]
+    public IActionResult MarcarSolicitudRevisionResuelta(int idSolicitud, [FromQuery] string? tipo)
+    {
+        try { _analiticaBLL.MarcarSolicitudRevisionResuelta(ObtenerSolicitante(), idSolicitud, tipo); return Ok("La solicitud quedó marcada como resuelta."); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible actualizar la solicitud de revisión."); }
+    }
+
     [HttpGet("desvio-horas")]
     public IActionResult ConsultarDesvioHoras([FromQuery] FiltroDesvioHoras filtro)
     {
@@ -95,19 +105,60 @@ public class AnaliticaOperativaController : ControllerBase
     }
 
     [HttpGet("conveniencia")]
-    public IActionResult ConsultarConveniencia()
+    public IActionResult ConsultarConveniencia([FromQuery] FiltroConvenienciaOperativa filtro)
     {
-        try { return Ok(_analiticaBLL.ConsultarConveniencia(ObtenerSolicitante())); }
+        try { return Ok(_analiticaBLL.ConsultarConveniencia(ObtenerSolicitante(), filtro)); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception) { return StatusCode(500, "No fue posible analizar la conveniencia operativa."); }
     }
 
-    [HttpGet("sobrecalificacion")]
-    public IActionResult ConsultarSobrecalificacion()
+    [HttpGet("conveniencia/detalle")]
+    public IActionResult ConsultarDetalleConveniencia([FromQuery] int idProyecto, [FromQuery] FiltroConvenienciaOperativa filtro)
     {
-        try { return Ok(_analiticaBLL.ConsultarSobrecalificacion(ObtenerSolicitante())); }
+        try { return Ok(_analiticaBLL.ConsultarDetalleConveniencia(ObtenerSolicitante(), idProyecto, filtro)); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible consultar la composición del costo operativo."); }
+    }
+
+    [HttpPost("conveniencia/seguimientos")]
+    public IActionResult RegistrarSeguimientoConveniencia([FromBody] NuevoSeguimientoConvenienciaOperativa seguimiento)
+    {
+        try { _analiticaBLL.RegistrarSeguimientoConveniencia(ObtenerSolicitante(), seguimiento); return Ok("El seguimiento quedó asociado al resultado de conveniencia."); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible registrar el seguimiento de conveniencia."); }
+    }
+
+    [HttpPost("conveniencia/clientes/{idCliente:int}/marcar-revision")]
+    public async Task<IActionResult> MarcarClienteRevisionConveniencia(int idCliente)
+    {
+        try { return Ok(await _analiticaBLL.MarcarClienteRevisionConveniencia(ObtenerSolicitante(), idCliente)); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible marcar el cliente para revisión operativa."); }
+    }
+
+    [HttpGet("sobrecalificacion")]
+    public IActionResult ConsultarSobrecalificacion([FromQuery] int? idProyecto)
+    {
+        try { return Ok(_analiticaBLL.ConsultarSobrecalificacion(ObtenerSolicitante(), idProyecto)); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (Exception) { return StatusCode(500, "No fue posible analizar la sobrecalificación de perfiles."); }
+    }
+
+    [HttpPost("sobrecalificacion/solicitudes-revision")]
+    public async Task<IActionResult> SolicitarRevisionSobrecalificacion([FromBody] SolicitudRevisionSobrecalificacionNueva solicitud)
+    {
+        try { await _analiticaBLL.SolicitarRevisionSobrecalificacion(ObtenerSolicitante(), solicitud); return Ok("La solicitud de revisión fue enviada al PM responsable."); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible enviar la solicitud de revisión."); }
     }
 
     private Usuario ObtenerSolicitante()

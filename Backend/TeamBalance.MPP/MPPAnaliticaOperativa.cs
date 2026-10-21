@@ -89,6 +89,107 @@ public class MPPAnaliticaOperativa
         return solicitudes;
     }
 
+    public bool MarcarSolicitudRevisionResuelta(Usuario usuario, int idPM, int idSolicitud)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@IdSolicitud", idSolicitud),
+            new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")),
+            new SqlParameter("@IdPMResponsable", idPM)
+        };
+        DataTable tabla = _conexion.Leer("dbo.usp_SolicitudRevisionOperativa_MarcarResuelta", parametros);
+        return tabla.Rows.Count == 1 && Convert.ToBoolean(tabla.Rows[0]["Actualizada"]);
+    }
+
+    public (int IdSolicitud, bool Creada) RegistrarSolicitudRevisionConveniencia(SolicitudRevisionConveniencia solicitud)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@IdAgencia", solicitud.IdAgencia), new SqlParameter("@IdCliente", solicitud.IdCliente),
+            new SqlParameter("@IdPMResponsable", solicitud.IdPMResponsable), new SqlParameter("@IdUsuarioSolicitante", solicitud.IdUsuarioSolicitante),
+            new SqlParameter("@CausaPrincipal", solicitud.CausaPrincipal), new SqlParameter("@AccionSugerida", solicitud.AccionSugerida)
+        };
+        DataTable tabla = _conexion.Leer("dbo.usp_Conveniencia_RegistrarSolicitudRevision", parametros);
+        if (tabla.Rows.Count != 1) { throw new InvalidOperationException("No fue posible registrar la revisión de conveniencia."); }
+        return (Convert.ToInt32(tabla.Rows[0]["ID"]), Convert.ToBoolean(tabla.Rows[0]["Creada"]));
+    }
+
+    public List<SolicitudRevisionConveniencia> ConsultarSolicitudesRevisionConvenienciaPendientes(Usuario usuario, int idPM)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")),
+            new SqlParameter("@IdPMResponsable", idPM)
+        };
+        DataTable tabla = _conexion.Leer("dbo.usp_Conveniencia_ConsultarSolicitudesPendientesPM", parametros);
+        return tabla.Rows.Cast<DataRow>().Select(fila => new SolicitudRevisionConveniencia
+        {
+            ID = Convert.ToInt32(fila["ID"]), IdAgencia = Convert.ToInt32(fila["IdAgencia"]), IdCliente = Convert.ToInt32(fila["IdCliente"]),
+            IdPMResponsable = Convert.ToInt32(fila["IdPMResponsable"]), IdUsuarioSolicitante = Convert.ToInt32(fila["IdUsuarioSolicitante"]),
+            CausaPrincipal = Convert.ToString(fila["CausaPrincipal"]) ?? string.Empty, AccionSugerida = Convert.ToString(fila["AccionSugerida"]) ?? string.Empty,
+            Estado = Convert.ToString(fila["Estado"]) ?? string.Empty, FechaAlta = Convert.ToDateTime(fila["FechaAlta"]),
+            NombreCliente = Convert.ToString(fila["NombreCliente"]) ?? string.Empty, NombrePM = Convert.ToString(fila["NombrePM"]) ?? string.Empty
+        }).ToList();
+    }
+
+    public bool MarcarSolicitudRevisionConvenienciaResuelta(Usuario usuario, int idPM, int idSolicitud)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@IdSolicitud", idSolicitud),
+            new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")),
+            new SqlParameter("@IdPMResponsable", idPM)
+        };
+        DataTable tabla = _conexion.Leer("dbo.usp_Conveniencia_MarcarSolicitudRevisionResuelta", parametros);
+        return tabla.Rows.Count == 1 && Convert.ToBoolean(tabla.Rows[0]["Actualizada"]);
+    }
+
+    public HashSet<int> ConsultarClientesEnRevision(Usuario usuario)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")) };
+        DataTable tabla = _conexion.Leer("dbo.usp_Conveniencia_ConsultarClientesEnRevision", parametros);
+        return tabla.Rows.Cast<DataRow>().Select(fila => Convert.ToInt32(fila["IdCliente"])).ToHashSet();
+    }
+
+    public int RegistrarSeguimientoConveniencia(Usuario usuario, NuevoSeguimientoConvenienciaOperativa seguimiento)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")),
+            new SqlParameter("@IdCliente", seguimiento.IdCliente), new SqlParameter("@IdProyecto", (object?)seguimiento.IdProyecto ?? DBNull.Value),
+            new SqlParameter("@IdUsuario", usuario.ID), new SqlParameter("@Observacion", seguimiento.Observacion), new SqlParameter("@AccionSugerida", seguimiento.AccionSugerida)
+        };
+        DataTable tabla = _conexion.Leer("dbo.usp_Conveniencia_RegistrarSeguimiento", parametros);
+        if (tabla.Rows.Count != 1) { throw new InvalidOperationException("No fue posible registrar el seguimiento de conveniencia."); }
+        return Convert.ToInt32(tabla.Rows[0]["ID"]);
+    }
+
+    public List<SeguimientoConvenienciaOperativa> ConsultarSeguimientosConveniencia(Usuario usuario, int idCliente, int idProyecto)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")),
+            new SqlParameter("@IdCliente", idCliente), new SqlParameter("@IdProyecto", idProyecto)
+        };
+        DataTable tabla = _conexion.Leer("dbo.usp_Conveniencia_ConsultarSeguimientos", parametros);
+        return tabla.Rows.Cast<DataRow>().Select(fila => new SeguimientoConvenienciaOperativa
+        {
+            ID = Convert.ToInt32(fila["ID"]), IdCliente = Convert.ToInt32(fila["IdCliente"]), IdProyecto = fila["IdProyecto"] == DBNull.Value ? null : Convert.ToInt32(fila["IdProyecto"]),
+            Observacion = Convert.ToString(fila["Observacion"]) ?? string.Empty, AccionSugerida = Convert.ToString(fila["AccionSugerida"]) ?? string.Empty,
+            FechaAlta = Convert.ToDateTime(fila["FechaAlta"]), Usuario = Convert.ToString(fila["Usuario"]) ?? string.Empty
+        }).ToList();
+    }
+
+    public void MarcarClienteRevisionConveniencia(Usuario usuario, int idCliente)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")),
+            new SqlParameter("@IdCliente", idCliente), new SqlParameter("@IdUsuario", usuario.ID)
+        };
+        _conexion.Escribir("dbo.usp_Conveniencia_MarcarClienteRevision", parametros);
+    }
+
     public DestinatarioDesvioHoras? ConsultarDestinatarioPM(int idPM)
     {
         List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdPMResponsable", idPM) };

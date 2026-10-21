@@ -116,6 +116,21 @@ public class TareasController : ControllerBase
         catch (ArgumentException ex) { return BadRequest(ex.Message); } 
     }
 
+    [HttpGet("skills/areas")]
+    public IActionResult ConsultarAreasSkills()
+    {
+        try { return Ok(_tareaBLL.ConsultarAreasSkills(ValidarSesion())); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+    }
+
+    [HttpPut("skills")]
+    public IActionResult ModificarSkill([FromBody] Skill skill)
+    {
+        try { return Ok(_tareaBLL.ModificarSkill(skill, ValidarSesion())); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+    }
+
     [HttpPatch("skills/estado")] 
     public IActionResult CambiarEstadoSkill([FromBody]Skill skill) { 
         try 

@@ -145,11 +145,47 @@ public class BLLAnaliticaOperativa
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "SolicitudRevisionOperativa", solicitud.ID, "SolicitarRevisionOperativa", "Se derivó una revisión operativa del empleado '" + detalle.Empleado.Nombre + "' al PM responsable.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia", "Proyectos"));
     }
 
-    public List<SolicitudRevisionOperativa> ConsultarSolicitudesRevisionPendientes(Usuario usuario)
+    public List<RevisionOperativaPendiente> ConsultarSolicitudesRevisionPendientes(Usuario usuario)
     {
         ValidarPMODueno(usuario);
         if (!EsPMSinRolDueno(usuario)) { throw new UnauthorizedAccessException("Las revisiones pendientes se consultan desde la cuenta del PM responsable."); }
-        return _analiticaMPP.ConsultarSolicitudesPendientes(usuario, _analiticaMPP.ConsultarIdPM(usuario));
+        int idPM = _analiticaMPP.ConsultarIdPM(usuario);
+        List<RevisionOperativaPendiente> solicitudes = _analiticaMPP.ConsultarSolicitudesPendientes(usuario, idPM)
+            .Select(solicitud => new RevisionOperativaPendiente
+            {
+                ID = solicitud.ID, Tipo = "Asignacion", Referencia = solicitud.NombreEmpleado,
+                NombreProyecto = solicitud.NombreProyecto, CausaPrincipal = solicitud.CausaPrincipal,
+                AccionSugerida = solicitud.AccionSugerida, Estado = solicitud.Estado, FechaAlta = solicitud.FechaAlta
+            }).ToList();
+        solicitudes.AddRange(_analiticaMPP.ConsultarSolicitudesRevisionConvenienciaPendientes(usuario, idPM)
+            .Select(solicitud => new RevisionOperativaPendiente
+            {
+                ID = solicitud.ID, Tipo = "ConvenienciaCliente", IdCliente = solicitud.IdCliente,
+                Cliente = solicitud.NombreCliente, Referencia = "Conveniencia del cliente",
+                NombreProyecto = "Todos los proyectos a cargo", CausaPrincipal = solicitud.CausaPrincipal,
+                AccionSugerida = solicitud.AccionSugerida, Estado = solicitud.Estado, FechaAlta = solicitud.FechaAlta
+            }));
+        return solicitudes.OrderByDescending(solicitud => solicitud.FechaAlta).ToList();
+    }
+
+    public void MarcarSolicitudRevisionResuelta(Usuario usuario, int idSolicitud, string? tipo)
+    {
+        ValidarPMODueno(usuario);
+        if (!EsPMSinRolDueno(usuario)) { throw new UnauthorizedAccessException("Sólo el PM responsable puede resolver sus solicitudes de revisión."); }
+        if (idSolicitud <= 0) { throw new ArgumentException("La solicitud de revisión seleccionada no es válida."); }
+        int idPM = _analiticaMPP.ConsultarIdPM(usuario);
+        bool esRevisionConveniencia = string.Equals(tipo, "ConvenienciaCliente", StringComparison.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(tipo) && !esRevisionConveniencia && !string.Equals(tipo, "Asignacion", StringComparison.OrdinalIgnoreCase)) { throw new ArgumentException("El tipo de revisión seleccionado no es válido."); }
+        bool actualizada = esRevisionConveniencia
+            ? _analiticaMPP.MarcarSolicitudRevisionConvenienciaResuelta(usuario, idPM, idSolicitud)
+            : _analiticaMPP.MarcarSolicitudRevisionResuelta(usuario, idPM, idSolicitud);
+        if (!actualizada)
+        {
+            throw new KeyNotFoundException("La solicitud no existe, no te corresponde o ya fue resuelta.");
+        }
+        string entidad = esRevisionConveniencia ? "SolicitudRevisionConveniencia" : "SolicitudRevisionOperativa";
+        string descripcion = esRevisionConveniencia ? "El PM responsable resolvió una revisión de conveniencia de cliente." : "El PM responsable marcó como resuelta una solicitud de revisión operativa.";
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, entidad, idSolicitud, "MarcarSolicitudRevisionResuelta", descripcion, "Exitoso", "Informacion", "Proyectos"));
     }
 
     public AnalisisDesvioHoras ConsultarDesvioHoras(Usuario usuario, FiltroDesvioHoras? filtro = null)
@@ -261,49 +297,117 @@ public class BLLAnaliticaOperativa
         if (enviados == 0) { throw new InvalidOperationException("No fue posible enviar el correo al Dueño. Revisá la configuración de correo de TeamBalance."); }
     }
 
-    public AnalisisConvenienciaOperativa ConsultarConveniencia(Usuario usuario)
+    public AnalisisConvenienciaOperativa ConsultarConveniencia(Usuario usuario, FiltroConvenienciaOperativa? filtro = null)
     {
         ValidarDueno(usuario);
-        List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, null);
+        FiltroConvenienciaOperativa filtroAplicado = filtro ?? new FiltroConvenienciaOperativa();
+        ValidarFiltroConveniencia(filtroAplicado);
+        List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, filtroAplicado.IdProyecto, filtroAplicado.IdCliente)
+            .Where(contexto => string.IsNullOrWhiteSpace(filtroAplicado.EstadoProyecto) || string.Equals(contexto.Proyecto.Estado, filtroAplicado.EstadoProyecto, StringComparison.OrdinalIgnoreCase))
+            .ToList();
         List<AsignacionTarea> asignaciones = ConsultarAsignacionesActivas(contextos, usuario);
+        Dictionary<int, Empleado> empleados = _analiticaMPP.ConsultarEmpleadosActivos(usuario).ToDictionary(empleado => empleado.ID);
         AnalisisConvenienciaOperativa resultado = new AnalisisConvenienciaOperativa();
+
         foreach (ContextoProyectoAnalitico contexto in contextos)
         {
-            ConvenienciaOperativaProyecto detalle = new ConvenienciaOperativaProyecto();
-            detalle.IdProyecto = contexto.Proyecto.ID;
-            detalle.NombreProyecto = contexto.Proyecto.Nombre;
-            detalle.NombreCliente = contexto.Proyecto.NombreCliente ?? "Cliente sin nombre";
-            detalle.HorasEstimadas = contexto.Tareas.Sum(tarea => tarea.HorasEstimadas);
-            detalle.HorasReales = contexto.Registros.Sum(registro => registro.CantidadHoras);
-            foreach (Tarea tarea in contexto.Tareas)
-            {
-                foreach (AsignacionTarea asignacion in ObtenerDistribucionTarea(tarea, asignaciones))
-                {
-                    Empleado? empleado = contexto.Equipo.FirstOrDefault(item => item.ID == asignacion.IdEmpleado);
-                    if (empleado is not null) { detalle.CostoPlanificado += asignacion.HorasAsignadas * empleado.CostoHora; }
-                }
-            }
-            foreach (RegistroHora registro in contexto.Registros)
-            {
-                Empleado? empleado = contexto.Equipo.FirstOrDefault(item => item.ID == registro.IdEmpleado);
-                if (empleado is not null) { detalle.CostoReal += registro.CantidadHoras * empleado.CostoHora; }
-            }
-            detalle.DesvioCosto = detalle.CostoReal - detalle.CostoPlanificado;
-            detalle.EstadoConveniencia = detalle.CostoPlanificado == 0 ? "Sin datos suficientes" : detalle.CostoReal > detalle.CostoPlanificado ? "Revisar" : "Conveniente";
-            detalle.FactorPrincipal = ObtenerFactorConveniencia(contexto, detalle);
-            resultado.Proyectos.Add(detalle);
+            List<Tarea> tareas = contexto.Tareas.Where(tarea => CumplePeriodoConveniencia(tarea, filtroAplicado)).ToList();
+            if (tareas.Count == 0) { continue; }
+            List<RegistroHora> registros = contexto.Registros.Where(registro => tareas.Any(tarea => tarea.ID == registro.IdTarea) && CumplePeriodo(registro, filtroAplicado.Desde, filtroAplicado.Hasta)).ToList();
+            ConvenienciaOperativaProyecto detalle = ConstruirConvenienciaProyecto(contexto, tareas, registros, asignaciones, empleados, out _);
+            if (CumpleNivelConveniencia(detalle, filtroAplicado.NivelDesvioCosto)) { resultado.Proyectos.Add(detalle); }
         }
-        resultado.Proyectos = resultado.Proyectos.OrderByDescending(proyecto => proyecto.DesvioCosto).ThenBy(proyecto => proyecto.NombreCliente).ToList();
+
+        resultado.Proyectos = resultado.Proyectos.OrderByDescending(proyecto => proyecto.Sobrecosto).ThenByDescending(proyecto => proyecto.HorasRealesSinCosto).ThenBy(proyecto => proyecto.NombreCliente).ToList();
+        HashSet<int> clientesEnRevision = _analiticaMPP.ConsultarClientesEnRevision(usuario).ToHashSet();
+        resultado.Clientes = CrearResumenClientes(resultado.Proyectos, clientesEnRevision);
         resultado.CostoPlanificado = resultado.Proyectos.Sum(proyecto => proyecto.CostoPlanificado);
         resultado.CostoReal = resultado.Proyectos.Sum(proyecto => proyecto.CostoReal);
         resultado.DesvioCosto = resultado.CostoReal - resultado.CostoPlanificado;
+        resultado.PresupuestoNoConsumido = Math.Max(resultado.CostoPlanificado - resultado.CostoReal, 0);
+        resultado.Sobrecosto = Math.Max(resultado.CostoReal - resultado.CostoPlanificado, 0);
+        resultado.HorasRealesSinCosto = resultado.Proyectos.Sum(proyecto => proyecto.HorasRealesSinCosto);
+        resultado.CantidadClientesEnRevision = resultado.Clientes.Count(cliente => cliente.EnRevisionOperativa);
         return resultado;
     }
 
-    public AnalisisSobrecalificacionPerfiles ConsultarSobrecalificacion(Usuario usuario)
+    public DetalleConvenienciaOperativa ConsultarDetalleConveniencia(Usuario usuario, int idProyecto, FiltroConvenienciaOperativa? filtro = null)
     {
         ValidarDueno(usuario);
-        List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, null);
+        if (idProyecto <= 0) { throw new ArgumentException("Seleccioná un proyecto para consultar su composición de costo."); }
+        FiltroConvenienciaOperativa filtroAplicado = filtro ?? new FiltroConvenienciaOperativa();
+        filtroAplicado.IdProyecto = idProyecto;
+        ValidarFiltroConveniencia(filtroAplicado);
+        ContextoProyectoAnalitico contexto = ConsultarContextos(usuario, idProyecto, filtroAplicado.IdCliente).FirstOrDefault()
+            ?? throw new KeyNotFoundException("No existe el proyecto solicitado o no tenés acceso a él.");
+        if (!string.IsNullOrWhiteSpace(filtroAplicado.EstadoProyecto) && !string.Equals(contexto.Proyecto.Estado, filtroAplicado.EstadoProyecto, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new KeyNotFoundException("El proyecto no cumple con el estado seleccionado.");
+        }
+        List<Tarea> tareas = contexto.Tareas.Where(tarea => CumplePeriodoConveniencia(tarea, filtroAplicado)).ToList();
+        List<RegistroHora> registros = contexto.Registros.Where(registro => tareas.Any(tarea => tarea.ID == registro.IdTarea) && CumplePeriodo(registro, filtroAplicado.Desde, filtroAplicado.Hasta)).ToList();
+        List<AsignacionTarea> asignaciones = ConsultarAsignacionesActivas(new[] { contexto }, usuario);
+        Dictionary<int, Empleado> empleados = _analiticaMPP.ConsultarEmpleadosActivos(usuario).ToDictionary(empleado => empleado.ID);
+        ConvenienciaOperativaProyecto proyecto = ConstruirConvenienciaProyecto(contexto, tareas, registros, asignaciones, empleados, out List<ComposicionCostoOperativo> composicion);
+        return new DetalleConvenienciaOperativa
+        {
+            Proyecto = proyecto,
+            ComposicionCosto = composicion.OrderByDescending(item => item.CostoReal).ThenByDescending(item => item.CostoPlanificado).ToList(),
+            Seguimientos = _analiticaMPP.ConsultarSeguimientosConveniencia(usuario, contexto.Proyecto.IdCliente, contexto.Proyecto.ID)
+        };
+    }
+
+    public void RegistrarSeguimientoConveniencia(Usuario usuario, NuevoSeguimientoConvenienciaOperativa seguimiento)
+    {
+        ValidarDueno(usuario);
+        if (seguimiento.IdCliente <= 0) { throw new ArgumentException("Seleccioná un cliente para registrar el seguimiento."); }
+        if (string.IsNullOrWhiteSpace(seguimiento.Observacion) || string.IsNullOrWhiteSpace(seguimiento.AccionSugerida)) { throw new ArgumentException("Describí la observación y la acción sugerida."); }
+        if (seguimiento.Observacion.Trim().Length > 1500 || seguimiento.AccionSugerida.Trim().Length > 1500) { throw new ArgumentException("La observación y la acción sugerida no pueden superar los 1500 caracteres."); }
+        if (!ConsultarContextos(usuario, seguimiento.IdProyecto, seguimiento.IdCliente).Any()) { throw new KeyNotFoundException("El cliente o proyecto seleccionado no pertenece a tu agencia."); }
+        seguimiento.Observacion = seguimiento.Observacion.Trim();
+        seguimiento.AccionSugerida = seguimiento.AccionSugerida.Trim();
+        int idSeguimiento = _analiticaMPP.RegistrarSeguimientoConveniencia(usuario, seguimiento);
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "SeguimientoConvenienciaOperativa", idSeguimiento, "RegistrarSeguimientoConveniencia", "Se registró un seguimiento de conveniencia operativa.", "Exitoso", "Informacion", "Proyectos"));
+    }
+
+    public async Task<string> MarcarClienteRevisionConveniencia(Usuario usuario, int idCliente)
+    {
+        ValidarDueno(usuario);
+        if (idCliente <= 0) { throw new ArgumentException("Seleccioná un cliente para marcarlo en revisión."); }
+        List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, null, idCliente);
+        if (!contextos.Any()) { throw new KeyNotFoundException("El cliente seleccionado no pertenece a tu agencia."); }
+        _analiticaMPP.MarcarClienteRevisionConveniencia(usuario, idCliente);
+        string nombreCliente = contextos[0].Proyecto.NombreCliente ?? string.Empty;
+        string causa = "El cliente '" + nombreCliente + "' fue marcado para una revisión de conveniencia operativa.";
+        string accion = "Revisar los costos planificados, reales y la composición de los proyectos a cargo.";
+        int creadas = 0;
+        int correosEnviados = 0;
+        foreach (IGrouping<int, ContextoProyectoAnalitico> grupoPM in contextos.GroupBy(contexto => contexto.Proyecto.IdPMResponsable))
+        {
+            SolicitudRevisionConveniencia solicitud = new SolicitudRevisionConveniencia
+            {
+                IdAgencia = usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."),
+                IdCliente = idCliente, IdPMResponsable = grupoPM.Key, IdUsuarioSolicitante = usuario.ID,
+                CausaPrincipal = causa, AccionSugerida = accion
+            };
+            (int idSolicitud, bool creada) = _analiticaMPP.RegistrarSolicitudRevisionConveniencia(solicitud);
+            if (!creada) { continue; }
+            creadas++;
+            DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(grupoPM.Key);
+            if (destinatario is not null && await _emailService.EnviarCorreoRevisionConveniencia(destinatario.Email, destinatario.Nombre, nombreCliente, grupoPM.Select(contexto => contexto.Proyecto.Nombre).Distinct().ToList(), causa, accion)) { correosEnviados++; }
+        }
+        string resultado = creadas == 0 ? "Sin cambios" : correosEnviados == creadas ? "Exitoso" : "Parcial";
+        string detalle = creadas == 0
+            ? "El cliente ya tenía una revisión de conveniencia pendiente para los PM responsables."
+            : "Se derivaron " + creadas + " revisión(es) de conveniencia a los PM responsables; se enviaron " + correosEnviados + " correo(s).";
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Cliente", idCliente, "MarcarClienteRevisionConveniencia", detalle, resultado, resultado == "Exitoso" ? "Informacion" : "Advertencia", "Proyectos"));
+        return detalle;
+    }
+
+    public AnalisisSobrecalificacionPerfiles ConsultarSobrecalificacion(Usuario usuario, int? idProyecto)
+    {
+        ValidarDueno(usuario);
+        List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, idProyecto);
         List<AsignacionTarea> asignaciones = ConsultarAsignacionesActivas(contextos, usuario);
         AnalisisSobrecalificacionPerfiles resultado = new AnalisisSobrecalificacionPerfiles();
         foreach (ContextoProyectoAnalitico contexto in contextos)
@@ -313,30 +417,70 @@ public class BLLAnaliticaOperativa
                 foreach (AsignacionTarea asignacion in ObtenerDistribucionTarea(tarea, asignaciones))
                 {
                     Empleado? empleado = contexto.Equipo.FirstOrDefault(item => item.ID == asignacion.IdEmpleado);
-                    if (empleado is null || string.IsNullOrWhiteSpace(tarea.SeniorityRequerido) || ObtenerNivelSeniority(empleado.Seniority) <= ObtenerNivelSeniority(tarea.SeniorityRequerido)) { continue; }
+                    string seniorityRequerido = ObtenerSeniorityRequerido(tarea);
+                    if (empleado is null || ObtenerNivelSeniority(empleado.Seniority) <= ObtenerNivelSeniority(seniorityRequerido)) { continue; }
                     decimal horasRegistradas = contexto.Registros.Where(registro => registro.IdTarea == tarea.ID && registro.IdEmpleado == empleado.ID).Sum(registro => registro.CantidadHoras);
                     decimal horasAfectadas = horasRegistradas > 0 ? horasRegistradas : asignacion.HorasAsignadas;
                     SobrecalificacionTarea detalle = new SobrecalificacionTarea();
                     detalle.IdTarea = tarea.ID;
                     detalle.IdProyecto = contexto.Proyecto.ID;
+                    detalle.IdEmpleado = empleado.ID;
                     detalle.Titulo = tarea.Titulo;
                     detalle.NombreProyecto = contexto.Proyecto.Nombre;
                     detalle.NombreCliente = contexto.Proyecto.NombreCliente ?? "Cliente sin nombre";
-                    detalle.SeniorityRequerido = tarea.SeniorityRequerido;
+                    detalle.SeniorityRequerido = seniorityRequerido;
                     detalle.SeniorityAsignado = empleado.Seniority;
                     detalle.EmpleadoAsignado = empleado.Nombre;
                     detalle.HorasAfectadas = horasAfectadas;
                     detalle.ImpactoOperativoEstimado = horasAfectadas * empleado.CostoHora;
-                    detalle.Nivel = ObtenerNivelSeniority(empleado.Seniority) - ObtenerNivelSeniority(tarea.SeniorityRequerido) > 1 ? "Alto" : "Moderado";
+                    detalle.Nivel = ObtenerNivelSeniority(empleado.Seniority) - ObtenerNivelSeniority(seniorityRequerido) > 1 ? "Alto" : "Moderado";
                     resultado.Tareas.Add(detalle);
                 }
             }
         }
-        resultado.Tareas = resultado.Tareas.OrderByDescending(tarea => tarea.ImpactoOperativoEstimado).ThenByDescending(tarea => tarea.HorasAfectadas).ToList();
+        resultado.Tareas = resultado.Tareas.OrderBy(tarea => tarea.EmpleadoAsignado).ThenByDescending(tarea => tarea.ImpactoOperativoEstimado).ThenByDescending(tarea => tarea.HorasAfectadas).ToList();
         resultado.HorasAfectadas = resultado.Tareas.Sum(tarea => tarea.HorasAfectadas);
         resultado.ImpactoOperativoEstimado = resultado.Tareas.Sum(tarea => tarea.ImpactoOperativoEstimado);
-        resultado.CantidadTareasAfectadas = resultado.Tareas.Count;
+        resultado.CantidadTareasAfectadas = resultado.Tareas.Select(tarea => tarea.IdTarea).Distinct().Count();
         return resultado;
+    }
+
+    public async Task SolicitarRevisionSobrecalificacion(Usuario usuario, SolicitudRevisionSobrecalificacionNueva nuevaSolicitud)
+    {
+        ValidarDueno(usuario);
+        if (nuevaSolicitud.IdEmpleado <= 0 || nuevaSolicitud.IdProyecto <= 0 || nuevaSolicitud.IdTarea <= 0)
+        {
+            throw new ArgumentException("Seleccioná una asignación sobrecalificada válida para revisar.");
+        }
+        if (string.IsNullOrWhiteSpace(nuevaSolicitud.Observacion))
+        {
+            throw new ArgumentException("Describí el criterio de asignación que debe revisar el PM.");
+        }
+        if (nuevaSolicitud.Observacion.Trim().Length > 1500)
+        {
+            throw new ArgumentException("La observación no puede superar los 1500 caracteres.");
+        }
+
+        SobrecalificacionTarea detalle = ConsultarSobrecalificacion(usuario, nuevaSolicitud.IdProyecto).Tareas.FirstOrDefault(item => item.IdProyecto == nuevaSolicitud.IdProyecto && item.IdTarea == nuevaSolicitud.IdTarea && item.IdEmpleado == nuevaSolicitud.IdEmpleado)
+            ?? throw new KeyNotFoundException("La asignación ya no forma parte del análisis de sobrecalificación actual.");
+        ContextoProyectoAnalitico contexto = ConsultarContextos(usuario, nuevaSolicitud.IdProyecto).FirstOrDefault(item => item.Proyecto.ID == nuevaSolicitud.IdProyecto)
+            ?? throw new KeyNotFoundException("No existe el proyecto solicitado o no tenés acceso a él.");
+
+        SolicitudRevisionOperativa solicitud = new SolicitudRevisionOperativa
+        {
+            IdAgencia = usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."),
+            IdEmpleado = detalle.IdEmpleado,
+            IdProyecto = detalle.IdProyecto,
+            IdTarea = detalle.IdTarea,
+            IdPMResponsable = contexto.Proyecto.IdPMResponsable,
+            IdUsuarioSolicitante = usuario.ID,
+            CausaPrincipal = $"La tarea '{detalle.Titulo}' requiere seniority {detalle.SeniorityRequerido} y está asignada a un perfil {detalle.SeniorityAsignado}.",
+            AccionSugerida = nuevaSolicitud.Observacion.Trim()
+        };
+        solicitud.ID = _analiticaMPP.RegistrarSolicitudRevision(solicitud);
+        DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(solicitud.IdPMResponsable);
+        bool correoEnviado = destinatario is not null && await _emailService.EnviarCorreoSolicitudRevisionOperativa(destinatario.Email, destinatario.Nombre, detalle.EmpleadoAsignado, detalle.NombreProyecto, solicitud.CausaPrincipal, solicitud.AccionSugerida);
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "SolicitudRevisionOperativa", solicitud.ID, "SolicitarRevisionSobrecalificacion", $"Se derivó al PM la revisión de una asignación sobrecalificada de '{detalle.EmpleadoAsignado}' en la tarea '{detalle.Titulo}'.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia", "Proyectos"));
     }
 
     private List<ContextoProyectoAnalitico> ConsultarContextos(Usuario usuario, int? idProyecto, int? idCliente = null)
@@ -524,11 +668,147 @@ public class BLLAnaliticaOperativa
         return "Dentro de lo previsto";
     }
 
+    private static void ValidarFiltroConveniencia(FiltroConvenienciaOperativa filtro)
+    {
+        if (filtro.Desde.HasValue && filtro.Hasta.HasValue && filtro.Desde.Value.Date > filtro.Hasta.Value.Date) { throw new ArgumentException("La fecha desde no puede ser posterior a la fecha hasta."); }
+        if (!string.IsNullOrWhiteSpace(filtro.NivelDesvioCosto) && !new[] { "Dentro del presupuesto", "Costo excedido", "Costo real incompleto", "Sin datos de planificación" }.Contains(filtro.NivelDesvioCosto, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("El nivel de costo seleccionado no es válido.");
+        }
+    }
+
+    private static bool CumplePeriodoConveniencia(Tarea tarea, FiltroConvenienciaOperativa filtro)
+    {
+        if (filtro.Desde.HasValue && tarea.Deadline.HasValue && tarea.Deadline.Value.Date < filtro.Desde.Value.Date) { return false; }
+        if (filtro.Hasta.HasValue && tarea.FechaInicio.HasValue && tarea.FechaInicio.Value.Date > filtro.Hasta.Value.Date) { return false; }
+        return true;
+    }
+
+    private static bool CumplePeriodo(RegistroHora registro, DateTime? desde, DateTime? hasta)
+    {
+        if (desde.HasValue && registro.Fecha.Date < desde.Value.Date) { return false; }
+        if (hasta.HasValue && registro.Fecha.Date > hasta.Value.Date) { return false; }
+        return true;
+    }
+
+    private static bool CumpleNivelConveniencia(ConvenienciaOperativaProyecto proyecto, string? nivel)
+    {
+        return string.IsNullOrWhiteSpace(nivel) || string.Equals(proyecto.EstadoConveniencia, nivel, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static ConvenienciaOperativaProyecto ConstruirConvenienciaProyecto(ContextoProyectoAnalitico contexto, List<Tarea> tareas, List<RegistroHora> registros, IEnumerable<AsignacionTarea> asignaciones, IReadOnlyDictionary<int, Empleado> empleados, out List<ComposicionCostoOperativo> composicion)
+    {
+        ConvenienciaOperativaProyecto detalle = new ConvenienciaOperativaProyecto
+        {
+            IdProyecto = contexto.Proyecto.ID,
+            IdCliente = contexto.Proyecto.IdCliente,
+            NombreProyecto = contexto.Proyecto.Nombre,
+            NombreCliente = contexto.Proyecto.NombreCliente ?? "Cliente sin nombre",
+            HorasEstimadas = tareas.Sum(tarea => tarea.HorasEstimadas),
+            HorasReales = registros.Sum(registro => registro.CantidadHoras)
+        };
+        Dictionary<(int IdTarea, int IdEmpleado), ComposicionCostoOperativo> componentes = new Dictionary<(int IdTarea, int IdEmpleado), ComposicionCostoOperativo>();
+        Dictionary<int, Tarea> tareasPorId = tareas.ToDictionary(tarea => tarea.ID);
+
+        foreach (Tarea tarea in tareas)
+        {
+            foreach (AsignacionTarea asignacion in ObtenerDistribucionTarea(tarea, asignaciones))
+            {
+                Empleado? empleado = empleados.GetValueOrDefault(asignacion.IdEmpleado);
+                ComposicionCostoOperativo componente = ObtenerComponente(componentes, tarea, asignacion.IdEmpleado, empleado);
+                componente.HorasPlanificadas += asignacion.HorasAsignadas;
+                if (empleado is null || empleado.CostoHora <= 0)
+                {
+                    componente.CostoNoConfigurado = true;
+                    detalle.HorasPlanificadasSinCosto += asignacion.HorasAsignadas;
+                }
+                else { componente.CostoPlanificado += asignacion.HorasAsignadas * empleado.CostoHora; detalle.CostoPlanificado += asignacion.HorasAsignadas * empleado.CostoHora; }
+            }
+        }
+
+        foreach (RegistroHora registro in registros)
+        {
+            if (!tareasPorId.TryGetValue(registro.IdTarea, out Tarea? tarea)) { continue; }
+            Empleado? empleado = empleados.GetValueOrDefault(registro.IdEmpleado);
+            ComposicionCostoOperativo componente = ObtenerComponente(componentes, tarea, registro.IdEmpleado, empleado);
+            componente.HorasReales += registro.CantidadHoras;
+            if (empleado is null || empleado.CostoHora <= 0)
+            {
+                componente.CostoNoConfigurado = true;
+                detalle.HorasRealesSinCosto += registro.CantidadHoras;
+            }
+            else { componente.CostoReal += registro.CantidadHoras * empleado.CostoHora; detalle.CostoReal += registro.CantidadHoras * empleado.CostoHora; }
+        }
+
+        detalle.DesvioCosto = detalle.CostoReal - detalle.CostoPlanificado;
+        detalle.PresupuestoNoConsumido = Math.Max(detalle.CostoPlanificado - detalle.CostoReal, 0);
+        detalle.Sobrecosto = Math.Max(detalle.CostoReal - detalle.CostoPlanificado, 0);
+        detalle.CostoRealIncompleto = detalle.HorasRealesSinCosto > 0 || detalle.HorasPlanificadasSinCosto > 0;
+        detalle.EstadoConveniencia = ObtenerEstadoConveniencia(detalle);
+        detalle.FactorPrincipal = ObtenerFactorConveniencia(contexto, detalle);
+        composicion = componentes.Values.ToList();
+        return detalle;
+    }
+
+    private static ComposicionCostoOperativo ObtenerComponente(Dictionary<(int IdTarea, int IdEmpleado), ComposicionCostoOperativo> componentes, Tarea tarea, int idEmpleado, Empleado? empleado)
+    {
+        (int IdTarea, int IdEmpleado) clave = (tarea.ID, idEmpleado);
+        if (componentes.TryGetValue(clave, out ComposicionCostoOperativo? existente)) { return existente; }
+        ComposicionCostoOperativo componente = new ComposicionCostoOperativo
+        {
+            IdTarea = tarea.ID,
+            IdEmpleado = idEmpleado,
+            Tarea = tarea.Titulo,
+            Empleado = empleado?.Nombre ?? "Empleado sin costo configurado",
+            Seniority = empleado?.Seniority ?? "Sin datos",
+            CostoHora = empleado?.CostoHora ?? 0,
+            CostoNoConfigurado = empleado is null || empleado.CostoHora <= 0
+        };
+        componentes.Add(clave, componente);
+        return componente;
+    }
+
+    private static List<ConvenienciaOperativaCliente> CrearResumenClientes(List<ConvenienciaOperativaProyecto> proyectos, HashSet<int> clientesEnRevision)
+    {
+        List<ConvenienciaOperativaCliente> clientes = new List<ConvenienciaOperativaCliente>();
+        foreach (IGrouping<int, ConvenienciaOperativaProyecto> grupo in proyectos.GroupBy(proyecto => proyecto.IdCliente))
+        {
+            ConvenienciaOperativaCliente cliente = new ConvenienciaOperativaCliente
+            {
+                IdCliente = grupo.Key,
+                NombreCliente = grupo.First().NombreCliente,
+                HorasEstimadas = grupo.Sum(proyecto => proyecto.HorasEstimadas),
+                HorasReales = grupo.Sum(proyecto => proyecto.HorasReales),
+                CostoPlanificado = grupo.Sum(proyecto => proyecto.CostoPlanificado),
+                CostoReal = grupo.Sum(proyecto => proyecto.CostoReal),
+                HorasRealesSinCosto = grupo.Sum(proyecto => proyecto.HorasRealesSinCosto),
+                EnRevisionOperativa = clientesEnRevision.Contains(grupo.Key),
+                Proyectos = grupo.OrderByDescending(proyecto => proyecto.Sobrecosto).ThenBy(proyecto => proyecto.NombreProyecto).ToList()
+            };
+            cliente.DesvioCosto = cliente.CostoReal - cliente.CostoPlanificado;
+            cliente.PresupuestoNoConsumido = Math.Max(cliente.CostoPlanificado - cliente.CostoReal, 0);
+            cliente.Sobrecosto = Math.Max(cliente.CostoReal - cliente.CostoPlanificado, 0);
+            cliente.EstadoConveniencia = cliente.Sobrecosto > 0 ? "Costo excedido" : cliente.HorasRealesSinCosto > 0 ? "Costo real incompleto" : cliente.CostoPlanificado <= 0 ? "Sin datos de planificación" : "Dentro del presupuesto";
+            clientes.Add(cliente);
+        }
+        return clientes.OrderByDescending(cliente => cliente.Sobrecosto).ThenByDescending(cliente => cliente.HorasRealesSinCosto).ThenBy(cliente => cliente.NombreCliente).ToList();
+    }
+
+    private static string ObtenerEstadoConveniencia(ConvenienciaOperativaProyecto detalle)
+    {
+        if (detalle.CostoPlanificado <= 0) { return "Sin datos de planificación"; }
+        if (detalle.Sobrecosto > 0) { return "Costo excedido"; }
+        if (detalle.CostoRealIncompleto) { return "Costo real incompleto"; }
+        return "Dentro del presupuesto";
+    }
+
     private static string ObtenerFactorConveniencia(ContextoProyectoAnalitico contexto, ConvenienciaOperativaProyecto detalle)
     {
-        if (detalle.CostoReal > detalle.CostoPlanificado) { return "El costo operativo real supera al planificado."; }
+        if (detalle.Sobrecosto > 0) { return "El costo operativo registrado supera el presupuesto interno disponible."; }
+        if (detalle.HorasRealesSinCosto > 0) { return "Hay " + detalle.HorasRealesSinCosto.ToString("N2") + " h registradas por perfiles sin costo interno configurado."; }
+        if (detalle.HorasPlanificadasSinCosto > 0) { return "Hay horas planificadas sobre perfiles sin costo interno configurado."; }
         if (contexto.Tareas.Any(tarea => tarea.Bloqueada)) { return "Hay tareas bloqueadas que pueden aumentar el desgaste operativo."; }
-        return "El consumo registrado se mantiene dentro del costo operativo planificado.";
+        return "El costo registrado se mantiene dentro del presupuesto interno planificado.";
     }
 
     private static int ObtenerNivelSeniority(string seniority)
@@ -540,6 +820,16 @@ public class BLLAnaliticaOperativa
         if (valor.Contains("senior") || valor == "sr") { return 4; }
         if (valor.Contains("lead") || valor.Contains("especialista")) { return 5; }
         return 0;
+    }
+
+    private static string ObtenerSeniorityRequerido(Tarea tarea)
+    {
+        if (!string.IsNullOrWhiteSpace(tarea.SeniorityRequerido)) { return tarea.SeniorityRequerido; }
+
+        string complejidad = tarea.Complejidad?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (complejidad == "alta") { return "Senior"; }
+        if (complejidad == "media") { return "Semisenior"; }
+        return "Junior";
     }
 
     private sealed class ContextoProyectoAnalitico
