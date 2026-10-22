@@ -7,13 +7,15 @@ import { DetalleRiesgoProyecto, FiltroRiesgoRetraso, NuevoSeguimientoRiesgoRetra
 import { AccionAjusteDesvioHoras, AnalisisConvenienciaOperativa, AnalisisDesvioHoras, AnalisisOcupacionOperativa, AnalisisSobrecalificacionPerfiles, AnaliticaOperativaService, ConvenienciaOperativaCliente, ConvenienciaOperativaProyecto, DesvioHorasProyecto, DesvioHorasTarea, DetalleConvenienciaOperativa, DetalleDesvioHorasTarea, DetalleOcupacionEmpleado, DetalleOcupacionTarea, FiltroConvenienciaOperativa, FiltroDesvioHoras, FiltroOcupacionOperativa, NuevoSeguimientoConvenienciaOperativa, OcupacionEmpleado, OcupacionProyecto, RevisionOperativaPendiente, SobrecalificacionTarea } from '../../../../services/analitica-operativa.service';
 import { AuthService } from '../../../../services/auth.service';
 import { HoursDrilldownChartComponent } from '../../../../shared/components/analytics/hours-drilldown-chart/hours-drilldown-chart.component';
+import { OccupancyLandscapeComponent } from '../../../../shared/components/analytics/occupancy-landscape/occupancy-landscape.component';
 import { OverqualificationMapComponent } from '../../../../shared/components/analytics/overqualification-map/overqualification-map.component';
 import { RiesgoTareaSeleccionada, RiskObservatoryComponent } from '../../../../shared/components/analytics/risk-observatory/risk-observatory.component';
+import { ConvenienceMapComponent } from '../../../../shared/components/analytics/convenience-map/convenience-map.component';
 
 type VistaAnalisis = 'riesgo' | 'ocupacion' | 'desvio' | 'conveniencia' | 'sobrecalificacion' | 'revisiones';
 type EstadoVisualOcupacion = 'subutilizada' | 'balanceada' | 'sobrecargada' | 'critica';
 
-@Component({ selector: 'app-reports', imports: [DatePipe, DecimalPipe, FormsModule, HoursDrilldownChartComponent, OverqualificationMapComponent, RiskObservatoryComponent], templateUrl: './reports.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
+@Component({ selector: 'app-reports', imports: [DatePipe, DecimalPipe, FormsModule, HoursDrilldownChartComponent, OccupancyLandscapeComponent, OverqualificationMapComponent, RiskObservatoryComponent, ConvenienceMapComponent], templateUrl: './reports.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
 export class Reports {
   private readonly projectsService = inject(ProjectsService);
   private readonly riesgoService = inject(RiesgoRetrasoService);

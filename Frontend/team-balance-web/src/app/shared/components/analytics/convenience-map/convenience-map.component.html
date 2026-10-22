@@ -1,0 +1,25 @@
+<section class="tb-convenience-map" [class.tb-convenience-map--transition-in]="transicion === 'entrando'" [class.tb-convenience-map--prepare-in]="transicion === 'preparando-entrada'" [class.tb-convenience-map--transition-out]="transicion === 'saliendo'" [class.tb-convenience-map--prepare-out]="transicion === 'preparando-salida'">
+  <header class="tb-convenience-map__header">
+    <div>
+      <p class="tb-page-kicker">{{ clienteSeleccionado ? 'CONVENIENCIA OPERATIVA · CLIENTE' : 'MAPA DE CONVENIENCIA POR CLIENTE' }}</p>
+      <h2>{{ clienteSeleccionado ? 'Conveniencia por proyecto' : 'Salud operativa por cliente' }}</h2>
+      <p>{{ clienteSeleccionado ? clienteSeleccionado.nombreCliente + ' · análisis de sus proyectos comprendidos en el alcance actual.' : 'Cada punto compara el saldo de costo registrado contra el presupuesto interno planificado.' }}</p>
+    </div>
+    @if (clienteSeleccionado) {
+      <div class="tb-convenience-map__actions">
+        @if (!clienteSeleccionado.enRevisionOperativa) { <button class="tb-secondary-button" type="button" (click)="derivarCliente()">Marcar y derivar</button> }
+        <button class="tb-secondary-button" type="button" (click)="volverAClientes()">← Volver a clientes</button>
+      </div>
+    }
+  </header>
+
+  <div class="tb-convenience-map__stage">
+    <div #chart class="tb-convenience-map__canvas"></div>
+    @if (!elementosActuales().length) { <div class="tb-convenience-map__empty"><strong>No hay elementos para representar.</strong><span>Modificá los filtros o actualizá el análisis.</span></div> }
+  </div>
+
+  <footer class="tb-convenience-map__footer">
+    <div class="tb-convenience-map__legend"><span><i class="tb-convenience-map__dot tb-convenience-map__dot--healthy"></i>Dentro del presupuesto</span><span><i class="tb-convenience-map__dot tb-convenience-map__dot--partial"></i>Información parcial</span><span><i class="tb-convenience-map__dot tb-convenience-map__dot--critical"></i>Costo excedido</span></div>
+    <p>{{ clienteSeleccionado ? 'Seleccioná un proyecto para consultar la composición y el seguimiento.' : 'Seleccioná un cliente para entrar a sus proyectos.' }}</p>
+  </footer>
+</section>
