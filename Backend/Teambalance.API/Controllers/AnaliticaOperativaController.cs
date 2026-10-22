@@ -26,6 +26,14 @@ public class AnaliticaOperativaController : ControllerBase
         catch (Exception) { return StatusCode(500, "No fue posible analizar la ocupación operativa."); }
     }
 
+    [HttpGet("mi-carga")]
+    public IActionResult ConsultarMiCargaOperativa()
+    {
+        try { return Ok(_analiticaBLL.ConsultarMiCargaOperativa(ObtenerSolicitante())); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible consultar tu carga operativa."); }
+    }
+
     [HttpGet("ocupacion/detalle-empleado")]
     public IActionResult ConsultarDetalleOcupacionEmpleado([FromQuery] FiltroOcupacionOperativa filtro)
     {

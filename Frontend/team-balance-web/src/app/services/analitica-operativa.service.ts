@@ -326,6 +326,10 @@ export class AnaliticaOperativaService {
     return this.http.get<AnalisisOcupacionOperativa>(`${this.url}/ocupacion`, { params: this.crearParametros(filtro) });
   }
 
+  consultarMiCargaOperativa(): Observable<OcupacionEmpleado> {
+    return this.http.get<OcupacionEmpleado>(`${this.url}/mi-carga`);
+  }
+
   consultarDetalleOcupacionEmpleado(filtro: FiltroOcupacionOperativa): Observable<DetalleOcupacionEmpleado> {
     return this.http.get<DetalleOcupacionEmpleado>(`${this.url}/ocupacion/detalle-empleado`, { params: this.crearParametros(filtro) });
   }

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, HostListener, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Cliente, FiltroProyecto, ProjectsService, Proyecto, ProyectoOpciones } from '../../../../services/projects.service';
 import { LocalizationService } from '../../../../services/localization.service';
@@ -18,6 +18,7 @@ export class ProyectManagement {
   readonly mostrarCliente = signal(false);
   readonly clienteEditando = signal<Cliente | null>(null);
   readonly proyectoSeleccionado = signal<Proyecto | null>(null);
+  readonly menuClienteAbierto = signal<number | null>(null);
   readonly error = signal('');
   readonly form = this.fb.group({ id: [0], idCliente: [0, Validators.min(1)], idPMResponsable: [0, Validators.min(1)], nombre: ['', Validators.required], descripcion: [''], fechaInicio: [''], deadline: [''], horasEstimadasTotales: [0, Validators.min(0)], estado: ['Planificado'] });
   readonly clienteForm = this.fb.group({ nombre: ['', Validators.required], razonSocial: [''], email: [''], telefono: [''] });
@@ -60,4 +61,14 @@ export class ProyectManagement {
   }
 
   cambiar(p: Proyecto): void { this.service.cambiarEstado({ ...p, activo: !p.activo }).subscribe({ next: () => this.cargar(), error: () => this.error.set('No se pudo actualizar el estado del proyecto.') }); }
+
+  alternarMenuCliente(idCliente: number, event: MouseEvent): void {
+    event.stopPropagation();
+    this.menuClienteAbierto.update((actual) => actual === idCliente ? null : idCliente);
+  }
+
+  cerrarMenuCliente(): void { this.menuClienteAbierto.set(null); }
+
+  @HostListener('document:click')
+  alHacerClickFuera(): void { this.cerrarMenuCliente(); }
 }

@@ -14,6 +14,18 @@ export interface LogInResponse {
   usuario: UsuarioSesion;
 }
 
+export interface DesafioDosFactoresResponse {
+  requiereDosFactores: true;
+  tokenDesafio: string;
+  fechaExpiracion: string;
+}
+
+export interface EstadoDosFactoresResponse { totpHabilitado: boolean; fechaActivacionTotp: string | null; }
+export interface PreparacionTotpResponse { uriOtpAuth: string; claveManual: string; fechaExpiracion: string; }
+export interface ConfirmacionTotpResponse { codigosRecuperacion: string[]; }
+export interface EstadoTelegramResponse { vinculado: boolean; estadoSolicitud: string; fechaExpiracionSolicitud: string | null; fechaVinculacion: string | null; }
+export interface PreparacionTelegramResponse { enlaceProfundo: string; fechaExpiracion: string; }
+
 export interface UsuarioSesion {
   id: number;
   nombre: string;
@@ -67,7 +79,7 @@ export class AuthService {
     );
   }
 
-  logIn(data: LogInRequest, mantenerSesion: boolean): Observable<LogInResponse> {
+  logIn(data: LogInRequest, mantenerSesion: boolean): Observable<LogInResponse | DesafioDosFactoresResponse> {
     return this.http.get( `${this.authApiUrl}/public-key`, { responseType: 'text' }).pipe(
       switchMap(publicKey => from( this.encryptionService.encrypt( { email: data.email, password: data.passwordHash }, publicKey))),
       switchMap(encrypted => { const request: EncryptedLogInRequest = {
@@ -76,8 +88,23 @@ export class AuthService {
           iv: encrypted.iv,
           recaptchaToken: data.recaptchaToken
         };
-        return this.http.post<LogInResponse>( `${this.authApiUrl}/login?mantenerSesion=${mantenerSesion}`, request); }));
+        return this.http.post<LogInResponse | DesafioDosFactoresResponse>( `${this.authApiUrl}/login?mantenerSesion=${mantenerSesion}`, request); }));
   }
+
+  confirmarInicioSesionDosFactores(tokenDesafio: string, codigo: string): Observable<LogInResponse> {
+    return this.http.post<LogInResponse>(`${this.authApiUrl}/login/confirmar-2fa`, { tokenDesafio, codigo });
+  }
+
+  consultarDosFactores(): Observable<EstadoDosFactoresResponse> { return this.http.get<EstadoDosFactoresResponse>(`${this.authApiUrl}/2fa`); }
+  prepararTotp(): Observable<PreparacionTotpResponse> { return this.http.post<PreparacionTotpResponse>(`${this.authApiUrl}/2fa/preparar`, {}); }
+  confirmarTotp(codigo: string): Observable<ConfirmacionTotpResponse> { return this.http.post<ConfirmacionTotpResponse>(`${this.authApiUrl}/2fa/confirmar`, { codigo }); }
+  desactivarTotp(codigo: string): Observable<void> { return this.http.post<void>(`${this.authApiUrl}/2fa/desactivar`, { codigo }); }
+  consultarTelegram(): Observable<EstadoTelegramResponse> { return this.http.get<EstadoTelegramResponse>(`${this.authApiUrl}/telegram`); }
+  prepararVinculacionTelegram(): Observable<PreparacionTelegramResponse> { return this.http.post<PreparacionTelegramResponse>(`${this.authApiUrl}/telegram/vinculacion`, {}); }
+  confirmarVinculacionTelegram(codigo: string): Observable<void> { return this.http.post<void>(`${this.authApiUrl}/telegram/vinculacion/confirmar`, { codigo }); }
+  reenviarCodigoTelegram(): Observable<void> { return this.http.post<void>(`${this.authApiUrl}/telegram/vinculacion/reenviar`, {}); }
+  prepararDesvinculacionTelegram(): Observable<void> { return this.http.post<void>(`${this.authApiUrl}/telegram/desvinculacion`, {}); }
+  confirmarDesvinculacionTelegram(codigo: string): Observable<void> { return this.http.post<void>(`${this.authApiUrl}/telegram/desvinculacion/confirmar`, { codigo }); }
 
   validarCuenta(token: string): Observable<EmailValidationResponse> {
 

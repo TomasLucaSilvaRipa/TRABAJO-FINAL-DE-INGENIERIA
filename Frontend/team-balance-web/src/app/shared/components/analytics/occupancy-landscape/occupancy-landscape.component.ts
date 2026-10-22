@@ -1,9 +1,10 @@
-import { AfterViewInit, Component, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
+import { AfterViewInit, Component, effect, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 import * as echarts from 'echarts/core';
 import { LineChart, ScatterChart } from 'echarts/charts';
 import { AriaComponent, DataZoomComponent, GridComponent, MarkAreaComponent, MarkLineComponent, TooltipComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import { OcupacionEmpleado, OcupacionEmpleadoProyecto, OcupacionProyecto } from '../../../../services/analitica-operativa.service';
+import { LocalizationService } from '../../../../services/localization.service';
 
 echarts.use([LineChart, ScatterChart, AriaComponent, DataZoomComponent, GridComponent, MarkAreaComponent, MarkLineComponent, TooltipComponent, CanvasRenderer]);
 
@@ -31,6 +32,7 @@ interface NodoPaisaje {
 })
 export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, OnDestroy {
   private readonly zone = inject(NgZone);
+  readonly localization = inject(LocalizationService);
   @Input({ required: true }) proyectos: OcupacionProyecto[] = [];
   @Input({ required: true }) empleados: OcupacionEmpleado[] = [];
   @Output() empleadoSeleccionado = new EventEmitter<{ empleado: OcupacionEmpleado; proyecto: OcupacionProyecto }>();
@@ -46,6 +48,8 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
   protected focoX = '50%';
   protected focoY = '50%';
   protected proyectoResaltadoId: number | null = null;
+
+  constructor() { effect(() => { this.localization.language(); queueMicrotask(() => this.dibujar(false)); }); }
 
   ngAfterViewInit(): void { this.inicializar(); }
 
@@ -86,7 +90,7 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
   }
 
   protected etiquetaEscala(): string { return this.escala === 'adaptada' ? 'Usar escala completa' : 'Usar escala adaptada'; }
-  protected tituloNivel(): string { return this.proyecto ? 'Ocupación de los empleados asignados' : 'Paisaje de carga y ocupación por proyecto'; }
+  protected tituloNivel(): string { return this.proyecto ? this.localization.traducir('static.assignedEmployeesTitle') : this.localization.traducir('static.occupancyLandscapeTitle'); }
   protected descripcionNivel(): string {
     return this.proyecto
       ? `${this.proyecto.nombreProyecto} · seleccioná un empleado para abrir sus tareas, diagnóstico y revisión.`
@@ -188,10 +192,11 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
   private escaparHtml(valor: string): string { return valor.replace(/[&<>"']/g, caracter => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[caracter] ?? caracter); }
 
   private tooltip(nodo: NodoPaisaje): string {
-    const valor = nodo.valor === null ? 'Sin datos suficientes' : `${nodo.valor.toFixed(2)}%`;
-    const lineaAlcance = this.proyecto ? `Horas asignadas al proyecto: ${nodo.horas.toFixed(2)} h` : `Carga planificada activa: ${nodo.horas.toFixed(2)} h`;
-    const contexto = this.proyecto ? `Capacidad del empleado: ${nodo.capacidad.toFixed(2)} h` : `Empleados involucrados: ${nodo.participantes}`;
-    return `<div class="tb-occupancy-tooltip"><strong>${this.escaparHtml(nodo.nombre)}</strong><span>${this.escaparHtml(nodo.cliente)}</span><b style="color:${this.colorEstado(nodo.estado)}">${valor} · ${this.escaparHtml(nodo.estado)}</b><hr/>${lineaAlcance}<br/>${contexto}<small>${this.proyecto ? 'Hacé clic para ver tareas, causa y acción.' : 'Hacé clic para acercarte al equipo del proyecto.'}</small></div>`;
+    const valor = nodo.valor === null ? this.localization.traducir('static.noData') : `${nodo.valor.toFixed(2)}%`;
+    const lineaAlcance = this.proyecto ? `${this.localization.traducir('static.assignedHours')}: ${nodo.horas.toFixed(2)} h` : `${this.localization.traducir('static.activePlannedLoad')}: ${nodo.horas.toFixed(2)} h`;
+    const contexto = this.proyecto ? `${this.localization.traducir('static.employeeCapacity')}: ${nodo.capacidad.toFixed(2)} h` : `${this.localization.traducir('static.employeesInvolved')}: ${nodo.participantes}`;
+    const click = this.proyecto ? this.localization.traducir('static.clickTasksAction') : this.localization.traducir('static.clickProjectTeam');
+    return `<div style="min-width:238px;line-height:1.55"><strong style="display:block;font-size:14px;margin-bottom:3px">${this.escaparHtml(nodo.nombre)}</strong><span style="display:block;color:#9fc5d2;margin-bottom:8px">${this.escaparHtml(nodo.cliente)}</span><b style="display:block;color:${this.colorEstado(nodo.estado)};margin-bottom:9px">${valor} · ${this.escaparHtml(this.localization.traducirTextoEstatico(nodo.estado))}</b><div style="border-top:1px solid rgba(159,197,210,.35);padding-top:8px;margin-top:4px">${lineaAlcance}<br/>${contexto}</div><small style="display:block;margin-top:10px;color:#6ce5ff">${click}</small></div>`;
   }
 
   private dibujar(animar = true): void {
@@ -210,7 +215,7 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
       grid: { left: 48, right: 38, top: 64, bottom: 88, containLabel: true },
       tooltip: { trigger: 'item', backgroundColor: '#061a2c', borderColor: '#3d8ca9', borderWidth: 1, padding: 14, textStyle: { color: '#effdff' }, extraCssText: 'border-radius:14px;box-shadow:0 22px 52px rgba(0,0,0,.46);min-width:220px;', formatter: (evento: { dataIndex: number }) => nodos[evento.dataIndex] ? this.tooltip(nodos[evento.dataIndex]) : '' },
       xAxis: { type: 'category', boundaryGap: false, data: nombres, axisTick: { show: false }, axisLine: { lineStyle: { color: '#4b7889', width: 2 } }, axisLabel: { color: '#d9f4fa', interval: 0, width: 132, overflow: 'truncate', rotate: nodos.length > 5 ? 18 : 0, fontWeight: 700, margin: 17 } },
-      yAxis: { type: 'value', min: dominio.min, max: dominio.max, name: this.proyecto ? 'Ocupación real (%)' : 'Coeficiente ponderado de ocupación (%)', nameTextStyle: { color: '#a6cad6', fontWeight: 700, padding: [0, 0, 4, 4] }, axisLabel: { color: '#9fc6d1', formatter: '{value}%' }, axisLine: { lineStyle: { color: '#4b7889' } }, splitLine: { lineStyle: { color: 'rgba(132,195,214,.16)', type: 'dashed' } } },
+      yAxis: { type: 'value', min: dominio.min, max: dominio.max, name: this.proyecto ? this.localization.traducir('static.actualUtilization') : this.localization.traducir('static.weightedUtilization'), nameTextStyle: { color: '#a6cad6', fontWeight: 700, padding: [0, 0, 4, 4] }, axisLabel: { color: '#9fc6d1', formatter: '{value}%' }, axisLine: { lineStyle: { color: '#4b7889' } }, splitLine: { lineStyle: { color: 'rgba(132,195,214,.16)', type: 'dashed' } } },
       dataZoom: nodos.length > 7 ? [{ type: 'inside', xAxisIndex: 0, zoomOnMouseWheel: true, moveOnMouseMove: true }, { type: 'slider', xAxisIndex: 0, height: 13, bottom: 19, borderColor: 'transparent', fillerColor: 'rgba(24,193,225,.27)', backgroundColor: 'rgba(129,194,212,.12)', handleStyle: { color: '#48d7ef', borderColor: '#baf7ff' } }] : [],
       series: [
         { id: 'paisaje-ocupacion', type: 'line', data: datosLinea, smooth: .36, smoothMonotone: 'x', connectNulls: false, showSymbol: false, z: 3, lineStyle: { width: 5, color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#57a6ff' }, { offset: .34, color: '#35d39b' }, { offset: .67, color: '#ffb11b' }, { offset: 1, color: '#ff5b70' }]), shadowBlur: 16, shadowColor: 'rgba(49,207,235,.38)' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(255,104,108,.34)' }, { offset: .35, color: 'rgba(255,178,29,.22)' }, { offset: .62, color: 'rgba(53,211,155,.18)' }, { offset: 1, color: 'rgba(69,157,255,.025)' }]) }, markArea: { silent: true, itemStyle: { opacity: .14 }, data: [[{ yAxis: 0, itemStyle: { color: '#317cc4' } }, { yAxis: 50 }], [{ yAxis: 50, itemStyle: { color: '#249d75' } }, { yAxis: 86 }], [{ yAxis: 86, itemStyle: { color: '#dc8d1d' } }, { yAxis: 100 }], [{ yAxis: 100, itemStyle: { color: '#d64e60' } }, { yAxis: dominio.max }]] }, markLine: { silent: true, symbol: 'none', label: { color: '#b8dce5', fontSize: 11, formatter: (parametro: { value: number }) => `${parametro.value}%` }, lineStyle: { type: 'dashed', color: 'rgba(199,235,242,.45)' }, data: [{ yAxis: 50 }, { yAxis: 86 }, { yAxis: 100 }] } },

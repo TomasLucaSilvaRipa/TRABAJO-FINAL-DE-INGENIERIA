@@ -85,6 +85,62 @@ public class BLLAnaliticaOperativa
         return resultado;
     }
 
+    /// <summary>
+    /// Devuelve la carga del empleado autenticado durante la semana laboral vigente.
+    /// No expone la distribución de carga del resto de la agencia.
+    /// </summary>
+    public OcupacionEmpleado ConsultarMiCargaOperativa(Usuario usuario)
+    {
+        if (!usuario.IdAgencia.HasValue) { throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."); }
+        if (!_rolBLL.TienePermiso(usuario, "VerCargaOperativa")) { throw new UnauthorizedAccessException("No tenés permiso para consultar tu carga operativa."); }
+
+        Empleado empleado = _analiticaMPP.ConsultarEmpleadosActivos(usuario)
+            .FirstOrDefault(item => item.ID == usuario.ID)
+            ?? throw new UnauthorizedAccessException("Tu cuenta no está asociada a un empleado activo de la agencia.");
+
+        // Esta consulta se realiza sobre los proyectos de la agencia; el motor sólo incorpora
+        // tareas que estén efectivamente asignadas al empleado autenticado.
+        List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, null);
+        List<Tarea> tareas = contextos.SelectMany(contexto => contexto.Tareas).ToList();
+        List<AsignacionTarea> asignaciones = _asignacionMPP.ConsultarActivas(tareas.Select(tarea => tarea.ID), usuario);
+        List<RegistroHora> registros = contextos.SelectMany(contexto => contexto.Registros).ToList();
+        List<AusenciaEmpleado> ausencias = _recursosMPP.ConsultarAusenciasEmpleado(new AusenciaEmpleado { IdEmpleado = empleado.ID }, usuario);
+        FiltroOcupacionOperativa filtro = new FiltroOcupacionOperativa();
+        (DateTime desde, DateTime hasta) = _motorCargaOperativa.ObtenerPeriodo(filtro);
+        CargaOperativaEmpleado carga = _motorCargaOperativa.Calcular(empleado, tareas, asignaciones, registros, ausencias, desde, hasta);
+        decimal porcentajeSemanal = CalcularPorcentaje(carga.HorasPlanificadasPeriodo, carga.HorasCapacidadPeriodo);
+        decimal porcentaje = Math.Max(porcentajeSemanal, carga.MayorPorcentajeOcupacionDiaria);
+        List<Tarea> tareasEmpleado = tareas.Where(tarea => carga.HorasPlanificadasPorTarea.ContainsKey(tarea.ID)).ToList();
+        Tarea? tareaPrincipal = tareasEmpleado.OrderByDescending(tarea => carga.HorasPlanificadasPorTarea[tarea.ID]).FirstOrDefault();
+        string estado = ObtenerEstadoOcupacion(porcentaje);
+
+        return new OcupacionEmpleado
+        {
+            IdEmpleado = empleado.ID,
+            Nombre = empleado.Nombre,
+            Seniority = empleado.Seniority,
+            HorasDisponibles = carga.HorasCapacidadPeriodo,
+            HorasEstimadasActivas = carga.HorasPlanificadasPeriodo,
+            HorasRegistradas = carga.HorasRegistradasPeriodo,
+            PorcentajeOcupacion = porcentaje,
+            EstadoCarga = estado,
+            CausaPrincipal = tareaPrincipal is null
+                ? "No tenés tareas planificables asignadas durante esta semana."
+                : carga.TieneSobrecargaDiaria
+                    ? "La tarea '" + tareaPrincipal.Titulo + "' concentra una sobrecarga en al menos un día hábil."
+                    : "La tarea '" + tareaPrincipal.Titulo + "' concentra la mayor parte de tu carga semanal.",
+            AccionSugerida = estado is "Sobrecargado" or "Crítico"
+                ? "Revisá tus prioridades con tu responsable si necesitás redistribuir trabajo."
+                : "Tu carga se actualiza al cambiar tus tareas, disponibilidad o ausencias.",
+            Proyectos = contextos
+                .Where(contexto => contexto.Tareas.Any(tarea => carga.HorasPlanificadasPorTarea.ContainsKey(tarea.ID)))
+                .Select(contexto => contexto.Proyecto.Nombre)
+                .Distinct()
+                .OrderBy(nombre => nombre)
+                .ToList()
+        };
+    }
+
     public DetalleOcupacionEmpleado ConsultarDetalleOcupacionEmpleado(Usuario usuario, FiltroOcupacionOperativa filtro)
     {
         ValidarDueno(usuario);

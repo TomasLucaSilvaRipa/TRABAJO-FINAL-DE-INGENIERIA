@@ -16,6 +16,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddHttpClient<MercadoPagoService>();
 builder.Services.AddHttpClient<StripeService>();
 builder.Services.AddHttpClient("Recaptcha");
+builder.Services.AddSingleton<TelegramBotService>();
 builder.Services.AddScoped<RecaptchaService>(serviceProvider => new RecaptchaService(serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("Recaptcha"), builder.Configuration["Recaptcha:SecretKey"], builder.Configuration["Frontend:PublicBaseUrl"]));
 builder.Services.AddScoped<Seguridad>();
 string fieldEncryptionKey = builder.Configuration["FieldEncryption:Key"] ?? throw new InvalidOperationException("No se configuró FieldEncryption:Key. Configurala como secreto del entorno antes de iniciar la API.");
@@ -54,6 +55,7 @@ builder.Services.AddScoped<MPPSlack>();
 builder.Services.AddScoped<MPPAnaliticaOperativa>();
 builder.Services.AddScoped<MPPNotificacion>();
 builder.Services.AddScoped<MPPIdioma>();
+builder.Services.AddScoped<MPPIngresosPlataforma>();
 builder.Services.AddScoped<EmailService>(serviceProvider => new EmailService(
     builder.Configuration["Email:Emisor"],
     builder.Configuration["Email:ClaveAplicacion"],
@@ -64,6 +66,7 @@ builder.Services.AddScoped<EmailService>(serviceProvider => new EmailService(
 builder.Services.AddScoped<ContratacionBLL>();
 builder.Services.AddScoped<BLLAgencia>();
 builder.Services.AddScoped<BLLUsuario>();
+builder.Services.AddScoped<BLLTelegram>();
 builder.Services.AddScoped<BLLRol>();
 builder.Services.AddScoped<BLLBitacora>();
 builder.Services.AddScoped<BLLPlanComercial>();
@@ -92,12 +95,14 @@ builder.Services.AddScoped<BLLSlack>();
 builder.Services.AddScoped<BLLAnaliticaOperativa>();
 builder.Services.AddScoped<BLLNotificacion>();
 builder.Services.AddScoped<BLLIdioma>();
+builder.Services.AddScoped<BLLIngresosPlataforma>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("Backup").Get<BackupSettings>() ?? new BackupSettings());
 builder.Services.AddSingleton<ContinuityHistoryXmlService>();
 builder.Services.AddSingleton<EncryptionService>();
 builder.Services.AddHostedService<SubscriptionExpirationHostedService>();
 builder.Services.AddHostedService<NewsPublisherHostedService>();
 builder.Services.AddHostedService<BackupHostedService>();
+builder.Services.AddHostedService<TelegramPollingHostedService>();
 
 builder.Services.AddHttpClient<PasswordSecurityWebService>( client => { client.BaseAddress = new Uri(builder.Configuration["PasswordSecurityWebService:BaseUrl"]!); });
 

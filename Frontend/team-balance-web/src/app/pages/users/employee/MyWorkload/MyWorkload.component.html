@@ -1,2 +1,60 @@
 
-<section class="tb-workspace mx-auto max-w-5xl space-y-6"><header><p class="tb-page-kicker">Mi operación</p><h1 class="tb-page-title">Mi carga operativa</h1><p class="tb-page-description">Consultá la relación entre tu capacidad disponible y las tareas asignadas.</p></header><article class="tb-panel"><div class="tb-panel-heading"><div><h2>Capacidad de la semana</h2><p>El cálculo se actualizará con tu disponibilidad, estimaciones y horas registradas.</p></div><span class="tb-status tb-status--neutral">Sin datos</span></div><div class="mt-8 grid items-center gap-8 md:grid-cols-[1fr_auto]"><div><div class="h-4 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"><div class="h-full w-0 rounded-full bg-cyan-600"></div></div><div class="mt-3 flex justify-between text-sm text-slate-600 dark:text-slate-300"><span>Capacidad asignada</span><span>Disponible al cargar información</span></div></div><div class="grid h-28 w-28 place-items-center rounded-full border-8 border-slate-200 text-center dark:border-slate-700"><strong class="text-2xl text-slate-900 dark:text-white">—</strong><span class="text-xs text-slate-500">ocupación</span></div></div></article></section>
+<section class="tb-workspace mx-auto max-w-5xl space-y-6">
+  <header>
+    <p class="tb-page-kicker">Mi operación</p>
+    <h1 class="tb-page-title">Mi carga operativa</h1>
+    <p class="tb-page-description">Consultá la relación entre tu capacidad disponible y las tareas asignadas.</p>
+  </header>
+
+  <article class="tb-panel">
+    <div class="tb-panel-heading">
+      <div>
+        <h2>Capacidad de la semana</h2>
+        <p>Calculamos tu carga con las tareas activas, tu disponibilidad y las ausencias aprobadas.</p>
+      </div>
+      @if (carga(); as cargaActual) {
+        <span class="tb-status" [class]="'tb-status ' + claseEstado()">{{ cargaActual.estadoCarga }}</span>
+      } @else if (cargando()) {
+        <span class="tb-status tb-status--neutral">Actualizando</span>
+      }
+    </div>
+
+    @if (cargando()) {
+      <div class="mt-8 animate-pulse space-y-4" aria-label="Cargando carga operativa">
+        <div class="h-4 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+        <div class="h-24 rounded-2xl bg-slate-100 dark:bg-slate-800"></div>
+      </div>
+    } @else if (error(); as mensajeError) {
+      <div class="mt-8 rounded-2xl border border-rose-300/60 bg-rose-50 p-5 text-rose-800 dark:border-rose-900/70 dark:bg-rose-950/30 dark:text-rose-200">
+        <p class="font-semibold">No pudimos consultar tu carga operativa</p>
+        <p class="mt-1 text-sm">{{ mensajeError }}</p>
+        <button type="button" class="tb-button tb-button--secondary mt-4" (click)="consultarCarga()">Reintentar</button>
+      </div>
+    } @else if (carga(); as cargaActual) {
+      <div class="mt-8 grid items-center gap-8 md:grid-cols-[1fr_auto]">
+        <div>
+          <div class="h-4 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700" [attr.aria-label]="porcentajeVisual() + '% de ocupación'">
+            <div class="h-full rounded-full transition-[width] duration-500" [class.bg-cyan-600]="cargaActual.estadoCarga === 'Balanceado'" [class.bg-emerald-500]="cargaActual.estadoCarga === 'Subutilizado'" [class.bg-amber-500]="cargaActual.estadoCarga === 'Sobrecargado'" [class.bg-rose-500]="cargaActual.estadoCarga === 'Crítico'" [style.width.%]="porcentajeVisual()"></div>
+          </div>
+          <div class="mt-3 flex flex-wrap justify-between gap-2 text-sm text-slate-600 dark:text-slate-300">
+            <span>{{ cargaActual.horasEstimadasActivas | number:'1.0-2' }} h asignadas</span>
+            <span>{{ cargaActual.horasDisponibles | number:'1.0-2' }} h de capacidad semanal</span>
+          </div>
+        </div>
+        <div class="grid h-28 w-28 place-items-center rounded-full border-8 text-center" [class.border-cyan-600]="cargaActual.estadoCarga === 'Balanceado'" [class.border-emerald-500]="cargaActual.estadoCarga === 'Subutilizado'" [class.border-amber-500]="cargaActual.estadoCarga === 'Sobrecargado'" [class.border-rose-500]="cargaActual.estadoCarga === 'Crítico'">
+          <strong class="text-2xl text-slate-900 dark:text-white">{{ cargaActual.porcentajeOcupacion | number:'1.0-0' }}%</strong>
+          <span class="text-xs text-slate-500">ocupación</span>
+        </div>
+      </div>
+
+      <div class="mt-8 grid gap-4 border-t border-slate-200 pt-5 text-sm dark:border-slate-700 sm:grid-cols-3">
+        <div><p class="text-slate-500">Horas registradas</p><p class="mt-1 font-semibold text-slate-900 dark:text-white">{{ cargaActual.horasRegistradas | number:'1.0-2' }} h</p></div>
+        <div><p class="text-slate-500">Disponible esta semana</p><p class="mt-1 font-semibold text-slate-900 dark:text-white">{{ (cargaActual.horasDisponibles - cargaActual.horasEstimadasActivas) | number:'1.0-2' }} h</p></div>
+        <div><p class="text-slate-500">Proyectos activos</p><p class="mt-1 font-semibold text-slate-900 dark:text-white">{{ cargaActual.proyectos.length }}</p></div>
+      </div>
+
+      <p class="mt-5 text-sm text-slate-600 dark:text-slate-300">{{ cargaActual.causaPrincipal }}</p>
+      <p class="mt-1 text-sm font-medium text-cyan-700 dark:text-cyan-300">{{ cargaActual.accionSugerida }}</p>
+    }
+  </article>
+</section>

@@ -11,6 +11,15 @@
     <p>{{ localization.traducir('login.subtitle') }}</p>
   </div>
 
+  @if (desafioDosFactores(); as desafio) {
+    <section class="tb-auth-form__fields" aria-label="Verificación de dos factores">
+      <div class="tb-auth-form__heading"><h2>Verificá tu cuenta</h2><p>Ingresá el código de seis dígitos de Google Authenticator. El desafío vence a las {{ desafio.fechaExpiracion | date:'HH:mm' }}.</p></div>
+      <div class="tb-auth-field"><label for="signin-totp">Código de verificación</label><input id="signin-totp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" [value]="codigoDosFactores()" (input)="codigoDosFactores.set($any($event.target).value)" placeholder="000000" /></div>
+      @if (requestError()) { <p class="tb-auth-request-error" role="alert">{{ requestError() }}</p> }
+      <button class="tb-auth-submit" type="button" [disabled]="submitting()" (click)="confirmarDosFactores()">{{ submitting() ? 'Verificando…' : 'Verificar código' }}</button>
+      <button class="tb-auth-submit tb-auth-submit--link" type="button" (click)="volverAlInicioSesion()">Volver</button>
+    </section>
+  } @else {
   <form class="tb-auth-form__fields" [formGroup]="signInForm" (ngSubmit)="onSignIn()" novalidate>
     <div class="tb-auth-field">
       <label for="signin-email">{{ localization.traducir('login.workEmail') }}</label>
@@ -44,6 +53,7 @@
       {{ localization.traducir(submitting() ? 'login.submitting' : 'login.button') }}
     </button>
   </form>
+  }
 
   <div class="tb-auth-form__alternate">
     <span>{{ localization.traducir('login.start') }}</span>

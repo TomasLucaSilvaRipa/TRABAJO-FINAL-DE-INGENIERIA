@@ -60,6 +60,12 @@ public class MPPUsuario
         return CargarFotoPerfil(CrearUsuario(resultado.Rows[0]));
     }
 
+    public Usuario? ConsultarUsuarioPorId(int idUsuario)
+    {
+        DataTable resultado = _conexion.Leer("dbo.usp_Usuario_ConsultarPorId", new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario) });
+        return resultado.Rows.Count == 1 ? CargarFotoPerfil(CrearUsuario(resultado.Rows[0])) : null;
+    }
+
     public Usuario? ConsultarUsuarioPorSesion(SesionUsuario sesion)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
@@ -209,6 +215,127 @@ public class MPPUsuario
         {
             throw new InvalidOperationException("No fue posible guardar la foto de perfil.");
         }
+    }
+
+    public ConfiguracionAutenticacionDosFactores? ConsultarAutenticacionDosFactores(int idUsuario)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario) };
+        DataTable resultado = _conexion.Leer("dbo.usp_Usuario2FA_Consultar", parametros);
+        if (resultado.Rows.Count != 1) return null;
+        DataRow fila = resultado.Rows[0];
+        return new ConfiguracionAutenticacionDosFactores
+        {
+            IdUsuario = Convert.ToInt32(fila["IdUsuario"]), SecretoTotpCifrado = fila["SecretoTotpCifrado"] == DBNull.Value ? null : Convert.ToString(fila["SecretoTotpCifrado"]),
+            SecretoPendienteCifrado = fila["SecretoPendienteCifrado"] == DBNull.Value ? null : Convert.ToString(fila["SecretoPendienteCifrado"]), FechaExpiracionPendiente = fila["FechaExpiracionPendiente"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaExpiracionPendiente"]),
+            IntentosPendientes = Convert.ToInt32(fila["IntentosPendientes"]), TotpHabilitado = Convert.ToBoolean(fila["TotpHabilitado"]), FechaActivacionTotp = fila["FechaActivacionTotp"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaActivacionTotp"]), UltimoPasoTotp = fila["UltimoPasoTotp"] == DBNull.Value ? null : Convert.ToInt64(fila["UltimoPasoTotp"]),
+        };
+    }
+
+    public void GuardarAutenticacionDosFactoresPendiente(int idUsuario, string secretoCifrado, DateTime fechaExpiracion)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario), new SqlParameter("@SecretoPendienteCifrado", secretoCifrado), new SqlParameter("@FechaExpiracionPendiente", fechaExpiracion) };
+        _conexion.Escribir("dbo.usp_Usuario2FA_GuardarPendiente", parametros);
+    }
+
+    public void ActivarAutenticacionDosFactores(int idUsuario, string secretoCifrado, long pasoTotp)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario), new SqlParameter("@SecretoTotpCifrado", secretoCifrado), new SqlParameter("@PasoTotp", pasoTotp) };
+        _conexion.Escribir("dbo.usp_Usuario2FA_Activar", parametros);
+    }
+
+    public void RegistrarIntentoAutenticacionDosFactoresPendiente(int idUsuario)
+    {
+        _conexion.Escribir("dbo.usp_Usuario2FA_RegistrarIntentoPendiente", new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario) });
+    }
+
+    public void ActualizarUltimoPasoTotp(int idUsuario, long pasoTotp)
+    {
+        _conexion.Escribir("dbo.usp_Usuario2FA_ActualizarUltimoPaso", new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario), new SqlParameter("@PasoTotp", pasoTotp) });
+    }
+
+    public void DesactivarAutenticacionDosFactores(int idUsuario)
+    {
+        _conexion.Escribir("dbo.usp_Usuario2FA_Desactivar", new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario) });
+    }
+
+    public void ReemplazarCodigosRecuperacionDosFactores(int idUsuario, List<string> hashes)
+    {
+        DataTable codigos = new DataTable(); codigos.Columns.Add("Valor", typeof(string));
+        foreach (string hash in hashes) codigos.Rows.Add(hash);
+        SqlParameter parametro = new SqlParameter("@Codigos", SqlDbType.Structured) { TypeName = "dbo.ListaTexto", Value = codigos };
+        _conexion.Escribir("dbo.usp_Usuario2FA_ReemplazarCodigosRecuperacion", new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario), parametro });
+    }
+
+    public bool ConsumirCodigoRecuperacionDosFactores(int idUsuario, string codigoHash)
+    {
+        DataTable resultado = _conexion.Leer("dbo.usp_CodigoRecuperacion2FA_Consumir", new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario), new SqlParameter("@CodigoHash", codigoHash) });
+        return resultado.Rows.Count == 1 && Convert.ToBoolean(resultado.Rows[0]["Consumido"]);
+    }
+
+    public void CrearDesafioAutenticacionDosFactores(int idUsuario, string tokenHash, bool mantenerSesion, DateTime fechaExpiracion)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario), new SqlParameter("@TokenHash", tokenHash), new SqlParameter("@MantenerSesion", mantenerSesion), new SqlParameter("@FechaExpiracion", fechaExpiracion) };
+        _conexion.Escribir("dbo.usp_Desafio2FA_Crear", parametros);
+    }
+
+    public DesafioAutenticacionDosFactores ConsumirDesafioAutenticacionDosFactores(string tokenHash, bool exitoso)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@TokenHash", tokenHash), new SqlParameter("@Exitoso", exitoso) };
+        DataTable resultado = _conexion.Leer("dbo.usp_Desafio2FA_Consumir", parametros);
+        if (resultado.Rows.Count != 1) return new DesafioAutenticacionDosFactores();
+        DataRow fila = resultado.Rows[0];
+        return new DesafioAutenticacionDosFactores { Valido = Convert.ToBoolean(fila["Valido"]), IdUsuario = fila["IdUsuario"] == DBNull.Value ? null : Convert.ToInt32(fila["IdUsuario"]), MantenerSesion = fila["MantenerSesion"] != DBNull.Value && Convert.ToBoolean(fila["MantenerSesion"]) };
+    }
+
+    public EstadoTelegram ConsultarEstadoTelegram(int idUsuario)
+    {
+        DataTable resultado = _conexion.Leer("dbo.usp_Telegram_ConsultarEstado", new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario) });
+        if (resultado.Rows.Count != 1) return new EstadoTelegram();
+        DataRow fila = resultado.Rows[0];
+        return new EstadoTelegram
+        {
+            Vinculado = Convert.ToBoolean(fila["Vinculado"]), EstadoSolicitud = fila["EstadoSolicitud"] == DBNull.Value ? string.Empty : Convert.ToString(fila["EstadoSolicitud"]) ?? string.Empty,
+            FechaExpiracionSolicitud = fila["FechaExpiracionSolicitud"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaExpiracionSolicitud"]), FechaVinculacion = fila["FechaVinculacion"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaVinculacion"]),
+        };
+    }
+
+    public void CrearSolicitudTelegram(int idUsuario, string tokenHash, string tipo, DateTime fechaExpiracion)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario), new SqlParameter("@TokenHash", tokenHash), new SqlParameter("@Tipo", tipo), new SqlParameter("@FechaExpiracion", fechaExpiracion) };
+        _conexion.Escribir("dbo.usp_Telegram_CrearSolicitud", parametros);
+    }
+
+    public EntregaTelegram ProcesarInicioTelegram(string tokenHash, long telegramUserId, long chatId, string? nombreUsuario, string codigoHash, DateTime fechaExpiracionCodigo, string codigo)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@TokenHash", tokenHash), new SqlParameter("@TelegramUserId", telegramUserId), new SqlParameter("@ChatId", chatId), new SqlParameter("@NombreUsuario", (object?)nombreUsuario ?? DBNull.Value), new SqlParameter("@CodigoHash", codigoHash), new SqlParameter("@FechaExpiracionCodigo", fechaExpiracionCodigo),
+        };
+        DataTable resultado = _conexion.Leer("dbo.usp_Telegram_ProcesarInicio", parametros);
+        if (resultado.Rows.Count != 1 || !Convert.ToBoolean(resultado.Rows[0]["Valida"])) return new EntregaTelegram();
+        return new EntregaTelegram { Valida = true, ChatId = Convert.ToInt64(resultado.Rows[0]["ChatId"]), Codigo = codigo, Tipo = "Vinculacion" };
+    }
+
+    public bool ConfirmarCodigoTelegram(int idUsuario, string tipo, string codigoHash)
+    {
+        DataTable resultado = _conexion.Leer("dbo.usp_Telegram_ConfirmarCodigo", new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario), new SqlParameter("@Tipo", tipo), new SqlParameter("@CodigoHash", codigoHash) });
+        return resultado.Rows.Count == 1 && Convert.ToBoolean(resultado.Rows[0]["Confirmada"]);
+    }
+
+    public EntregaTelegram ReenviarCodigoTelegram(int idUsuario, string tipo, string codigoHash, DateTime fechaExpiracionCodigo, string codigo)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario), new SqlParameter("@Tipo", tipo), new SqlParameter("@CodigoHash", codigoHash), new SqlParameter("@FechaExpiracionCodigo", fechaExpiracionCodigo) };
+        DataTable resultado = _conexion.Leer("dbo.usp_Telegram_ReenviarCodigo", parametros);
+        if (resultado.Rows.Count != 1 || !Convert.ToBoolean(resultado.Rows[0]["Valida"])) return new EntregaTelegram();
+        return new EntregaTelegram { Valida = true, ChatId = Convert.ToInt64(resultado.Rows[0]["ChatId"]), Codigo = codigo, Tipo = tipo };
+    }
+
+    public EntregaTelegram CrearSolicitudDesvinculacionTelegram(int idUsuario, string codigoHash, DateTime fechaExpiracionCodigo, string codigo)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario), new SqlParameter("@CodigoHash", codigoHash), new SqlParameter("@FechaExpiracionCodigo", fechaExpiracionCodigo) };
+        DataTable resultado = _conexion.Leer("dbo.usp_Telegram_CrearDesvinculacion", parametros);
+        if (resultado.Rows.Count != 1 || !Convert.ToBoolean(resultado.Rows[0]["Valida"])) return new EntregaTelegram();
+        return new EntregaTelegram { Valida = true, ChatId = Convert.ToInt64(resultado.Rows[0]["ChatId"]), Codigo = codigo, Tipo = "Desvinculacion" };
     }
 
     public List<Usuario> ConsultarUsuariosAgencia(Usuario solicitante)

@@ -71,6 +71,7 @@ import { PublicSurveysComponent } from './pages/public/surveys/surveys.component
 import { SurveyManagerComponent } from './pages/users/support/survey-manager/survey-manager.component';
 import { SlackLinkingComponent } from './pages/users/support/slack-linking/slack-linking.component';
 import { LanguageManagementComponent } from './pages/users/support/language-management/language-management.component';
+import { PlatformRevenueComponent } from './pages/users/support/platform-revenue/platform-revenue.component';
 
 export const routes: Routes = [
   {
@@ -257,6 +258,7 @@ export const routes: Routes = [
       { path: 'vinculaciones-slack', component: SlackLinkingComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarOperadores' }, title: 'Vinculaciones de Slack | TeamBalance' },
       { path: 'respaldos', component: BackupManagerComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarRespaldos' }, title: 'Respaldo y restauración | TeamBalance' },
       { path: 'idiomas', component: LanguageManagementComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarIdiomas' }, title: 'Idiomas y traducciones | TeamBalance' },
+      { path: 'ingresos-plataforma', component: PlatformRevenueComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'ConsultarIngresosPlataforma' }, title: 'Ingresos TeamBalance | TeamBalance' },
       {
         path:'form-elements',
         component:FormElementsComponent,

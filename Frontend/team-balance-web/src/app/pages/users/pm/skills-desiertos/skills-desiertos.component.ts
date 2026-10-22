@@ -120,7 +120,7 @@ export class SkillsDesiertosComponent {
 
   volverAlPanel(): void {
     this.cerrandoPagina.set(true);
-    this.cierrePendiente = window.setTimeout(() => this.router.navigateByUrl('/dashboard'), 180);
+    this.cierrePendiente = globalThis.setTimeout(() => this.router.navigateByUrl('/dashboard'), 180);
   }
 
   colorCriticidad(resultado: AnalisisCoberturaSkill): string {

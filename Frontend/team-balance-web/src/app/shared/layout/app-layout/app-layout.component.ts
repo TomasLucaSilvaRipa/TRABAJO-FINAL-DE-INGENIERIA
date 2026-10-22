@@ -7,6 +7,7 @@ import { Router, RouterModule } from '@angular/router';
 import { AppHeaderComponent } from '../app-header/app-header.component';
 import { AuthService } from '../../../services/auth.service';
 import { FocusTimerService } from '../../../services/focus-timer.service';
+import { LocalizedStaticContentDirective } from '../../directives/localized-static-content.directive';
 
 @Component({
   selector: 'app-layout',
@@ -15,7 +16,8 @@ import { FocusTimerService } from '../../../services/focus-timer.service';
     RouterModule,
     AppHeaderComponent,
     AppSidebarComponent,
-    BackdropComponent
+    BackdropComponent,
+    LocalizedStaticContentDirective
   ],
   templateUrl: './app-layout.component.html',
 })

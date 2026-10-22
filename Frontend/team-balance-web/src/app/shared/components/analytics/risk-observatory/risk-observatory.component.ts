@@ -1,9 +1,10 @@
-import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, EventEmitter, inject, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, effect, ElementRef, EventEmitter, inject, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
 import * as echarts from 'echarts/core';
 import { BarChart, LineChart, ScatterChart } from 'echarts/charts';
 import { GridComponent, MarkAreaComponent, MarkLineComponent, MarkPointComponent, TooltipComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import { DetalleRiesgoProyecto, TareaRiesgoRetraso } from '../../../../services/riesgo-retraso.service';
+import { LocalizationService } from '../../../../services/localization.service';
 
 echarts.use([BarChart, LineChart, ScatterChart, GridComponent, MarkAreaComponent, MarkLineComponent, MarkPointComponent, TooltipComponent, CanvasRenderer]);
 
@@ -13,6 +14,7 @@ export interface RiesgoTareaSeleccionada { riesgo: DetalleRiesgoProyecto; tarea:
 export class RiskObservatoryComponent implements AfterViewInit, OnChanges, OnDestroy {
   private readonly zone = inject(NgZone);
   private readonly changeDetector = inject(ChangeDetectorRef);
+  private readonly localization = inject(LocalizationService);
   @Input({ required: true }) riesgos: DetalleRiesgoProyecto[] = [];
   @Output() tareaSeleccionada = new EventEmitter<RiesgoTareaSeleccionada>();
   @Output() detalleProyecto = new EventEmitter<DetalleRiesgoProyecto>();
@@ -25,6 +27,13 @@ export class RiskObservatoryComponent implements AfterViewInit, OnChanges, OnDes
   private capacityChart?: echarts.ECharts;
   private resizeObserver?: ResizeObserver;
   protected proyecto: DetalleRiesgoProyecto | null = null;
+
+  constructor() {
+    effect(() => {
+      this.localization.language();
+      queueMicrotask(() => this.proyecto ? this.inicializarDetalle() : this.dibujarPanorama());
+    });
+  }
 
   ngAfterViewInit(): void {
     this.inicializarGraficos();
@@ -115,7 +124,7 @@ export class RiskObservatoryComponent implements AfterViewInit, OnChanges, OnDes
       yAxis: { type: 'category', inverse: true, data: nombres, axisLabel: { color: '#e0f6fb', width: 170, overflow: 'truncate', fontWeight: 700 }, axisTick: { show: false }, axisLine: { show: false } },
       series: [
         { type: 'bar', silent: true, data: proyectos.map(proyecto => ({ value: proyecto.diasPosibleRetraso, itemStyle: { color: `${this.colorRiesgo(proyecto.nivelRiesgo)}55`, borderRadius: 99 } })), barWidth: 7, emphasis: { disabled: true } },
-        { type: 'scatter', data: proyectos.map(proyecto => ({ value: proyecto.diasPosibleRetraso, itemStyle: { color: this.colorRiesgo(proyecto.nivelRiesgo), shadowBlur: 22, shadowColor: `${this.colorRiesgo(proyecto.nivelRiesgo)}a8`, borderColor: '#e9fcff', borderWidth: 2 }, label: { show: true, position: 'right', color: '#e5f9fd', fontWeight: 800, formatter: proyecto.diasPosibleRetraso ? `${proyecto.diasPosibleRetraso} d` : 'Sin demora' } })), symbol: 'circle', symbolSize: 20, emphasis: { scale: 1.45, itemStyle: { shadowBlur: 34 }, focus: 'series' } },
+        { type: 'scatter', data: proyectos.map(proyecto => ({ value: proyecto.diasPosibleRetraso, itemStyle: { color: this.colorRiesgo(proyecto.nivelRiesgo), shadowBlur: 22, shadowColor: `${this.colorRiesgo(proyecto.nivelRiesgo)}a8`, borderColor: '#e9fcff', borderWidth: 2 }, label: { show: true, position: 'right', color: '#e5f9fd', fontWeight: 800, formatter: proyecto.diasPosibleRetraso ? `${proyecto.diasPosibleRetraso} d` : this.t('static.noDelay') } })), symbol: 'circle', symbolSize: 20, emphasis: { scale: 1.45, itemStyle: { shadowBlur: 34 }, focus: 'series' } },
       ],
     }, { notMerge: true });
   }
@@ -135,10 +144,10 @@ export class RiskObservatoryComponent implements AfterViewInit, OnChanges, OnDes
     this.timelineChart.setOption({
       animation: !reduccionMovimiento, animationDuration: 1000, animationDurationUpdate: 520, animationEasing: 'cubicOut',
       grid: { left: 48, right: 38, top: 40, bottom: 48, containLabel: true },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#12364a' } }, backgroundColor: '#061a2c', borderColor: '#327d99', borderWidth: 1, padding: 14, textStyle: { color: '#effcff' }, extraCssText: 'border-radius:12px;box-shadow:0 18px 42px rgba(0,0,0,.38);', formatter: () => `<strong>Proyección operativa</strong><br/>Pendiente actual: ${riesgo.horasRestantes} h<br/>Capacidad usada: ${capacidadEfectiva} h/sem<br/>Fecha estimada: ${this.formatearFecha(estimada)}<br/><span style="color:#8fc5d4">No se muestra histórico porque el análisis no lo entrega.</span>` },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#12364a' } }, backgroundColor: '#061a2c', borderColor: '#327d99', borderWidth: 1, padding: 14, textStyle: { color: '#effcff' }, extraCssText: 'border-radius:12px;box-shadow:0 18px 42px rgba(0,0,0,.38);', formatter: () => `<strong>${this.t('static.operationalProjection')}</strong><br/>${this.t('static.currentPending')}: ${riesgo.horasRestantes} h<br/>${this.t('static.capacityUsed')}: ${capacidadEfectiva} h/sem<br/>${this.t('static.estimatedDate')}: ${this.formatearFecha(estimada)}<br/><span style="color:#8fc5d4">${this.t('static.noHistory')}</span>` },
       xAxis: { type: 'time', min: inicioEje, max: finEje, axisLabel: { color: '#9bc2ce', formatter: (valor: number) => this.formatearFecha(valor) }, axisLine: { lineStyle: { color: '#3b7083' } }, splitLine: { lineStyle: { color: 'rgba(122,184,203,.13)', type: 'dashed' } } },
-      yAxis: { type: 'value', min: 0, name: 'Horas pendientes', nameTextStyle: { color: '#9bc2ce', padding: [0, 0, 0, 4] }, axisLabel: { color: '#9bc2ce', formatter: '{value} h' }, splitLine: { lineStyle: { color: 'rgba(122,184,203,.14)', type: 'dashed' } }, axisLine: { lineStyle: { color: '#3b7083' } } },
-      series: [{ name: 'Proyección de trabajo pendiente', type: 'line', data: [[hoy, riesgo.horasRestantes], [estimada, 0]], smooth: 0.18, symbol: 'none', lineStyle: { width: 4, color, shadowBlur: 16, shadowColor: `${color}90` }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: `${color}55` }, { offset: 1, color: `${color}05` }]) }, markPoint: { symbol: 'circle', symbolSize: 21, data: [{ coord: [hoy, riesgo.horasRestantes], value: 'Hoy', itemStyle: { color: '#21c4e4', borderColor: '#e8ffff', borderWidth: 2, shadowBlur: 18, shadowColor: '#21c4e4' }, label: { formatter: 'Hoy', color: '#dfffff', position: 'top' } }, { coord: [estimada, 0], value: 'Fin estimado', itemStyle: { color, borderColor: '#fff6e2', borderWidth: 2, shadowBlur: 19, shadowColor: color }, label: { formatter: 'Fin estimado', color: '#dfffff', position: 'top' } }] }, markLine: { symbol: 'none', label: { color: '#dcf9ff', backgroundColor: '#15384c', borderRadius: 5, padding: [4, 6] }, data: [{ xAxis: hoy, name: 'Hoy', lineStyle: { color: '#e8b22c', type: 'dashed', width: 2 } }, ...(deadline ? [{ xAxis: deadline, name: 'Deadline', lineStyle: { color: '#ff6576', type: 'dashed', width: 2 } }] : [])] }, markArea: deadline && estimada > deadline ? { itemStyle: { color: 'rgba(246,75,95,.13)' }, label: { color: '#ff9caa', fontWeight: 700, formatter: 'Zona posterior al deadline' }, data: [[{ xAxis: deadline }, { xAxis: estimada }]] } : undefined }],
+      yAxis: { type: 'value', min: 0, name: this.t('static.hoursPending'), nameTextStyle: { color: '#9bc2ce', padding: [0, 0, 0, 4] }, axisLabel: { color: '#9bc2ce', formatter: '{value} h' }, splitLine: { lineStyle: { color: 'rgba(122,184,203,.14)', type: 'dashed' } }, axisLine: { lineStyle: { color: '#3b7083' } } },
+      series: [{ name: this.t('static.pendingWorkHorizon'), type: 'line', data: [[hoy, riesgo.horasRestantes], [estimada, 0]], smooth: 0.18, symbol: 'none', lineStyle: { width: 4, color, shadowBlur: 16, shadowColor: `${color}90` }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: `${color}55` }, { offset: 1, color: `${color}05` }]) }, markPoint: { symbol: 'circle', symbolSize: 21, data: [{ coord: [hoy, riesgo.horasRestantes], value: this.t('static.today'), itemStyle: { color: '#21c4e4', borderColor: '#e8ffff', borderWidth: 2, shadowBlur: 18, shadowColor: '#21c4e4' }, label: { formatter: this.t('static.today'), color: '#dfffff', position: 'top' } }, { coord: [estimada, 0], value: this.t('static.estimatedEnd'), itemStyle: { color, borderColor: '#fff6e2', borderWidth: 2, shadowBlur: 19, shadowColor: color }, label: { formatter: this.t('static.estimatedEnd'), color: '#dfffff', position: 'top' } }] }, markLine: { symbol: 'none', label: { color: '#dcf9ff', backgroundColor: '#15384c', borderRadius: 5, padding: [4, 6] }, data: [{ xAxis: hoy, name: this.t('static.today'), lineStyle: { color: '#e8b22c', type: 'dashed', width: 2 } }, ...(deadline ? [{ xAxis: deadline, name: 'Deadline', lineStyle: { color: '#ff6576', type: 'dashed', width: 2 } }] : [])] }, markArea: deadline && estimada > deadline ? { itemStyle: { color: 'rgba(246,75,95,.13)' }, label: { color: '#ff9caa', fontWeight: 700, formatter: this.t('static.afterDeadline') }, data: [[{ xAxis: deadline }, { xAxis: estimada }]] } : undefined }],
     }, { notMerge: true });
   }
 
@@ -160,7 +169,7 @@ export class RiskObservatoryComponent implements AfterViewInit, OnChanges, OnDes
 
   private tooltipPanorama(riesgo?: DetalleRiesgoProyecto): string {
     if (!riesgo) return '';
-    return `<strong>${riesgo.nombreProyecto}</strong><br/>Riesgo: ${riesgo.nivelRiesgo}<br/>Demora posible: ${riesgo.diasPosibleRetraso ? `${riesgo.diasPosibleRetraso} día(s)` : 'Sin demora'}<br/>Horas pendientes: ${riesgo.horasRestantes} h<br/>Fecha estimada: ${riesgo.fechaEstimadaFinalizacion ? this.formatearFecha(this.fechaEnMilisegundos(riesgo.fechaEstimadaFinalizacion)!) : 'Sin estimación'}<br/><span style="color:#6ce5ff">Hacé clic para profundizar</span>`;
+    return `<strong>${riesgo.nombreProyecto}</strong><br/>${this.t('static.risk')}: ${this.localization.traducirEstado(riesgo.nivelRiesgo)}<br/>${this.t('static.potentialDelay')}: ${riesgo.diasPosibleRetraso ? `${riesgo.diasPosibleRetraso} d` : this.t('static.noDelay')}<br/>${this.t('static.pendingHours')}: ${riesgo.horasRestantes} h<br/>${this.t('static.estimatedDate')}: ${riesgo.fechaEstimadaFinalizacion ? this.formatearFecha(this.fechaEnMilisegundos(riesgo.fechaEstimadaFinalizacion)!) : this.t('static.noEstimate')}<br/><span style="color:#6ce5ff">${this.t('static.clickDetail')}</span>`;
   }
 
   private fechaEnMilisegundos(fecha?: string | null): number | null {
@@ -172,5 +181,6 @@ export class RiskObservatoryComponent implements AfterViewInit, OnChanges, OnDes
   }
 
   private inicioDelDia(fecha: Date): Date { return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()); }
-  private formatearFecha(valor: number): string { return new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: 'short' }).format(new Date(valor)); }
+  private t(key: string): string { return this.localization.traducir(key); }
+  private formatearFecha(valor: number): string { return new Intl.DateTimeFormat(this.localization.culture(), { day: '2-digit', month: 'short' }).format(new Date(valor)); }
 }

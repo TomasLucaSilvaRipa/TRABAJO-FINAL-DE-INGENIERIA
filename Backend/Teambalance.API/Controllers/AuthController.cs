@@ -38,20 +38,76 @@ public class AuthController : ControllerBase
             Usuario usuario = new Usuario(0, null, new Rol(), string.Empty, string.Empty, datosLogin.Email, datosLogin.Password, string.Empty, DateTime.MinValue, false);
             usuario.RecaptchaToken = request.RecaptchaToken;
 
-            InicioSesionResultado resultado = await _usuarioBLL.IniciarSesion(usuario, mantenerSesion);
-
-            List<RolResponse> roles = resultado.Usuario.Roles.Select(rol => new RolResponse(rol.ID, rol.Nombre, rol.TipoUsuario)).ToList();
-            List<PermisoResponse> permisos = resultado.Usuario.Permisos.Select(permiso => new PermisoResponse(permiso.ID, permiso.Codigo, permiso.Nombre, permiso.Url)).ToList();
-            RolResponse rolPrincipal = new RolResponse(resultado.Usuario.Rol.ID, resultado.Usuario.Rol.Nombre, resultado.Usuario.Rol.TipoUsuario);
-            UsuarioSesionResponse usuarioResponse = new UsuarioSesionResponse(resultado.Usuario.ID, resultado.Usuario.IdAgencia, rolPrincipal, resultado.Usuario.Nombre, resultado.Usuario.Apellido, resultado.Usuario.Email, resultado.Usuario.FotoPerfil, roles, permisos);
-            LoginResponse response = new LoginResponse(resultado.AccessToken, resultado.FechaExpiracion, usuarioResponse);
-            return Ok(response);
+            ResultadoInicioSesionDosFactores resultado = await _usuarioBLL.IniciarSesion(usuario, mantenerSesion);
+            if (resultado.RequiereDosFactores && !string.IsNullOrWhiteSpace(resultado.TokenDesafio) && resultado.FechaExpiracionDesafio is not null)
+            {
+                return Accepted(new DesafioInicioSesionDosFactoresResponse(resultado.TokenDesafio, resultado.FechaExpiracionDesafio.Value));
+            }
+            if (resultado.InicioSesion is null) throw new InvalidOperationException("No fue posible completar el inicio de sesión.");
+            return Ok(CrearLoginResponse(resultado.InicioSesion));
         }
         catch (System.Security.Cryptography.CryptographicException){ return BadRequest("No fue posible descifrar las credenciales recibidas."); }
         catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
         catch (ArgumentException ex){ return BadRequest(ex.Message); }
         catch (InvalidOperationException ex){ return StatusCode(500, ex.Message); }
         catch (Exception){ return StatusCode(500, "No fue posible iniciar sesión en este momento."); }
+    }
+
+    [HttpPost("login/confirmar-2fa")]
+    public IActionResult ConfirmarInicioSesionDosFactores([FromBody] ConfirmarInicioSesionDosFactoresRequest request)
+    {
+        try
+        {
+            if (request is null || string.IsNullOrWhiteSpace(request.TokenDesafio) || string.IsNullOrWhiteSpace(request.Codigo)) throw new ArgumentException("Ingresá el código de verificación.");
+            InicioSesionResultado resultado = _usuarioBLL.CompletarInicioSesionTotp(request.TokenDesafio, request.Codigo);
+            return Ok(CrearLoginResponse(resultado));
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible verificar el segundo factor."); }
+    }
+
+    [HttpGet("2fa")]
+    public IActionResult ConsultarAutenticacionDosFactores()
+    {
+        Usuario usuario = ObtenerUsuarioAutenticado();
+        return Ok(_usuarioBLL.ConsultarEstadoAutenticacionDosFactores(usuario));
+    }
+
+    [HttpPost("2fa/preparar")]
+    public IActionResult PrepararAutenticacionDosFactores()
+    {
+        try { return Ok(_usuarioBLL.PrepararActivacionTotp(ObtenerUsuarioAutenticado())); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+    }
+
+    [HttpPost("2fa/confirmar")]
+    public IActionResult ConfirmarAutenticacionDosFactores([FromBody] CodigoAutenticacionDosFactoresRequest request)
+    {
+        try
+        {
+            if (request is null || string.IsNullOrWhiteSpace(request.Codigo)) throw new ArgumentException("Ingresá el código de seis dígitos.");
+            List<string> codigosRecuperacion = _usuarioBLL.ConfirmarActivacionTotp(ObtenerUsuarioAutenticado(), request.Codigo);
+            return Ok(new { codigosRecuperacion });
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+    }
+
+    [HttpPost("2fa/desactivar")]
+    public IActionResult DesactivarAutenticacionDosFactores([FromBody] CodigoAutenticacionDosFactoresRequest request)
+    {
+        try
+        {
+            if (request is null || string.IsNullOrWhiteSpace(request.Codigo)) throw new ArgumentException("Ingresá un código de Authenticator o de recuperación.");
+            _usuarioBLL.DesactivarAutenticacionDosFactores(ObtenerUsuarioAutenticado(), request.Codigo);
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
 
     [HttpGet("sesion")]
@@ -144,5 +200,19 @@ public class AuthController : ControllerBase
         }
 
         return authorization[7..].Trim();
+    }
+
+    private Usuario ObtenerUsuarioAutenticado()
+    {
+        return _usuarioBLL.ConsultarUsuarioSesion(ObtenerAccessToken() ?? string.Empty) ?? throw new UnauthorizedAccessException("Tu sesión ya no es válida. Volvé a iniciar sesión.");
+    }
+
+    private static LoginResponse CrearLoginResponse(InicioSesionResultado resultado)
+    {
+        List<RolResponse> roles = resultado.Usuario.Roles.Select(rol => new RolResponse(rol.ID, rol.Nombre, rol.TipoUsuario)).ToList();
+        List<PermisoResponse> permisos = resultado.Usuario.Permisos.Select(permiso => new PermisoResponse(permiso.ID, permiso.Codigo, permiso.Nombre, permiso.Url)).ToList();
+        RolResponse rolPrincipal = new RolResponse(resultado.Usuario.Rol.ID, resultado.Usuario.Rol.Nombre, resultado.Usuario.Rol.TipoUsuario);
+        UsuarioSesionResponse usuarioResponse = new UsuarioSesionResponse(resultado.Usuario.ID, resultado.Usuario.IdAgencia, rolPrincipal, resultado.Usuario.Nombre, resultado.Usuario.Apellido, resultado.Usuario.Email, resultado.Usuario.FotoPerfil, roles, permisos);
+        return new LoginResponse(resultado.AccessToken, resultado.FechaExpiracion, usuarioResponse);
     }
 }

@@ -6,6 +6,7 @@ import { ConfiguracionReporteEjecutivo, ReporteEjecutivo, ReporteEjecutivoServic
 import { DetalleRiesgoProyecto, FiltroRiesgoRetraso, NuevoSeguimientoRiesgoRetraso, RiesgoRetrasoService, TareaRiesgoRetraso } from '../../../../services/riesgo-retraso.service';
 import { AccionAjusteDesvioHoras, AnalisisConvenienciaOperativa, AnalisisDesvioHoras, AnalisisOcupacionOperativa, AnalisisSobrecalificacionPerfiles, AnaliticaOperativaService, ConvenienciaOperativaCliente, ConvenienciaOperativaProyecto, DesvioHorasProyecto, DesvioHorasTarea, DetalleConvenienciaOperativa, DetalleDesvioHorasTarea, DetalleOcupacionEmpleado, DetalleOcupacionTarea, FiltroConvenienciaOperativa, FiltroDesvioHoras, FiltroOcupacionOperativa, NuevoSeguimientoConvenienciaOperativa, OcupacionEmpleado, OcupacionProyecto, RevisionOperativaPendiente, SobrecalificacionTarea } from '../../../../services/analitica-operativa.service';
 import { AuthService } from '../../../../services/auth.service';
+import { LocalizationService } from '../../../../services/localization.service';
 import { HoursDrilldownChartComponent } from '../../../../shared/components/analytics/hours-drilldown-chart/hours-drilldown-chart.component';
 import { OccupancyLandscapeComponent } from '../../../../shared/components/analytics/occupancy-landscape/occupancy-landscape.component';
 import { OverqualificationMapComponent } from '../../../../shared/components/analytics/overqualification-map/overqualification-map.component';
@@ -22,6 +23,7 @@ export class Reports {
   private readonly reporteService = inject(ReporteEjecutivoService);
   private readonly analiticaService = inject(AnaliticaOperativaService);
   private readonly authService = inject(AuthService);
+  protected readonly localization = inject(LocalizationService);
   protected readonly proyectos = signal<Proyecto[]>([]);
   protected readonly clientes = signal<Cliente[]>([]);
   protected readonly responsables = signal<UsuarioOpcion[]>([]);

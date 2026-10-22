@@ -1,9 +1,10 @@
-import { AfterViewInit, Component, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
+import { AfterViewInit, Component, effect, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 import * as echarts from 'echarts/core';
 import { BarChart, ScatterChart } from 'echarts/charts';
 import { GridComponent, TooltipComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import { ConvenienciaOperativaCliente, ConvenienciaOperativaProyecto } from '../../../../services/analitica-operativa.service';
+import { LocalizationService } from '../../../../services/localization.service';
 
 echarts.use([BarChart, ScatterChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
@@ -18,6 +19,7 @@ type TransicionMapa = 'entrando' | 'preparando-entrada' | 'saliendo' | 'preparan
 })
 export class ConvenienceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private readonly zone = inject(NgZone);
+  protected readonly localization = inject(LocalizationService);
   @Input({ required: true }) clientes: ConvenienciaOperativaCliente[] = [];
   @Input({ required: true }) proyectos: ConvenienciaOperativaProyecto[] = [];
   @Output() proyectoSeleccionado = new EventEmitter<ConvenienciaOperativaProyecto>();
@@ -29,6 +31,8 @@ export class ConvenienceMapComponent implements AfterViewInit, OnChanges, OnDest
   private temporizadorTransicion?: ReturnType<typeof globalThis.setTimeout>;
   protected clienteSeleccionado: ConvenienciaOperativaCliente | null = null;
   protected transicion: TransicionMapa = null;
+
+  constructor() { effect(() => { this.localization.language(); queueMicrotask(() => this.dibujar()); }); }
 
   ngAfterViewInit(): void { this.inicializar(); }
 
@@ -127,10 +131,13 @@ export class ConvenienceMapComponent implements AfterViewInit, OnChanges, OnDest
   private tooltip(elemento: ElementoConveniencia): string {
     const esCliente = 'proyectos' in elemento;
     const exceso = elemento.sobrecosto > 0
-      ? `<span style="color:#ff91a0">US$ ${elemento.sobrecosto.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} excedido</span>`
-      : `<span style="color:#7de2ba">US$ ${elemento.presupuestoNoConsumido.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} disponible</span>`;
-    const alcance = esCliente ? `Proyectos comprendidos: ${(elemento as ConvenienciaOperativaCliente).proyectos.length}<br/>` : `Horas reales / estimadas: ${elemento.horasReales} / ${elemento.horasEstimadas} h<br/>`;
-    return `<strong>${this.escaparHtml(this.etiqueta(elemento))}</strong><br/><span style="color:#9fc5d2">${this.escaparHtml(elemento.estadoConveniencia)}</span><br/>${alcance}Costo planificado: US$ ${elemento.costoPlanificado.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br/>Costo real: US$ ${elemento.costoReal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br/>${exceso}<br/><span style="color:#67ddfa">${esCliente ? 'Hacé clic para explorar sus proyectos' : 'Hacé clic para ver la composición de costo'}</span>`;
+      ? `<span style="display:block;color:#ff91a0;margin-top:7px">${this.localization.traducir('static.costOverrun')}: US$ ${elemento.sobrecosto.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`
+      : `<span style="display:block;color:#7de2ba;margin-top:7px">${this.localization.traducir('static.availableBudget')}: US$ ${elemento.presupuestoNoConsumido.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+    const alcance = esCliente
+      ? `${this.localization.traducir('static.projectsIncludedLabel')}: ${(elemento as ConvenienciaOperativaCliente).proyectos.length}`
+      : `${this.localization.traducir('static.actualEstimatedHours')}: ${elemento.horasReales} / ${elemento.horasEstimadas} h`;
+    const accion = esCliente ? this.localization.traducir('static.clickExploreProjects') : this.localization.traducir('static.clickCostComposition');
+    return `<div style="min-width:242px;line-height:1.55"><strong style="display:block;font-size:14px;margin-bottom:4px">${this.escaparHtml(this.etiqueta(elemento))}</strong><span style="display:block;color:#9fc5d2;margin-bottom:9px">${this.escaparHtml(this.localization.traducirTextoEstatico(elemento.estadoConveniencia))}</span><div style="border-top:1px solid rgba(159,197,210,.35);padding-top:8px">${alcance}<br/>${this.localization.traducir('static.costPlanned')}: US$ ${elemento.costoPlanificado.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br/>${this.localization.traducir('static.costActual')}: US$ ${elemento.costoReal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>${exceso}<small style="display:block;margin-top:10px;color:#67ddfa">${accion}</small></div>`;
   }
 
   private dibujar(): void {
@@ -152,7 +159,7 @@ export class ConvenienceMapComponent implements AfterViewInit, OnChanges, OnDest
         trigger: 'item',
         backgroundColor: '#061b2e', borderColor: '#3285a3', borderWidth: 1, padding: 14,
         textStyle: { color: '#ecfbff' },
-        extraCssText: 'border-radius:12px;box-shadow:0 18px 42px rgba(0,0,0,.38);',
+        extraCssText: 'border-radius:14px;box-shadow:0 18px 42px rgba(0,0,0,.38);min-width:220px;',
         formatter: (evento: { dataIndex: number }) => elementos[evento.dataIndex] ? this.tooltip(elementos[evento.dataIndex]) : '',
       },
       xAxis: {
@@ -162,7 +169,7 @@ export class ConvenienceMapComponent implements AfterViewInit, OnChanges, OnDest
       },
       yAxis: {
         type: 'value', min: -extremo, max: extremo,
-        name: 'Saldo relativo al costo planificado', nameTextStyle: { color: '#9fc3cf', padding: [0, 0, 0, 12] },
+        name: this.localization.traducir('static.relativePlannedCost'), nameTextStyle: { color: '#9fc3cf', padding: [0, 0, 0, 12] },
         axisLabel: { color: '#9fc3cf', formatter: '{value}%' }, axisLine: { lineStyle: { color: '#3a7184' } },
         splitLine: { lineStyle: { color: 'rgba(118,181,201,.16)', type: 'dashed' } },
       },

@@ -1,7 +1,7 @@
 <section class="tb-hours-chart">
   <header class="tb-hours-chart__header">
-    <div><p class="tb-page-kicker">{{ proyecto ? 'CONTROL DE HORAS · PROYECTO' : 'CONTROL DE HORAS' }}</p><h2>{{ proyecto ? proyecto.nombreProyecto : 'Comparación de horas por proyecto' }}</h2><p>{{ proyecto ? 'Seleccioná una tarea para abrir su detalle y acciones.' : 'Seleccioná un proyecto para explorar sus tareas.' }}</p></div>
-    @if (proyecto) { <button class="tb-secondary-button" type="button" (click)="volverAProyectos()">← Volver a proyectos</button> }
+    <div><p class="tb-page-kicker">{{ proyecto ? localization.traducir('static.hourControlProject') : localization.traducir('static.hourControl') }}</p><h2>{{ proyecto ? proyecto.nombreProyecto : localization.traducir('static.hoursComparison') }}</h2><p>{{ proyecto ? localization.traducir('static.selectTaskActions') : localization.traducir('static.selectProjectTasks') }}</p></div>
+    @if (proyecto) { <button class="tb-secondary-button" type="button" (click)="volverAProyectos()">{{localization.traducir('static.backProjects')}}</button> }
   </header>
   <div #chart class="tb-hours-chart__canvas" role="img" [attr.aria-label]="proyecto ? 'Gráfico de horas por tarea' : 'Gráfico de horas por proyecto'"></div>
 </section>

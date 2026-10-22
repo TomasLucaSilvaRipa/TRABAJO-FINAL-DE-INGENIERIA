@@ -13,4 +13,8 @@
     <ProjectReference Include="..\TeamBalance.Services\TeamBalance.Services.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Otp.NET" Version="1.4.1" />
+  </ItemGroup>
+
 </Project>

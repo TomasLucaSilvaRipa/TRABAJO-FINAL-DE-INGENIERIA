@@ -1,15 +1,16 @@
 
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
-import { AuthService } from '../../../../services/auth.service';
+import { AuthService, DesafioDosFactoresResponse, LogInResponse } from '../../../../services/auth.service';
 import { RecaptchaService } from '../../../../services/recaptcha.service';
 import { LocalizationService } from '../../../../services/localization.service';
 
 @Component({
   selector: 'app-signin-form',
-  imports: [RouterLink, ReactiveFormsModule],
+  imports: [DatePipe, RouterLink, ReactiveFormsModule],
   templateUrl: './signin-form.component.html',
   styleUrl: '../auth-form.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,6 +24,8 @@ export class SigninFormComponent {
   showPassword = false;
   readonly submitting = signal(false);
   readonly requestError = signal('');
+  readonly desafioDosFactores = signal<DesafioDosFactoresResponse | null>(null);
+  readonly codigoDosFactores = signal('');
 
   readonly signInForm = this.formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -52,8 +55,8 @@ export class SigninFormComponent {
       this.authService.logIn( { email: form.email, passwordHash: form.password, recaptchaToken, }, form.mantenerSesion,)
       .pipe(finalize(() => this.submitting.set(false))).subscribe({
           next: (respuesta) => {
-            this.authService.guardarSesion(respuesta, form.mantenerSesion);
-            window.location.assign('/dashboard');
+            if ('requiereDosFactores' in respuesta) { this.desafioDosFactores.set(respuesta); return; }
+            this.completarInicioSesion(respuesta, form.mantenerSesion);
           },
           error: (error) => { this.requestError.set( typeof error.error === 'string' ? error.error : 'No fue posible iniciar sesión. Intentá nuevamente.',);},
         });
@@ -61,5 +64,23 @@ export class SigninFormComponent {
       this.submitting.set(false);
       this.requestError.set(error instanceof Error ? error.message : 'No fue posible validar la verificación de seguridad.');
     }
+  }
+
+  confirmarDosFactores(): void {
+    const desafio = this.desafioDosFactores();
+    const codigo = this.codigoDosFactores().replace(/\s/g, '');
+    if (!desafio || !/^\d{6}$/.test(codigo)) { this.requestError.set('Ingresá el código de seis dígitos de Google Authenticator.'); return; }
+    this.submitting.set(true); this.requestError.set('');
+    this.authService.confirmarInicioSesionDosFactores(desafio.tokenDesafio, codigo).pipe(finalize(() => this.submitting.set(false))).subscribe({
+      next: respuesta => this.completarInicioSesion(respuesta, this.signInForm.controls.mantenerSesion.value),
+      error: error => this.requestError.set(typeof error.error === 'string' ? error.error : 'No fue posible verificar el código.'),
+    });
+  }
+
+  volverAlInicioSesion(): void { this.desafioDosFactores.set(null); this.codigoDosFactores.set(''); this.requestError.set(''); }
+
+  private completarInicioSesion(respuesta: LogInResponse, mantenerSesion: boolean): void {
+    this.authService.guardarSesion(respuesta, mantenerSesion);
+    window.location.assign('/dashboard');
   }
 }

@@ -97,4 +97,50 @@ public sealed class FieldEncryptionService
             throw new CryptographicException("La observación protegida no pudo recuperarse.", ex);
         }
     }
+
+    public string CifrarSecretoAutenticacionDosFactores(string secreto)
+    {
+        return Cifrar(secreto, "TeamBalance:AutenticacionDosFactores:Totp:v1");
+    }
+
+    public string DescifrarSecretoAutenticacionDosFactores(string secretoCifrado)
+    {
+        return Descifrar(secretoCifrado, "TeamBalance:AutenticacionDosFactores:Totp:v1");
+    }
+
+    private string Cifrar(string valor, string contexto)
+    {
+        byte[] nonce = RandomNumberGenerator.GetBytes(NonceLength);
+        byte[] textoPlano = Encoding.UTF8.GetBytes(valor);
+        byte[] textoCifrado = new byte[textoPlano.Length];
+        byte[] tag = new byte[TagLength];
+        byte[] datosAsociados = Encoding.UTF8.GetBytes(contexto);
+        using (AesGcm aes = new AesGcm(_key, TagLength))
+        {
+            aes.Encrypt(nonce, textoPlano, textoCifrado, tag, datosAsociados);
+        }
+        return string.Join(':', VersionPrefix, Convert.ToBase64String(nonce), Convert.ToBase64String(tag), Convert.ToBase64String(textoCifrado));
+    }
+
+    private string Descifrar(string valorCifrado, string contexto)
+    {
+        string[] partes = valorCifrado.Split(':');
+        if (partes.Length != 5 || !string.Equals($"{partes[0]}:{partes[1]}", VersionPrefix, StringComparison.Ordinal))
+        {
+            throw new CryptographicException("El secreto protegido tiene un formato inválido.");
+        }
+        byte[] nonce = Convert.FromBase64String(partes[2]);
+        byte[] tag = Convert.FromBase64String(partes[3]);
+        byte[] textoCifrado = Convert.FromBase64String(partes[4]);
+        if (nonce.Length != NonceLength || tag.Length != TagLength)
+        {
+            throw new CryptographicException("El secreto protegido no contiene los parámetros criptográficos esperados.");
+        }
+        byte[] textoPlano = new byte[textoCifrado.Length];
+        using (AesGcm aes = new AesGcm(_key, TagLength))
+        {
+            aes.Decrypt(nonce, textoCifrado, tag, textoPlano, Encoding.UTF8.GetBytes(contexto));
+        }
+        return Encoding.UTF8.GetString(textoPlano);
+    }
 }

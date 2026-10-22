@@ -4,11 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Tarea, TasksService } from '../../../../services/tasks.service';
 import { Proyecto, ProjectsService } from '../../../../services/projects.service';
+import { LocalizationService } from '../../../../services/localization.service';
 
 @Component({ selector: 'app-project-kanban', imports: [CommonModule, DatePipe, FormsModule, RouterLink], templateUrl: './project-kanban.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
 export class ProjectKanbanComponent {
   private readonly tasksService = inject(TasksService);
   private readonly projectsService = inject(ProjectsService);
+  readonly localization = inject(LocalizationService);
   readonly tareas = signal<Tarea[]>([]);
   readonly proyectos = signal<Proyecto[]>([]);
   readonly proyectoSeleccionado = signal<number | null>(null);
@@ -31,4 +33,5 @@ export class ProjectKanbanComponent {
   }
 
   porEstado(estado: string): Tarea[] { return this.tareas().filter((tarea: Tarea) => (tarea.estado || 'Pendiente').toLowerCase() === estado.toLowerCase()); }
+  estadoTraducido(estado: string): string { return this.localization.traducirEstado(estado); }
 }
