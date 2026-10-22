@@ -8,6 +8,7 @@ namespace TeamBalance.BLL;
 public class BLLAgencia
 {
     private readonly MPPAgencia _agenciaMPP;
+    private readonly MPPUsuario _usuarioMPP;
     private readonly ContratacionBLL _contratacionBLL;
     private readonly BLLUsuario _usuarioBLL;
     private readonly BLLRol _rolBLL;
@@ -15,9 +16,12 @@ public class BLLAgencia
     private readonly EmailService _emailService;
     private readonly BLLProyecto _proyectoBLL;
     private readonly BLLNovedades _novedadesBLL;
+    private readonly BLLTelegram _telegramBLL;
+    private readonly Seguridad _seguridad;
 
-    public BLLAgencia(MPPAgencia agenciaMPP, ContratacionBLL contratacionBLL, BLLUsuario usuarioBLL, BLLRol rolBLL, BLLBitacora bitacoraBLL, EmailService emailService, BLLProyecto proyectoBLL, BLLNovedades novedadesBLL){
+    public BLLAgencia(MPPAgencia agenciaMPP, MPPUsuario usuarioMPP, ContratacionBLL contratacionBLL, BLLUsuario usuarioBLL, BLLRol rolBLL, BLLBitacora bitacoraBLL, EmailService emailService, BLLProyecto proyectoBLL, BLLNovedades novedadesBLL, BLLTelegram telegramBLL, Seguridad seguridad){
         _agenciaMPP = agenciaMPP;
+        _usuarioMPP = usuarioMPP;
         _contratacionBLL = contratacionBLL;
         _usuarioBLL = usuarioBLL;
         _rolBLL = rolBLL;
@@ -25,9 +29,11 @@ public class BLLAgencia
         _emailService = emailService;
         _proyectoBLL = proyectoBLL;
         _novedadesBLL = novedadesBLL;
+        _telegramBLL = telegramBLL;
+        _seguridad = seguridad;
     }
 
-    public async Task<bool> RegistrarAgencia(Agencia agencia, Usuario usuario, ContratacionServicio contratacionServicio, bool recibirNewsletter, List<int>? categoriasNewsletterIds)
+    public async Task<ResultadoRegistroAgenciaValidacion> RegistrarAgencia(Agencia agencia, Usuario usuario, ContratacionServicio contratacionServicio, bool recibirNewsletter, List<int>? categoriasNewsletterIds)
     {
         ValidarDatosRegistro(usuario, contratacionServicio);
         PreferenciasNewsletterRequest preferenciasNewsletter = new PreferenciasNewsletterRequest();
@@ -62,8 +68,7 @@ public class BLLAgencia
             }
 
             _proyectoBLL.CrearEstadosBase(agencia);
-            await ReenviarValidacion(usuario);
-            return true;
+            return CrearSesionValidacionRegistro(usuario.ID);
         }
 
         agencia.NombreComercial = contratacion.NombreComercialAgencia;
@@ -107,7 +112,7 @@ public class BLLAgencia
         _bitacoraBLL.Add(bitacora);
         
 
-        return await _emailService.EnviarCorreoValidacion(usuario, token);
+        return CrearSesionValidacionRegistro(usuario.ID);
     }
 
     public bool ValidarCuenta(string token)
@@ -159,6 +164,57 @@ public class BLLAgencia
 
         Bitacora bitacora = new Bitacora(0, usuario.ID, usuario.IdAgencia, "ValidacionCuenta", usuario.ID, "ReenviarValidacion", "Se generó un nuevo enlace de validación de correo.", "Exitoso", "Informacion", "Registro", DateTime.Now, null);
         _bitacoraBLL.Add(bitacora);
+    }
+
+    public async Task EnviarValidacionEmailRegistro(string tokenGestion)
+    {
+        Usuario usuario = ObtenerUsuarioPendientePorTokenGestion(tokenGestion);
+        ValidacionCuenta validacion = _usuarioBLL.CrearValidacionEmail(out string token);
+        _usuarioBLL.ReemplazarValidacionEmail(usuario, validacion);
+        bool enviado = await _emailService.EnviarCorreoValidacion(usuario, token);
+        if (!enviado) throw new InvalidOperationException("No fue posible enviar el enlace de validación por correo.");
+        _bitacoraBLL.Add(new Bitacora(0, usuario.ID, usuario.IdAgencia, "ValidacionCuenta", usuario.ID, "EnviarValidacionEmail", "Se envió la validación inicial por correo electrónico.", "Exitoso", "Informacion", "Registro", DateTime.Now, null));
+    }
+
+    public PreparacionTelegram PrepararValidacionTelegramRegistro(string tokenGestion)
+    {
+        Usuario usuario = ObtenerUsuarioPendientePorTokenGestion(tokenGestion);
+        return _telegramBLL.PrepararValidacionRegistro(usuario.ID);
+    }
+
+    public EstadoTelegram ConsultarEstadoTelegramRegistro(string tokenGestion)
+    {
+        Usuario usuario = ObtenerUsuarioPendientePorTokenGestion(tokenGestion);
+        return _telegramBLL.ConsultarEstado(usuario);
+    }
+
+    public void ConfirmarValidacionTelegramRegistro(string tokenGestion, string codigo)
+    {
+        Usuario usuario = ObtenerUsuarioPendientePorTokenGestion(tokenGestion);
+        _telegramBLL.ConfirmarValidacionRegistro(usuario.ID, codigo);
+    }
+
+    public EntregaTelegram ReenviarValidacionTelegramRegistro(string tokenGestion)
+    {
+        Usuario usuario = ObtenerUsuarioPendientePorTokenGestion(tokenGestion);
+        return _telegramBLL.ReenviarCodigoRegistro(usuario.ID);
+    }
+
+    private ResultadoRegistroAgenciaValidacion CrearSesionValidacionRegistro(int idUsuario)
+    {
+        string tokenGestion = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
+        DateTime fechaExpiracion = DateTime.Now.AddMinutes(30);
+        _usuarioMPP.CrearSesionValidacionRegistro(idUsuario, _seguridad.GenerarHashToken(tokenGestion), fechaExpiracion);
+        return new ResultadoRegistroAgenciaValidacion { TokenGestion = tokenGestion, FechaExpiracion = fechaExpiracion };
+    }
+
+    private Usuario ObtenerUsuarioPendientePorTokenGestion(string tokenGestion)
+    {
+        if (string.IsNullOrWhiteSpace(tokenGestion)) throw new UnauthorizedAccessException("La sesión de validación no es válida o venció.");
+        int? idUsuario = _usuarioMPP.ConsultarUsuarioSesionValidacionRegistro(_seguridad.GenerarHashToken(tokenGestion));
+        Usuario? usuario = idUsuario.HasValue ? _usuarioMPP.ConsultarUsuarioPorId(idUsuario.Value) : null;
+        if (usuario is null || !string.Equals(usuario.Estado, "PendienteValidacion", StringComparison.OrdinalIgnoreCase)) throw new UnauthorizedAccessException("La sesión de validación no es válida o venció.");
+        return usuario;
     }
 
     private static void ValidarDatosRegistro(Usuario usuario, ContratacionServicio contratacionServicio)

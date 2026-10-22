@@ -89,7 +89,7 @@ public sealed class TelegramPollingHostedService : BackgroundService
                     using IServiceScope scope = _scopeFactory.CreateScope();
                     BLLTelegram bllTelegram = scope.ServiceProvider.GetRequiredService<BLLTelegram>();
                     TeamBalance.BE.Entidades.EntregaTelegram entrega = bllTelegram.ProcesarInicioBot(partes[1], mensaje.From.Id, mensaje.Chat.Id, mensaje.From.Username);
-                    if (entrega.Valida) await _telegram.EnviarCodigoAsync(entrega.ChatId, entrega.Codigo, "Vinculación de Telegram", stoppingToken);
+                    if (entrega.Valida) await _telegram.EnviarCodigoAsync(entrega.ChatId, entrega.Codigo, string.Equals(entrega.Tipo, "Registro", StringComparison.Ordinal) ? "Validación de cuenta" : "Vinculación de Telegram", stoppingToken);
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }

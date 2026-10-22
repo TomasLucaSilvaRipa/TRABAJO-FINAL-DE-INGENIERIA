@@ -91,7 +91,7 @@ BEGIN
     BEGIN TRANSACTION;
     SELECT TOP (1) @IdUsuario = IdUsuario
     FROM dbo.SolicitudTelegram WITH (UPDLOCK, HOLDLOCK)
-    WHERE TokenHash = @TokenHash AND Tipo = N'Vinculacion' AND Estado = N'PendienteInicio' AND Activa = 1 AND FechaExpiracion >= SYSDATETIME();
+    WHERE TokenHash = @TokenHash AND Tipo IN (N'Vinculacion', N'Registro') AND Estado = N'PendienteInicio' AND Activa = 1 AND FechaExpiracion >= SYSDATETIME();
     SELECT @UsuarioExistente = IdUsuario FROM dbo.UsuarioTelegram WITH (UPDLOCK, HOLDLOCK) WHERE TelegramUserId = @TelegramUserId OR ChatId = @ChatId;
     IF @IdUsuario IS NULL OR (@UsuarioExistente IS NOT NULL AND @UsuarioExistente <> @IdUsuario)
     BEGIN
@@ -99,12 +99,14 @@ BEGIN
         SELECT CAST(0 AS bit) AS Valida, CAST(NULL AS BIGINT) AS ChatId;
         RETURN;
     END;
+    DECLARE @Tipo NVARCHAR(32);
+    SELECT @Tipo = Tipo FROM dbo.SolicitudTelegram WHERE IdUsuario = @IdUsuario AND TokenHash = @TokenHash AND Activa = 1;
     UPDATE dbo.SolicitudTelegram
     SET Estado = N'CodigoEnviado', TelegramUserId = @TelegramUserId, ChatId = @ChatId, CodigoHash = @CodigoHash,
         FechaExpiracionCodigo = @FechaExpiracionCodigo, IntentosFallidos = 0, Reenvios = 0
-    WHERE IdUsuario = @IdUsuario AND Tipo = N'Vinculacion' AND Activa = 1;
+    WHERE IdUsuario = @IdUsuario AND Tipo = @Tipo AND Activa = 1;
     COMMIT TRANSACTION;
-    SELECT CAST(1 AS bit) AS Valida, @ChatId AS ChatId;
+    SELECT CAST(1 AS bit) AS Valida, @ChatId AS ChatId, @Tipo AS Tipo;
 END;
 GO
 
@@ -136,6 +138,14 @@ BEGIN
             UPDATE dbo.UsuarioTelegram SET TelegramUserId = @TelegramUserId, ChatId = @ChatId, Vinculado = 1, FechaVinculacion = SYSDATETIME(), FechaActualizacion = SYSDATETIME() WHERE IdUsuario = @IdUsuario;
         ELSE
             INSERT INTO dbo.UsuarioTelegram (IdUsuario, TelegramUserId, ChatId, Vinculado) VALUES (@IdUsuario, @TelegramUserId, @ChatId, 1);
+    END;
+    ELSE IF @Tipo = N'Registro'
+    BEGIN
+        IF EXISTS (SELECT 1 FROM dbo.UsuarioTelegram WHERE IdUsuario = @IdUsuario)
+            UPDATE dbo.UsuarioTelegram SET TelegramUserId = @TelegramUserId, ChatId = @ChatId, Vinculado = 1, FechaVinculacion = SYSDATETIME(), FechaActualizacion = SYSDATETIME() WHERE IdUsuario = @IdUsuario;
+        ELSE
+            INSERT INTO dbo.UsuarioTelegram (IdUsuario, TelegramUserId, ChatId, Vinculado) VALUES (@IdUsuario, @TelegramUserId, @ChatId, 1);
+        UPDATE dbo.Usuario SET Estado = N'Activo' WHERE ID = @IdUsuario AND Estado = N'PendienteValidacion';
     END;
     ELSE IF @Tipo = N'Desvinculacion'
         UPDATE dbo.UsuarioTelegram SET Vinculado = 0, FechaActualizacion = SYSDATETIME() WHERE IdUsuario = @IdUsuario;

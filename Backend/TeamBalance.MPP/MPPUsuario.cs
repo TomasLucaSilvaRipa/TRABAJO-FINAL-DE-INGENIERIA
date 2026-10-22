@@ -313,7 +313,7 @@ public class MPPUsuario
         };
         DataTable resultado = _conexion.Leer("dbo.usp_Telegram_ProcesarInicio", parametros);
         if (resultado.Rows.Count != 1 || !Convert.ToBoolean(resultado.Rows[0]["Valida"])) return new EntregaTelegram();
-        return new EntregaTelegram { Valida = true, ChatId = Convert.ToInt64(resultado.Rows[0]["ChatId"]), Codigo = codigo, Tipo = "Vinculacion" };
+        return new EntregaTelegram { Valida = true, ChatId = Convert.ToInt64(resultado.Rows[0]["ChatId"]), Codigo = codigo, Tipo = resultado.Rows[0].Table.Columns.Contains("Tipo") ? Convert.ToString(resultado.Rows[0]["Tipo"]) ?? string.Empty : string.Empty };
     }
 
     public bool ConfirmarCodigoTelegram(int idUsuario, string tipo, string codigoHash)
@@ -336,6 +336,17 @@ public class MPPUsuario
         DataTable resultado = _conexion.Leer("dbo.usp_Telegram_CrearDesvinculacion", parametros);
         if (resultado.Rows.Count != 1 || !Convert.ToBoolean(resultado.Rows[0]["Valida"])) return new EntregaTelegram();
         return new EntregaTelegram { Valida = true, ChatId = Convert.ToInt64(resultado.Rows[0]["ChatId"]), Codigo = codigo, Tipo = "Desvinculacion" };
+    }
+
+    public void CrearSesionValidacionRegistro(int idUsuario, string tokenHash, DateTime fechaExpiracion)
+    {
+        _conexion.Escribir("dbo.usp_RegistroValidacion_CrearSesion", new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario), new SqlParameter("@TokenHash", tokenHash), new SqlParameter("@FechaExpiracion", fechaExpiracion) });
+    }
+
+    public int? ConsultarUsuarioSesionValidacionRegistro(string tokenHash)
+    {
+        DataTable resultado = _conexion.Leer("dbo.usp_RegistroValidacion_ConsultarSesion", new List<SqlParameter>() { new SqlParameter("@TokenHash", tokenHash) });
+        return resultado.Rows.Count == 1 ? Convert.ToInt32(resultado.Rows[0]["IdUsuario"]) : null;
     }
 
     public List<Usuario> ConsultarUsuariosAgencia(Usuario solicitante)

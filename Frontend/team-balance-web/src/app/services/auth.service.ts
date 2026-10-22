@@ -5,7 +5,8 @@ import { EncryptionService } from './security/encryption.service';
 
 export interface RegistryResponse {
   mensaje: string;
-  emailValidacionEnviado: boolean;
+  tokenGestion: string;
+  fechaExpiracionValidacion: string;
 }
 
 export interface LogInResponse {
@@ -24,7 +25,8 @@ export interface EstadoDosFactoresResponse { totpHabilitado: boolean; fechaActiv
 export interface PreparacionTotpResponse { uriOtpAuth: string; claveManual: string; fechaExpiracion: string; }
 export interface ConfirmacionTotpResponse { codigosRecuperacion: string[]; }
 export interface EstadoTelegramResponse { vinculado: boolean; estadoSolicitud: string; fechaExpiracionSolicitud: string | null; fechaVinculacion: string | null; }
-export interface PreparacionTelegramResponse { enlaceProfundo: string; fechaExpiracion: string; }
+export interface PreparacionTelegramResponse { enlaceProfundo: string; comandoInicio: string; fechaExpiracion: string; }
+export interface EstadoTelegramRegistroResponse { vinculado: boolean; estadoSolicitud: string; fechaExpiracionSolicitud: string | null; }
 
 export interface UsuarioSesion {
   id: number;
@@ -114,6 +116,12 @@ export class AuthService {
   reenviarValidacion(email: string): Observable<EmailValidationResponse> {
     return this.http.post<EmailValidationResponse>(`${this.agenciasApiUrl}/reenvio-validacion`, { email });
   }
+
+  enviarValidacionEmailRegistro(tokenGestion: string): Observable<void> { return this.http.post<void>(`${this.agenciasApiUrl}/validacion/email`, { tokenGestion }); }
+  prepararValidacionTelegramRegistro(tokenGestion: string): Observable<PreparacionTelegramResponse> { return this.http.post<PreparacionTelegramResponse>(`${this.agenciasApiUrl}/validacion/telegram`, { tokenGestion }); }
+  consultarValidacionTelegramRegistro(tokenGestion: string): Observable<EstadoTelegramRegistroResponse> { return this.http.get<EstadoTelegramRegistroResponse>(`${this.agenciasApiUrl}/validacion/telegram?tokenGestion=${encodeURIComponent(tokenGestion)}`); }
+  confirmarValidacionTelegramRegistro(tokenGestion: string, codigo: string): Observable<EmailValidationResponse> { return this.http.post<EmailValidationResponse>(`${this.agenciasApiUrl}/validacion/telegram/confirmar`, { tokenGestion, codigo }); }
+  reenviarValidacionTelegramRegistro(tokenGestion: string): Observable<void> { return this.http.post<void>(`${this.agenciasApiUrl}/validacion/telegram/reenviar`, { tokenGestion }); }
 
   validarSesion(): Observable<{ vigente: boolean }> {
     return this.http.get<{ vigente: boolean }>(`${this.authApiUrl}/sesion`);

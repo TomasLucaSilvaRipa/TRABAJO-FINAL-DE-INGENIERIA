@@ -31,7 +31,15 @@ public class BLLTelegram
         DateTime fechaExpiracion = DateTime.Now.AddMinutes(10);
         _usuarioMPP.CrearSolicitudTelegram(usuario.ID, _seguridad.GenerarHashToken(token), "Vinculacion", fechaExpiracion);
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Usuario", usuario.ID, "PrepararVinculacionTelegram", "El usuario inició la vinculación de Telegram.", "Pendiente", "Informacion", "Seguridad"));
-        return new PreparacionTelegram { EnlaceProfundo = $"https://t.me/{NombreBot}?start={token}", FechaExpiracion = fechaExpiracion };
+        return new PreparacionTelegram { EnlaceProfundo = $"https://t.me/{NombreBot}?start={token}", ComandoInicio = $"/start {token}", FechaExpiracion = fechaExpiracion };
+    }
+
+    public PreparacionTelegram PrepararValidacionRegistro(int idUsuario)
+    {
+        string token = Convert.ToHexString(RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
+        DateTime fechaExpiracion = DateTime.Now.AddMinutes(10);
+        _usuarioMPP.CrearSolicitudTelegram(idUsuario, _seguridad.GenerarHashToken(token), "Registro", fechaExpiracion);
+        return new PreparacionTelegram { EnlaceProfundo = $"https://t.me/{NombreBot}?start={token}", ComandoInicio = $"/start {token}", FechaExpiracion = fechaExpiracion };
     }
 
     public EntregaTelegram ProcesarInicioBot(string token, long telegramUserId, long chatId, string? nombreUsuario)
@@ -47,9 +55,21 @@ public class BLLTelegram
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Usuario", usuario.ID, "VincularTelegram", "Se vinculó Telegram como canal de verificación.", "Exitoso", "Informacion", "Seguridad"));
     }
 
+    public void ConfirmarValidacionRegistro(int idUsuario, string codigo)
+    {
+        if (!_usuarioMPP.ConfirmarCodigoTelegram(idUsuario, "Registro", _seguridad.GenerarHashToken(NormalizarCodigo(codigo)))) throw new UnauthorizedAccessException("El código no es válido, venció o ya fue utilizado.");
+        Usuario? usuario = _usuarioMPP.ConsultarUsuarioPorId(idUsuario);
+        if (usuario is not null) _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Usuario", usuario.ID, "ValidarCuentaTelegram", "Se validó la cuenta inicial mediante Telegram.", "Exitoso", "Informacion", "Registro"));
+    }
+
     public EntregaTelegram ReenviarCodigoVinculacion(Usuario usuario)
     {
         return PrepararReenvio(usuario.ID, "Vinculacion");
+    }
+
+    public EntregaTelegram ReenviarCodigoRegistro(int idUsuario)
+    {
+        return PrepararReenvio(idUsuario, "Registro");
     }
 
     public EntregaTelegram PrepararDesvinculacion(Usuario usuario)

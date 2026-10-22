@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
+using Teambalance.API.Models;
+using Teambalance.API.Services;
 
 namespace Teambalance.API.Controllers;
 
@@ -60,12 +62,13 @@ public class AgenciaController : ControllerBase
                 return BadRequest("No se recibieron los datos del dueño.");
             }
 
-            bool emailValidacionEnviado = await _agenciaBLL.RegistrarAgencia(agencia, usuario, contratacionSericio, solicitud.RecibirNewsletter, solicitud.CategoriasNewsletterIds);
+            ResultadoRegistroAgenciaValidacion resultado = await _agenciaBLL.RegistrarAgencia(agencia, usuario, contratacionSericio, solicitud.RecibirNewsletter, solicitud.CategoriasNewsletterIds);
 
             return Ok(new
             {
                 mensaje = "La agencia y el usuario Dueño fueron registrados correctamente.",
-                emailValidacionEnviado,
+                tokenGestion = resultado.TokenGestion,
+                fechaExpiracionValidacion = resultado.FechaExpiracion,
             });
         }
         catch (KeyNotFoundException ex){return NotFound(ex.Message);}
@@ -107,6 +110,60 @@ public class AgenciaController : ControllerBase
         }
     }
 
+    [HttpPost("validacion/email")]
+    public async Task<IActionResult> EnviarValidacionEmailRegistro([FromBody] TokenGestionValidacionRequest request)
+    {
+        try
+        {
+            await _agenciaBLL.EnviarValidacionEmailRegistro(request.TokenGestion ?? string.Empty);
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (InvalidOperationException ex) { return StatusCode(503, ex.Message); }
+    }
+
+    [HttpPost("validacion/telegram")]
+    public IActionResult PrepararValidacionTelegramRegistro([FromBody] TokenGestionValidacionRequest request)
+    {
+        try
+        {
+            return Ok(_agenciaBLL.PrepararValidacionTelegramRegistro(request.TokenGestion ?? string.Empty));
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+    }
+
+    [HttpGet("validacion/telegram")]
+    public IActionResult ConsultarEstadoTelegramRegistro([FromQuery] string tokenGestion)
+    {
+        try { return Ok(_agenciaBLL.ConsultarEstadoTelegramRegistro(tokenGestion)); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+    }
+
+    [HttpPost("validacion/telegram/confirmar")]
+    public IActionResult ConfirmarValidacionTelegramRegistro([FromBody] ConfirmarTelegramRegistroRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.Codigo)) throw new ArgumentException("Ingresá el código de Telegram.");
+            _agenciaBLL.ConfirmarValidacionTelegramRegistro(request.TokenGestion ?? string.Empty, request.Codigo);
+            return Ok(new { mensaje = "Tu cuenta fue validada mediante Telegram. Ya podés iniciar sesión." });
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+    }
+
+    [HttpPost("validacion/telegram/reenviar")]
+    public async Task<IActionResult> ReenviarValidacionTelegramRegistro([FromBody] TokenGestionValidacionRequest request, [FromServices] TelegramBotService telegramBot, CancellationToken cancellationToken)
+    {
+        try
+        {
+            TeamBalance.BE.Entidades.EntregaTelegram entrega = _agenciaBLL.ReenviarValidacionTelegramRegistro(request.TokenGestion ?? string.Empty);
+            if (!entrega.Valida || !await telegramBot.EnviarCodigoAsync(entrega.ChatId, entrega.Codigo, "Validación de cuenta", cancellationToken)) return StatusCode(503, "No fue posible enviar el código por Telegram.");
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+    }
+
     private Usuario ObtenerSolicitante()
     {
         string authorization = Request.Headers.Authorization.ToString();
@@ -122,4 +179,14 @@ public sealed class RegistrarAgenciaRequest
     public Agencia Agencia { get; set; } = new Agencia();
     public bool RecibirNewsletter { get; set; }
     public List<int> CategoriasNewsletterIds { get; set; } = new List<int>();
+}
+
+public class TokenGestionValidacionRequest
+{
+    public string? TokenGestion { get; set; }
+}
+
+public sealed class ConfirmarTelegramRegistroRequest : TokenGestionValidacionRequest
+{
+    public string? Codigo { get; set; }
 }

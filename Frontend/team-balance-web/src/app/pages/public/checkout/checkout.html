@@ -157,9 +157,17 @@
           <p class="tb-field__error">Necesitás aceptar los Términos y Condiciones para continuar.</p>
         }
 
-        <button class="tb-button tb-button--primary tb-checkout-submit" type="submit" [disabled]="checkoutForm.invalid || !plan() || paymentIntegrationPending()">
-          {{ localization.traducir('checkout.continue') }}
-        </button>
+        @if (reviewingCommercialData()) {
+          <div class="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950" role="alert">
+            <strong>Revisá los datos antes de continuar.</strong>
+            <p class="mt-1">El CUIT, la razón social, los datos de facturación y el plan se usarán para crear la contratación. Después de redirigirte al proveedor de pago no se podrán cambiar desde este proceso.</p>
+            <div class="mt-4 flex flex-wrap gap-3"><button class="tb-button tb-button--primary" type="button" [disabled]="paymentIntegrationPending()" (click)="confirmPayment()">Confirmar y continuar al pago</button><button class="tb-button" type="button" [disabled]="paymentIntegrationPending()" (click)="editCommercialData()">Modificar datos</button></div>
+          </div>
+        } @else {
+          <button class="tb-button tb-button--primary tb-checkout-submit" type="submit" [disabled]="checkoutForm.invalid || !plan() || paymentIntegrationPending()">
+            {{ localization.traducir('checkout.continue') }}
+          </button>
+        }
 
         @if (paymentIntegrationPending()) {
           <p class="tb-checkout-pending" role="status">

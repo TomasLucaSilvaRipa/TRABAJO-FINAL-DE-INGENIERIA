@@ -23,6 +23,7 @@ export class CheckoutComponent {
   readonly planLoading = signal(true);
   readonly planError = signal(false);
   readonly paymentIntegrationPending = signal(false);
+  readonly reviewingCommercialData = signal(false);
 
   readonly checkoutForm = this.formBuilder.nonNullable.group({
     commercialName: ['', Validators.required],
@@ -90,6 +91,15 @@ export class CheckoutComponent {
     }
 
 
+    this.reviewingCommercialData.set(true);
+  }
+
+  editCommercialData(): void {
+    this.reviewingCommercialData.set(false);
+  }
+
+  confirmPayment(): void {
+    if (this.paymentIntegrationPending() || this.checkoutForm.invalid || !this.plan()) return;
     this.paymentIntegrationPending.set(true);
 
     const form = this.checkoutForm.getRawValue();
@@ -115,11 +125,7 @@ export class CheckoutComponent {
         window.location.assign(respuesta.urlPago);
       },
 
-      error: (error) => {
-        console.error('Error completo:', error);
-        console.error('Respuesta backend:', error.error);
-        this.paymentIntegrationPending.set(false);
-      }
+      error: () => { this.paymentIntegrationPending.set(false); this.reviewingCommercialData.set(false); }
     });
   }
 }

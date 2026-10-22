@@ -4,7 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, debounceTime, EMPTY, finalize, of, switchMap, tap, distinctUntilChanged } from 'rxjs';
-import { AuthService } from '../../../../services/auth.service';
+import { AuthService, EstadoTelegramRegistroResponse, PreparacionTelegramResponse } from '../../../../services/auth.service';
 import { ContratacionService } from '../../../../services/contratacion.service';
 import { CategoriaNoticia, NovedadesService } from '../../../../services/novedades.service';
 import { PasswordSecurityService,PasswordEvaluation } from '../../../../services/security/password-security.service';
@@ -35,7 +35,15 @@ export class SignupFormComponent {
   readonly submitting = signal(false);
   readonly requestError = signal('');
   readonly registrationCompleted = signal(false);
-  readonly emailValidacionEnviado = signal(false);
+  readonly tokenGestionValidacion = signal('');
+  readonly metodoValidacion = signal<'email' | 'telegram' | null>(null);
+  readonly preparandoValidacion = signal(false);
+  readonly validacionError = signal('');
+  readonly preparacionTelegram = signal<PreparacionTelegramResponse | null>(null);
+  readonly estadoTelegram = signal<EstadoTelegramRegistroResponse | null>(null);
+  readonly codigoTelegram = signal('');
+  readonly comandoTelegramCopiado = signal(false);
+  readonly validacionCompletada = signal(false);
   readonly showPassword = signal(false);
   readonly showConfirmPassword = signal(false);
   readonly categoriasNewsletter = signal<CategoriaNoticia[]>([]);
@@ -127,7 +135,8 @@ export class SignupFormComponent {
       )
       .subscribe({
         next: (respuesta) => {
-          this.emailValidacionEnviado.set(respuesta.emailValidacionEnviado);
+          this.tokenGestionValidacion.set(respuesta.tokenGestion);
+          sessionStorage.setItem(this.claveSesionValidacion(referenciaContratacion), respuesta.tokenGestion);
           this.registrationCompleted.set(true);
         },
         error: (error) => {
@@ -138,6 +147,47 @@ export class SignupFormComponent {
           );
         },
       });
+  }
+
+  elegirEmail(): void {
+    this.preparandoValidacion.set(true); this.validacionError.set(''); this.metodoValidacion.set('email');
+    this.authService.enviarValidacionEmailRegistro(this.tokenGestionValidacion()).pipe(finalize(() => this.preparandoValidacion.set(false))).subscribe({ next: () => undefined, error: error => this.validacionError.set(typeof error.error === 'string' ? error.error : 'No fue posible enviar el enlace de validación.') });
+  }
+
+  elegirTelegram(): void {
+    this.preparandoValidacion.set(true); this.validacionError.set(''); this.comandoTelegramCopiado.set(false); this.metodoValidacion.set('telegram');
+    this.authService.prepararValidacionTelegramRegistro(this.tokenGestionValidacion()).pipe(finalize(() => this.preparandoValidacion.set(false))).subscribe({
+      next: preparacion => { this.preparacionTelegram.set(preparacion); window.open(preparacion.enlaceProfundo, '_blank', 'noopener'); this.actualizarEstadoTelegram(); },
+      error: error => this.validacionError.set(typeof error.error === 'string' ? error.error : 'No fue posible iniciar la validación por Telegram.'),
+    });
+  }
+
+  actualizarEstadoTelegram(): void {
+    this.authService.consultarValidacionTelegramRegistro(this.tokenGestionValidacion()).subscribe({ next: estado => this.estadoTelegram.set(estado), error: () => this.validacionError.set('No fue posible actualizar el estado de Telegram.') });
+  }
+
+  confirmarTelegram(): void {
+    const codigo = this.codigoTelegram().replace(/\s/g, '');
+    if (!/^\d{6}$/.test(codigo)) { this.validacionError.set('Ingresá el código de seis dígitos enviado por Telegram.'); return; }
+    this.preparandoValidacion.set(true); this.validacionError.set('');
+    this.authService.confirmarValidacionTelegramRegistro(this.tokenGestionValidacion(), codigo).pipe(finalize(() => this.preparandoValidacion.set(false))).subscribe({ next: () => { sessionStorage.removeItem(this.claveSesionValidacion(this.referenciaContratacion())); this.validacionCompletada.set(true); }, error: error => this.validacionError.set(typeof error.error === 'string' ? error.error : 'No fue posible validar el código de Telegram.') });
+  }
+
+  reenviarTelegram(): void {
+    this.preparandoValidacion.set(true); this.validacionError.set('');
+    this.authService.reenviarValidacionTelegramRegistro(this.tokenGestionValidacion()).pipe(finalize(() => this.preparandoValidacion.set(false))).subscribe({ next: () => undefined, error: error => this.validacionError.set(typeof error.error === 'string' ? error.error : 'No fue posible reenviar el código de Telegram.') });
+  }
+
+  copiarComandoTelegram(): void {
+    const comando = this.preparacionTelegram()?.comandoInicio;
+    if (!comando) return;
+    navigator.clipboard.writeText(comando)
+      .then(() => this.comandoTelegramCopiado.set(true))
+      .catch(() => this.validacionError.set('No fue posible copiar el comando. Copialo manualmente desde el recuadro.'));
+  }
+
+  volverAMetodosValidacion(): void {
+    this.metodoValidacion.set(null); this.validacionError.set(''); this.codigoTelegram.set(''); this.comandoTelegramCopiado.set(false);
   }
 
   hasError(controlName: keyof typeof this.registryForm.controls): boolean {
@@ -177,10 +227,16 @@ export class SignupFormComponent {
           }
 
           this.referenciaContratacion.set(contratacion.referencia);
+          const tokenGestion = sessionStorage.getItem(this.claveSesionValidacion(contratacion.referencia));
+          if (tokenGestion) { this.tokenGestionValidacion.set(tokenGestion); this.registrationCompleted.set(true); }
         },
         error: () => {
           this.continuationError.set('No encontramos una contratación aprobada asociada a este registro.');
         },
       });
+  }
+
+  private claveSesionValidacion(referenciaContratacion: string): string {
+    return `registro-validacion-${referenciaContratacion}`;
   }
 }

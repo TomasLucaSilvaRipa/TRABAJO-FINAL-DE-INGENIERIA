@@ -11,6 +11,7 @@ public class EstadoTelegram
 public class PreparacionTelegram
 {
     public string EnlaceProfundo { get; set; } = string.Empty;
+    public string ComandoInicio { get; set; } = string.Empty;
     public DateTime FechaExpiracion { get; set; }
 }
 

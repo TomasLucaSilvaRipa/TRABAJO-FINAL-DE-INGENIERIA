@@ -15,14 +15,35 @@
   } @else if (registrationCompleted()) {
     <div class="tb-auth-status tb-auth-status--success" role="status">
       <p class="tb-auth-form__eyebrow">{{localization.traducir('signup.started')}}</p>
-      <h1 id="signup-title">{{localization.traducir('signup.completed')}}</h1>
-      @if (emailValidacionEnviado()) {
-        <p>{{localization.traducir('signup.emailSent')}}</p>
+      @if (validacionCompletada()) {
+        <h1 id="signup-title">Cuenta validada</h1>
+        <p>La cuenta de tu agencia quedó habilitada. Ya podés iniciar sesión.</p>
+        <a class="tb-auth-submit tb-auth-submit--link" routerLink="/signin">{{localization.traducir('signup.goSignin')}}</a>
+      } @else if (!metodoValidacion()) {
+        <h1 id="signup-title">Elegí cómo validar tu cuenta</h1>
+        <p>Seleccioná un método. Hasta completar la validación no vas a poder iniciar sesión.</p>
+        <div class="mt-6 grid gap-3"><button class="tb-auth-submit" type="button" [disabled]="preparandoValidacion()" (click)="elegirEmail()">Validar por correo electrónico</button><button class="tb-auth-submit tb-auth-submit--secondary" type="button" [disabled]="preparandoValidacion()" (click)="elegirTelegram()">Validar por Telegram</button></div>
+      } @else if (metodoValidacion() === 'email') {
+        <h1 id="signup-title">Revisá tu correo</h1>
+        <p>Enviamos un enlace de validación a tu correo laboral. Abrilo para habilitar la cuenta.</p>
+        <div class="mt-5 flex flex-wrap gap-3"><button class="tb-auth-submit tb-auth-submit--secondary" type="button" [disabled]="preparandoValidacion()" (click)="elegirEmail()">Reenviar enlace</button><button class="tb-auth-submit tb-auth-submit--secondary" type="button" [disabled]="preparandoValidacion()" (click)="elegirTelegram()">Usar Telegram</button></div>
         <a class="tb-auth-submit tb-auth-submit--link" routerLink="/signin">{{localization.traducir('signup.goSignin')}}</a>
       } @else {
-        <p>{{localization.traducir('signup.emailNotSent')}}</p>
-        <a class="tb-auth-submit tb-auth-submit--link" routerLink="/reenviar-validacion">{{localization.traducir('signup.resend')}}</a>
+        <h1 id="signup-title">Validá mediante Telegram</h1>
+        <p>Abrimos @TeamBalanceVerifyBot. Pulsá <strong>Iniciar</strong>, volvé a esta pantalla y actualizá el estado.</p>
+        @if (preparacionTelegram()) {
+          <div class="mt-5 rounded-lg border border-sky-200 bg-sky-50 p-4 text-left text-sm text-slate-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-slate-200">
+            <p>Si Telegram sólo abre el chat y no responde, copiá este comando temporal y pegalo en el bot. Vence en 10 minutos.</p>
+            <div class="mt-3 flex flex-wrap items-center gap-3"><code class="rounded bg-slate-950 px-3 py-2 text-xs text-sky-200 break-all">{{ preparacionTelegram()?.comandoInicio }}</code><button class="tb-auth-submit tb-auth-submit--secondary" type="button" (click)="copiarComandoTelegram()">{{ comandoTelegramCopiado() ? 'Comando copiado' : 'Copiar comando' }}</button></div>
+          </div>
+        }
+        @if (estadoTelegram()?.estadoSolicitud === 'CodigoEnviado') {
+          <label class="tb-auth-field mt-5">Código de seis dígitos<input type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" [value]="codigoTelegram()" (input)="codigoTelegram.set($any($event.target).value)" placeholder="000000" /></label>
+          <div class="mt-4 flex flex-wrap gap-3"><button class="tb-auth-submit" type="button" [disabled]="preparandoValidacion()" (click)="confirmarTelegram()">Confirmar código</button><button class="tb-auth-submit tb-auth-submit--secondary" type="button" [disabled]="preparandoValidacion()" (click)="reenviarTelegram()">Reenviar código</button></div>
+        } @else { <button class="tb-auth-submit tb-auth-submit--secondary mt-5" type="button" (click)="actualizarEstadoTelegram()">Actualizar estado</button> }
+        <button class="tb-auth-submit tb-auth-submit--link mt-5" type="button" (click)="volverAMetodosValidacion()">Elegir otro método</button>
       }
+      @if (validacionError()) { <p class="tb-auth-request-error mt-4" role="alert">{{ validacionError() }}</p> }
     </div>
   } @else {
     <a class="tb-auth-form__back" routerLink="/plans">
