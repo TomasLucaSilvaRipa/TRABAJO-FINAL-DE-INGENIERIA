@@ -3,6 +3,7 @@ namespace TeamBalance.BE.Entidades;
 public class AnalisisOcupacionOperativa
 {
     public decimal PorcentajeOcupacionGeneral { get; set; }
+    public string EstadoCargaGeneral { get; set; } = string.Empty;
     public decimal HorasDisponiblesSemanales { get; set; }
     public decimal HorasEstimadasActivas { get; set; }
     public int CantidadSubutilizados { get; set; }
@@ -124,6 +125,23 @@ public class RevisionOperativaPendiente
     public DateTime FechaAlta { get; set; }
 }
 
+public class SolicitudRevisionGestion
+{
+    public int ID { get; set; }
+    public int IdAgencia { get; set; }
+    public int IdProyecto { get; set; }
+    public int? IdTarea { get; set; }
+    public int IdPMResponsable { get; set; }
+    public int IdUsuarioSolicitante { get; set; }
+    public string Tipo { get; set; } = string.Empty;
+    public string CausaPrincipal { get; set; } = string.Empty;
+    public string AccionSugerida { get; set; } = string.Empty;
+    public string Estado { get; set; } = string.Empty;
+    public DateTime FechaAlta { get; set; }
+    public string NombreProyecto { get; set; } = string.Empty;
+    public string? TituloTarea { get; set; }
+}
+
 public class SolicitudRevisionConveniencia
 {
     public int ID { get; set; }
@@ -144,6 +162,8 @@ public class AnalisisDesvioHoras
     public decimal HorasEstimadas { get; set; }
     public decimal HorasReales { get; set; }
     public decimal DesvioHoras { get; set; }
+    public decimal HorasRestantes { get; set; }
+    public decimal HorasExcedidas { get; set; }
     public decimal PorcentajeConsumo { get; set; }
     public List<DesvioHorasProyecto> Proyectos { get; set; } = new List<DesvioHorasProyecto>();
 }
@@ -167,6 +187,8 @@ public class DesvioHorasProyecto
     public decimal HorasEstimadas { get; set; }
     public decimal HorasReales { get; set; }
     public decimal DesvioHoras { get; set; }
+    public decimal HorasRestantes { get; set; }
+    public decimal HorasExcedidas { get; set; }
     public decimal PorcentajeConsumo { get; set; }
     public string Estado { get; set; } = string.Empty;
     public List<DesvioHorasTarea> Tareas { get; set; } = new List<DesvioHorasTarea>();
@@ -182,6 +204,8 @@ public class DesvioHorasTarea
     public decimal HorasEstimadas { get; set; }
     public decimal HorasReales { get; set; }
     public decimal DesvioHoras { get; set; }
+    public decimal HorasRestantes { get; set; }
+    public decimal HorasExcedidas { get; set; }
     public decimal PorcentajeConsumo { get; set; }
     public string Estado { get; set; } = string.Empty;
 }
@@ -197,6 +221,8 @@ public class DetalleDesvioHorasTarea
     public decimal HorasEstimadas { get; set; }
     public decimal HorasReales { get; set; }
     public decimal DesvioHoras { get; set; }
+    public decimal HorasRestantes { get; set; }
+    public decimal HorasExcedidas { get; set; }
     public decimal PorcentajeConsumo { get; set; }
     public string EstadoDesvio { get; set; } = string.Empty;
     public List<RegistroHora> RegistrosHoras { get; set; } = new List<RegistroHora>();

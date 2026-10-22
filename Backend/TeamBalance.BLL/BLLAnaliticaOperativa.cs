@@ -67,7 +67,7 @@ public class BLLAnaliticaOperativa
             detalle.PorcentajeOcupacion = porcentaje;
             detalle.EstadoCarga = estado;
             detalle.CausaPrincipal = tareaPrincipal is null ? "No tiene tareas planificables asignadas dentro del período seleccionado." : carga.TieneSobrecargaDiaria ? "La tarea '" + tareaPrincipal.Titulo + "' genera una sobrecarga en al menos un día laborable del período." : "La tarea '" + tareaPrincipal.Titulo + "' concentra la mayor carga planificada del período.";
-            detalle.AccionSugerida = estado == "Sobrecargado" ? "Revisar la distribución de tareas o evaluar un recurso alternativo." : estado == "Subutilizado" ? "Evaluar la asignación de trabajo compatible con su disponibilidad." : "Mantener seguimiento de la carga vigente.";
+            detalle.AccionSugerida = estado is "Sobrecargado" or "Crítico" ? "Revisar la distribución de tareas o evaluar un recurso alternativo." : estado == "Subutilizado" ? "Evaluar la asignación de trabajo compatible con su disponibilidad." : "Mantener seguimiento de la carga vigente.";
             detalle.Proyectos = contextos.Where(contexto => contexto.Tareas.Any(tarea => carga.HorasPlanificadasPorTarea.ContainsKey(tarea.ID))).Select(contexto => contexto.Proyecto.Nombre).Distinct().OrderBy(nombre => nombre).ToList();
             resultado.Empleados.Add(detalle);
         }
@@ -75,9 +75,10 @@ public class BLLAnaliticaOperativa
         resultado.HorasDisponiblesSemanales = resultado.Empleados.Sum(empleado => empleado.HorasDisponibles);
         resultado.HorasEstimadasActivas = resultado.Empleados.Sum(empleado => empleado.HorasEstimadasActivas);
         resultado.PorcentajeOcupacionGeneral = CalcularPorcentaje(resultado.HorasEstimadasActivas, resultado.HorasDisponiblesSemanales);
+        resultado.EstadoCargaGeneral = ObtenerEstadoOcupacion(resultado.PorcentajeOcupacionGeneral);
         resultado.CantidadSubutilizados = resultado.Empleados.Count(empleado => empleado.EstadoCarga == "Subutilizado");
         resultado.CantidadBalanceados = resultado.Empleados.Count(empleado => empleado.EstadoCarga == "Balanceado");
-        resultado.CantidadSobrecargados = resultado.Empleados.Count(empleado => empleado.EstadoCarga == "Sobrecargado");
+        resultado.CantidadSobrecargados = resultado.Empleados.Count(empleado => empleado.EstadoCarga is "Sobrecargado" or "Crítico");
         HashSet<int> empleadosIncluidos = resultado.Empleados.Select(empleado => empleado.IdEmpleado).ToHashSet();
         resultado.Proyectos = CrearDistribucionProyectos(contextos, resultado.HorasEstimadasActivas, empleadosIncluidos, horasPlanificadasPorTarea, horasPlanificadasPorTareaEmpleado);
         resultado.Clientes = CrearDistribucionClientes(resultado.Proyectos, resultado.HorasEstimadasActivas);
@@ -165,6 +166,13 @@ public class BLLAnaliticaOperativa
                 NombreProyecto = "Todos los proyectos a cargo", CausaPrincipal = solicitud.CausaPrincipal,
                 AccionSugerida = solicitud.AccionSugerida, Estado = solicitud.Estado, FechaAlta = solicitud.FechaAlta
             }));
+        solicitudes.AddRange(_analiticaMPP.ConsultarSolicitudesRevisionGestionPendientes(usuario, idPM)
+            .Select(solicitud => new RevisionOperativaPendiente
+            {
+                ID = solicitud.ID, Tipo = solicitud.Tipo, Referencia = solicitud.TituloTarea ?? solicitud.NombreProyecto,
+                NombreProyecto = solicitud.NombreProyecto, CausaPrincipal = solicitud.CausaPrincipal,
+                AccionSugerida = solicitud.AccionSugerida, Estado = solicitud.Estado, FechaAlta = solicitud.FechaAlta
+            }));
         return solicitudes.OrderByDescending(solicitud => solicitud.FechaAlta).ToList();
     }
 
@@ -175,16 +183,19 @@ public class BLLAnaliticaOperativa
         if (idSolicitud <= 0) { throw new ArgumentException("La solicitud de revisión seleccionada no es válida."); }
         int idPM = _analiticaMPP.ConsultarIdPM(usuario);
         bool esRevisionConveniencia = string.Equals(tipo, "ConvenienciaCliente", StringComparison.OrdinalIgnoreCase);
-        if (!string.IsNullOrWhiteSpace(tipo) && !esRevisionConveniencia && !string.Equals(tipo, "Asignacion", StringComparison.OrdinalIgnoreCase)) { throw new ArgumentException("El tipo de revisión seleccionado no es válido."); }
+        bool esRevisionGestion = string.Equals(tipo, "ControlHoras", StringComparison.OrdinalIgnoreCase) || string.Equals(tipo, "RiesgoRetraso", StringComparison.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(tipo) && !esRevisionConveniencia && !esRevisionGestion && !string.Equals(tipo, "Asignacion", StringComparison.OrdinalIgnoreCase)) { throw new ArgumentException("El tipo de revisión seleccionado no es válido."); }
         bool actualizada = esRevisionConveniencia
             ? _analiticaMPP.MarcarSolicitudRevisionConvenienciaResuelta(usuario, idPM, idSolicitud)
-            : _analiticaMPP.MarcarSolicitudRevisionResuelta(usuario, idPM, idSolicitud);
+            : esRevisionGestion
+                ? _analiticaMPP.MarcarSolicitudRevisionGestionResuelta(usuario, idPM, idSolicitud)
+                : _analiticaMPP.MarcarSolicitudRevisionResuelta(usuario, idPM, idSolicitud);
         if (!actualizada)
         {
             throw new KeyNotFoundException("La solicitud no existe, no te corresponde o ya fue resuelta.");
         }
-        string entidad = esRevisionConveniencia ? "SolicitudRevisionConveniencia" : "SolicitudRevisionOperativa";
-        string descripcion = esRevisionConveniencia ? "El PM responsable resolvió una revisión de conveniencia de cliente." : "El PM responsable marcó como resuelta una solicitud de revisión operativa.";
+        string entidad = esRevisionConveniencia ? "SolicitudRevisionConveniencia" : esRevisionGestion ? "SolicitudRevisionGestion" : "SolicitudRevisionOperativa";
+        string descripcion = esRevisionConveniencia ? "El PM responsable resolvió una revisión de conveniencia de cliente." : esRevisionGestion ? "El PM responsable resolvió una revisión de gestión operativa." : "El PM responsable marcó como resuelta una solicitud de revisión operativa.";
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, entidad, idSolicitud, "MarcarSolicitudRevisionResuelta", descripcion, "Exitoso", "Informacion", "Proyectos"));
     }
 
@@ -214,6 +225,9 @@ public class BLLAnaliticaOperativa
                 detalle.HorasEstimadas = tarea.HorasEstimadas;
                 detalle.HorasReales = horasReales;
                 detalle.DesvioHoras = horasReales - tarea.HorasEstimadas;
+                CalcularBalanceHoras(detalle.HorasEstimadas, detalle.HorasReales, out decimal horasRestantes, out decimal horasExcedidas);
+                detalle.HorasRestantes = horasRestantes;
+                detalle.HorasExcedidas = horasExcedidas;
                 detalle.PorcentajeConsumo = CalcularPorcentaje(horasReales, tarea.HorasEstimadas);
                 detalle.Estado = ObtenerEstadoDesvio(detalle.PorcentajeConsumo);
                 if (CumpleNivelDesvio(detalle.Estado, filtroAplicado.NivelDesvio)) { proyecto.Tareas.Add(detalle); }
@@ -223,6 +237,9 @@ public class BLLAnaliticaOperativa
             proyecto.HorasEstimadas = proyecto.Tareas.Sum(tarea => tarea.HorasEstimadas);
             proyecto.HorasReales = proyecto.Tareas.Sum(tarea => tarea.HorasReales);
             proyecto.DesvioHoras = proyecto.HorasReales - proyecto.HorasEstimadas;
+            CalcularBalanceHoras(proyecto.HorasEstimadas, proyecto.HorasReales, out decimal horasRestantesProyecto, out decimal horasExcedidasProyecto);
+            proyecto.HorasRestantes = horasRestantesProyecto;
+            proyecto.HorasExcedidas = horasExcedidasProyecto;
             proyecto.PorcentajeConsumo = CalcularPorcentaje(proyecto.HorasReales, proyecto.HorasEstimadas);
             proyecto.Estado = ObtenerEstadoDesvio(proyecto.PorcentajeConsumo);
             resultado.Proyectos.Add(proyecto);
@@ -231,6 +248,9 @@ public class BLLAnaliticaOperativa
         resultado.HorasEstimadas = resultado.Proyectos.Sum(proyecto => proyecto.HorasEstimadas);
         resultado.HorasReales = resultado.Proyectos.Sum(proyecto => proyecto.HorasReales);
         resultado.DesvioHoras = resultado.HorasReales - resultado.HorasEstimadas;
+        CalcularBalanceHoras(resultado.HorasEstimadas, resultado.HorasReales, out decimal horasRestantesResultado, out decimal horasExcedidasResultado);
+        resultado.HorasRestantes = horasRestantesResultado;
+        resultado.HorasExcedidas = horasExcedidasResultado;
         resultado.PorcentajeConsumo = CalcularPorcentaje(resultado.HorasReales, resultado.HorasEstimadas);
         return resultado;
     }
@@ -256,23 +276,42 @@ public class BLLAnaliticaOperativa
         detalle.HorasEstimadas = tarea.HorasEstimadas;
         detalle.HorasReales = registros.Sum(registro => registro.CantidadHoras);
         detalle.DesvioHoras = detalle.HorasReales - detalle.HorasEstimadas;
+        CalcularBalanceHoras(detalle.HorasEstimadas, detalle.HorasReales, out decimal horasRestantes, out decimal horasExcedidas);
+        detalle.HorasRestantes = horasRestantes;
+        detalle.HorasExcedidas = horasExcedidas;
         detalle.PorcentajeConsumo = CalcularPorcentaje(detalle.HorasReales, detalle.HorasEstimadas);
         detalle.EstadoDesvio = ObtenerEstadoDesvio(detalle.PorcentajeConsumo);
         detalle.RegistrosHoras = registros;
         return detalle;
     }
 
-    public void RegistrarAccionAjusteDesvioHoras(Usuario usuario, AccionAjusteDesvioHoras accion)
+    public async Task<string> RegistrarAccionAjusteDesvioHoras(Usuario usuario, AccionAjusteDesvioHoras accion)
     {
         ValidarPMODueno(usuario);
         if (accion.IdProyecto <= 0) { throw new ArgumentException("Seleccioná un proyecto para registrar la acción de ajuste."); }
         if (string.IsNullOrWhiteSpace(accion.Observacion)) { throw new ArgumentException("Describí la acción de ajuste antes de confirmarla."); }
         if (accion.Observacion.Trim().Length > 1500) { throw new ArgumentException("La observación no puede superar los 1500 caracteres."); }
-        if (accion.IdTarea.HasValue) { ConsultarDetalleDesvioHorasTarea(usuario, accion.IdProyecto, accion.IdTarea.Value, null, null); }
-        else if (!ConsultarContextos(usuario, accion.IdProyecto).Any()) { throw new KeyNotFoundException("No existe el proyecto solicitado o no tenés acceso a él."); }
+        ContextoProyectoAnalitico contexto = ConsultarContextos(usuario, accion.IdProyecto).FirstOrDefault() ?? throw new KeyNotFoundException("No existe el proyecto solicitado o no tenés acceso a él.");
+        Tarea? tarea = null;
+        if (accion.IdTarea.HasValue)
+        {
+            ConsultarDetalleDesvioHorasTarea(usuario, accion.IdProyecto, accion.IdTarea.Value, null, null);
+            tarea = contexto.Tareas.FirstOrDefault(item => item.ID == accion.IdTarea.Value);
+        }
+        SolicitudRevisionGestion solicitud = new SolicitudRevisionGestion
+        {
+            IdAgencia = usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."), IdProyecto = contexto.Proyecto.ID,
+            IdTarea = accion.IdTarea, IdPMResponsable = contexto.Proyecto.IdPMResponsable, IdUsuarioSolicitante = usuario.ID,
+            Tipo = "ControlHoras", CausaPrincipal = "Se registró un ajuste para el control de horas.", AccionSugerida = accion.Observacion.Trim()
+        };
+        solicitud.ID = _analiticaMPP.RegistrarSolicitudRevisionGestion(solicitud);
+        DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(solicitud.IdPMResponsable);
+        bool correoEnviado = destinatario is not null && !string.IsNullOrWhiteSpace(destinatario.Email) && await _emailService.EnviarCorreoSolicitudRevisionGestion(destinatario.Email, destinatario.Nombre, "control de horas", contexto.Proyecto.Nombre, tarea?.Titulo, solicitud.CausaPrincipal, solicitud.AccionSugerida);
         string entidad = accion.IdTarea.HasValue ? "Tarea" : "Proyecto";
         int idEntidad = accion.IdTarea ?? accion.IdProyecto;
-        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, entidad, idEntidad, "RegistrarAccionAjusteDesvioHoras", "Acción de ajuste registrada para el desvío de horas: " + accion.Observacion.Trim(), "Exitoso", "Informacion", "Proyectos"));
+        string resultado = correoEnviado ? "Exitoso" : "Parcial";
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, entidad, idEntidad, "RegistrarAccionAjusteDesvioHoras", "Acción de ajuste registrada y derivada al PM: " + accion.Observacion.Trim(), resultado, correoEnviado ? "Informacion" : "Advertencia", "Proyectos"));
+        return correoEnviado ? "El ajuste quedó registrado, enviado al PM y disponible en sus revisiones pendientes." : "El ajuste quedó registrado y disponible en las revisiones del PM, pero no se pudo enviar el correo.";
     }
 
     public async Task ComunicarDesvioHorasADueno(Usuario usuario, ComunicacionDesvioHoras comunicacion)
@@ -550,6 +589,12 @@ public class BLLAnaliticaOperativa
         return baseCalculo <= 0 ? 0 : Math.Round(valor * 100 / baseCalculo, 2);
     }
 
+    private static void CalcularBalanceHoras(decimal horasEstimadas, decimal horasReales, out decimal horasRestantes, out decimal horasExcedidas)
+    {
+        horasRestantes = Math.Max(horasEstimadas - horasReales, 0);
+        horasExcedidas = Math.Max(horasReales - horasEstimadas, 0);
+    }
+
     private static string ObtenerNombreEmpleado(ContextoProyectoAnalitico contexto, int? idEmpleado)
     {
         Empleado? empleado = contexto.Equipo.FirstOrDefault(item => item.ID == idEmpleado);
@@ -559,7 +604,7 @@ public class BLLAnaliticaOperativa
     private static void ValidarFiltroOcupacion(FiltroOcupacionOperativa filtro)
     {
         if (filtro.Desde.HasValue && filtro.Hasta.HasValue && filtro.Desde.Value.Date > filtro.Hasta.Value.Date) { throw new ArgumentException("La fecha desde no puede ser posterior a la fecha hasta."); }
-        if (!string.IsNullOrWhiteSpace(filtro.EstadoCarga) && !new[] { "Subutilizado", "Balanceado", "Sobrecargado" }.Contains(filtro.EstadoCarga, StringComparer.OrdinalIgnoreCase)) { throw new ArgumentException("El estado de carga seleccionado no es válido."); }
+        if (!string.IsNullOrWhiteSpace(filtro.EstadoCarga) && !new[] { "Subutilizado", "Balanceado", "Sobrecargado", "Crítico" }.Contains(filtro.EstadoCarga, StringComparer.OrdinalIgnoreCase)) { throw new ArgumentException("El estado de carga seleccionado no es válido."); }
     }
 
     private static List<Tarea> ObtenerTareasOcupacion(ContextoProyectoAnalitico contexto, FiltroOcupacionOperativa filtro)
@@ -583,9 +628,10 @@ public class BLLAnaliticaOperativa
 
     private static string ObtenerEstadoOcupacion(decimal porcentaje)
     {
-        if (porcentaje < 70) { return "Subutilizado"; }
-        if (porcentaje <= 100) { return "Balanceado"; }
-        return "Sobrecargado";
+        if (porcentaje < 50) { return "Subutilizado"; }
+        if (porcentaje < 86) { return "Balanceado"; }
+        if (porcentaje <= 100) { return "Sobrecargado"; }
+        return "Crítico";
     }
 
     private static List<OcupacionProyecto> CrearDistribucionProyectos(List<ContextoProyectoAnalitico> contextos, decimal horasTotales, HashSet<int> empleadosIncluidos, IReadOnlyDictionary<int, decimal> horasPlanificadasPorTarea, IReadOnlyDictionary<(int IdTarea, int IdEmpleado), decimal> horasPlanificadasPorTareaEmpleado)

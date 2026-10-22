@@ -85,9 +85,9 @@ public class AnaliticaOperativaController : ControllerBase
     }
 
     [HttpPost("desvio-horas/acciones-ajuste")]
-    public IActionResult RegistrarAccionAjuste([FromBody] AccionAjusteDesvioHoras accion)
+    public async Task<IActionResult> RegistrarAccionAjuste([FromBody] AccionAjusteDesvioHoras accion)
     {
-        try { _analiticaBLL.RegistrarAccionAjusteDesvioHoras(ObtenerSolicitante(), accion); return Ok("La acción de ajuste quedó vinculada al desvío consultado."); }
+        try { return Ok(await _analiticaBLL.RegistrarAccionAjusteDesvioHoras(ObtenerSolicitante(), accion)); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }

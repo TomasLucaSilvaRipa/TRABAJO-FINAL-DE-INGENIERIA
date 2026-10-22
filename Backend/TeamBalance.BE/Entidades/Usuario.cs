@@ -52,6 +52,8 @@ public partial class Usuario
 
     public bool Activo { get; set; }
 
+    public string? FotoPerfil { get; set; }
+
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
     public bool AceptaTerminos { get; set; }
 

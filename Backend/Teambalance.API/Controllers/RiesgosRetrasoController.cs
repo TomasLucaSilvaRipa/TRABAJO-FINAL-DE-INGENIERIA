@@ -30,6 +30,17 @@ public class RiesgosRetrasoController : ControllerBase
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
+    [HttpPost("seguimientos")]
+    public async Task<IActionResult> RegistrarSeguimiento([FromBody] NuevoSeguimientoRiesgoRetraso seguimiento)
+    {
+        try { return Ok(await _riesgoBLL.RegistrarSeguimiento(ValidarSesion(), seguimiento)); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
+
     private Usuario ValidarSesion()
     {
         try

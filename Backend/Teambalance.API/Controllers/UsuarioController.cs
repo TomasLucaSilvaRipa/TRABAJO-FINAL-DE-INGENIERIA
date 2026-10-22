@@ -134,6 +134,19 @@ public class UsuarioController : ControllerBase
         catch (Exception){ return StatusCode(500, "No fue posible actualizar el usuario."); }
     }
 
+    [HttpPut("perfil/foto")]
+    public IActionResult ActualizarFotoPerfil([FromBody] Usuario usuario)
+    {
+        try
+        {
+            string fotoPerfil = _usuarioBLL.ActualizarFotoPerfil(ObtenerSolicitante(), usuario.FotoPerfil);
+            return Ok(new { fotoPerfil });
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible guardar la foto de perfil."); }
+    }
+
     private Usuario ObtenerSolicitante()
     {
         string? authorization = Request.Headers.Authorization;

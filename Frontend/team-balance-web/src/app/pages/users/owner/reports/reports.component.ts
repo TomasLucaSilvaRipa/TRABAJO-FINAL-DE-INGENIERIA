@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Cliente, ProjectsService, Proyecto } from '../../../../services/projects.service';
+import { Cliente, ProjectsService, Proyecto, UsuarioOpcion } from '../../../../services/projects.service';
 import { ConfiguracionReporteEjecutivo, ReporteEjecutivo, ReporteEjecutivoService } from '../../../../services/reporte-ejecutivo.service';
-import { DetalleRiesgoProyecto, FiltroRiesgoRetraso, RiesgoRetrasoService } from '../../../../services/riesgo-retraso.service';
+import { DetalleRiesgoProyecto, FiltroRiesgoRetraso, NuevoSeguimientoRiesgoRetraso, RiesgoRetrasoService, TareaRiesgoRetraso } from '../../../../services/riesgo-retraso.service';
 import { AccionAjusteDesvioHoras, AnalisisConvenienciaOperativa, AnalisisDesvioHoras, AnalisisOcupacionOperativa, AnalisisSobrecalificacionPerfiles, AnaliticaOperativaService, ConvenienciaOperativaCliente, ConvenienciaOperativaProyecto, DesvioHorasProyecto, DesvioHorasTarea, DetalleConvenienciaOperativa, DetalleDesvioHorasTarea, DetalleOcupacionEmpleado, DetalleOcupacionTarea, FiltroConvenienciaOperativa, FiltroDesvioHoras, FiltroOcupacionOperativa, NuevoSeguimientoConvenienciaOperativa, OcupacionEmpleado, OcupacionProyecto, RevisionOperativaPendiente, SobrecalificacionTarea } from '../../../../services/analitica-operativa.service';
 import { AuthService } from '../../../../services/auth.service';
 
@@ -19,8 +19,10 @@ export class Reports {
   private readonly authService = inject(AuthService);
   protected readonly proyectos = signal<Proyecto[]>([]);
   protected readonly clientes = signal<Cliente[]>([]);
+  protected readonly responsables = signal<UsuarioOpcion[]>([]);
   protected readonly riesgos = signal<DetalleRiesgoProyecto[]>([]);
   protected readonly riesgoSeleccionado = signal<DetalleRiesgoProyecto | null>(null);
+  protected readonly cerrandoDetalleRiesgo = signal(false);
   protected readonly ocupacion = signal<AnalisisOcupacionOperativa | null>(null);
   protected readonly detalleOcupacion = signal<DetalleOcupacionEmpleado | null>(null);
   protected readonly cerrandoDetalleOcupacion = signal(false);
@@ -41,6 +43,7 @@ export class Reports {
   protected readonly sobrecalificacionARevisar = signal<SobrecalificacionTarea | null>(null);
   protected readonly observacionSobrecalificacion = signal('');
   protected readonly mensajeSobrecalificacion = signal('');
+  protected readonly mensajeRiesgo = signal('');
   protected readonly vista = signal<VistaAnalisis>('riesgo');
   protected readonly cargando = signal(false);
   protected readonly error = signal('');
@@ -56,6 +59,7 @@ export class Reports {
   protected filtroConveniencia: FiltroConvenienciaOperativa = {};
   protected accionAjuste: AccionAjusteDesvioHoras = { idProyecto: 0, idTarea: null, observacion: '' };
   protected seguimientoConveniencia: NuevoSeguimientoConvenienciaOperativa = { idCliente: 0, idProyecto: null, observacion: '', accionSugerida: '' };
+  protected seguimientoRiesgo: NuevoSeguimientoRiesgoRetraso = { idProyecto: 0, idTarea: null, observacion: '', comunicarResponsable: true };
   protected configuracionReporte: ConfiguracionReporteEjecutivo = {
     titulo: 'Reporte ejecutivo de gestión', filtro: { alcanceGeneral: true }, incluirOcupacionOperativa: true,
     incluirRiesgoRetraso: true, incluirDesvioHoras: true, incluirEficienciaPerfiles: true,
@@ -64,7 +68,7 @@ export class Reports {
 
   constructor() {
     this.projectsService.consultar().subscribe({ next: proyectos => this.proyectos.set(proyectos.filter(proyecto => proyecto.activo)), error: () => this.error.set('No se pudieron cargar los proyectos para aplicar filtros.') });
-    this.projectsService.opciones().subscribe({ next: opciones => this.clientes.set(opciones.clientes.filter(cliente => cliente.activo)), error: () => this.error.set('No se pudieron cargar los clientes para aplicar filtros.') });
+    this.projectsService.opciones().subscribe({ next: opciones => { this.clientes.set(opciones.clientes.filter(cliente => cliente.activo)); this.responsables.set(opciones.responsables); }, error: () => this.error.set('No se pudieron cargar los clientes para aplicar filtros.') });
     this.consultarRiesgos();
   }
 
@@ -90,7 +94,7 @@ export class Reports {
 
   protected consultarRiesgos(): void {
     this.cargando.set(true); this.error.set('');
-    this.riesgoService.consultar(this.filtro).subscribe({ next: resultado => { this.riesgos.set(resultado.proyectos); this.riesgoSeleccionado.set(null); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo calcular el riesgo de retraso.'); this.cargando.set(false); } });
+    this.riesgoService.consultar(this.filtro).subscribe({ next: resultado => { this.riesgos.set(resultado.proyectos); this.riesgoSeleccionado.set(null); this.cerrandoDetalleRiesgo.set(false); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo calcular el riesgo de retraso.'); this.cargando.set(false); } });
   }
 
   protected consultarOcupacion(): void {
@@ -98,11 +102,17 @@ export class Reports {
     this.analiticaService.consultarOcupacion(this.filtroOcupacion).subscribe({ next: resultado => { this.ocupacion.set(resultado); this.detalleOcupacion.set(null); this.cerrandoDetalleOcupacion.set(false); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar la ocupación operativa.'); this.cargando.set(false); } });
   }
 
-  protected estadoVisualOcupacion(porcentaje: number): EstadoVisualOcupacion {
-    if (porcentaje > 100) { return 'critica'; }
-    if (porcentaje >= 86) { return 'sobrecargada'; }
-    if (porcentaje >= 50) { return 'balanceada'; }
+  protected estiloEstadoOcupacion(estado: string): EstadoVisualOcupacion {
+    if (estado === 'Crítico') { return 'critica'; }
+    if (estado === 'Sobrecargado') { return 'sobrecargada'; }
+    if (estado === 'Balanceado') { return 'balanceada'; }
     return 'subutilizada';
+  }
+
+  protected textoBalanceHoras(horasRestantes: number, horasExcedidas: number): string {
+    if (horasRestantes > 0) { return `${horasRestantes} h restantes`; }
+    if (horasExcedidas > 0) { return `${horasExcedidas} h excedidas`; }
+    return 'Sin diferencia';
   }
 
   protected abrirDetalleOcupacion(empleado: OcupacionEmpleado, proyecto?: OcupacionProyecto): void {
@@ -152,6 +162,13 @@ export class Reports {
     });
   }
 
+  protected etiquetaTipoRevision(tipo: RevisionOperativaPendiente['tipo']): string {
+    if (tipo === 'ConvenienciaCliente') { return 'Conveniencia'; }
+    if (tipo === 'ControlHoras') { return 'Control de horas'; }
+    if (tipo === 'RiesgoRetraso') { return 'Riesgo de retraso'; }
+    return 'Asignación';
+  }
+
   protected consultarDesvioHoras(): void {
     this.cargando.set(true); this.error.set('');
     this.analiticaService.consultarDesvioHoras(this.filtroDesvio).subscribe({ next: resultado => { this.desvioHoras.set(resultado); this.detalleDesvio.set(null); this.cerrandoDetalleDesvio.set(false); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar el desvío de horas.'); this.cargando.set(false); } });
@@ -178,7 +195,7 @@ export class Reports {
   protected registrarAccionAjuste(): void {
     if (!this.accionAjuste.idProyecto || !this.accionAjuste.observacion.trim()) { this.error.set('Describí la acción de ajuste antes de confirmarla.'); return; }
     this.procesandoDesvio.set(true); this.error.set('');
-    this.analiticaService.registrarAccionAjuste(this.accionAjuste).subscribe({ next: mensaje => { this.mensajeDesvio.set(`${mensaje} No se envió un correo: usá “Informar al Dueño” si necesitás notificarlo.`); this.cerrarAccionAjuste(); this.procesandoDesvio.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo registrar la acción de ajuste.'); this.procesandoDesvio.set(false); } });
+    this.analiticaService.registrarAccionAjuste(this.accionAjuste).subscribe({ next: mensaje => { this.mensajeDesvio.set(mensaje); this.cerrarAccionAjuste(); this.procesandoDesvio.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo registrar la acción de ajuste.'); this.procesandoDesvio.set(false); } });
   }
 
   protected prepararComunicacion(proyecto: DesvioHorasProyecto): void { this.proyectoAComunicar.set(proyecto); this.mensajeDesvio.set(''); }
@@ -279,8 +296,28 @@ export class Reports {
     });
   }
 
-  protected verDetalleRiesgo(riesgo: DetalleRiesgoProyecto): void { this.riesgoSeleccionado.set(riesgo); }
-  protected cerrarDetalleRiesgo(): void { this.riesgoSeleccionado.set(null); }
+  protected verDetalleRiesgo(riesgo: DetalleRiesgoProyecto): void { this.cerrandoDetalleRiesgo.set(false); this.riesgoSeleccionado.set(riesgo); }
+  protected cerrarDetalleRiesgo(): void {
+    if (!this.riesgoSeleccionado() || this.cerrandoDetalleRiesgo()) { return; }
+    this.cerrandoDetalleRiesgo.set(true);
+    setTimeout(() => { this.riesgoSeleccionado.set(null); this.cerrandoDetalleRiesgo.set(false); }, 180);
+  }
+
+  protected abrirSeguimientoRiesgo(riesgo: DetalleRiesgoProyecto, tarea?: TareaRiesgoRetraso): void {
+    this.error.set(''); this.mensajeRiesgo.set('');
+    this.seguimientoRiesgo = { idProyecto: riesgo.idProyecto, idTarea: tarea?.idTarea ?? null, observacion: '', comunicarResponsable: true };
+  }
+
+  protected cerrarSeguimientoRiesgo(): void { this.seguimientoRiesgo = { idProyecto: 0, idTarea: null, observacion: '', comunicarResponsable: true }; }
+
+  protected guardarSeguimientoRiesgo(): void {
+    if (!this.seguimientoRiesgo.idProyecto || !this.seguimientoRiesgo.observacion.trim()) { this.error.set('Describí la acción de seguimiento antes de confirmarla.'); return; }
+    this.procesandoDesvio.set(true); this.error.set('');
+    this.riesgoService.registrarSeguimiento({ ...this.seguimientoRiesgo, observacion: this.seguimientoRiesgo.observacion.trim() }).subscribe({
+      next: mensaje => { this.mensajeRiesgo.set(mensaje); this.cerrarSeguimientoRiesgo(); this.procesandoDesvio.set(false); },
+      error: error => { this.error.set(error?.error || 'No se pudo registrar el seguimiento de riesgo.'); this.procesandoDesvio.set(false); }
+    });
+  }
 
   protected generarReporte(): void {
     this.generandoReporte.set(true); this.error.set('');

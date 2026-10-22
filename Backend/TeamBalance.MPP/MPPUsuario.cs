@@ -40,7 +40,7 @@ public class MPPUsuario
             return null;
         }
 
-        return CrearUsuario(resultado.Rows[0]);
+        return CargarFotoPerfil(CrearUsuario(resultado.Rows[0]));
     }
 
     public Usuario? ConsultarUsuarioPendienteValidacion(Usuario usuario)
@@ -57,7 +57,7 @@ public class MPPUsuario
             return null;
         }
 
-        return CrearUsuario(resultado.Rows[0]);
+        return CargarFotoPerfil(CrearUsuario(resultado.Rows[0]));
     }
 
     public Usuario? ConsultarUsuarioPorSesion(SesionUsuario sesion)
@@ -74,7 +74,7 @@ public class MPPUsuario
             return null;
         }
 
-        return CrearUsuario(resultado.Rows[0]);
+        return CargarFotoPerfil(CrearUsuario(resultado.Rows[0]));
     }
 
     public Usuario? ConsultarUsuarioPorRecuperacionPassword(ValidacionCuenta validacion)
@@ -91,7 +91,7 @@ public class MPPUsuario
             return null;
         }
 
-        return CrearUsuario(resultado.Rows[0]);
+        return CargarFotoPerfil(CrearUsuario(resultado.Rows[0]));
     }
 
     public void RegistrarSesion(SesionUsuario sesion)
@@ -197,6 +197,20 @@ public class MPPUsuario
         return _conexion.Escribir("dbo.usp_Usuario_CambiarPassword", parametros);
     }
 
+    public void ActualizarFotoPerfil(Usuario usuario)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@IdUsuario", usuario.ID),
+            new SqlParameter("@FotoPerfil", SqlDbType.NVarChar, -1) { Value = usuario.FotoPerfil ?? (object)DBNull.Value },
+        };
+
+        if (!_conexion.Escribir("dbo.usp_Usuario_ActualizarFotoPerfil", parametros))
+        {
+            throw new InvalidOperationException("No fue posible guardar la foto de perfil.");
+        }
+    }
+
     public List<Usuario> ConsultarUsuariosAgencia(Usuario solicitante)
     {
         List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", solicitante.IdAgencia) };
@@ -274,6 +288,19 @@ public class MPPUsuario
         Rol rol = new Rol(idRol, null, string.Empty, null, string.Empty, false, true, new List<Permiso>());
         Usuario usuario = new Usuario(Convert.ToInt32(fila["ID"]), fila["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAgencia"]), rol, Convert.ToString(fila["Nombre"]) ?? string.Empty, Convert.ToString(fila["Apellido"]) ?? string.Empty, Convert.ToString(fila["Email"]) ?? string.Empty, Convert.ToString(fila["PasswordHash"]) ?? string.Empty, Convert.ToString(fila["Estado"]) ?? string.Empty, Convert.ToDateTime(fila["FechaAlta"]), Convert.ToBoolean(fila["Activo"]));
         usuario.FechaBaja = fila["FechaBaja"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaBaja"]);
+        usuario.FotoPerfil = fila.Table.Columns.Contains("FotoPerfil") && fila["FotoPerfil"] != DBNull.Value
+            ? Convert.ToString(fila["FotoPerfil"])
+            : null;
+        return usuario;
+    }
+
+    private Usuario CargarFotoPerfil(Usuario usuario)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", usuario.ID) };
+        DataTable resultado = _conexion.Leer("dbo.usp_Usuario_ConsultarFotoPerfil", parametros);
+        usuario.FotoPerfil = resultado.Rows.Count == 1 && resultado.Rows[0]["FotoPerfil"] != DBNull.Value
+            ? Convert.ToString(resultado.Rows[0]["FotoPerfil"])
+            : null;
         return usuario;
     }
 

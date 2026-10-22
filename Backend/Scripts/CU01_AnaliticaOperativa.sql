@@ -216,6 +216,81 @@ BEGIN
 END;
 GO
 
+/* Revisiones derivadas desde Control de horas y Riesgo de retraso. */
+IF OBJECT_ID(N'dbo.SolicitudRevisionGestion', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.SolicitudRevisionGestion
+    (
+        ID INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_SolicitudRevisionGestion PRIMARY KEY,
+        IdAgencia INT NOT NULL,
+        IdProyecto INT NOT NULL,
+        IdTarea INT NULL,
+        IdPMResponsable INT NOT NULL,
+        IdUsuarioSolicitante INT NOT NULL,
+        Tipo NVARCHAR(40) NOT NULL,
+        CausaPrincipal NVARCHAR(1500) NOT NULL,
+        AccionSugerida NVARCHAR(1500) NOT NULL,
+        Estado NVARCHAR(30) NOT NULL CONSTRAINT DF_SolicitudRevisionGestion_Estado DEFAULT N'Pendiente',
+        FechaAlta DATETIME2 NOT NULL CONSTRAINT DF_SolicitudRevisionGestion_FechaAlta DEFAULT SYSDATETIME(),
+        FechaResolucion DATETIME2 NULL,
+        CONSTRAINT FK_SolicitudRevisionGestion_Agencia FOREIGN KEY(IdAgencia) REFERENCES dbo.Agencia(ID),
+        CONSTRAINT FK_SolicitudRevisionGestion_Proyecto FOREIGN KEY(IdProyecto) REFERENCES dbo.Proyecto(ID),
+        CONSTRAINT FK_SolicitudRevisionGestion_Tarea FOREIGN KEY(IdTarea) REFERENCES dbo.Tarea(ID),
+        CONSTRAINT FK_SolicitudRevisionGestion_PM FOREIGN KEY(IdPMResponsable) REFERENCES dbo.PM(ID),
+        CONSTRAINT FK_SolicitudRevisionGestion_Usuario FOREIGN KEY(IdUsuarioSolicitante) REFERENCES dbo.Usuario(ID),
+        CONSTRAINT CK_SolicitudRevisionGestion_Tipo CHECK (Tipo IN (N'ControlHoras', N'RiesgoRetraso'))
+    );
+    CREATE INDEX IX_SolicitudRevisionGestion_PendientesPM ON dbo.SolicitudRevisionGestion(IdAgencia, IdPMResponsable, Estado, FechaAlta DESC);
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_SolicitudRevisionGestion_Registrar
+    @IdAgencia INT,
+    @IdProyecto INT,
+    @IdTarea INT = NULL,
+    @IdPMResponsable INT,
+    @IdUsuarioSolicitante INT,
+    @Tipo NVARCHAR(40),
+    @CausaPrincipal NVARCHAR(1500),
+    @AccionSugerida NVARCHAR(1500)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO dbo.SolicitudRevisionGestion(IdAgencia, IdProyecto, IdTarea, IdPMResponsable, IdUsuarioSolicitante, Tipo, CausaPrincipal, AccionSugerida)
+    VALUES(@IdAgencia, @IdProyecto, @IdTarea, @IdPMResponsable, @IdUsuarioSolicitante, @Tipo, @CausaPrincipal, @AccionSugerida);
+    SELECT CONVERT(INT, SCOPE_IDENTITY()) AS ID;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_SolicitudRevisionGestion_ConsultarPendientesPM
+    @IdAgencia INT,
+    @IdPMResponsable INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT S.*, P.Nombre AS NombreProyecto, T.Titulo AS TituloTarea
+    FROM dbo.SolicitudRevisionGestion S
+    INNER JOIN dbo.Proyecto P ON P.ID = S.IdProyecto
+    LEFT JOIN dbo.Tarea T ON T.ID = S.IdTarea
+    WHERE S.IdAgencia = @IdAgencia AND S.IdPMResponsable = @IdPMResponsable AND S.Estado = N'Pendiente'
+    ORDER BY S.FechaAlta DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_SolicitudRevisionGestion_MarcarResuelta
+    @IdSolicitud INT,
+    @IdAgencia INT,
+    @IdPMResponsable INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.SolicitudRevisionGestion
+    SET Estado = N'Resuelta', FechaResolucion = SYSDATETIME()
+    WHERE ID = @IdSolicitud AND IdAgencia = @IdAgencia AND IdPMResponsable = @IdPMResponsable AND Estado = N'Pendiente';
+    SELECT CONVERT(bit, CASE WHEN @@ROWCOUNT = 1 THEN 1 ELSE 0 END) AS Actualizada;
+END;
+GO
+
 CREATE OR ALTER PROCEDURE dbo.usp_Conveniencia_RegistrarSeguimiento
     @IdAgencia INT,
     @IdCliente INT,

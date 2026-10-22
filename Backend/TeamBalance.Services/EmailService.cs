@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 using TeamBalance.BE.Entidades;
+using TeamBalance.MPP;
+using System.Text.RegularExpressions;
 
 namespace TeamBalance.Services
 {
@@ -11,13 +13,15 @@ namespace TeamBalance.Services
         private readonly string? claveAplicacion;
         private readonly string? urlPublicaFrontend;
         private readonly string? urlLogo;
+        private readonly MPPNotificacion _notificacionMPP;
 
-        public EmailService(string? emisor, string? claveAplicacion, string? urlPublicaFrontend, string? urlLogo = null)
+        public EmailService(string? emisor, string? claveAplicacion, string? urlPublicaFrontend, MPPNotificacion notificacionMPP, string? urlLogo = null)
         {
             this.emisor = emisor;
             this.claveAplicacion = claveAplicacion;
             this.urlPublicaFrontend = urlPublicaFrontend;
             this.urlLogo = urlLogo;
+            _notificacionMPP = notificacionMPP;
         }
 
         public async Task<bool> EnviarCorreoValidacion(Usuario usuario, string token)
@@ -132,6 +136,22 @@ namespace TeamBalance.Services
             return await EnviarMail("Revisión de conveniencia pendiente · TeamBalance", descripcion, receptor);
         }
 
+        public async Task<bool> EnviarCorreoSeguimientoRiesgo(string receptor, string nombre, string nombreProyecto, string? tituloTarea, string observacion)
+        {
+            string referencia = string.IsNullOrWhiteSpace(tituloTarea) ? "el proyecto" : "la tarea <strong>" + System.Net.WebUtility.HtmlEncode(tituloTarea) + "</strong> del proyecto";
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p><p>Se registró una acción de seguimiento sobre {referencia} <strong>{System.Net.WebUtility.HtmlEncode(nombreProyecto)}</strong>.</p><p><strong>Acción registrada:</strong><br />{System.Net.WebUtility.HtmlEncode(observacion).Replace(Environment.NewLine, "<br />")}</p><p>Ingresá a TeamBalance para revisar el contexto operativo completo.</p>";
+            return await EnviarMail("Seguimiento de riesgo de retraso · TeamBalance", descripcion, receptor);
+        }
+
+        public async Task<bool> EnviarCorreoSolicitudRevisionGestion(string receptor, string nombre, string tipo, string nombreProyecto, string? tituloTarea, string causaPrincipal, string accionSugerida)
+        {
+            string referencia = string.IsNullOrWhiteSpace(tituloTarea)
+                ? "el proyecto <strong>" + System.Net.WebUtility.HtmlEncode(nombreProyecto) + "</strong>"
+                : "la tarea <strong>" + System.Net.WebUtility.HtmlEncode(tituloTarea) + "</strong> del proyecto <strong>" + System.Net.WebUtility.HtmlEncode(nombreProyecto) + "</strong>";
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p><p>Tenés una revisión pendiente de <strong>{System.Net.WebUtility.HtmlEncode(tipo)}</strong> sobre {referencia}.</p><p><strong>Motivo:</strong><br />{System.Net.WebUtility.HtmlEncode(causaPrincipal)}</p><p><strong>Acción registrada:</strong><br />{System.Net.WebUtility.HtmlEncode(accionSugerida).Replace(Environment.NewLine, "<br />")}</p><p>Ingresá a TeamBalance y marcala como resuelta cuando finalices la gestión.</p>";
+            return await EnviarMail("Nueva revisión pendiente · TeamBalance", descripcion, receptor);
+        }
+
         private async Task<bool> EnviarMail(string tema, string descripcion, string receptor)
         {
             if (string.IsNullOrWhiteSpace(emisor) || string.IsNullOrWhiteSpace(claveAplicacion) || string.IsNullOrWhiteSpace(receptor))
@@ -159,6 +179,13 @@ namespace TeamBalance.Services
 
                 mail.To.Add(receptor);
                 await smtpClient.SendMailAsync(mail);
+                try
+                {
+                    string mensaje = Regex.Replace(descripcion, "<[^>]+>", " ");
+                    mensaje = System.Net.WebUtility.HtmlDecode(Regex.Replace(mensaje, @"\s+", " ")).Trim();
+                    _notificacionMPP.RegistrarPorEmail(receptor, tema, mensaje.Length > 1200 ? mensaje[..1200] : mensaje);
+                }
+                catch (Exception ex) { Console.Error.WriteLine($"[EmailService] El correo fue enviado, pero no se pudo registrar la notificación: {ex.Message}"); }
 
                 return true;
             }

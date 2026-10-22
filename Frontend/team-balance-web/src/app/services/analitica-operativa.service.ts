@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 export interface AnalisisOcupacionOperativa {
   porcentajeOcupacionGeneral: number;
+  estadoCargaGeneral: string;
   horasDisponiblesSemanales: number;
   horasEstimadasActivas: number;
   cantidadSubutilizados: number;
@@ -98,7 +99,7 @@ export interface SolicitudRevisionOperativa {
 
 export interface RevisionOperativaPendiente {
   id: number;
-  tipo: 'Asignacion' | 'ConvenienciaCliente';
+  tipo: 'Asignacion' | 'ConvenienciaCliente' | 'ControlHoras' | 'RiesgoRetraso';
   idCliente?: number | null;
   cliente: string;
   referencia: string;
@@ -113,6 +114,8 @@ export interface AnalisisDesvioHoras {
   horasEstimadas: number;
   horasReales: number;
   desvioHoras: number;
+  horasRestantes: number;
+  horasExcedidas: number;
   porcentajeConsumo: number;
   proyectos: DesvioHorasProyecto[];
 }
@@ -124,6 +127,8 @@ export interface DesvioHorasProyecto {
   horasEstimadas: number;
   horasReales: number;
   desvioHoras: number;
+  horasRestantes: number;
+  horasExcedidas: number;
   porcentajeConsumo: number;
   estado: string;
   tareas: DesvioHorasTarea[];
@@ -138,6 +143,8 @@ export interface DesvioHorasTarea {
   horasEstimadas: number;
   horasReales: number;
   desvioHoras: number;
+  horasRestantes: number;
+  horasExcedidas: number;
   porcentajeConsumo: number;
   estado: string;
 }
@@ -171,6 +178,8 @@ export interface DetalleDesvioHorasTarea {
   horasEstimadas: number;
   horasReales: number;
   desvioHoras: number;
+  horasRestantes: number;
+  horasExcedidas: number;
   porcentajeConsumo: number;
   estadoDesvio: string;
   registrosHoras: RegistroHoraDesvio[];

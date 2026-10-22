@@ -16,8 +16,11 @@ export class UserDropdownComponent {
   readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   readonly localization = inject(LocalizationService);
-  readonly user = this.authService.usuarioActual();
   isOpen = false;
+
+  get user() {
+    return this.authService.usuarioActual();
+  }
 
   toggleDropdown() {
     this.isOpen = !this.isOpen;

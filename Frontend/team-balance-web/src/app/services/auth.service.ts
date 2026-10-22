@@ -1,6 +1,6 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { from, Observable,switchMap  } from 'rxjs';
+import { from, Observable, switchMap, tap } from 'rxjs';
 import { EncryptionService } from './security/encryption.service';
 
 export interface RegistryResponse {
@@ -23,6 +23,7 @@ export interface UsuarioSesion {
   rol: RolSesion;
   roles: RolSesion[];
   permisos: PermisoSesion[];
+  fotoPerfil: string | null;
 }
 
 export interface RolSesion { id: number; nombre: string; tipoUsuario: string; }
@@ -45,6 +46,10 @@ export interface EmailValidationResponse {
   mensaje: string;
 }
 
+interface FotoPerfilResponse {
+  fotoPerfil: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -53,6 +58,7 @@ export class AuthService {
   private readonly agenciasApiUrl = '/api/agencias';
   private readonly authApiUrl = '/api/auth';
   private readonly encryptionService = inject(EncryptionService);
+  private readonly usuarioSesion = signal<UsuarioSesion | null>(this.leerUsuarioActual());
 
   registrarAgencia(referenciaContratacion: string, agencia: object, recibirNewsletter: boolean, categoriasNewsletterIds: number[]): Observable<RegistryResponse> {
     return this.http.post<RegistryResponse>(
@@ -106,6 +112,7 @@ export class AuthService {
     almacenamiento.setItem('token', respuesta.accessToken);
     almacenamiento.setItem('tokenExpiresAt', respuesta.expiresAt);
     almacenamiento.setItem('usuario', JSON.stringify(respuesta.usuario));
+    this.usuarioSesion.set(respuesta.usuario);
   }
 
   solicitarRecuperoPassword(email: string): Observable<EmailValidationResponse> {
@@ -120,6 +127,15 @@ export class AuthService {
     return this.http.post<EmailValidationResponse>(`${this.authApiUrl}/cambiar-password`, { passwordActual, passwordHash });
   }
 
+  actualizarFotoPerfil(fotoPerfil: string): Observable<FotoPerfilResponse> {
+    return this.http.put<FotoPerfilResponse>('/api/usuarios/perfil/foto', { fotoPerfil }).pipe(
+      tap(respuesta => {
+        const usuario = this.usuarioActual();
+        if (usuario) { this.guardarUsuario({ ...usuario, fotoPerfil: respuesta.fotoPerfil }); }
+      }),
+    );
+  }
+
   logOut(): void {
     localStorage.removeItem('token');
     localStorage.removeItem('tokenExpiresAt');
@@ -127,13 +143,19 @@ export class AuthService {
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('tokenExpiresAt');
     sessionStorage.removeItem('usuario');
+    this.usuarioSesion.set(null);
   }
 
   guardarUsuario(usuario: UsuarioSesion): void {
     this.obtenerAlmacenamientoSesion().setItem('usuario', JSON.stringify(usuario));
+    this.usuarioSesion.set(usuario);
   }
 
   usuarioActual(): UsuarioSesion | null {
+    return this.usuarioSesion();
+  }
+
+  private leerUsuarioActual(): UsuarioSesion | null {
     const usuario = this.obtenerAlmacenamientoSesion().getItem('usuario');
     if (!usuario){ return null; }
     try { return JSON.parse(usuario) as UsuarioSesion; }

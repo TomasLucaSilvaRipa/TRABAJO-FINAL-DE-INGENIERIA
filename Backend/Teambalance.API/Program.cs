@@ -17,11 +17,6 @@ builder.Services.AddHttpClient<MercadoPagoService>();
 builder.Services.AddHttpClient<StripeService>();
 builder.Services.AddHttpClient("Recaptcha");
 builder.Services.AddScoped<RecaptchaService>(serviceProvider => new RecaptchaService(serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("Recaptcha"), builder.Configuration["Recaptcha:SecretKey"], builder.Configuration["Frontend:PublicBaseUrl"]));
-builder.Services.AddSingleton(new EmailService(
-    builder.Configuration["Email:Emisor"],
-    builder.Configuration["Email:ClaveAplicacion"],
-    builder.Configuration["Frontend:PublicBaseUrl"],
-    builder.Configuration["Email:LogoUrl"]));
 builder.Services.AddScoped<Seguridad>();
 string fieldEncryptionKey = builder.Configuration["FieldEncryption:Key"] ?? throw new InvalidOperationException("No se configuró FieldEncryption:Key. Configurala como secreto del entorno antes de iniciar la API.");
 builder.Services.AddSingleton(new FieldEncryptionService(fieldEncryptionKey));
@@ -57,6 +52,13 @@ builder.Services.AddScoped<MPPEncuesta>();
 builder.Services.AddScoped<MPPRespaldoBaseDatos>();
 builder.Services.AddScoped<MPPSlack>();
 builder.Services.AddScoped<MPPAnaliticaOperativa>();
+builder.Services.AddScoped<MPPNotificacion>();
+builder.Services.AddScoped<EmailService>(serviceProvider => new EmailService(
+    builder.Configuration["Email:Emisor"],
+    builder.Configuration["Email:ClaveAplicacion"],
+    builder.Configuration["Frontend:PublicBaseUrl"],
+    serviceProvider.GetRequiredService<MPPNotificacion>(),
+    builder.Configuration["Email:LogoUrl"]));
 
 builder.Services.AddScoped<ContratacionBLL>();
 builder.Services.AddScoped<BLLAgencia>();
@@ -87,6 +89,7 @@ builder.Services.AddScoped<BLLEncuesta>();
 builder.Services.AddScoped<BLLRespaldoBaseDatos>();
 builder.Services.AddScoped<BLLSlack>();
 builder.Services.AddScoped<BLLAnaliticaOperativa>();
+builder.Services.AddScoped<BLLNotificacion>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("Backup").Get<BackupSettings>() ?? new BackupSettings());
 builder.Services.AddSingleton<ContinuityHistoryXmlService>();
 builder.Services.AddSingleton<EncryptionService>();

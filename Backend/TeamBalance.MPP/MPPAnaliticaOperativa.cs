@@ -201,4 +201,50 @@ public class MPPAnaliticaOperativa
         destinatario.Email = Convert.ToString(tabla.Rows[0]["Email"]) ?? string.Empty;
         return destinatario;
     }
+
+    public int RegistrarSolicitudRevisionGestion(SolicitudRevisionGestion solicitud)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@IdAgencia", solicitud.IdAgencia), new SqlParameter("@IdProyecto", solicitud.IdProyecto),
+            new SqlParameter("@IdTarea", (object?)solicitud.IdTarea ?? DBNull.Value), new SqlParameter("@IdPMResponsable", solicitud.IdPMResponsable),
+            new SqlParameter("@IdUsuarioSolicitante", solicitud.IdUsuarioSolicitante), new SqlParameter("@Tipo", solicitud.Tipo),
+            new SqlParameter("@CausaPrincipal", solicitud.CausaPrincipal), new SqlParameter("@AccionSugerida", solicitud.AccionSugerida)
+        };
+        DataTable tabla = _conexion.Leer("dbo.usp_SolicitudRevisionGestion_Registrar", parametros);
+        if (tabla.Rows.Count != 1) { throw new InvalidOperationException("No fue posible registrar la solicitud de revisión."); }
+        return Convert.ToInt32(tabla.Rows[0]["ID"]);
+    }
+
+    public List<SolicitudRevisionGestion> ConsultarSolicitudesRevisionGestionPendientes(Usuario usuario, int idPM)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")),
+            new SqlParameter("@IdPMResponsable", idPM)
+        };
+        DataTable tabla = _conexion.Leer("dbo.usp_SolicitudRevisionGestion_ConsultarPendientesPM", parametros);
+        return tabla.Rows.Cast<DataRow>().Select(fila => new SolicitudRevisionGestion
+        {
+            ID = Convert.ToInt32(fila["ID"]), IdAgencia = Convert.ToInt32(fila["IdAgencia"]), IdProyecto = Convert.ToInt32(fila["IdProyecto"]),
+            IdTarea = fila["IdTarea"] == DBNull.Value ? null : Convert.ToInt32(fila["IdTarea"]), IdPMResponsable = Convert.ToInt32(fila["IdPMResponsable"]),
+            IdUsuarioSolicitante = Convert.ToInt32(fila["IdUsuarioSolicitante"]), Tipo = Convert.ToString(fila["Tipo"]) ?? string.Empty,
+            CausaPrincipal = Convert.ToString(fila["CausaPrincipal"]) ?? string.Empty, AccionSugerida = Convert.ToString(fila["AccionSugerida"]) ?? string.Empty,
+            Estado = Convert.ToString(fila["Estado"]) ?? string.Empty, FechaAlta = Convert.ToDateTime(fila["FechaAlta"]),
+            NombreProyecto = Convert.ToString(fila["NombreProyecto"]) ?? string.Empty,
+            TituloTarea = fila["TituloTarea"] == DBNull.Value ? null : Convert.ToString(fila["TituloTarea"])
+        }).ToList();
+    }
+
+    public bool MarcarSolicitudRevisionGestionResuelta(Usuario usuario, int idPM, int idSolicitud)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@IdSolicitud", idSolicitud),
+            new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")),
+            new SqlParameter("@IdPMResponsable", idPM)
+        };
+        DataTable tabla = _conexion.Leer("dbo.usp_SolicitudRevisionGestion_MarcarResuelta", parametros);
+        return tabla.Rows.Count == 1 && Convert.ToBoolean(tabla.Rows[0]["Actualizada"]);
+    }
 }

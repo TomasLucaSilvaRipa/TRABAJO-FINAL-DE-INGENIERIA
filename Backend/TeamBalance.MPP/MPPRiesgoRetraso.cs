@@ -62,6 +62,27 @@ public class MPPRiesgoRetraso
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
+    public int RegistrarSeguimiento(Usuario usuario, NuevoSeguimientoRiesgoRetraso seguimiento)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")),
+            new SqlParameter("@IdProyecto", seguimiento.IdProyecto), new SqlParameter("@IdTarea", (object?)seguimiento.IdTarea ?? DBNull.Value),
+            new SqlParameter("@IdUsuario", usuario.ID), new SqlParameter("@Observacion", seguimiento.Observacion), new SqlParameter("@ComunicarResponsable", seguimiento.ComunicarResponsable)
+        };
+        DataTable tabla = _conexion.Leer("dbo.usp_RiesgoRetraso_RegistrarSeguimiento", parametros);
+        if (tabla.Rows.Count == 0) { throw new InvalidOperationException("No fue posible registrar el seguimiento del riesgo."); }
+        return Convert.ToInt32(tabla.Rows[0]["ID"]);
+    }
+
+    public DestinatarioDesvioHoras? ConsultarDestinatarioSeguimiento(int idProyecto, int? idTarea)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdProyecto", idProyecto), new SqlParameter("@IdTarea", (object?)idTarea ?? DBNull.Value) };
+        DataTable tabla = _conexion.Leer("dbo.usp_RiesgoRetraso_ConsultarDestinatarioSeguimiento", parametros);
+        if (tabla.Rows.Count == 0) { return null; }
+        return new DestinatarioDesvioHoras { IdUsuario = Convert.ToInt32(tabla.Rows[0]["ID"]), Nombre = Convert.ToString(tabla.Rows[0]["Nombre"]) ?? string.Empty, Email = Convert.ToString(tabla.Rows[0]["Email"]) ?? string.Empty };
+    }
+
     private static List<Proyecto> CrearProyectos(DataTable tabla)
     {
         try

@@ -1,4 +1,5 @@
 using System.Net.Mail;
+using System.Text.RegularExpressions;
 using TeamBalance.BE.Entidades;
 using TeamBalance.MPP;
 using TeamBalance.Services;
@@ -7,6 +8,8 @@ namespace TeamBalance.BLL;
 
 public class BLLUsuario
 {
+    private const int TamanoMaximoFotoPerfilBytes = 512 * 1024;
+    private static readonly Regex FotoPerfilDataUrlRegex = new("^data:(image/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]+={0,2})$", RegexOptions.CultureInvariant);
     private const int DuracionSesionNormalHoras = 8;
     private const int DuracionSesionRecordadaDias = 30;
     private readonly MPPUsuario _usuarioMPP;
@@ -553,6 +556,56 @@ public class BLLUsuario
 
         bool correoEnviado = await _emailService.EnviarCorreoPasswordModificada(usuarioBD.Email, usuarioBD.Nombre);
         RegistrarEventoSeguridad(usuarioBD, "CambiarPassword", correoEnviado ? "El usuario modificó su contraseña desde una sesión autenticada." : "El usuario modificó su contraseña, pero no se pudo enviar el correo de confirmación.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia");
+    }
+
+    public string ActualizarFotoPerfil(Usuario solicitante, string? fotoPerfil)
+    {
+        if (solicitante.ID <= 0)
+        {
+            throw new UnauthorizedAccessException("Tu sesión ya no es válida. Volvé a iniciar sesión.");
+        }
+
+        string fotoValidada = ValidarFotoPerfil(fotoPerfil);
+        solicitante.FotoPerfil = fotoValidada;
+        _usuarioMPP.ActualizarFotoPerfil(solicitante);
+        RegistrarEventoSeguridad(solicitante, "ActualizarFotoPerfil", "El usuario actualizó su foto de perfil.", "Exitoso", "Informacion");
+        return fotoValidada;
+    }
+
+    private static string ValidarFotoPerfil(string? fotoPerfil)
+    {
+        if (string.IsNullOrWhiteSpace(fotoPerfil))
+        {
+            throw new ArgumentException("Seleccioná una imagen para usar como foto de perfil.");
+        }
+
+        Match coincidencia = FotoPerfilDataUrlRegex.Match(fotoPerfil);
+        if (!coincidencia.Success)
+        {
+            throw new ArgumentException("La foto debe ser una imagen PNG, JPEG o WebP válida.");
+        }
+
+        byte[] contenido;
+        try { contenido = Convert.FromBase64String(coincidencia.Groups[2].Value); }
+        catch (FormatException) { throw new ArgumentException("La foto de perfil no tiene un formato válido."); }
+
+        if (contenido.Length == 0 || contenido.Length > TamanoMaximoFotoPerfilBytes || !CoincideFirmaImagen(coincidencia.Groups[1].Value, contenido))
+        {
+            throw new ArgumentException("La foto debe ser una imagen válida de hasta 512 KB.");
+        }
+
+        return fotoPerfil;
+    }
+
+    private static bool CoincideFirmaImagen(string tipoContenido, byte[] contenido)
+    {
+        return tipoContenido switch
+        {
+            "image/png" => contenido.Length >= 8 && contenido[0] == 0x89 && contenido[1] == 0x50 && contenido[2] == 0x4E && contenido[3] == 0x47,
+            "image/jpeg" => contenido.Length >= 3 && contenido[0] == 0xFF && contenido[1] == 0xD8 && contenido[2] == 0xFF,
+            "image/webp" => contenido.Length >= 12 && contenido[0] == 0x52 && contenido[1] == 0x49 && contenido[2] == 0x46 && contenido[3] == 0x46 && contenido[8] == 0x57 && contenido[9] == 0x45 && contenido[10] == 0x42 && contenido[11] == 0x50,
+            _ => false,
+        };
     }
 
     private void RegistrarEventoSeguridad(Usuario? usuario, string accion, string mensaje, string resultado, string criticidad)

@@ -17,6 +17,23 @@ export interface CausaRiesgo {
   nivel: string;
 }
 
+export interface TareaRiesgoRetraso {
+  idTarea: number;
+  titulo: string;
+  estado: string;
+  bloqueada: boolean;
+  horasEstimadas: number;
+  porcentajeAvance: number;
+  horasRestantes: number;
+}
+
+export interface NuevoSeguimientoRiesgoRetraso {
+  idProyecto: number;
+  idTarea?: number | null;
+  observacion: string;
+  comunicarResponsable: boolean;
+}
+
 export interface DetalleRiesgoProyecto {
   idProyecto: number;
   nombreProyecto: string;
@@ -30,6 +47,7 @@ export interface DetalleRiesgoProyecto {
   ritmoAvance: number;
   nivelRiesgo: string;
   causas: CausaRiesgo[];
+  tareasPendientes: TareaRiesgoRetraso[];
 }
 
 export interface ResultadoRiesgoRetraso {
@@ -43,5 +61,9 @@ export class RiesgoRetrasoService {
 
   consultar(filtro: FiltroRiesgoRetraso): Observable<ResultadoRiesgoRetraso> {
     return this.http.post<ResultadoRiesgoRetraso>(`${this.url}/consultar`, filtro);
+  }
+
+  registrarSeguimiento(seguimiento: NuevoSeguimientoRiesgoRetraso): Observable<string> {
+    return this.http.post(`${this.url}/seguimientos`, seguimiento, { responseType: 'text' });
   }
 }

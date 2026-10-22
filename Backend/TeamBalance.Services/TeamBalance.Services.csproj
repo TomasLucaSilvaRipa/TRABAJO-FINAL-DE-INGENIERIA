@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TeamBalance.BE\TeamBalance.BE.csproj" />
+    <ProjectReference Include="..\TeamBalance.MPP\TeamBalance.MPP.csproj" />
   </ItemGroup>
 
 </Project>
