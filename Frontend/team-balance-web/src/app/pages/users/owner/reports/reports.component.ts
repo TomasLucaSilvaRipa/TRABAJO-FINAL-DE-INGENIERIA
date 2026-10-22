@@ -6,11 +6,14 @@ import { ConfiguracionReporteEjecutivo, ReporteEjecutivo, ReporteEjecutivoServic
 import { DetalleRiesgoProyecto, FiltroRiesgoRetraso, NuevoSeguimientoRiesgoRetraso, RiesgoRetrasoService, TareaRiesgoRetraso } from '../../../../services/riesgo-retraso.service';
 import { AccionAjusteDesvioHoras, AnalisisConvenienciaOperativa, AnalisisDesvioHoras, AnalisisOcupacionOperativa, AnalisisSobrecalificacionPerfiles, AnaliticaOperativaService, ConvenienciaOperativaCliente, ConvenienciaOperativaProyecto, DesvioHorasProyecto, DesvioHorasTarea, DetalleConvenienciaOperativa, DetalleDesvioHorasTarea, DetalleOcupacionEmpleado, DetalleOcupacionTarea, FiltroConvenienciaOperativa, FiltroDesvioHoras, FiltroOcupacionOperativa, NuevoSeguimientoConvenienciaOperativa, OcupacionEmpleado, OcupacionProyecto, RevisionOperativaPendiente, SobrecalificacionTarea } from '../../../../services/analitica-operativa.service';
 import { AuthService } from '../../../../services/auth.service';
+import { HoursDrilldownChartComponent } from '../../../../shared/components/analytics/hours-drilldown-chart/hours-drilldown-chart.component';
+import { OverqualificationMapComponent } from '../../../../shared/components/analytics/overqualification-map/overqualification-map.component';
+import { RiesgoTareaSeleccionada, RiskObservatoryComponent } from '../../../../shared/components/analytics/risk-observatory/risk-observatory.component';
 
 type VistaAnalisis = 'riesgo' | 'ocupacion' | 'desvio' | 'conveniencia' | 'sobrecalificacion' | 'revisiones';
 type EstadoVisualOcupacion = 'subutilizada' | 'balanceada' | 'sobrecargada' | 'critica';
 
-@Component({ selector: 'app-reports', imports: [DatePipe, DecimalPipe, FormsModule], templateUrl: './reports.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
+@Component({ selector: 'app-reports', imports: [DatePipe, DecimalPipe, FormsModule, HoursDrilldownChartComponent, OverqualificationMapComponent, RiskObservatoryComponent], templateUrl: './reports.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
 export class Reports {
   private readonly projectsService = inject(ProjectsService);
   private readonly riesgoService = inject(RiesgoRetrasoService);
@@ -22,6 +25,7 @@ export class Reports {
   protected readonly responsables = signal<UsuarioOpcion[]>([]);
   protected readonly riesgos = signal<DetalleRiesgoProyecto[]>([]);
   protected readonly riesgoSeleccionado = signal<DetalleRiesgoProyecto | null>(null);
+  protected readonly tareaRiesgoSeleccionada = signal<RiesgoTareaSeleccionada | null>(null);
   protected readonly cerrandoDetalleRiesgo = signal(false);
   protected readonly ocupacion = signal<AnalisisOcupacionOperativa | null>(null);
   protected readonly detalleOcupacion = signal<DetalleOcupacionEmpleado | null>(null);
@@ -33,6 +37,7 @@ export class Reports {
   protected readonly detalleDesvio = signal<DetalleDesvioHorasTarea | null>(null);
   protected readonly cerrandoDetalleDesvio = signal(false);
   protected readonly proyectoAComunicar = signal<DesvioHorasProyecto | null>(null);
+  protected readonly proyectoDesvioSeleccionado = signal<DesvioHorasProyecto | null>(null);
   protected readonly conveniencia = signal<AnalisisConvenienciaOperativa | null>(null);
   protected readonly detalleConveniencia = signal<DetalleConvenienciaOperativa | null>(null);
   protected readonly cerrandoDetalleConveniencia = signal(false);
@@ -40,6 +45,7 @@ export class Reports {
   protected readonly mensajeConveniencia = signal('');
   protected readonly hayFiltrosConvenienciaAplicados = signal(false);
   protected readonly sobrecalificacion = signal<AnalisisSobrecalificacionPerfiles | null>(null);
+  protected readonly detalleSobrecalificacion = signal<SobrecalificacionTarea | null>(null);
   protected readonly sobrecalificacionARevisar = signal<SobrecalificacionTarea | null>(null);
   protected readonly observacionSobrecalificacion = signal('');
   protected readonly mensajeSobrecalificacion = signal('');
@@ -94,7 +100,7 @@ export class Reports {
 
   protected consultarRiesgos(): void {
     this.cargando.set(true); this.error.set('');
-    this.riesgoService.consultar(this.filtro).subscribe({ next: resultado => { this.riesgos.set(resultado.proyectos); this.riesgoSeleccionado.set(null); this.cerrandoDetalleRiesgo.set(false); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo calcular el riesgo de retraso.'); this.cargando.set(false); } });
+    this.riesgoService.consultar(this.filtro).subscribe({ next: resultado => { this.riesgos.set(resultado.proyectos); this.riesgoSeleccionado.set(null); this.tareaRiesgoSeleccionada.set(null); this.cerrandoDetalleRiesgo.set(false); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo calcular el riesgo de retraso.'); this.cargando.set(false); } });
   }
 
   protected consultarOcupacion(): void {
@@ -171,12 +177,20 @@ export class Reports {
 
   protected consultarDesvioHoras(): void {
     this.cargando.set(true); this.error.set('');
-    this.analiticaService.consultarDesvioHoras(this.filtroDesvio).subscribe({ next: resultado => { this.desvioHoras.set(resultado); this.detalleDesvio.set(null); this.cerrandoDetalleDesvio.set(false); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar el desvío de horas.'); this.cargando.set(false); } });
+    this.analiticaService.consultarDesvioHoras(this.filtroDesvio).subscribe({ next: resultado => { this.desvioHoras.set(resultado); this.proyectoDesvioSeleccionado.set(null); this.detalleDesvio.set(null); this.cerrandoDetalleDesvio.set(false); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar el desvío de horas.'); this.cargando.set(false); } });
   }
+
+  protected seleccionarProyectoDesvio(proyecto: DesvioHorasProyecto | null): void { this.proyectoDesvioSeleccionado.set(proyecto); }
 
   protected abrirDetalleDesvio(proyecto: DesvioHorasProyecto, tarea: DesvioHorasTarea): void {
     this.error.set(''); this.mensajeDesvio.set('');
     this.analiticaService.consultarDetalleDesvioHorasTarea(proyecto.idProyecto, tarea.idTarea, this.filtroDesvio.desde, this.filtroDesvio.hasta).subscribe({ next: detalle => { this.cerrandoDetalleDesvio.set(false); this.detalleDesvio.set(detalle); }, error: error => this.error.set(error?.error || 'No se pudo consultar el detalle del desvío.') });
+  }
+
+  protected abrirAjusteDesdeDetalleDesvio(detalle: DetalleDesvioHorasTarea): void {
+    const proyecto = this.desvioHoras()?.proyectos.find((item) => item.idProyecto === detalle.idProyecto);
+    const tarea = proyecto?.tareas.find((item) => item.idTarea === detalle.idTarea);
+    if (proyecto && tarea) this.abrirAccionAjuste(proyecto, tarea);
   }
 
   protected cerrarDetalleDesvio(): void {
@@ -276,7 +290,14 @@ export class Reports {
 
   protected consultarSobrecalificacion(): void {
     this.cargando.set(true); this.error.set('');
-    this.analiticaService.consultarSobrecalificacion({ idProyecto: this.filtro.idProyecto ?? null }).subscribe({ next: resultado => { this.sobrecalificacion.set(resultado); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar la sobrecalificación de perfiles.'); this.cargando.set(false); } });
+    this.analiticaService.consultarSobrecalificacion({ idProyecto: this.filtro.idProyecto ?? null }).subscribe({ next: resultado => { this.sobrecalificacion.set(resultado); this.detalleSobrecalificacion.set(null); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar la sobrecalificación de perfiles.'); this.cargando.set(false); } });
+  }
+
+  protected abrirDetalleSobrecalificacion(tarea: SobrecalificacionTarea): void { this.detalleSobrecalificacion.set(tarea); }
+  protected cerrarDetalleSobrecalificacion(): void { this.detalleSobrecalificacion.set(null); }
+
+  protected empleadosSobrecalificados(tareas: SobrecalificacionTarea[]): number {
+    return new Set(tareas.map(tarea => tarea.idEmpleado)).size;
   }
 
   protected prepararSolicitudSobrecalificacion(tarea: SobrecalificacionTarea): void {
@@ -297,6 +318,8 @@ export class Reports {
   }
 
   protected verDetalleRiesgo(riesgo: DetalleRiesgoProyecto): void { this.cerrandoDetalleRiesgo.set(false); this.riesgoSeleccionado.set(riesgo); }
+  protected abrirDetalleTareaRiesgo(seleccion: RiesgoTareaSeleccionada): void { this.tareaRiesgoSeleccionada.set(seleccion); }
+  protected cerrarDetalleTareaRiesgo(): void { this.tareaRiesgoSeleccionada.set(null); }
   protected cerrarDetalleRiesgo(): void {
     if (!this.riesgoSeleccionado() || this.cerrandoDetalleRiesgo()) { return; }
     this.cerrandoDetalleRiesgo.set(true);

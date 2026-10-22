@@ -1,0 +1,33 @@
+@if (!proyecto) {
+  <section class="tb-risk-observatory">
+    <header class="tb-risk-observatory__header">
+      <div><p class="tb-page-kicker">RADAR TEMPORAL</p><h2>Panorama de riesgo de retraso</h2><p>La demora posible resume la proyección vigente de cada proyecto. Seleccioná uno para explorar su horizonte operativo.</p></div>
+      <span class="tb-risk-observatory__signal">{{ riesgos.length }} proyectos analizados</span>
+    </header>
+    <div #overviewChart class="tb-risk-observatory__overview-chart"></div>
+    <footer class="tb-risk-observatory__legend"><span><i class="tb-risk-observatory__dot tb-risk-observatory__dot--low"></i>Riesgo bajo</span><span><i class="tb-risk-observatory__dot tb-risk-observatory__dot--medium"></i>Riesgo medio</span><span><i class="tb-risk-observatory__dot tb-risk-observatory__dot--high"></i>Riesgo alto</span><span>La barra representa días de demora posible.</span></footer>
+  </section>
+} @else {
+  <section class="tb-risk-observatory tb-risk-observatory--detail">
+    <header class="tb-risk-observatory__header">
+      <div><p class="tb-page-kicker">OBSERVATORIO DE PROYECTO</p><h2>{{ proyecto.nombreProyecto }}</h2><p>{{ proyecto.nombreCliente }} · PM responsable: {{ proyecto.nombrePM }}</p></div>
+      <div class="tb-risk-observatory__actions"><span class="tb-risk-observatory__risk" [style.--risk-color]="colorRiesgo(proyecto.nivelRiesgo)">Riesgo {{ proyecto.nivelRiesgo }}</span><button type="button" class="tb-secondary-button" (click)="volverAlPanorama()">← Volver al panorama</button></div>
+    </header>
+
+    @if (proyecto.fechaEstimadaFinalizacion) {
+      <section class="tb-risk-observatory__temporal">
+        <div class="tb-risk-observatory__section-heading"><div><p class="tb-page-kicker">PROYECCIÓN DE CUMPLIMIENTO</p><h3>Horizonte de trabajo pendiente</h3><p>La recta se obtiene de las horas pendientes y de la capacidad efectiva usada por el cálculo actual.</p></div><button type="button" class="tb-link-button" (click)="verFichaProyecto()">Ver detalle completo →</button></div>
+        <div #timelineChart class="tb-risk-observatory__timeline-chart"></div>
+      </section>
+    } @else {
+      <section class="tb-risk-observatory__unavailable"><strong>Sin proyección temporal disponible</strong><p>El análisis no puede estimar una fecha de finalización con la información actual.</p><button type="button" class="tb-secondary-button" (click)="verFichaProyecto()">Ver causas y detalle</button></section>
+    }
+
+    <div class="tb-risk-observatory__lower-grid">
+      <section class="tb-risk-observatory__capacity"><div class="tb-risk-observatory__section-heading"><div><p class="tb-page-kicker">CAPACIDAD OPERATIVA</p><h3>Base de la proyección</h3><p>Compara las dos magnitudes semanales disponibles.</p></div><strong>{{ proyecto.horasRestantes }} h <small>pendientes</small></strong></div><div #capacityChart class="tb-risk-observatory__capacity-chart"></div></section>
+      <section class="tb-risk-observatory__alerts"><p class="tb-page-kicker">SEÑALES DETECTADAS</p><h3>Qué requiere atención</h3><div class="tb-risk-observatory__causes">@for (causa of proyecto.causas.slice(0, 3); track causa.descripcion) { <article [class.tb-risk-observatory__cause--high]="causa.nivel === 'Alto'"><span>{{ causa.nivel }}</span><p>{{ causa.descripcion }}</p></article> }</div></section>
+    </div>
+
+    <section class="tb-risk-observatory__tasks"><div class="tb-risk-observatory__section-heading"><div><p class="tb-page-kicker">RIESGO POR TAREA</p><h3>Trabajo pendiente y bloqueos</h3><p>Elegí una tarea para abrir su ficha y registrar el seguimiento.</p></div><button type="button" class="tb-action-button" (click)="verFichaProyecto()">Registrar seguimiento</button></div><div class="tb-risk-observatory__task-list">@for (tarea of tareasOrdenadas(); track tarea.idTarea) { <button type="button" class="tb-risk-observatory__task" [class.tb-risk-observatory__task--blocked]="tarea.bloqueada" (click)="abrirTarea(tarea)"><span class="tb-risk-observatory__task-status">{{ tarea.bloqueada ? 'Bloqueada' : tarea.estado }}</span><strong>{{ tarea.titulo }}</strong><span class="tb-risk-observatory__task-progress"><i [style.width.%]="tarea.porcentajeAvance"></i></span><span>{{ tarea.porcentajeAvance }}%</span><span>{{ tarea.horasRestantes }} h pendientes</span><b>Explorar →</b></button> } @empty { <p class="tb-risk-observatory__empty">No hay tareas pendientes para este proyecto.</p> }</div></section>
+  </section>
+}
