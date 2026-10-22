@@ -10,12 +10,11 @@ public class MotorBestFit
     {
         decimal horasPendientes = CalcularHorasPendientes(tarea);
         decimal horasRequeridasTotalesPorSemana = CalcularHorasRequeridasPorSemana(tarea, horasPendientes);
-        string seniorityRequerido = ObtenerSeniorityRequerido(tarea);
         List<RecomendacionBestFit> recomendaciones = new List<RecomendacionBestFit>();
 
         foreach (Empleado empleado in empleados)
         {
-            if (!CumpleSeniorityMinimo(seniorityRequerido, empleado.Seniority)) { continue; }
+            if (!CumpleSeniorityMinimo(tarea, empleado)) { continue; }
 
             decimal horasDisponibles = empleado.HorasDisponiblesSemanales;
             decimal horasComprometidas = Math.Max(0, empleado.HorasComprometidasSemanales);
@@ -23,7 +22,7 @@ public class MotorBestFit
             decimal margen = horasDisponibles - horasComprometidas - horasRequeridasPorSemana;
 
             decimal puntajeSkill = CalcularPuntajeSkill(empleado);
-            decimal puntajeSeniority = CalcularPuntajeSeniority(seniorityRequerido, empleado.Seniority);
+            decimal puntajeSeniority = CalcularPuntajeSeniority(tarea, empleado);
             decimal puntajeCapacidad = CalcularPuntajeCapacidad(horasRequeridasPorSemana, margen);
             decimal puntajeCarga = CalcularPuntajeCarga(horasDisponibles, horasComprometidas);
             decimal puntajeHistorial = CalcularPuntajeHistorial(empleado.CantidadTareasHistoricasComparables, empleado.RatioHistoricoConsumo);
@@ -102,9 +101,9 @@ public class MotorBestFit
         return 22;
     }
 
-    private static decimal CalcularPuntajeSeniority(string? seniorityRequerido, string? seniorityEmpleado)
+    private static decimal CalcularPuntajeSeniority(Tarea tarea, Empleado empleado)
     {
-        int diferencia = ObtenerNivelSeniority(seniorityEmpleado) - ObtenerNivelSeniority(seniorityRequerido);
+        int diferencia = ObtenerNivelSeniority(empleado.Seniority) - ObtenerNivelSeniority(ObtenerSeniorityRequerido(tarea));
         if (diferencia == 0) { return 20; }
         if (diferencia == 1) { return 17; }
         return 14;
@@ -131,9 +130,9 @@ public class MotorBestFit
         return Math.Round(10 * Math.Max(0, 1 - ((ratioConsumo - 1) / 0.5m)), 2);
     }
 
-    private static bool CumpleSeniorityMinimo(string? seniorityRequerido, string? seniorityEmpleado)
+    private static bool CumpleSeniorityMinimo(Tarea tarea, Empleado empleado)
     {
-        return ObtenerNivelSeniority(seniorityEmpleado) >= ObtenerNivelSeniority(seniorityRequerido);
+        return ObtenerNivelSeniority(empleado.Seniority) >= ObtenerNivelSeniority(ObtenerSeniorityRequerido(tarea));
     }
 
     private static int ObtenerNivelSeniority(string? seniority)

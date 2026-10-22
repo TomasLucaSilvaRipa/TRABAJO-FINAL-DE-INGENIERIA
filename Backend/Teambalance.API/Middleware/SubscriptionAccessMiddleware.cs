@@ -1,4 +1,5 @@
 using TeamBalance.BLL;
+using TeamBalance.BE.Entidades;
 
 namespace Teambalance.API.Middleware;
 
@@ -23,11 +24,8 @@ public sealed class SubscriptionAccessMiddleware
         if (usuario is not null && usuario.IdAgencia.HasValue && !suscripcionBLL.PuedeUsarAgencia(usuario))
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
-            await context.Response.WriteAsJsonAsync(new
-            {
-                code = "SUBSCRIPTION_EXPIRED",
-                message = "La suscripción de esta agencia no está vigente. Contactá al Dueño para regularizar el servicio.",
-            });
+            RespuestaErrorSuscripcion respuesta = new RespuestaErrorSuscripcion("SUBSCRIPTION_EXPIRED", "La suscripción de esta agencia no está vigente. Contactá al Dueño para regularizar el servicio.");
+            await context.Response.WriteAsJsonAsync(respuesta);
             return;
         }
 

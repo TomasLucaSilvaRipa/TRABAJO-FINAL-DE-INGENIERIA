@@ -26,6 +26,25 @@ public class FiltroOcupacionOperativa
 
 public class OcupacionEmpleado
 {
+    public OcupacionEmpleado()
+    {
+    }
+
+    public OcupacionEmpleado(int idEmpleado, string nombre, string seniority, decimal horasDisponibles, decimal horasEstimadasActivas, decimal horasRegistradas, decimal porcentajeOcupacion, string estadoCarga, string causaPrincipal, string accionSugerida, List<string> proyectos)
+    {
+        IdEmpleado = idEmpleado;
+        Nombre = nombre;
+        Seniority = seniority;
+        HorasDisponibles = horasDisponibles;
+        HorasEstimadasActivas = horasEstimadasActivas;
+        HorasRegistradas = horasRegistradas;
+        PorcentajeOcupacion = porcentajeOcupacion;
+        EstadoCarga = estadoCarga;
+        CausaPrincipal = causaPrincipal;
+        AccionSugerida = accionSugerida;
+        Proyectos = proyectos;
+    }
+
     public int IdEmpleado { get; set; }
     public string Nombre { get; set; } = string.Empty;
     public string Seniority { get; set; } = string.Empty;
@@ -113,6 +132,20 @@ public class SolicitudRevisionOperativaNueva
 
 public class RevisionOperativaPendiente
 {
+    public RevisionOperativaPendiente(int id, string tipo, int? idCliente, string cliente, string referencia, string nombreProyecto, string causaPrincipal, string accionSugerida, string estado, DateTime fechaAlta)
+    {
+        ID = id;
+        Tipo = tipo;
+        IdCliente = idCliente;
+        Cliente = cliente;
+        Referencia = referencia;
+        NombreProyecto = nombreProyecto;
+        CausaPrincipal = causaPrincipal;
+        AccionSugerida = accionSugerida;
+        Estado = estado;
+        FechaAlta = fechaAlta;
+    }
+
     public int ID { get; set; }
     public string Tipo { get; set; } = string.Empty;
     public int? IdCliente { get; set; }
@@ -243,6 +276,17 @@ public class ComunicacionDesvioHoras
 
 public class DestinatarioDesvioHoras
 {
+    public DestinatarioDesvioHoras()
+    {
+    }
+
+    public DestinatarioDesvioHoras(int idUsuario, string nombre, string email)
+    {
+        IdUsuario = idUsuario;
+        Nombre = nombre;
+        Email = email;
+    }
+
     public int IdUsuario { get; set; }
     public string Nombre { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;

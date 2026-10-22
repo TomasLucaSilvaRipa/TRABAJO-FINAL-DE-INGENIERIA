@@ -20,19 +20,7 @@ public sealed class MPPSuscripcion
     public List<OperacionSuscripcionHistorial> ConsultarHistorial(Usuario usuario)
     {
         DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_ConsultarHistorialPorAgencia", new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("El usuario no pertenece a una agencia.")) });
-        return tabla.Rows.Cast<DataRow>().Select(fila => new OperacionSuscripcionHistorial
-        {
-            ID = Convert.ToInt32(fila["ID"]),
-            TipoOperacion = Convert.ToString(fila["TipoOperacion"]) ?? string.Empty,
-            Modalidad = fila["Modalidad"] == DBNull.Value ? null : Convert.ToString(fila["Modalidad"]),
-            Importe = fila["Importe"] == DBNull.Value ? null : Convert.ToDecimal(fila["Importe"]),
-            Moneda = fila["Moneda"] == DBNull.Value ? null : Convert.ToString(fila["Moneda"]),
-            Proveedor = fila["Proveedor"] == DBNull.Value ? null : Convert.ToString(fila["Proveedor"]),
-            Referencia = fila["Referencia"] == DBNull.Value ? null : Convert.ToString(fila["Referencia"]),
-            Estado = Convert.ToString(fila["Estado"]) ?? string.Empty,
-            Detalle = fila["Detalle"] == DBNull.Value ? null : Convert.ToString(fila["Detalle"]),
-            Fecha = Convert.ToDateTime(fila["Fecha"]),
-        }).ToList();
+        return tabla.Rows.Cast<DataRow>().Select(fila => new OperacionSuscripcionHistorial(Convert.ToInt32(fila["ID"]), Convert.ToString(fila["TipoOperacion"]) ?? string.Empty, fila["Modalidad"] == DBNull.Value ? null : Convert.ToString(fila["Modalidad"]), fila["Importe"] == DBNull.Value ? null : Convert.ToDecimal(fila["Importe"]), fila["Moneda"] == DBNull.Value ? null : Convert.ToString(fila["Moneda"]), fila["Proveedor"] == DBNull.Value ? null : Convert.ToString(fila["Proveedor"]), fila["Referencia"] == DBNull.Value ? null : Convert.ToString(fila["Referencia"]), Convert.ToString(fila["Estado"]) ?? string.Empty, fila["Detalle"] == DBNull.Value ? null : Convert.ToString(fila["Detalle"]), Convert.ToDateTime(fila["Fecha"]))).ToList();
     }
 
     public OperacionSuscripcionPendiente CrearSolicitudCambioPlan(CambioPlanSuscripcionRequest solicitud)
@@ -43,12 +31,7 @@ public sealed class MPPSuscripcion
         });
         if (tabla.Rows.Count != 1) throw new InvalidOperationException("No fue posible generar la solicitud de actualización.");
         DataRow fila = tabla.Rows[0];
-        return new OperacionSuscripcionPendiente
-        {
-            IdOperacion = Convert.ToInt32(fila["IdOperacion"]), IdSuscripcion = Convert.ToInt32(fila["IdSuscripcion"]), IdPlanNuevo = Convert.ToInt32(fila["IdPlanNuevo"]),
-            ReferenciaInterna = Convert.ToString(fila["ReferenciaInterna"]) ?? string.Empty, Importe = Convert.ToDecimal(fila["Importe"]),
-            Moneda = Convert.ToString(fila["Moneda"]) ?? string.Empty, Proveedor = Convert.ToString(fila["Proveedor"]) ?? string.Empty,
-        };
+        return new OperacionSuscripcionPendiente(Convert.ToInt32(fila["IdOperacion"]), Convert.ToInt32(fila["IdSuscripcion"]), Convert.ToInt32(fila["IdPlanNuevo"]), Convert.ToString(fila["ReferenciaInterna"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty, Convert.ToString(fila["Proveedor"]) ?? string.Empty);
     }
 
     public OperacionSuscripcionPendiente ConsultarOperacionPendiente(OperacionSuscripcionPendiente operacion)
@@ -56,12 +39,7 @@ public sealed class MPPSuscripcion
         DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_ConsultarOperacionPendiente", new List<SqlParameter>() { new SqlParameter("@ReferenciaInterna", operacion.ReferenciaInterna) });
         if (tabla.Rows.Count != 1) throw new KeyNotFoundException("No existe una actualización de suscripción pendiente con la referencia indicada.");
         DataRow fila = tabla.Rows[0];
-        return new OperacionSuscripcionPendiente
-        {
-            IdOperacion = Convert.ToInt32(fila["IdOperacion"]), IdSuscripcion = Convert.ToInt32(fila["IdSuscripcion"]), IdPlanNuevo = Convert.ToInt32(fila["IdPlanNuevo"]),
-            ReferenciaInterna = Convert.ToString(fila["ReferenciaInterna"]) ?? string.Empty, Importe = Convert.ToDecimal(fila["Importe"]),
-            Moneda = Convert.ToString(fila["Moneda"]) ?? string.Empty, Proveedor = Convert.ToString(fila["Proveedor"]) ?? string.Empty,
-        };
+        return new OperacionSuscripcionPendiente(Convert.ToInt32(fila["IdOperacion"]), Convert.ToInt32(fila["IdSuscripcion"]), Convert.ToInt32(fila["IdPlanNuevo"]), Convert.ToString(fila["ReferenciaInterna"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty, Convert.ToString(fila["Proveedor"]) ?? string.Empty);
     }
 
     public Suscripcion AplicarResultadoCambioPlan(OperacionSuscripcionPendiente operacion)
@@ -93,10 +71,7 @@ public sealed class MPPSuscripcion
     public List<SincronizacionVencimientosResultado> SincronizarVencimientos()
     {
         DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_SincronizarVencimientos", new List<SqlParameter>());
-        return tabla.Rows.Cast<DataRow>().Select(fila => new SincronizacionVencimientosResultado
-        {
-            IdSuscripcion = Convert.ToInt32(fila["IdSuscripcion"]), IdAgencia = Convert.ToInt32(fila["IdAgencia"]), Estado = Convert.ToString(fila["Estado"]) ?? string.Empty,
-        }).ToList();
+        return tabla.Rows.Cast<DataRow>().Select(fila => new SincronizacionVencimientosResultado(Convert.ToInt32(fila["IdSuscripcion"]), Convert.ToInt32(fila["IdAgencia"]), Convert.ToString(fila["Estado"]) ?? string.Empty)).ToList();
     }
 
     public void RegistrarRenovacionProveedor(Suscripcion suscripcion)
@@ -110,12 +85,7 @@ public sealed class MPPSuscripcion
     public List<RenovacionProveedorPendiente> ConsultarRenovacionesProveedor()
     {
         DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_ConsultarRenovacionesProveedor", new List<SqlParameter>());
-        return tabla.Rows.Cast<DataRow>().Select(f => new RenovacionProveedorPendiente
-        {
-            IdSuscripcion = Convert.ToInt32(f["IdSuscripcion"]), IdAgencia = Convert.ToInt32(f["IdAgencia"]), IdPlanComercial = Convert.ToInt32(f["IdPlanComercial"]),
-            ReferenciaRenovacionProveedor = Convert.ToString(f["ReferenciaRenovacionProveedor"]) ?? string.Empty,
-            Proveedor = Convert.ToString(f["ProveedorRenovacion"]) ?? "MercadoPago",
-        }).ToList();
+        return tabla.Rows.Cast<DataRow>().Select(f => new RenovacionProveedorPendiente(Convert.ToInt32(f["IdSuscripcion"]), Convert.ToInt32(f["IdAgencia"]), Convert.ToInt32(f["IdPlanComercial"]), Convert.ToString(f["ReferenciaRenovacionProveedor"]) ?? string.Empty, Convert.ToString(f["ProveedorRenovacion"]) ?? "MercadoPago")).ToList();
     }
 
     public void AplicarCobroRecurrente(RenovacionProveedorPendiente renovacion)

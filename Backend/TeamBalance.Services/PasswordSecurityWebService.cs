@@ -1,5 +1,7 @@
 ﻿using System.Net.Http.Json;
 
+using TeamBalance.BE.Entidades;
+
 namespace TeamBalance.Services;
 
 public class PasswordSecurityWebService
@@ -13,7 +15,8 @@ public class PasswordSecurityWebService
 
     public async Task<PasswordEvaluationResponse> EvaluarPassword(string password)
     {
-        HttpResponseMessage response = await _httpClient.PostAsJsonAsync("api/password-security/evaluar", new { Password = password });
+        SolicitudEvaluacionPassword solicitud = new SolicitudEvaluacionPassword(password);
+        HttpResponseMessage response = await _httpClient.PostAsJsonAsync("api/password-security/evaluar", solicitud);
         response.EnsureSuccessStatusCode();
 
         PasswordEvaluationResponse? resultado = await response.Content.ReadFromJsonAsync<PasswordEvaluationResponse>();

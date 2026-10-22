@@ -69,8 +69,7 @@ public sealed class BLLSuscripcion
     {
         if (string.IsNullOrWhiteSpace(solicitud.ReferenciaOperacion) || string.IsNullOrWhiteSpace(solicitud.PaymentId)) throw new ArgumentException("No recibimos la referencia de la operación de actualización.");
 
-        OperacionSuscripcionPendiente operacion = new OperacionSuscripcionPendiente();
-        operacion.ReferenciaInterna = solicitud.ReferenciaOperacion;
+        OperacionSuscripcionPendiente operacion = new OperacionSuscripcionPendiente(solicitud.ReferenciaOperacion);
         operacion = _suscripcionMPP.ConsultarOperacionPendiente(operacion);
         if (string.Equals(operacion.Proveedor, "Stripe", StringComparison.Ordinal))
         {
@@ -172,7 +171,7 @@ public sealed class BLLSuscripcion
         Suscripcion actual = _suscripcionMPP.ConsultarActual(solicitante) ?? throw new KeyNotFoundException("La agencia no tiene una suscripción registrada.");
         PlanComercial plan = _planMPP.ConsultarPlan(new PlanComercial(actual.IdPlanComercial));
         (string publicKey, decimal importe, string moneda) = _mercadoPagoService.ObtenerCobroRecurrente(plan.Nombre);
-        return new ConfiguracionRenovacionAutomatica { PublicKey = publicKey, ImportePrueba = importe, MonedaPrueba = moneda, NombrePlan = plan.Nombre };
+        return new ConfiguracionRenovacionAutomatica(publicKey, importe, moneda, plan.Nombre);
     }
 
     public async Task<ResultadoGestionSuscripcion> AutorizarRenovacionAutomatica(Usuario solicitante, AutorizarRenovacionAutomaticaRequest solicitud)

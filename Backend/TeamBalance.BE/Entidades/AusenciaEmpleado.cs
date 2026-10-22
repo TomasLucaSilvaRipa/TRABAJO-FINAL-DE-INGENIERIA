@@ -69,6 +69,18 @@ public partial class AusenciaEmpleado
 
 public class TareaDisponibilidadAfectada
 {
+    public TareaDisponibilidadAfectada()
+    {
+    }
+
+    public TareaDisponibilidadAfectada(int idTarea, string titulo, string nombreProyecto, DateTime? deadline)
+    {
+        IdTarea = idTarea;
+        Titulo = titulo;
+        NombreProyecto = nombreProyecto;
+        Deadline = deadline;
+    }
+
     public int IdTarea { get; set; }
     public string Titulo { get; set; } = string.Empty;
     public string NombreProyecto { get; set; } = string.Empty;
@@ -77,6 +89,16 @@ public class TareaDisponibilidadAfectada
 
 public class ResultadoGestionDisponibilidad
 {
+    public ResultadoGestionDisponibilidad()
+    {
+    }
+
+    public ResultadoGestionDisponibilidad(AusenciaEmpleado ausencia, List<TareaDisponibilidadAfectada> tareasAfectadas)
+    {
+        Ausencia = ausencia;
+        TareasAfectadas = tareasAfectadas;
+    }
+
     public AusenciaEmpleado Ausencia { get; set; } = new AusenciaEmpleado();
     public List<TareaDisponibilidadAfectada> TareasAfectadas { get; set; } = new List<TareaDisponibilidadAfectada>();
 }
@@ -94,6 +116,16 @@ public class ResolucionAusenciaEmpleado
 
 public class EmpleadoDisponibilidadOpcion
 {
+    public EmpleadoDisponibilidadOpcion()
+    {
+    }
+
+    public EmpleadoDisponibilidadOpcion(int idUsuario, string nombreCompleto)
+    {
+        IdUsuario = idUsuario;
+        NombreCompleto = nombreCompleto;
+    }
+
     public int IdUsuario { get; set; }
     public string NombreCompleto { get; set; } = string.Empty;
 }

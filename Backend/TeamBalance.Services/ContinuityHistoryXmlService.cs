@@ -1,24 +1,7 @@
 using System.Xml.Linq;
+using TeamBalance.BE.Entidades;
 
 namespace TeamBalance.Services;
-
-public sealed class RegistroContinuidadXml
-{
-    public string IdOperacion { get; set; } = string.Empty;
-    public string Tipo { get; set; } = string.Empty;
-    public string Estado { get; set; } = string.Empty;
-    public DateTime FechaInicioUtc { get; set; }
-    public DateTime? FechaFinUtc { get; set; }
-    public int? IdRespaldo { get; set; }
-    public string NombreArchivo { get; set; } = string.Empty;
-    public long? TamanoBytes { get; set; }
-    public bool? Verificado { get; set; }
-    public int? IdUsuarioSolicitante { get; set; }
-    public int? ArchivosConfiguracion { get; set; }
-    public string? Mensaje { get; set; }
-}
-
-
 public sealed class ContinuityHistoryXmlService
 {
     private static readonly SemaphoreSlim Bloqueo = new SemaphoreSlim(1, 1);

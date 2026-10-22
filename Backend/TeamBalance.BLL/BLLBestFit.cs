@@ -80,7 +80,7 @@ public class BLLBestFit
 
     private decimal ObtenerCapacidadEquipoActual(Tarea tarea, Usuario usuario)
     {
-        List<int> idsEmpleado = _asignacionMPP.Consultar(tarea.ID, usuario)
+        List<int> idsEmpleado = _asignacionMPP.Consultar(tarea, usuario)
             .Where(asignacion => asignacion.Activa && asignacion.IdEmpleado > 0)
             .Select(asignacion => asignacion.IdEmpleado)
             .Distinct()

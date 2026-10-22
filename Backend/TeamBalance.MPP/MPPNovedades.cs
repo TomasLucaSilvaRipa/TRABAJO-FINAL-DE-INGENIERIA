@@ -10,7 +10,7 @@ public sealed class MPPNovedades
 {
     private readonly Conexion _conexion;
     public MPPNovedades(Conexion conexion) => _conexion = conexion;
-    public List<CategoriaNoticia> Categorias() => _conexion.Leer("dbo.usp_Novedades_ConsultarCategorias").Rows.Cast<DataRow>().Select(f => new CategoriaNoticia { ID = Convert.ToInt32(f["ID"]), Nombre = Convert.ToString(f["Nombre"]) ?? string.Empty, Descripcion = Convert.ToString(f["Descripcion"]) ?? string.Empty, Activo = Convert.ToBoolean(f["Activo"]) }).ToList();
+    public List<CategoriaNoticia> Categorias() => _conexion.Leer("dbo.usp_Novedades_ConsultarCategorias").Rows.Cast<DataRow>().Select(f => new CategoriaNoticia(Convert.ToInt32(f["ID"]), Convert.ToString(f["Nombre"]) ?? string.Empty, Convert.ToString(f["Descripcion"]) ?? string.Empty, Convert.ToBoolean(f["Activo"]))).ToList();
     public List<Noticia> Publicas() => ConsultarNoticias("dbo.usp_Novedades_ConsultarPublicas");
     public List<Noticia> Gestion() => ConsultarNoticias("dbo.usp_Novedades_ConsultarGestion");
     public Noticia Guardar(GuardarNoticiaRequest solicitud) => CrearNoticia(_conexion.Leer("dbo.usp_Novedades_Guardar", new List<SqlParameter> { new("@IdCategoria", solicitud.IdCategoriaNoticia), new("@Titulo", solicitud.Titulo), new("@Contenido", solicitud.Contenido), new("@ImagenUrl", (object?)solicitud.ImagenUrl ?? DBNull.Value), new("@FechaPublicacion", solicitud.FechaPublicacion ?? DateTime.Now), new("@FechaVencimiento", (object?)solicitud.FechaVencimiento ?? DBNull.Value) }).Rows[0]);

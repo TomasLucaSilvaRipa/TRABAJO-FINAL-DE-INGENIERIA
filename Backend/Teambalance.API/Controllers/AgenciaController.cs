@@ -64,12 +64,8 @@ public class AgenciaController : ControllerBase
 
             ResultadoRegistroAgenciaValidacion resultado = await _agenciaBLL.RegistrarAgencia(agencia, usuario, contratacionSericio, solicitud.RecibirNewsletter, solicitud.CategoriasNewsletterIds);
 
-            return Ok(new
-            {
-                mensaje = "La agencia y el usuario Dueño fueron registrados correctamente.",
-                tokenGestion = resultado.TokenGestion,
-                fechaExpiracionValidacion = resultado.FechaExpiracion,
-            });
+            RespuestaRegistroAgencia respuesta = new RespuestaRegistroAgencia("La agencia y el usuario Dueño fueron registrados correctamente.", resultado.TokenGestion, resultado.FechaExpiracion);
+            return Ok(respuesta);
         }
         catch (KeyNotFoundException ex){return NotFound(ex.Message);}
         catch (ArgumentException ex){ return BadRequest(ex.Message); }
@@ -87,7 +83,7 @@ public class AgenciaController : ControllerBase
                 return BadRequest("El enlace de validación es inválido, ya fue utilizado o venció.");
             }
 
-            return Ok(new { mensaje = "Tu correo fue confirmado. Ya podés iniciar sesión en TeamBalance." });
+            return Ok(new RespuestaMensaje("Tu correo fue confirmado. Ya podés iniciar sesión en TeamBalance."));
         }
         catch (Exception)
         {
@@ -102,7 +98,7 @@ public class AgenciaController : ControllerBase
         {
             await _agenciaBLL.ReenviarValidacion(usuario);
 
-            return Ok(new { mensaje = "Si existe una cuenta pendiente asociada a ese email, enviamos un nuevo enlace de validación." });
+            return Ok(new RespuestaMensaje("Si existe una cuenta pendiente asociada a ese email, enviamos un nuevo enlace de validación."));
         }
         catch (Exception)
         {
@@ -146,7 +142,7 @@ public class AgenciaController : ControllerBase
         {
             if (string.IsNullOrWhiteSpace(request.Codigo)) throw new ArgumentException("Ingresá el código de Telegram.");
             _agenciaBLL.ConfirmarValidacionTelegramRegistro(request.TokenGestion ?? string.Empty, request.Codigo);
-            return Ok(new { mensaje = "Tu cuenta fue validada mediante Telegram. Ya podés iniciar sesión." });
+            return Ok(new RespuestaMensaje("Tu cuenta fue validada mediante Telegram. Ya podés iniciar sesión."));
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }

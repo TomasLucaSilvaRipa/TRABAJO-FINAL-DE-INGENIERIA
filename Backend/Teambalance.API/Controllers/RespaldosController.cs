@@ -18,7 +18,8 @@ public sealed class RespaldosController : ControllerBase
     public IActionResult Consultar() => Ejecutar(() =>
     {
         (List<RespaldoBaseDatos> Respaldos, List<PruebaRestauracionRespaldo> Pruebas, List<RegistroContinuidadXml> HistorialXml) resultado = _respaldoBLL.Consultar(UsuarioActual());
-        return Ok(new { respaldos = resultado.Respaldos, pruebasRestauracion = resultado.Pruebas, historialXml = resultado.HistorialXml, rpoHoras = 24, rtoHoras = 4, retencionDias = 30 });
+        RespuestaConsultaRespaldos respuesta = new RespuestaConsultaRespaldos(resultado.Respaldos, resultado.Pruebas, resultado.HistorialXml, 24, 4, 30);
+        return Ok(respuesta);
     });
 
     [HttpPost]
@@ -41,7 +42,7 @@ public sealed class RespaldosController : ControllerBase
         try
         {
             await _respaldoBLL.RestaurarProduccion(UsuarioActual(), idRespaldo, solicitud);
-            return Ok(new { mensaje = "La base productiva fue recuperada desde el respaldo seleccionado. Volvé a iniciar sesión para continuar." });
+            return Ok(new RespuestaMensaje("La base productiva fue recuperada desde el respaldo seleccionado. Volvé a iniciar sesión para continuar."));
         }
         catch (Exception ex) { return Error(ex); }
     }

@@ -35,7 +35,7 @@ public sealed class HelpDeskController : ControllerBase
         return Ejecutar(() =>
         {
             (ConsultaSoporteResumen Consulta, List<MensajeSoporteDetalle> Mensajes) detalle = _helpDeskBLL.ConsultarDetalle(UsuarioActual(), consulta);
-            return Ok(new { consulta = detalle.Consulta, mensajes = detalle.Mensajes });
+            return Ok(new RespuestaConsultaSoporte(detalle.Consulta, detalle.Mensajes));
         });
     }
 

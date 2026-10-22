@@ -21,7 +21,7 @@ public class BLLTelegram
 
     public EstadoTelegram ConsultarEstado(Usuario usuario)
     {
-        return _usuarioMPP.ConsultarEstadoTelegram(usuario.ID);
+        return _usuarioMPP.ConsultarEstadoTelegram(usuario);
     }
 
     public PreparacionTelegram PrepararVinculacion(Usuario usuario)
@@ -29,17 +29,17 @@ public class BLLTelegram
         if (!string.Equals(usuario.Estado, "Activo", StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Confirmá tu correo electrónico antes de vincular Telegram.");
         string token = Convert.ToHexString(RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
         DateTime fechaExpiracion = DateTime.Now.AddMinutes(10);
-        _usuarioMPP.CrearSolicitudTelegram(usuario.ID, _seguridad.GenerarHashToken(token), "Vinculacion", fechaExpiracion);
+        _usuarioMPP.CrearSolicitudTelegram(usuario, _seguridad.GenerarHashToken(token), "Vinculacion", fechaExpiracion);
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Usuario", usuario.ID, "PrepararVinculacionTelegram", "El usuario inició la vinculación de Telegram.", "Pendiente", "Informacion", "Seguridad"));
-        return new PreparacionTelegram { EnlaceProfundo = $"https://t.me/{NombreBot}?start={token}", ComandoInicio = $"/start {token}", FechaExpiracion = fechaExpiracion };
+        return new PreparacionTelegram($"https://t.me/{NombreBot}?start={token}", $"/start {token}", fechaExpiracion);
     }
 
-    public PreparacionTelegram PrepararValidacionRegistro(int idUsuario)
+    public PreparacionTelegram PrepararValidacionRegistro(Usuario usuario)
     {
         string token = Convert.ToHexString(RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
         DateTime fechaExpiracion = DateTime.Now.AddMinutes(10);
-        _usuarioMPP.CrearSolicitudTelegram(idUsuario, _seguridad.GenerarHashToken(token), "Registro", fechaExpiracion);
-        return new PreparacionTelegram { EnlaceProfundo = $"https://t.me/{NombreBot}?start={token}", ComandoInicio = $"/start {token}", FechaExpiracion = fechaExpiracion };
+        _usuarioMPP.CrearSolicitudTelegram(usuario, _seguridad.GenerarHashToken(token), "Registro", fechaExpiracion);
+        return new PreparacionTelegram($"https://t.me/{NombreBot}?start={token}", $"/start {token}", fechaExpiracion);
     }
 
     public EntregaTelegram ProcesarInicioBot(string token, long telegramUserId, long chatId, string? nombreUsuario)
@@ -51,45 +51,44 @@ public class BLLTelegram
 
     public void ConfirmarVinculacion(Usuario usuario, string codigo)
     {
-        if (!_usuarioMPP.ConfirmarCodigoTelegram(usuario.ID, "Vinculacion", _seguridad.GenerarHashToken(NormalizarCodigo(codigo)))) throw new UnauthorizedAccessException("El código no es válido, venció o ya fue utilizado.");
+        if (!_usuarioMPP.ConfirmarCodigoTelegram(usuario, "Vinculacion", _seguridad.GenerarHashToken(NormalizarCodigo(codigo)))) throw new UnauthorizedAccessException("El código no es válido, venció o ya fue utilizado.");
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Usuario", usuario.ID, "VincularTelegram", "Se vinculó Telegram como canal de verificación.", "Exitoso", "Informacion", "Seguridad"));
     }
 
-    public void ConfirmarValidacionRegistro(int idUsuario, string codigo)
+    public void ConfirmarValidacionRegistro(Usuario usuario, string codigo)
     {
-        if (!_usuarioMPP.ConfirmarCodigoTelegram(idUsuario, "Registro", _seguridad.GenerarHashToken(NormalizarCodigo(codigo)))) throw new UnauthorizedAccessException("El código no es válido, venció o ya fue utilizado.");
-        Usuario? usuario = _usuarioMPP.ConsultarUsuarioPorId(idUsuario);
-        if (usuario is not null) _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Usuario", usuario.ID, "ValidarCuentaTelegram", "Se validó la cuenta inicial mediante Telegram.", "Exitoso", "Informacion", "Registro"));
+        if (!_usuarioMPP.ConfirmarCodigoTelegram(usuario, "Registro", _seguridad.GenerarHashToken(NormalizarCodigo(codigo)))) throw new UnauthorizedAccessException("El código no es válido, venció o ya fue utilizado.");
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Usuario", usuario.ID, "ValidarCuentaTelegram", "Se validó la cuenta inicial mediante Telegram.", "Exitoso", "Informacion", "Registro"));
     }
 
     public EntregaTelegram ReenviarCodigoVinculacion(Usuario usuario)
     {
-        return PrepararReenvio(usuario.ID, "Vinculacion");
+        return PrepararReenvio(usuario, "Vinculacion");
     }
 
-    public EntregaTelegram ReenviarCodigoRegistro(int idUsuario)
+    public EntregaTelegram ReenviarCodigoRegistro(Usuario usuario)
     {
-        return PrepararReenvio(idUsuario, "Registro");
+        return PrepararReenvio(usuario, "Registro");
     }
 
     public EntregaTelegram PrepararDesvinculacion(Usuario usuario)
     {
-        EstadoTelegram estado = _usuarioMPP.ConsultarEstadoTelegram(usuario.ID);
+        EstadoTelegram estado = _usuarioMPP.ConsultarEstadoTelegram(usuario);
         if (!estado.Vinculado) throw new InvalidOperationException("No hay una cuenta de Telegram vinculada.");
         string codigo = GenerarCodigo();
-        return _usuarioMPP.CrearSolicitudDesvinculacionTelegram(usuario.ID, _seguridad.GenerarHashToken(codigo), DateTime.Now.AddMinutes(5), codigo);
+        return _usuarioMPP.CrearSolicitudDesvinculacionTelegram(usuario, _seguridad.GenerarHashToken(codigo), DateTime.Now.AddMinutes(5), codigo);
     }
 
     public void ConfirmarDesvinculacion(Usuario usuario, string codigo)
     {
-        if (!_usuarioMPP.ConfirmarCodigoTelegram(usuario.ID, "Desvinculacion", _seguridad.GenerarHashToken(NormalizarCodigo(codigo)))) throw new UnauthorizedAccessException("El código no es válido, venció o ya fue utilizado.");
+        if (!_usuarioMPP.ConfirmarCodigoTelegram(usuario, "Desvinculacion", _seguridad.GenerarHashToken(NormalizarCodigo(codigo)))) throw new UnauthorizedAccessException("El código no es válido, venció o ya fue utilizado.");
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Usuario", usuario.ID, "DesvincularTelegram", "Se desvinculó Telegram de la cuenta.", "Exitoso", "Advertencia", "Seguridad"));
     }
 
-    private EntregaTelegram PrepararReenvio(int idUsuario, string tipo)
+    private EntregaTelegram PrepararReenvio(Usuario usuario, string tipo)
     {
         string codigo = GenerarCodigo();
-        return _usuarioMPP.ReenviarCodigoTelegram(idUsuario, tipo, _seguridad.GenerarHashToken(codigo), DateTime.Now.AddMinutes(5), codigo);
+        return _usuarioMPP.ReenviarCodigoTelegram(usuario, tipo, _seguridad.GenerarHashToken(codigo), DateTime.Now.AddMinutes(5), codigo);
     }
 
     private static string GenerarCodigo()

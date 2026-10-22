@@ -129,24 +129,24 @@ public class BLLUsuario
             throw new InvalidOperationException("Confirmá tu correo electrónico antes de iniciar sesión.");
         }
 
-        ConfiguracionAutenticacionDosFactores? configuracionDosFactores = _usuarioMPP.ConsultarAutenticacionDosFactores(usuario.ID);
+        ConfiguracionAutenticacionDosFactores? configuracionDosFactores = _usuarioMPP.ConsultarAutenticacionDosFactores(usuario);
         if (configuracionDosFactores is not null && configuracionDosFactores.TotpHabilitado)
         {
             string tokenDesafio = _seguridad.GenerarTokenSeguro();
             DateTime fechaExpiracionDesafio = DateTime.Now.AddMinutes(5);
-            _usuarioMPP.CrearDesafioAutenticacionDosFactores(usuario.ID, _seguridad.GenerarHashToken(tokenDesafio), mantenerSesion, fechaExpiracionDesafio);
+            _usuarioMPP.CrearDesafioAutenticacionDosFactores(usuario, _seguridad.GenerarHashToken(tokenDesafio), mantenerSesion, fechaExpiracionDesafio);
             _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Usuario", usuario.ID, "IniciarSesion2FA", "Se solicitó la verificación del segundo factor para iniciar sesión.", "Pendiente", "Informacion", "Seguridad"));
-            return new ResultadoInicioSesionDosFactores { RequiereDosFactores = true, TokenDesafio = tokenDesafio, FechaExpiracionDesafio = fechaExpiracionDesafio };
+            return new ResultadoInicioSesionDosFactores(null, true, tokenDesafio, fechaExpiracionDesafio);
         }
 
         InicioSesionResultado resultado = CrearInicioSesion(usuario, mantenerSesion);
-        return new ResultadoInicioSesionDosFactores { InicioSesion = resultado };
+        return new ResultadoInicioSesionDosFactores(resultado, false, null, null);
     }
 
     public EstadoAutenticacionDosFactores ConsultarEstadoAutenticacionDosFactores(Usuario usuario)
     {
-        ConfiguracionAutenticacionDosFactores? configuracion = _usuarioMPP.ConsultarAutenticacionDosFactores(usuario.ID);
-        return new EstadoAutenticacionDosFactores { TotpHabilitado = configuracion?.TotpHabilitado ?? false, FechaActivacionTotp = configuracion?.FechaActivacionTotp };
+        ConfiguracionAutenticacionDosFactores? configuracion = _usuarioMPP.ConsultarAutenticacionDosFactores(usuario);
+        return new EstadoAutenticacionDosFactores(configuracion?.TotpHabilitado ?? false, configuracion?.FechaActivacionTotp);
     }
 
     public PreparacionTotp PrepararActivacionTotp(Usuario usuario)
@@ -154,27 +154,27 @@ public class BLLUsuario
         if (!string.Equals(usuario.Estado, "Activo", StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Confirmá tu correo electrónico antes de activar Google Authenticator.");
         string claveManual = Base32Encoding.ToString(KeyGeneration.GenerateRandomKey(20));
         DateTime fechaExpiracion = DateTime.Now.AddMinutes(10);
-        _usuarioMPP.GuardarAutenticacionDosFactoresPendiente(usuario.ID, _fieldEncryptionService.CifrarSecretoAutenticacionDosFactores(claveManual), fechaExpiracion);
+        _usuarioMPP.GuardarAutenticacionDosFactoresPendiente(usuario, _fieldEncryptionService.CifrarSecretoAutenticacionDosFactores(claveManual), fechaExpiracion);
         string etiqueta = Uri.EscapeDataString("TeamBalance:" + usuario.Email);
         string emisor = Uri.EscapeDataString("TeamBalance");
-        return new PreparacionTotp { ClaveManual = claveManual, FechaExpiracion = fechaExpiracion, UriOtpAuth = $"otpauth://totp/{etiqueta}?secret={claveManual}&issuer={emisor}&algorithm=SHA1&digits=6&period=30" };
+        return new PreparacionTotp($"otpauth://totp/{etiqueta}?secret={claveManual}&issuer={emisor}&algorithm=SHA1&digits=6&period=30", claveManual, fechaExpiracion);
     }
 
     public List<string> ConfirmarActivacionTotp(Usuario usuario, string codigo)
     {
-        ConfiguracionAutenticacionDosFactores? configuracion = _usuarioMPP.ConsultarAutenticacionDosFactores(usuario.ID);
+        ConfiguracionAutenticacionDosFactores? configuracion = _usuarioMPP.ConsultarAutenticacionDosFactores(usuario);
         if (configuracion is null || string.IsNullOrWhiteSpace(configuracion.SecretoPendienteCifrado) || configuracion.FechaExpiracionPendiente is null || configuracion.FechaExpiracionPendiente < DateTime.Now || configuracion.IntentosPendientes >= 5)
             throw new InvalidOperationException("La configuración pendiente venció o alcanzó el límite de intentos. Generá un código QR nuevo.");
         string secreto = _fieldEncryptionService.DescifrarSecretoAutenticacionDosFactores(configuracion.SecretoPendienteCifrado);
         Totp totp = new Totp(Base32Encoding.ToBytes(secreto), 30, OtpHashMode.Sha1, 6);
         if (!totp.VerifyTotp(codigo?.Trim(), out long pasoTotp, new VerificationWindow(1, 1)))
         {
-            _usuarioMPP.RegistrarIntentoAutenticacionDosFactoresPendiente(usuario.ID);
+            _usuarioMPP.RegistrarIntentoAutenticacionDosFactoresPendiente(usuario);
             throw new UnauthorizedAccessException("El código no es válido. Verificá la hora de tu dispositivo e intentá nuevamente.");
         }
-        _usuarioMPP.ActivarAutenticacionDosFactores(usuario.ID, _fieldEncryptionService.CifrarSecretoAutenticacionDosFactores(secreto), pasoTotp);
+        _usuarioMPP.ActivarAutenticacionDosFactores(usuario, _fieldEncryptionService.CifrarSecretoAutenticacionDosFactores(secreto), pasoTotp);
         List<string> codigos = GenerarCodigosRecuperacion();
-        _usuarioMPP.ReemplazarCodigosRecuperacionDosFactores(usuario.ID, codigos.Select(_seguridad.GenerarHashToken).ToList());
+        _usuarioMPP.ReemplazarCodigosRecuperacionDosFactores(usuario, codigos.Select(_seguridad.GenerarHashToken).ToList());
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Usuario", usuario.ID, "ActivarGoogleAuthenticator", "Se activó Google Authenticator para la cuenta.", "Exitoso", "Informacion", "Seguridad"));
         return codigos;
     }
@@ -195,7 +195,7 @@ public class BLLUsuario
     public void DesactivarAutenticacionDosFactores(Usuario usuario, string codigo)
     {
         if (!ValidarSegundoFactor(usuario, codigo)) throw new UnauthorizedAccessException("El código no es válido o ya fue utilizado.");
-        _usuarioMPP.DesactivarAutenticacionDosFactores(usuario.ID);
+        _usuarioMPP.DesactivarAutenticacionDosFactores(usuario);
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Usuario", usuario.ID, "DesactivarGoogleAuthenticator", "Se desactivó Google Authenticator para la cuenta.", "Exitoso", "Advertencia", "Seguridad"));
     }
 
@@ -227,13 +227,13 @@ public class BLLUsuario
     private bool ValidarSegundoFactor(Usuario usuario, string codigo)
     {
         string codigoNormalizado = codigo?.Trim().Replace(" ", string.Empty).ToUpperInvariant() ?? string.Empty;
-        ConfiguracionAutenticacionDosFactores? configuracion = _usuarioMPP.ConsultarAutenticacionDosFactores(usuario.ID);
+        ConfiguracionAutenticacionDosFactores? configuracion = _usuarioMPP.ConsultarAutenticacionDosFactores(usuario);
         if (configuracion is null || !configuracion.TotpHabilitado || string.IsNullOrWhiteSpace(configuracion.SecretoTotpCifrado)) return false;
-        if (!System.Text.RegularExpressions.Regex.IsMatch(codigoNormalizado, "^\\d{6}$")) return _usuarioMPP.ConsumirCodigoRecuperacionDosFactores(usuario.ID, _seguridad.GenerarHashToken(codigoNormalizado));
+        if (!System.Text.RegularExpressions.Regex.IsMatch(codigoNormalizado, "^\\d{6}$")) return _usuarioMPP.ConsumirCodigoRecuperacionDosFactores(usuario, _seguridad.GenerarHashToken(codigoNormalizado));
         Totp totp = new Totp(Base32Encoding.ToBytes(_fieldEncryptionService.DescifrarSecretoAutenticacionDosFactores(configuracion.SecretoTotpCifrado)), 30, OtpHashMode.Sha1, 6);
         bool valido = totp.VerifyTotp(codigoNormalizado, out long pasoTotp, new VerificationWindow(1, 1));
         if (!valido || (configuracion.UltimoPasoTotp is not null && pasoTotp <= configuracion.UltimoPasoTotp.Value)) return false;
-        _usuarioMPP.ActualizarUltimoPasoTotp(usuario.ID, pasoTotp);
+        _usuarioMPP.ActualizarUltimoPasoTotp(usuario, pasoTotp);
         return true;
     }
 
@@ -418,7 +418,7 @@ public class BLLUsuario
             if (!usuario.Activo && usuarioAgencia.Empleado is not null)
             {
                 int idEmpleado = _recursosMPP.ConsultarIdEmpleadoPorUsuarioAgencia(usuarioAgencia, solicitante);
-                List<Tarea> tareasPendientes = _tareaMPP.Consultar(solicitante, new FiltroTarea { IdEmpleadoAsignado = idEmpleado })
+                List<Tarea> tareasPendientes = _tareaMPP.Consultar(solicitante, new FiltroTarea(null, null, null, idEmpleado, null, null, null))
                     .Where(tarea => tarea.Activo && !string.Equals(tarea.Estado, "Finalizada", StringComparison.OrdinalIgnoreCase) && !string.Equals(tarea.Estado, "Finalizado", StringComparison.OrdinalIgnoreCase))
                     .ToList();
                 if (tareasPendientes.Count > 0)

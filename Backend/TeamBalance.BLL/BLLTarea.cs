@@ -100,7 +100,7 @@ public class BLLTarea
                 Tarea resultado = _tareaMPP.Guardar(tarea, usuario);
                 if (tarea.Asignaciones is not null)
                 {
-                    resultado.Asignaciones = _asignacionMPP.Sincronizar(resultado.ID, tarea.Asignaciones, usuario);
+                    resultado.Asignaciones = _asignacionMPP.Sincronizar(resultado, tarea.Asignaciones, usuario);
                 }
                 return resultado;
             }
@@ -113,11 +113,13 @@ public class BLLTarea
     public List<AsignacionTarea> ConsultarAsignaciones(int idTarea, Usuario usuario)
     {
         ValidarGestionTareas(usuario);
-        if (idTarea <= 0 || !_tareaMPP.ConsultarPorPM(usuario).Any(item => item.ID == idTarea && item.Activo))
+        List<Tarea> tareasGestionables = _tareaMPP.ConsultarPorPM(usuario);
+        Tarea? tarea = tareasGestionables.FirstOrDefault(item => item.ID == idTarea && item.Activo);
+        if (idTarea <= 0 || tarea is null)
         {
             throw new ArgumentException("La tarea no existe o no pertenece a uno de tus proyectos.");
         }
-        return _asignacionMPP.Consultar(idTarea, usuario);
+        return _asignacionMPP.Consultar(tarea, usuario);
     }
 
     /// <summary>

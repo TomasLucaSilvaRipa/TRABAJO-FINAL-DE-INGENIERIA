@@ -38,20 +38,12 @@ namespace TeamBalance.Services
             pago = new MercadoPagoPreferenceRequest(pago.Titulo, importePrueba, monedaPrueba, pago.ReferenciaExterna, pago.CodigoPlan);
         }
 
-            Dictionary<string, object?> preference = new Dictionary<string, object?>
-            {
-                ["items"] = new[]
-                {
-                    new
-                    {
-                        title = pago.Titulo,
-                        quantity = 1,
-                        currency_id = pago.Moneda,
-                        unit_price = pago.Importe
-                    }
-                },
-                ["external_reference"] = pago.ReferenciaExterna
-            };
+            Dictionary<string, object?> preference = new Dictionary<string, object?>();
+            ItemPreferenciaMercadoPago item = new ItemPreferenciaMercadoPago(pago.Titulo, 1, pago.Moneda, pago.Importe);
+            List<ItemPreferenciaMercadoPago> items = new List<ItemPreferenciaMercadoPago>();
+            items.Add(item);
+            preference.Add("items", items);
+            preference.Add("external_reference", pago.ReferenciaExterna);
 
             string? publicBaseUrl = _configuration["Frontend:PublicBaseUrl"];
             if (!string.IsNullOrWhiteSpace(publicBaseUrl))
@@ -62,12 +54,7 @@ namespace TeamBalance.Services
                 }
 
                 string returnUrl = publicBaseUrl.TrimEnd('/') + "/pago/resultado";
-                preference["back_urls"] = new
-                {
-                    success = returnUrl,
-                    pending = returnUrl,
-                    failure = returnUrl
-                };
+                preference["back_urls"] = new UrlsRetornoMercadoPago(returnUrl, returnUrl, returnUrl);
                 preference["auto_return"] = "approved";
             }
 
@@ -170,7 +157,8 @@ namespace TeamBalance.Services
         using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Put, $"https://api.mercadopago.com/preapproval/{Uri.EscapeDataString(preapprovalId)}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         if (CobroPruebaHabilitado()) request.Headers.TryAddWithoutValidation("X-scope", "stage");
-        request.Content = JsonContent.Create(new { status = estado });
+        SolicitudEstadoMercadoPago solicitud = new SolicitudEstadoMercadoPago(estado);
+        request.Content = JsonContent.Create(solicitud);
 
         using HttpResponseMessage response = await _httpClient.SendAsync(request);
         if (!response.IsSuccessStatusCode) throw new InvalidOperationException($"Mercado Pago no pudo actualizar la renovación automática: {await response.Content.ReadAsStringAsync()}");

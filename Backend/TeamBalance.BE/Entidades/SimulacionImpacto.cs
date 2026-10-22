@@ -30,6 +30,21 @@ public partial class SimulacionImpacto
         Activo = activo;
     }
 
+    public SimulacionImpacto(int idTarea, int idEmpleadoCandidato, int idUsuarioCreador, decimal cargaActual, decimal horasTarea, decimal capacidadSemanal, int diasAusenciaProximaSemana, DateTime? deadlineTarea, string? prioridadTarea, string? nombreTarea, string? nombreProyecto)
+    {
+        IdTarea = idTarea;
+        IdEmpleadoCandidato = idEmpleadoCandidato;
+        IdUsuarioCreador = idUsuarioCreador;
+        CargaActual = cargaActual;
+        HorasTarea = horasTarea;
+        CapacidadSemanal = capacidadSemanal;
+        DiasAusenciaProximaSemana = diasAusenciaProximaSemana;
+        DeadlineTarea = deadlineTarea;
+        PrioridadTarea = prioridadTarea;
+        NombreTarea = nombreTarea;
+        NombreProyecto = nombreProyecto;
+    }
+
     public int ID { get; set; }
 
     public int IdTarea { get; set; }

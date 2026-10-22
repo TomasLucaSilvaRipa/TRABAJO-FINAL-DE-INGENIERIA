@@ -32,6 +32,13 @@ public partial class Empleado : Usuario
         Tareas = new List<Tarea>();
     }
 
+    public Empleado(int id, decimal horasDisponiblesSemanales)
+        : this()
+    {
+        ID = id;
+        HorasDisponiblesSemanales = horasDisponiblesSemanales;
+    }
+
     public decimal CostoHora { get; set; }
 
     public decimal HorasDisponiblesSemanales { get; set; }

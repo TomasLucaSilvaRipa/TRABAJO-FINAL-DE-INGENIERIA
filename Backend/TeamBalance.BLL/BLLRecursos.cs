@@ -158,7 +158,7 @@ public class BLLRecursos
             List<TareaDisponibilidadAfectada> tareasAfectadas = _recursosMPP.ConsultarTareasAfectadas(ausencia, null, usuario);
             AusenciaEmpleado resultado = _recursosMPP.RegistrarAusencia(ausencia, usuario);
             _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "AusenciaEmpleado", resultado.ID, "Solicitar no disponibilidad", "El empleado registró una solicitud pendiente de aprobación.", "Exitoso", "Información", "Recursos"));
-            return new ResultadoGestionDisponibilidad { Ausencia = resultado, TareasAfectadas = tareasAfectadas };
+            return new ResultadoGestionDisponibilidad(resultado, tareasAfectadas);
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
@@ -192,7 +192,7 @@ public class BLLRecursos
             List<TareaDisponibilidadAfectada> tareas = _recursosMPP.ConsultarTareasAfectadas(solicitud, resolucion, solicitante);
             AusenciaEmpleado resultado = _recursosMPP.ResolverAusencia(resolucion, solicitante);
             _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "AusenciaEmpleado", resultado.ID, resolucion.EsParcial ? "Aprobar parcialmente no disponibilidad" : "Aprobar no disponibilidad", "Se actualizó la disponibilidad operativa del período autorizado.", "Exitoso", "Información", "Recursos"));
-            return new ResultadoGestionDisponibilidad { Ausencia = resultado, TareasAfectadas = tareas };
+            return new ResultadoGestionDisponibilidad(resultado, tareas);
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
@@ -224,7 +224,7 @@ public class BLLRecursos
             List<TareaDisponibilidadAfectada> tareas = _recursosMPP.ConsultarTareasAfectadas(ausencia, null, solicitante);
             AusenciaEmpleado resultado = _recursosMPP.RegistrarAusenciaDirecta(ausencia, solicitante);
             _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "AusenciaEmpleado", resultado.ID, "Registrar no disponibilidad directa", "Se registró y aprobó directamente un período de no disponibilidad.", "Exitoso", "Información", "Recursos"));
-            return new ResultadoGestionDisponibilidad { Ausencia = resultado, TareasAfectadas = tareas };
+            return new ResultadoGestionDisponibilidad(resultado, tareas);
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
     }

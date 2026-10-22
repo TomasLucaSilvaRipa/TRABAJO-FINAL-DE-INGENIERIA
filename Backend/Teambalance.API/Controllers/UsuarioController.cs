@@ -31,7 +31,7 @@ public class UsuarioController : ControllerBase
     [HttpGet("soporte-inicial-disponible")]
     public IActionResult ConsultarSoporteInicialDisponible()
     {
-        try { return Ok(new { disponible = _usuarioBLL.SoporteInicialDisponible(ObtenerSolicitante()) }); }
+        try { return Ok(new RespuestaSoporteInicial(_usuarioBLL.SoporteInicialDisponible(ObtenerSolicitante()))); }
         catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
     }
 
@@ -140,7 +140,7 @@ public class UsuarioController : ControllerBase
         try
         {
             string fotoPerfil = _usuarioBLL.ActualizarFotoPerfil(ObtenerSolicitante(), usuario.FotoPerfil);
-            return Ok(new { fotoPerfil });
+            return Ok(new RespuestaFotoPerfil(fotoPerfil));
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }

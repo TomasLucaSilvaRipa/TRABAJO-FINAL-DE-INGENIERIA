@@ -10,6 +10,20 @@ public class FiltroCoberturaSkill
 
 public class TareaCoberturaSkill
 {
+    public TareaCoberturaSkill(int idTarea, int idSkill, string nombreSkill, string? categoriaSkill, string tituloTarea, decimal horasEstimadas, DateTime deadline, int idProyecto, string nombreProyecto, string nombreCliente)
+    {
+        IdTarea = idTarea;
+        IdSkill = idSkill;
+        NombreSkill = nombreSkill;
+        CategoriaSkill = categoriaSkill;
+        TituloTarea = tituloTarea;
+        HorasEstimadas = horasEstimadas;
+        Deadline = deadline;
+        IdProyecto = idProyecto;
+        NombreProyecto = nombreProyecto;
+        NombreCliente = nombreCliente;
+    }
+
     public int IdTarea { get; set; }
     public int IdSkill { get; set; }
     public string NombreSkill { get; set; } = string.Empty;
@@ -24,6 +38,17 @@ public class TareaCoberturaSkill
 
 public class EmpleadoCoberturaSkill
 {
+    public EmpleadoCoberturaSkill(int idEmpleado, int idSkill, string nombreEmpleado, string seniority, string nivelSkill, decimal horasSemanales, decimal cargaActual)
+    {
+        IdEmpleado = idEmpleado;
+        IdSkill = idSkill;
+        NombreEmpleado = nombreEmpleado;
+        Seniority = seniority;
+        NivelSkill = nivelSkill;
+        HorasSemanales = horasSemanales;
+        CargaActual = cargaActual;
+    }
+
     public int IdEmpleado { get; set; }
     public int IdSkill { get; set; }
     public string NombreEmpleado { get; set; } = string.Empty;
@@ -70,6 +95,20 @@ public class ConsultaSugerenciasSkill
 
 public class SugerenciaEmpleadoSkill
 {
+    public SugerenciaEmpleadoSkill(int idEmpleado, string nombreEmpleado, string seniority, decimal horasSemanales, decimal cargaActual, decimal horasDisponibles, bool esDelProyecto, bool tieneSkillObjetivo, int cantidadSkillsMismaArea, string skillsRelacionadas)
+    {
+        IdEmpleado = idEmpleado;
+        NombreEmpleado = nombreEmpleado;
+        Seniority = seniority;
+        HorasSemanales = horasSemanales;
+        CargaActual = cargaActual;
+        HorasDisponibles = horasDisponibles;
+        EsDelProyecto = esDelProyecto;
+        TieneSkillObjetivo = tieneSkillObjetivo;
+        CantidadSkillsMismaArea = cantidadSkillsMismaArea;
+        SkillsRelacionadas = skillsRelacionadas;
+    }
+
     public int IdEmpleado { get; set; }
     public string NombreEmpleado { get; set; } = string.Empty;
     public string Seniority { get; set; } = string.Empty;

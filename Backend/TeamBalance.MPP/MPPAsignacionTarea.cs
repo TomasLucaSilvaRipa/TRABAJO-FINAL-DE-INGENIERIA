@@ -16,11 +16,11 @@ public class MPPAsignacionTarea
 
     public MPPAsignacionTarea(Conexion conexion) => _conexion = conexion;
 
-    public List<AsignacionTarea> Consultar(int idTarea, Usuario usuario)
+    public List<AsignacionTarea> Consultar(Tarea tarea, Usuario usuario)
     {
         DataTable tabla = _conexion.Leer("dbo.usp_AsignacionTarea_Consultar", new List<SqlParameter>
         {
-            new("@IdTarea", idTarea), new("@IdAgencia", usuario.IdAgencia)
+            new("@IdTarea", tarea.ID), new("@IdAgencia", usuario.IdAgencia)
         });
 
         return tabla.Rows.Cast<DataRow>().Select(fila => new AsignacionTarea(
@@ -67,25 +67,17 @@ public class MPPAsignacionTarea
             new("@IdsEmpleadoJson", JsonSerializer.Serialize(ids)), new("@IdAgencia", usuario.IdAgencia)
         });
 
-        return tabla.Rows.Cast<DataRow>().Select(fila => new Empleado
-        {
-            ID = Convert.ToInt32(fila["ID"]),
-            HorasDisponiblesSemanales = Convert.ToDecimal(fila["HorasDisponiblesSemanales"])
-        }).ToList();
+        return tabla.Rows.Cast<DataRow>().Select(fila => new Empleado(Convert.ToInt32(fila["ID"]), Convert.ToDecimal(fila["HorasDisponiblesSemanales"]))).ToList();
     }
 
-    public List<AsignacionTarea> Sincronizar(int idTarea, IEnumerable<AsignacionTarea> asignaciones, Usuario usuario)
+    public List<AsignacionTarea> Sincronizar(Tarea tarea, IEnumerable<AsignacionTarea> asignaciones, Usuario usuario)
     {
-        string json = JsonSerializer.Serialize(asignaciones.Select(item => new
-        {
-            item.IdEmpleado,
-            item.HorasAsignadas,
-            motivo = string.IsNullOrWhiteSpace(item.Motivo) ? null : item.Motivo.Trim()
-        }));
+        List<AsignacionTareaSincronizacion> datosAsignaciones = asignaciones.Select(item => new AsignacionTareaSincronizacion(item)).ToList();
+        string json = JsonSerializer.Serialize(datosAsignaciones);
 
         DataTable tabla = _conexion.Leer("dbo.usp_AsignacionTarea_Sincronizar", new List<SqlParameter>
         {
-            new("@IdTarea", idTarea), new("@IdAgencia", usuario.IdAgencia), new("@IdUsuarioAsignador", usuario.ID), new("@AsignacionesJson", json)
+            new("@IdTarea", tarea.ID), new("@IdAgencia", usuario.IdAgencia), new("@IdUsuarioAsignador", usuario.ID), new("@AsignacionesJson", json)
         });
 
         return tabla.Rows.Cast<DataRow>().Select(fila => new AsignacionTarea(

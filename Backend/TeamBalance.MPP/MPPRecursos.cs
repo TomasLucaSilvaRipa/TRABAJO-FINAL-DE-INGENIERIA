@@ -244,7 +244,7 @@ public class MPPRecursos
     public List<EmpleadoDisponibilidadOpcion> ConsultarEmpleadosDisponibilidad(Usuario solicitante)
     {
         DataTable tabla = _conexion.Leer("dbo.usp_Disponibilidad_ConsultarEmpleados", new List<SqlParameter> { new("@IdAgencia", solicitante.IdAgencia) });
-        return tabla.Rows.Cast<DataRow>().Select(fila => new EmpleadoDisponibilidadOpcion { IdUsuario = Convert.ToInt32(fila["IdUsuario"]), NombreCompleto = Convert.ToString(fila["NombreCompleto"]) ?? string.Empty }).ToList();
+        return tabla.Rows.Cast<DataRow>().Select(fila => new EmpleadoDisponibilidadOpcion(Convert.ToInt32(fila["IdUsuario"]), Convert.ToString(fila["NombreCompleto"]) ?? string.Empty)).ToList();
     }
 
     public AusenciaEmpleado ConsultarAusencia(ResolucionAusenciaEmpleado resolucion, Usuario solicitante)
@@ -260,10 +260,16 @@ public class MPPRecursos
         return CrearAusencias(tabla);
     }
 
+    public List<AusenciaEmpleado> ConsultarAusenciasEmpleado(Empleado empleado, Usuario solicitante)
+    {
+        DataTable tabla = _conexion.Leer("dbo.usp_AusenciaEmpleado_ConsultarPorEmpleado", new List<SqlParameter>() { new SqlParameter("@IdEmpleado", empleado.ID), new SqlParameter("@IdAgencia", solicitante.IdAgencia) });
+        return CrearAusencias(tabla);
+    }
+
     public List<TareaDisponibilidadAfectada> ConsultarTareasAfectadas(AusenciaEmpleado ausencia, ResolucionAusenciaEmpleado? resolucion, Usuario solicitante)
     {
         DataTable tabla = _conexion.Leer("dbo.usp_Disponibilidad_ConsultarTareasAfectadas", new List<SqlParameter>() { new SqlParameter("@IdEmpleado", ausencia.IdEmpleado), new SqlParameter("@FechaDesde", resolucion?.FechaInicioAprobada ?? ausencia.FechaInicioSolicitada), new SqlParameter("@FechaHasta", resolucion?.FechaFinAprobada ?? ausencia.FechaFinSolicitada), new SqlParameter("@IdAgencia", solicitante.IdAgencia) });
-        return tabla.Rows.Cast<DataRow>().Select(fila => new TareaDisponibilidadAfectada { IdTarea = Convert.ToInt32(fila["IdTarea"]), Titulo = Convert.ToString(fila["Titulo"]) ?? string.Empty, NombreProyecto = Convert.ToString(fila["NombreProyecto"]) ?? string.Empty, Deadline = fila["Deadline"] == DBNull.Value ? null : Convert.ToDateTime(fila["Deadline"]) }).ToList();
+        return tabla.Rows.Cast<DataRow>().Select(fila => new TareaDisponibilidadAfectada(Convert.ToInt32(fila["IdTarea"]), Convert.ToString(fila["Titulo"]) ?? string.Empty, Convert.ToString(fila["NombreProyecto"]) ?? string.Empty, fila["Deadline"] == DBNull.Value ? null : Convert.ToDateTime(fila["Deadline"]))).ToList();
     }
 
     public AusenciaEmpleado ResolverAusencia(ResolucionAusenciaEmpleado resolucion, Usuario solicitante)

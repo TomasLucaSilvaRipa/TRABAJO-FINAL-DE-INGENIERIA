@@ -54,6 +54,20 @@ public sealed class ResultadoGestionSuscripcion
 
 public sealed class OperacionSuscripcionHistorial
 {
+    public OperacionSuscripcionHistorial(int id, string tipoOperacion, string? modalidad, decimal? importe, string? moneda, string? proveedor, string? referencia, string estado, string? detalle, DateTime fecha)
+    {
+        ID = id;
+        TipoOperacion = tipoOperacion;
+        Modalidad = modalidad;
+        Importe = importe;
+        Moneda = moneda;
+        Proveedor = proveedor;
+        Referencia = referencia;
+        Estado = estado;
+        Detalle = detalle;
+        Fecha = fecha;
+    }
+
     public int ID { get; set; }
     public string TipoOperacion { get; set; } = string.Empty;
     public string? Modalidad { get; set; }
@@ -68,6 +82,26 @@ public sealed class OperacionSuscripcionHistorial
 
 public sealed class OperacionSuscripcionPendiente
 {
+    public OperacionSuscripcionPendiente()
+    {
+    }
+
+    public OperacionSuscripcionPendiente(string referenciaInterna)
+    {
+        ReferenciaInterna = referenciaInterna;
+    }
+
+    public OperacionSuscripcionPendiente(int idOperacion, int idSuscripcion, int idPlanNuevo, string referenciaInterna, decimal importe, string moneda, string proveedor)
+    {
+        IdOperacion = idOperacion;
+        IdSuscripcion = idSuscripcion;
+        IdPlanNuevo = idPlanNuevo;
+        ReferenciaInterna = referenciaInterna;
+        Importe = importe;
+        Moneda = moneda;
+        Proveedor = proveedor;
+    }
+
     public int IdOperacion { get; set; }
     public int IdSuscripcion { get; set; }
     public int IdPlanNuevo { get; set; }
@@ -82,6 +116,13 @@ public sealed class OperacionSuscripcionPendiente
 
 public sealed class SincronizacionVencimientosResultado
 {
+    public SincronizacionVencimientosResultado(int idSuscripcion, int idAgencia, string estado)
+    {
+        IdSuscripcion = idSuscripcion;
+        IdAgencia = idAgencia;
+        Estado = estado;
+    }
+
     public int IdSuscripcion { get; set; }
     public int IdAgencia { get; set; }
     public string Estado { get; set; } = string.Empty;
@@ -89,6 +130,18 @@ public sealed class SincronizacionVencimientosResultado
 
 public sealed class ConfiguracionRenovacionAutomatica
 {
+    public ConfiguracionRenovacionAutomatica()
+    {
+    }
+
+    public ConfiguracionRenovacionAutomatica(string publicKey, decimal importePrueba, string monedaPrueba, string nombrePlan)
+    {
+        PublicKey = publicKey;
+        ImportePrueba = importePrueba;
+        MonedaPrueba = monedaPrueba;
+        NombrePlan = nombrePlan;
+    }
+
     public string PublicKey { get; set; } = string.Empty;
     public decimal ImportePrueba { get; set; }
     public string MonedaPrueba { get; set; } = "ARS";
@@ -103,6 +156,15 @@ public sealed class AutorizarRenovacionAutomaticaRequest
 
 public sealed class RenovacionProveedorPendiente
 {
+    public RenovacionProveedorPendiente(int idSuscripcion, int idAgencia, int idPlanComercial, string referenciaRenovacionProveedor, string proveedor)
+    {
+        IdSuscripcion = idSuscripcion;
+        IdAgencia = idAgencia;
+        IdPlanComercial = idPlanComercial;
+        ReferenciaRenovacionProveedor = referenciaRenovacionProveedor;
+        Proveedor = proveedor;
+    }
+
     public int IdSuscripcion { get; set; }
     public int IdAgencia { get; set; }
     public int IdPlanComercial { get; set; }

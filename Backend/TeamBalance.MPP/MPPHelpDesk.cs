@@ -43,15 +43,7 @@ public sealed class MPPHelpDesk
     public List<MensajeSoporteDetalle> ConsultarMensajes(ConsultaSoporteResumen consulta) {
         List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdConsulta", consulta.ID) };
         DataTable tabla = _conexion.Leer("dbo.usp_HelpDesk_ConsultarMensajes", parametros);
-        return tabla.Rows.Cast<DataRow>().Select(fila => new MensajeSoporteDetalle
-        {
-            ID = Convert.ToInt32(fila["ID"]),
-            IdUsuario = Convert.ToInt32(fila["IdUsuario"]),
-            NombreUsuario = Convert.ToString(fila["NombreUsuario"]) ?? string.Empty,
-            EsSoporte = Convert.ToBoolean(fila["EsSoporte"]),
-            Mensaje = Convert.ToString(fila["Mensaje"]) ?? string.Empty,
-            Fecha = Convert.ToDateTime(fila["Fecha"]),
-        }).ToList();
+        return tabla.Rows.Cast<DataRow>().Select(fila => new MensajeSoporteDetalle(Convert.ToInt32(fila["ID"]), Convert.ToInt32(fila["IdUsuario"]), Convert.ToString(fila["NombreUsuario"]) ?? string.Empty, Convert.ToBoolean(fila["EsSoporte"]), Convert.ToString(fila["Mensaje"]) ?? string.Empty, Convert.ToDateTime(fila["Fecha"]))).ToList();
     }
 
     public void AgregarMensaje(ConsultaSoporteResumen consulta, Usuario usuario, EnviarMensajeSoporteRequest solicitud) {

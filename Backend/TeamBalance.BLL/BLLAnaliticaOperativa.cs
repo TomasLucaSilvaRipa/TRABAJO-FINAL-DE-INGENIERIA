@@ -43,7 +43,7 @@ public class BLLAnaliticaOperativa
         AnalisisOcupacionOperativa resultado = new AnalisisOcupacionOperativa();
         foreach (Empleado empleado in empleados)
         {
-            List<AusenciaEmpleado> ausencias = _recursosMPP.ConsultarAusenciasEmpleado(new AusenciaEmpleado { IdEmpleado = empleado.ID }, usuario);
+            List<AusenciaEmpleado> ausencias = _recursosMPP.ConsultarAusenciasEmpleado(empleado, usuario);
             CargaOperativaEmpleado carga = _motorCargaOperativa.Calcular(empleado, tareas, asignaciones, registros, ausencias, desde, hasta);
             foreach ((int idTarea, decimal horas) in carga.HorasPlanificadasPorTarea)
             {
@@ -104,7 +104,7 @@ public class BLLAnaliticaOperativa
         List<Tarea> tareas = contextos.SelectMany(contexto => contexto.Tareas).ToList();
         List<AsignacionTarea> asignaciones = _asignacionMPP.ConsultarActivas(tareas.Select(tarea => tarea.ID), usuario);
         List<RegistroHora> registros = contextos.SelectMany(contexto => contexto.Registros).ToList();
-        List<AusenciaEmpleado> ausencias = _recursosMPP.ConsultarAusenciasEmpleado(new AusenciaEmpleado { IdEmpleado = empleado.ID }, usuario);
+        List<AusenciaEmpleado> ausencias = _recursosMPP.ConsultarAusenciasEmpleado(empleado, usuario);
         FiltroOcupacionOperativa filtro = new FiltroOcupacionOperativa();
         (DateTime desde, DateTime hasta) = _motorCargaOperativa.ObtenerPeriodo(filtro);
         CargaOperativaEmpleado carga = _motorCargaOperativa.Calcular(empleado, tareas, asignaciones, registros, ausencias, desde, hasta);
@@ -114,31 +114,21 @@ public class BLLAnaliticaOperativa
         Tarea? tareaPrincipal = tareasEmpleado.OrderByDescending(tarea => carga.HorasPlanificadasPorTarea[tarea.ID]).FirstOrDefault();
         string estado = ObtenerEstadoOcupacion(porcentaje);
 
-        return new OcupacionEmpleado
-        {
-            IdEmpleado = empleado.ID,
-            Nombre = empleado.Nombre,
-            Seniority = empleado.Seniority,
-            HorasDisponibles = carga.HorasCapacidadPeriodo,
-            HorasEstimadasActivas = carga.HorasPlanificadasPeriodo,
-            HorasRegistradas = carga.HorasRegistradasPeriodo,
-            PorcentajeOcupacion = porcentaje,
-            EstadoCarga = estado,
-            CausaPrincipal = tareaPrincipal is null
+        string causaPrincipal = tareaPrincipal is null
                 ? "No tenés tareas planificables asignadas durante esta semana."
                 : carga.TieneSobrecargaDiaria
                     ? "La tarea '" + tareaPrincipal.Titulo + "' concentra una sobrecarga en al menos un día hábil."
-                    : "La tarea '" + tareaPrincipal.Titulo + "' concentra la mayor parte de tu carga semanal.",
-            AccionSugerida = estado is "Sobrecargado" or "Crítico"
+                    : "La tarea '" + tareaPrincipal.Titulo + "' concentra la mayor parte de tu carga semanal.";
+        string accionSugerida = estado is "Sobrecargado" or "Crítico"
                 ? "Revisá tus prioridades con tu responsable si necesitás redistribuir trabajo."
-                : "Tu carga se actualiza al cambiar tus tareas, disponibilidad o ausencias.",
-            Proyectos = contextos
+                : "Tu carga se actualiza al cambiar tus tareas, disponibilidad o ausencias.";
+        List<string> proyectos = contextos
                 .Where(contexto => contexto.Tareas.Any(tarea => carga.HorasPlanificadasPorTarea.ContainsKey(tarea.ID)))
                 .Select(contexto => contexto.Proyecto.Nombre)
                 .Distinct()
                 .OrderBy(nombre => nombre)
-                .ToList()
-        };
+                .ToList();
+        return new OcupacionEmpleado(empleado.ID, empleado.Nombre, empleado.Seniority, carga.HorasCapacidadPeriodo, carga.HorasPlanificadasPeriodo, carga.HorasRegistradasPeriodo, porcentaje, estado, causaPrincipal, accionSugerida, proyectos);
     }
 
     public DetalleOcupacionEmpleado ConsultarDetalleOcupacionEmpleado(Usuario usuario, FiltroOcupacionOperativa filtro)
@@ -153,7 +143,7 @@ public class BLLAnaliticaOperativa
         List<RegistroHora> registros = contextos.SelectMany(contexto => contexto.Registros).ToList();
         Empleado empleadoBase = _analiticaMPP.ConsultarEmpleadosActivos(usuario).First(item => item.ID == empleado.IdEmpleado);
         (DateTime desde, DateTime hasta) = _motorCargaOperativa.ObtenerPeriodo(filtro);
-        List<AusenciaEmpleado> ausencias = _recursosMPP.ConsultarAusenciasEmpleado(new AusenciaEmpleado { IdEmpleado = empleadoBase.ID }, usuario);
+        List<AusenciaEmpleado> ausencias = _recursosMPP.ConsultarAusenciasEmpleado(empleadoBase, usuario);
         CargaOperativaEmpleado carga = _motorCargaOperativa.Calcular(empleadoBase, tareas, asignaciones, registros, ausencias, desde, hasta);
         DetalleOcupacionEmpleado detalle = new DetalleOcupacionEmpleado();
         detalle.Empleado = empleado;
@@ -208,27 +198,11 @@ public class BLLAnaliticaOperativa
         if (!EsPMSinRolDueno(usuario)) { throw new UnauthorizedAccessException("Las revisiones pendientes se consultan desde la cuenta del PM responsable."); }
         int idPM = _analiticaMPP.ConsultarIdPM(usuario);
         List<RevisionOperativaPendiente> solicitudes = _analiticaMPP.ConsultarSolicitudesPendientes(usuario, idPM)
-            .Select(solicitud => new RevisionOperativaPendiente
-            {
-                ID = solicitud.ID, Tipo = "Asignacion", Referencia = solicitud.NombreEmpleado,
-                NombreProyecto = solicitud.NombreProyecto, CausaPrincipal = solicitud.CausaPrincipal,
-                AccionSugerida = solicitud.AccionSugerida, Estado = solicitud.Estado, FechaAlta = solicitud.FechaAlta
-            }).ToList();
+            .Select(solicitud => new RevisionOperativaPendiente(solicitud.ID, "Asignacion", null, string.Empty, solicitud.NombreEmpleado, solicitud.NombreProyecto, solicitud.CausaPrincipal, solicitud.AccionSugerida, solicitud.Estado, solicitud.FechaAlta)).ToList();
         solicitudes.AddRange(_analiticaMPP.ConsultarSolicitudesRevisionConvenienciaPendientes(usuario, idPM)
-            .Select(solicitud => new RevisionOperativaPendiente
-            {
-                ID = solicitud.ID, Tipo = "ConvenienciaCliente", IdCliente = solicitud.IdCliente,
-                Cliente = solicitud.NombreCliente, Referencia = "Conveniencia del cliente",
-                NombreProyecto = "Todos los proyectos a cargo", CausaPrincipal = solicitud.CausaPrincipal,
-                AccionSugerida = solicitud.AccionSugerida, Estado = solicitud.Estado, FechaAlta = solicitud.FechaAlta
-            }));
+            .Select(solicitud => new RevisionOperativaPendiente(solicitud.ID, "ConvenienciaCliente", solicitud.IdCliente, solicitud.NombreCliente, "Conveniencia del cliente", "Todos los proyectos a cargo", solicitud.CausaPrincipal, solicitud.AccionSugerida, solicitud.Estado, solicitud.FechaAlta)));
         solicitudes.AddRange(_analiticaMPP.ConsultarSolicitudesRevisionGestionPendientes(usuario, idPM)
-            .Select(solicitud => new RevisionOperativaPendiente
-            {
-                ID = solicitud.ID, Tipo = solicitud.Tipo, Referencia = solicitud.TituloTarea ?? solicitud.NombreProyecto,
-                NombreProyecto = solicitud.NombreProyecto, CausaPrincipal = solicitud.CausaPrincipal,
-                AccionSugerida = solicitud.AccionSugerida, Estado = solicitud.Estado, FechaAlta = solicitud.FechaAlta
-            }));
+            .Select(solicitud => new RevisionOperativaPendiente(solicitud.ID, solicitud.Tipo, null, string.Empty, solicitud.TituloTarea ?? solicitud.NombreProyecto, solicitud.NombreProyecto, solicitud.CausaPrincipal, solicitud.AccionSugerida, solicitud.Estado, solicitud.FechaAlta)));
         return solicitudes.OrderByDescending(solicitud => solicitud.FechaAlta).ToList();
     }
 
@@ -610,7 +584,7 @@ public class BLLAnaliticaOperativa
         // Compatibilidad temporal para tareas creadas antes de habilitar la distribución.
         return new List<AsignacionTarea>
         {
-            new AsignacionTarea { IdTarea = tarea.ID, IdEmpleado = tarea.IdEmpleadoAsignado.Value, HorasAsignadas = tarea.HorasEstimadas, Activa = true }
+            new AsignacionTarea(tarea)
         };
     }
 

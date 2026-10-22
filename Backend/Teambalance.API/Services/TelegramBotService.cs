@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
 
 namespace Teambalance.API.Services;
@@ -12,7 +13,8 @@ public sealed class TelegramBotService
 
     public TelegramBotService(IConfiguration configuration, ILogger<TelegramBotService> logger)
     {
-        _httpClient = new HttpClient { BaseAddress = new Uri("https://api.telegram.org/") };
+        _httpClient = new HttpClient();
+        _httpClient.BaseAddress = new Uri("https://api.telegram.org/");
         _botToken = configuration["Telegram:BotToken"];
         _logger = logger;
     }
@@ -35,7 +37,8 @@ public sealed class TelegramBotService
     {
         if (!Configurado) return false;
         string texto = $"TeamBalance — {proposito}\n\nTu código de verificación es: {codigo}\n\nVence en 5 minutos. Si no solicitaste esta acción, ignorá este mensaje.";
-        HttpResponseMessage respuesta = await _httpClient.PostAsJsonAsync(CrearUri("sendMessage"), new { chat_id = chatId, text = texto }, cancellationToken);
+        SolicitudEnvioTelegram solicitud = new SolicitudEnvioTelegram(chatId, texto);
+        HttpResponseMessage respuesta = await _httpClient.PostAsJsonAsync(CrearUri("sendMessage"), solicitud, cancellationToken);
         if (respuesta.IsSuccessStatusCode) return true;
         _logger.LogWarning("Telegram no aceptó el envío de un código. Estado HTTP: {Estado}", (int)respuesta.StatusCode);
         return false;

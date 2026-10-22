@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
 
 namespace Teambalance.API.Controllers;
@@ -96,19 +97,19 @@ public sealed class SlackController : ControllerBase
         try
         {
             string respuesta = _slackBLL.ConsultarBalance(formulario["user_id"].ToString(), formulario["text"].ToString());
-            return Ok(new { response_type = "ephemeral", text = respuesta });
+            return Ok(new RespuestaSlack("ephemeral", respuesta));
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Ok(new { response_type = "ephemeral", text = ex.Message });
+            return Ok(new RespuestaSlack("ephemeral", ex.Message));
         }
         catch (ArgumentException ex)
         {
-            return Ok(new { response_type = "ephemeral", text = ex.Message });
+            return Ok(new RespuestaSlack("ephemeral", ex.Message));
         }
         catch (Exception)
         {
-            return Ok(new { response_type = "ephemeral", text = "No fue posible consultar la información operativa en este momento." });
+            return Ok(new RespuestaSlack("ephemeral", "No fue posible consultar la información operativa en este momento."));
         }
     }
 

@@ -49,13 +49,6 @@ public class MPPIdioma
         Dictionary<string, string>? traducciones;
         try { traducciones = JsonSerializer.Deserialize<Dictionary<string, string>>(json); }
         catch (JsonException) { traducciones = new Dictionary<string, string>(); }
-        return new Idioma
-        {
-            ID = Convert.ToInt32(fila["ID"]),
-            Codigo = Convert.ToString(fila["Codigo"]) ?? string.Empty,
-            Nombre = Convert.ToString(fila["Nombre"]) ?? string.Empty,
-            Activo = Convert.ToBoolean(fila["Activo"]),
-            Traducciones = traducciones ?? new Dictionary<string, string>(),
-        };
+        return new Idioma(Convert.ToInt32(fila["ID"]), Convert.ToString(fila["Codigo"]) ?? string.Empty, Convert.ToString(fila["Nombre"]) ?? string.Empty, Convert.ToBoolean(fila["Activo"]), traducciones ?? new Dictionary<string, string>());
     }
 }

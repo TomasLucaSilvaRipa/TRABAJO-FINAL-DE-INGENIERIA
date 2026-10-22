@@ -57,9 +57,9 @@ public sealed class SuscripcionesController : ControllerBase
     {
         try { return Ok(await _suscripcionBLL.SolicitarActualizacion(ObtenerSolicitante(), solicitud)); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
-        catch (KeyNotFoundException ex) { return NotFound(new { code = "SUBSCRIPTION_OPERATION_NOT_FOUND", message = ex.Message }); }
-        catch (ArgumentException ex) { return BadRequest(new { code = "SUBSCRIPTION_OPERATION_INVALID", message = ex.Message }); }
-        catch (InvalidOperationException ex) { return BadRequest(new { code = "SUBSCRIPTION_OPERATION_REJECTED", message = ex.Message }); }
+        catch (KeyNotFoundException ex) { return NotFound(new RespuestaErrorSuscripcion("SUBSCRIPTION_OPERATION_NOT_FOUND", ex.Message)); }
+        catch (ArgumentException ex) { return BadRequest(new RespuestaErrorSuscripcion("SUBSCRIPTION_OPERATION_INVALID", ex.Message)); }
+        catch (InvalidOperationException ex) { return BadRequest(new RespuestaErrorSuscripcion("SUBSCRIPTION_OPERATION_REJECTED", ex.Message)); }
         catch (Exception) { return StatusCode(502, "No fue posible enviar la solicitud al proveedor de pago."); }
     }
 
@@ -67,9 +67,9 @@ public sealed class SuscripcionesController : ControllerBase
     public async Task<IActionResult> VerificarPago([FromRoute] VerificarPagoSuscripcionRequest solicitudRuta, [FromBody] VerificarPagoSuscripcionRequest solicitud)
     {
         try { solicitud.ReferenciaOperacion = solicitudRuta.ReferenciaOperacion; return Ok(await _suscripcionBLL.VerificarActualizacionPago(solicitud)); }
-        catch (KeyNotFoundException ex) { return NotFound(new { code = "SUBSCRIPTION_OPERATION_NOT_FOUND", message = ex.Message }); }
-        catch (ArgumentException ex) { return BadRequest(new { code = "SUBSCRIPTION_VALIDATION", message = ex.Message }); }
-        catch (InvalidOperationException ex) { return BadRequest(new { code = "SUBSCRIPTION_OPERATION_REJECTED", message = ex.Message }); }
+        catch (KeyNotFoundException ex) { return NotFound(new RespuestaErrorSuscripcion("SUBSCRIPTION_OPERATION_NOT_FOUND", ex.Message)); }
+        catch (ArgumentException ex) { return BadRequest(new RespuestaErrorSuscripcion("SUBSCRIPTION_VALIDATION", ex.Message)); }
+        catch (InvalidOperationException ex) { return BadRequest(new RespuestaErrorSuscripcion("SUBSCRIPTION_OPERATION_REJECTED", ex.Message)); }
         catch (Exception) { return StatusCode(502, "No fue posible verificar la operación con el proveedor de pago."); }
     }
 

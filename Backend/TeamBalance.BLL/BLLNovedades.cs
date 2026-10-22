@@ -28,7 +28,8 @@ public sealed class BLLNovedades
     public List<Noticia> Gestion(Usuario usuario) { ExigirGestionNovedades(usuario); return _novedadesMPP.Gestion(); }
     public async Task<Noticia> Guardar(Usuario usuario, GuardarNoticiaRequest solicitud)
     {
-        ExigirGestionNovedades(usuario); ValidarNoticia(solicitud);
+        ExigirGestionNovedades(usuario); 
+        ValidarNoticia(solicitud);
         Noticia noticia = _novedadesMPP.Guardar(solicitud);
         _bitacoraBLL.Add(new Bitacora(usuario.ID, null, "Noticia", noticia.ID, "PublicarNoticia", $"Se publicó la novedad '{noticia.Titulo}'.", "Exitoso", "Informacion", "Novedades"));
         await DifundirPendientes();

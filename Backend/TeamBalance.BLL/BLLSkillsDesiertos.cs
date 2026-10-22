@@ -83,10 +83,11 @@ public class BLLSkillsDesiertos
 
     private List<AnalisisCoberturaSkill> ProcesarCobertura(List<TareaCoberturaSkill> tareas, List<EmpleadoCoberturaSkill> empleados)
     {
-        return tareas.GroupBy(tarea => new { tarea.IdSkill, tarea.NombreSkill, tarea.CategoriaSkill }).Select(grupo =>
+        return tareas.GroupBy(tarea => tarea.IdSkill).Select(grupo =>
         {
             List<TareaCoberturaSkill> tareasSkill = grupo.ToList();
-            List<EmpleadoCoberturaSkill> empleadosSkill = empleados.Where(empleado => empleado.IdSkill == grupo.Key.IdSkill).ToList();
+            List<EmpleadoCoberturaSkill> empleadosSkill = empleados.Where(empleado => empleado.IdSkill == grupo.Key).ToList();
+            TareaCoberturaSkill tareaRepresentativa = tareasSkill.First();
             decimal demanda = tareasSkill.Sum(tarea => tarea.HorasEstimadas);
             decimal capacidadTotal = empleadosSkill.Sum(empleado => empleado.HorasSemanales * FactorNivel(empleado.NivelSkill));
             decimal capacidadDisponible = empleadosSkill.Sum(empleado => Math.Max(0, empleado.HorasDisponibles) * FactorNivel(empleado.NivelSkill));
@@ -94,7 +95,7 @@ public class BLLSkillsDesiertos
             (string tipo, string criticidad, int puntaje) = Clasificar(demanda, capacidadTotal, capacidadDisponible, empleadosSkill.Count, deadline);
             return new AnalisisCoberturaSkill
             {
-                IdSkill = grupo.Key.IdSkill, NombreSkill = grupo.Key.NombreSkill, CategoriaSkill = grupo.Key.CategoriaSkill, DemandaHoras = demanda,
+                IdSkill = grupo.Key, NombreSkill = tareaRepresentativa.NombreSkill, CategoriaSkill = tareaRepresentativa.CategoriaSkill, DemandaHoras = demanda,
                 CapacidadDisponibleHoras = decimal.Round(capacidadDisponible, 2), CapacidadTotalHoras = decimal.Round(capacidadTotal, 2),
                 PorcentajeCobertura = demanda == 0 ? 100 : decimal.Round(Math.Min(100, capacidadDisponible * 100 / demanda), 2), CantidadTareasAfectadas = tareasSkill.Count,
                 CantidadProyectosAfectados = tareasSkill.Select(tarea => tarea.IdProyecto).Distinct().Count(), TipoBrecha = tipo, Criticidad = criticidad, PuntajeCriticidad = puntaje,

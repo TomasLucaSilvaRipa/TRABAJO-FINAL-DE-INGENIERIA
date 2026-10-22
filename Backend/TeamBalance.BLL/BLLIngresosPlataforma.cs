@@ -23,46 +23,24 @@ public sealed class BLLIngresosPlataforma
             .Where(cobro => cobro.FechaCobro.Date <= fechaCorte)
             .ToList();
 
-        return new ResumenIngresosPlataforma
-        {
-            FechaCorte = fechaCorte,
-            Monedas = cobros
+        List<ResumenIngresosMoneda> monedas = cobros
                 .GroupBy(cobro => string.IsNullOrWhiteSpace(cobro.Moneda) ? "Sin moneda" : cobro.Moneda.Trim().ToUpperInvariant())
                 .Select(grupo => CrearResumenMoneda(grupo.Key, grupo.ToList(), fechaCorte, inicioSemana))
                 .OrderBy(resumen => resumen.Moneda)
-                .ToList()
-        };
+                .ToList();
+        return new ResumenIngresosPlataforma(fechaCorte, monedas);
     }
 
     private static ResumenIngresosMoneda CrearResumenMoneda(string moneda, List<CobroPlataformaConfirmado> cobros, DateTime fechaCorte, DateTime inicioSemana)
     {
-        return new ResumenIngresosMoneda
-        {
-            Moneda = moneda,
-            Hoy = SumarPeriodo(cobros, cobro => cobro.FechaCobro.Date == fechaCorte),
-            Semana = SumarPeriodo(cobros, cobro => cobro.FechaCobro.Date >= inicioSemana && cobro.FechaCobro.Date <= fechaCorte),
-            Mes = SumarPeriodo(cobros, cobro => cobro.FechaCobro.Year == fechaCorte.Year && cobro.FechaCobro.Month == fechaCorte.Month),
-            Anio = SumarPeriodo(cobros, cobro => cobro.FechaCobro.Year == fechaCorte.Year),
-            TotalHistorico = cobros.Sum(cobro => cobro.Importe),
-            CobrosHistoricos = cobros.Count,
-            Agencias = cobros
-                .GroupBy(cobro => new { cobro.IdAgencia, cobro.Agencia })
-                .Select(grupo => new IngresosPorAgencia
-                {
-                    IdAgencia = grupo.Key.IdAgencia,
-                    Agencia = grupo.Key.Agencia,
-                    Hoy = SumarPeriodo(grupo, cobro => cobro.FechaCobro.Date == fechaCorte),
-                    Semana = SumarPeriodo(grupo, cobro => cobro.FechaCobro.Date >= inicioSemana && cobro.FechaCobro.Date <= fechaCorte),
-                    Mes = SumarPeriodo(grupo, cobro => cobro.FechaCobro.Year == fechaCorte.Year && cobro.FechaCobro.Month == fechaCorte.Month),
-                    Anio = SumarPeriodo(grupo, cobro => cobro.FechaCobro.Year == fechaCorte.Year),
-                    TotalHistorico = grupo.Sum(cobro => cobro.Importe),
-                    CobrosHistoricos = grupo.Count()
-                })
+        List<IngresosPorAgencia> agencias = cobros
+                .GroupBy(cobro => cobro.IdAgencia)
+                .Select(grupo => new IngresosPorAgencia(grupo.Key, grupo.First().Agencia, SumarPeriodo(grupo, cobro => cobro.FechaCobro.Date == fechaCorte), SumarPeriodo(grupo, cobro => cobro.FechaCobro.Date >= inicioSemana && cobro.FechaCobro.Date <= fechaCorte), SumarPeriodo(grupo, cobro => cobro.FechaCobro.Year == fechaCorte.Year && cobro.FechaCobro.Month == fechaCorte.Month), SumarPeriodo(grupo, cobro => cobro.FechaCobro.Year == fechaCorte.Year), grupo.Sum(cobro => cobro.Importe), grupo.Count()))
                 .OrderByDescending(agencia => agencia.Anio)
                 .ThenByDescending(agencia => agencia.TotalHistorico)
                 .ThenBy(agencia => agencia.Agencia)
-                .ToList()
-        };
+                .ToList();
+        return new ResumenIngresosMoneda(moneda, SumarPeriodo(cobros, cobro => cobro.FechaCobro.Date == fechaCorte), SumarPeriodo(cobros, cobro => cobro.FechaCobro.Date >= inicioSemana && cobro.FechaCobro.Date <= fechaCorte), SumarPeriodo(cobros, cobro => cobro.FechaCobro.Year == fechaCorte.Year && cobro.FechaCobro.Month == fechaCorte.Month), SumarPeriodo(cobros, cobro => cobro.FechaCobro.Year == fechaCorte.Year), cobros.Sum(cobro => cobro.Importe), cobros.Count, agencias);
     }
 
     private static decimal SumarPeriodo(IEnumerable<CobroPlataformaConfirmado> cobros, Func<CobroPlataformaConfirmado, bool> condicion)

@@ -14,6 +14,12 @@ public partial class Usuario
         AsignacionesComoAsignador = new List<AsignacionTarea>();
     }
 
+    public Usuario(int id)
+        : this()
+    {
+        ID = id;
+    }
+
     public Usuario(int id, int? idAgencia, Rol rol, string nombre, string apellido, string email, string passwordHash, string estado, DateTime fechaAlta, bool activo)
     {
         ID = id;

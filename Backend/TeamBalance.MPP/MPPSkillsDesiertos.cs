@@ -14,25 +14,14 @@ public class MPPSkillsDesiertos
     {
         List<SqlParameter> parametros = CrearParametros(filtro, usuario);
         DataTable tabla = _conexion.Leer("dbo.usp_SkillsDesiertos_ConsultarTareas", parametros);
-        return tabla.Rows.Cast<DataRow>().Select(fila => new TareaCoberturaSkill
-        {
-            IdTarea = Convert.ToInt32(fila["IdTarea"]), IdSkill = Convert.ToInt32(fila["IdSkill"]), NombreSkill = Convert.ToString(fila["NombreSkill"]) ?? string.Empty,
-            CategoriaSkill = fila["CategoriaSkill"] == DBNull.Value ? null : Convert.ToString(fila["CategoriaSkill"]), TituloTarea = Convert.ToString(fila["TituloTarea"]) ?? string.Empty,
-            HorasEstimadas = Convert.ToDecimal(fila["HorasEstimadas"]), Deadline = Convert.ToDateTime(fila["Deadline"]), IdProyecto = Convert.ToInt32(fila["IdProyecto"]),
-            NombreProyecto = Convert.ToString(fila["NombreProyecto"]) ?? string.Empty, NombreCliente = Convert.ToString(fila["NombreCliente"]) ?? string.Empty
-        }).ToList();
+        return tabla.Rows.Cast<DataRow>().Select(fila => new TareaCoberturaSkill(Convert.ToInt32(fila["IdTarea"]), Convert.ToInt32(fila["IdSkill"]), Convert.ToString(fila["NombreSkill"]) ?? string.Empty, fila["CategoriaSkill"] == DBNull.Value ? null : Convert.ToString(fila["CategoriaSkill"]), Convert.ToString(fila["TituloTarea"]) ?? string.Empty, Convert.ToDecimal(fila["HorasEstimadas"]), Convert.ToDateTime(fila["Deadline"]), Convert.ToInt32(fila["IdProyecto"]), Convert.ToString(fila["NombreProyecto"]) ?? string.Empty, Convert.ToString(fila["NombreCliente"]) ?? string.Empty)).ToList();
     }
 
     public List<EmpleadoCoberturaSkill> ConsultarEmpleados(Usuario usuario)
     {
         List<SqlParameter> parametros = new List<SqlParameter> { new SqlParameter("@IdAgencia", usuario.IdAgencia) };
         DataTable tabla = _conexion.Leer("dbo.usp_SkillsDesiertos_ConsultarEmpleados", parametros);
-        return tabla.Rows.Cast<DataRow>().Select(fila => new EmpleadoCoberturaSkill
-        {
-            IdEmpleado = Convert.ToInt32(fila["IdEmpleado"]), IdSkill = Convert.ToInt32(fila["IdSkill"]), NombreEmpleado = Convert.ToString(fila["NombreEmpleado"]) ?? string.Empty,
-            Seniority = Convert.ToString(fila["Seniority"]) ?? string.Empty, NivelSkill = Convert.ToString(fila["NivelSkill"]) ?? string.Empty,
-            HorasSemanales = Convert.ToDecimal(fila["HorasSemanales"]), CargaActual = Convert.ToDecimal(fila["CargaActual"])
-        }).ToList();
+        return tabla.Rows.Cast<DataRow>().Select(fila => new EmpleadoCoberturaSkill(Convert.ToInt32(fila["IdEmpleado"]), Convert.ToInt32(fila["IdSkill"]), Convert.ToString(fila["NombreEmpleado"]) ?? string.Empty, Convert.ToString(fila["Seniority"]) ?? string.Empty, Convert.ToString(fila["NivelSkill"]) ?? string.Empty, Convert.ToDecimal(fila["HorasSemanales"]), Convert.ToDecimal(fila["CargaActual"]))).ToList();
     }
 
     public bool RegistrarRecomendacion(RecomendacionSkill recomendacion, Usuario usuario)
@@ -51,14 +40,7 @@ public class MPPSkillsDesiertos
         {
             new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@IdSkill", consulta.IdSkill), new SqlParameter("@IdProyecto", consulta.IdProyecto)
         });
-        return tabla.Rows.Cast<DataRow>().Select(fila => new SugerenciaEmpleadoSkill
-        {
-            IdEmpleado = Convert.ToInt32(fila["IdEmpleado"]), NombreEmpleado = Convert.ToString(fila["NombreEmpleado"]) ?? string.Empty,
-            Seniority = Convert.ToString(fila["Seniority"]) ?? string.Empty, HorasSemanales = Convert.ToDecimal(fila["HorasSemanales"]),
-            CargaActual = Convert.ToDecimal(fila["CargaActual"]), HorasDisponibles = Convert.ToDecimal(fila["HorasDisponibles"]),
-            EsDelProyecto = Convert.ToBoolean(fila["EsDelProyecto"]), TieneSkillObjetivo = Convert.ToBoolean(fila["TieneSkillObjetivo"]),
-            CantidadSkillsMismaArea = Convert.ToInt32(fila["CantidadSkillsMismaArea"]), SkillsRelacionadas = Convert.ToString(fila["SkillsRelacionadas"]) ?? string.Empty,
-        }).ToList();
+        return tabla.Rows.Cast<DataRow>().Select(fila => new SugerenciaEmpleadoSkill(Convert.ToInt32(fila["IdEmpleado"]), Convert.ToString(fila["NombreEmpleado"]) ?? string.Empty, Convert.ToString(fila["Seniority"]) ?? string.Empty, Convert.ToDecimal(fila["HorasSemanales"]), Convert.ToDecimal(fila["CargaActual"]), Convert.ToDecimal(fila["HorasDisponibles"]), Convert.ToBoolean(fila["EsDelProyecto"]), Convert.ToBoolean(fila["TieneSkillObjetivo"]), Convert.ToInt32(fila["CantidadSkillsMismaArea"]), Convert.ToString(fila["SkillsRelacionadas"]) ?? string.Empty)).ToList();
     }
 
     private static List<SqlParameter> CrearParametros(FiltroCoberturaSkill filtro, Usuario usuario) => new List<SqlParameter>

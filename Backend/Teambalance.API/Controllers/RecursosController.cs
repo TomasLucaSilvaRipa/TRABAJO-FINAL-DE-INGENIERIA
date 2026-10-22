@@ -55,7 +55,7 @@ public class RecursosController : ControllerBase
         try
         {
             if (idUsuario <= 0) { return BadRequest("Seleccioná un empleado válido."); }
-            Usuario usuario = new Usuario { ID = idUsuario };
+            Usuario usuario = new Usuario(idUsuario);
             return Ok(_recursosBLL.ConsultarFichaEmpleado(usuario, ObtenerSolicitante()));
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
@@ -67,7 +67,7 @@ public class RecursosController : ControllerBase
     {
         try
         {
-            Usuario usuario = new Usuario { ID = idUsuario };
+            Usuario usuario = new Usuario(idUsuario);
             _recursosBLL.RegistrarExportacionFichaEmpleado(usuario, ObtenerSolicitante());
             return NoContent();
         }

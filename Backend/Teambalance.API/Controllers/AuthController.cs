@@ -89,7 +89,7 @@ public class AuthController : ControllerBase
         {
             if (request is null || string.IsNullOrWhiteSpace(request.Codigo)) throw new ArgumentException("Ingresá el código de seis dígitos.");
             List<string> codigosRecuperacion = _usuarioBLL.ConfirmarActivacionTotp(ObtenerUsuarioAutenticado(), request.Codigo);
-            return Ok(new { codigosRecuperacion });
+            return Ok(new RespuestaCodigosRecuperacion(codigosRecuperacion));
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
@@ -120,7 +120,7 @@ public class AuthController : ControllerBase
             return Unauthorized();
         }
 
-        return Ok(new { vigente = true });
+        return Ok(new RespuestaVigencia(true));
     }
 
     [HttpGet("autorizacion")]
@@ -154,7 +154,7 @@ public class AuthController : ControllerBase
         {
             await _usuarioBLL.SolicitarRecuperoPassword(usuario);
 
-            return Ok(new { mensaje = "Si existe una cuenta activa asociada a ese email, enviamos un enlace para restablecer la contraseña." });
+            return Ok(new RespuestaMensaje("Si existe una cuenta activa asociada a ese email, enviamos un enlace para restablecer la contraseña."));
         }
         catch (ArgumentException ex){ return BadRequest(ex.Message); }
         catch (InvalidOperationException ex){ return StatusCode(500, ex.Message); }
@@ -168,7 +168,7 @@ public class AuthController : ControllerBase
         {
             await _usuarioBLL.RestablecerPassword(usuario, token);
 
-            return Ok(new { mensaje = "La contraseña fue restablecida correctamente. Volvé a iniciar sesión." });
+            return Ok(new RespuestaMensaje("La contraseña fue restablecida correctamente. Volvé a iniciar sesión."));
         }
         catch (ArgumentException ex){ return BadRequest(ex.Message); }
         catch (InvalidOperationException ex){ return StatusCode(500, ex.Message); }
@@ -182,7 +182,7 @@ public class AuthController : ControllerBase
         {
             await _usuarioBLL.CambiarPassword(usuario, ObtenerAccessToken() ?? string.Empty);
 
-            return Ok(new { mensaje = "La contraseña fue modificada correctamente. Volvé a iniciar sesión." });
+            return Ok(new RespuestaMensaje("La contraseña fue modificada correctamente. Volvé a iniciar sesión."));
         }
         catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
         catch (ArgumentException ex){ return BadRequest(ex.Message); }

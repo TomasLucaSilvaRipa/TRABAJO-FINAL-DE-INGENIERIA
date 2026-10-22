@@ -83,20 +83,7 @@ public class MPPSimulacionImpacto
 
     private static SimulacionImpacto CrearDatosOperativos(DataRow fila, SimulacionImpacto simulacion, Usuario usuario)
     {
-        return new SimulacionImpacto
-        {
-            IdTarea = simulacion.IdTarea,
-            IdEmpleadoCandidato = simulacion.IdEmpleadoCandidato,
-            IdUsuarioCreador = usuario.ID,
-            CargaActual = Convert.ToDecimal(fila["CargaActual"]),
-            HorasTarea = Convert.ToDecimal(fila["HorasTarea"]),
-            CapacidadSemanal = Convert.ToDecimal(fila["CapacidadSemanal"]),
-            DiasAusenciaProximaSemana = Convert.ToInt32(fila["DiasAusenciaProximaSemana"]),
-            DeadlineTarea = fila["DeadlineTarea"] == DBNull.Value ? null : Convert.ToDateTime(fila["DeadlineTarea"]),
-            PrioridadTarea = Convert.ToString(fila["PrioridadTarea"]),
-            NombreTarea = Convert.ToString(fila["NombreTarea"]),
-            NombreProyecto = Convert.ToString(fila["NombreProyecto"])
-        };
+        return new SimulacionImpacto(simulacion.IdTarea, simulacion.IdEmpleadoCandidato, usuario.ID, Convert.ToDecimal(fila["CargaActual"]), Convert.ToDecimal(fila["HorasTarea"]), Convert.ToDecimal(fila["CapacidadSemanal"]), Convert.ToInt32(fila["DiasAusenciaProximaSemana"]), fila["DeadlineTarea"] == DBNull.Value ? null : Convert.ToDateTime(fila["DeadlineTarea"]), Convert.ToString(fila["PrioridadTarea"]), Convert.ToString(fila["NombreTarea"]), Convert.ToString(fila["NombreProyecto"]));
     }
 
     private static SimulacionImpacto CrearPersistida(DataRow fila)

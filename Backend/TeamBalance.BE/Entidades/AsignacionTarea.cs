@@ -22,6 +22,11 @@ public partial class AsignacionTarea
         Activa = activa;
     }
 
+    public AsignacionTarea(Tarea tarea)
+        : this(0, tarea.ID, tarea.IdEmpleadoAsignado ?? 0, 0, DateTime.MinValue, null, null, tarea.HorasEstimadas, true)
+    {
+    }
+
     public int ID { get; set; }
 
     public int IdTarea { get; set; }

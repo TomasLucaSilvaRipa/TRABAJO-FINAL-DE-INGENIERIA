@@ -68,7 +68,7 @@ public class BLLAgencia
             }
 
             _proyectoBLL.CrearEstadosBase(agencia);
-            return CrearSesionValidacionRegistro(usuario.ID);
+            return CrearSesionValidacionRegistro(usuario);
         }
 
         agencia.NombreComercial = contratacion.NombreComercialAgencia;
@@ -112,7 +112,7 @@ public class BLLAgencia
         _bitacoraBLL.Add(bitacora);
         
 
-        return CrearSesionValidacionRegistro(usuario.ID);
+        return CrearSesionValidacionRegistro(usuario);
     }
 
     public bool ValidarCuenta(string token)
@@ -179,7 +179,7 @@ public class BLLAgencia
     public PreparacionTelegram PrepararValidacionTelegramRegistro(string tokenGestion)
     {
         Usuario usuario = ObtenerUsuarioPendientePorTokenGestion(tokenGestion);
-        return _telegramBLL.PrepararValidacionRegistro(usuario.ID);
+        return _telegramBLL.PrepararValidacionRegistro(usuario);
     }
 
     public EstadoTelegram ConsultarEstadoTelegramRegistro(string tokenGestion)
@@ -191,21 +191,21 @@ public class BLLAgencia
     public void ConfirmarValidacionTelegramRegistro(string tokenGestion, string codigo)
     {
         Usuario usuario = ObtenerUsuarioPendientePorTokenGestion(tokenGestion);
-        _telegramBLL.ConfirmarValidacionRegistro(usuario.ID, codigo);
+        _telegramBLL.ConfirmarValidacionRegistro(usuario, codigo);
     }
 
     public EntregaTelegram ReenviarValidacionTelegramRegistro(string tokenGestion)
     {
         Usuario usuario = ObtenerUsuarioPendientePorTokenGestion(tokenGestion);
-        return _telegramBLL.ReenviarCodigoRegistro(usuario.ID);
+        return _telegramBLL.ReenviarCodigoRegistro(usuario);
     }
 
-    private ResultadoRegistroAgenciaValidacion CrearSesionValidacionRegistro(int idUsuario)
+    private ResultadoRegistroAgenciaValidacion CrearSesionValidacionRegistro(Usuario usuario)
     {
         string tokenGestion = Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
         DateTime fechaExpiracion = DateTime.Now.AddMinutes(30);
-        _usuarioMPP.CrearSesionValidacionRegistro(idUsuario, _seguridad.GenerarHashToken(tokenGestion), fechaExpiracion);
-        return new ResultadoRegistroAgenciaValidacion { TokenGestion = tokenGestion, FechaExpiracion = fechaExpiracion };
+        _usuarioMPP.CrearSesionValidacionRegistro(usuario, _seguridad.GenerarHashToken(tokenGestion), fechaExpiracion);
+        return new ResultadoRegistroAgenciaValidacion(tokenGestion, fechaExpiracion);
     }
 
     private Usuario ObtenerUsuarioPendientePorTokenGestion(string tokenGestion)

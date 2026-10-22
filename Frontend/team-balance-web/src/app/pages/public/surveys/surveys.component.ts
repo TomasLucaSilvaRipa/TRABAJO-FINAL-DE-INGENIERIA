@@ -8,6 +8,7 @@ import { Encuesta, RespuestaEncuesta, RespuestaPreguntaEncuesta, SurveysService 
   selector: 'app-public-surveys',
   imports: [FormsModule, RouterLink],
   templateUrl: './surveys.component.html',
+  styleUrl: './surveys.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PublicSurveysComponent {

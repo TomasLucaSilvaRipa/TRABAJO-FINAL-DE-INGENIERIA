@@ -82,7 +82,7 @@ public partial class TeamBalanceContext : DbContext
     {
         modelBuilder.Entity<AceptacionTermino>(entity =>
         {
-            entity.HasIndex(e => new { e.IdUsuario, e.IdTerminosCondiciones }, "UQ_AceptacionTerminos_Usuario_Terminos").IsUnique();
+            entity.HasIndex(new[] { nameof(AceptacionTermino.IdUsuario), nameof(AceptacionTermino.IdTerminosCondiciones) }, "UQ_AceptacionTerminos_Usuario_Terminos").IsUnique();
 
             entity.Property(e => e.DireccionIP).HasMaxLength(50);
             entity.Property(e => e.FechaAceptacion)
@@ -104,7 +104,7 @@ public partial class TeamBalanceContext : DbContext
         {
             entity.ToTable("AgenciaCliente");
 
-            entity.HasIndex(e => new { e.IdAgencia, e.IdCliente }, "UQ_AgenciaCliente_Agencia_Cliente").IsUnique();
+            entity.HasIndex(new[] { nameof(AgenciaCliente.IdAgencia), nameof(AgenciaCliente.IdCliente) }, "UQ_AgenciaCliente_Agencia_Cliente").IsUnique();
 
             entity.Property(e => e.Activo).HasDefaultValue(true);
             entity.Property(e => e.FechaAlta)
@@ -210,9 +210,9 @@ public partial class TeamBalanceContext : DbContext
         {
             entity.ToTable("Bitacora");
 
-            entity.HasIndex(e => new { e.Entidad, e.IdEntidad }, "IX_Bitacora_Entidad_IdEntidad");
+            entity.HasIndex(new[] { nameof(Bitacora.Entidad), nameof(Bitacora.IdEntidad) }, "IX_Bitacora_Entidad_IdEntidad");
 
-            entity.HasIndex(e => new { e.IdAgencia, e.FechaHora }, "IX_Bitacora_IdAgencia_FechaHora");
+            entity.HasIndex(new[] { nameof(Bitacora.IdAgencia), nameof(Bitacora.FechaHora) }, "IX_Bitacora_IdAgencia_FechaHora");
 
             entity.Property(e => e.Accion).HasMaxLength(100);
             entity.Property(e => e.Criticidad).HasMaxLength(50);
@@ -373,7 +373,7 @@ public partial class TeamBalanceContext : DbContext
         {
             entity.ToTable("EmpleadoSkill");
 
-            entity.HasIndex(e => new { e.IdEmpleado, e.IdSkill }, "UQ_EmpleadoSkill_Empleado_Skill").IsUnique();
+            entity.HasIndex(new[] { nameof(EmpleadoSkill.IdEmpleado), nameof(EmpleadoSkill.IdSkill) }, "UQ_EmpleadoSkill_Empleado_Skill").IsUnique();
 
             entity.Property(e => e.Activo).HasDefaultValue(true);
             entity.Property(e => e.Nivel).HasMaxLength(50);
@@ -393,7 +393,7 @@ public partial class TeamBalanceContext : DbContext
         {
             entity.ToTable("EstadoTarea");
 
-            entity.HasIndex(e => new { e.IdAgencia, e.Nombre }, "UQ_EstadoTarea_Agencia_Nombre").IsUnique();
+            entity.HasIndex(new[] { nameof(EstadoTarea.IdAgencia), nameof(EstadoTarea.Nombre) }, "UQ_EstadoTarea_Agencia_Nombre").IsUnique();
 
             entity.Property(e => e.Activo).HasDefaultValue(true);
             entity.Property(e => e.Nombre).HasMaxLength(80);
@@ -481,7 +481,7 @@ public partial class TeamBalanceContext : DbContext
         {
             entity.ToTable("PlanComercial");
 
-            entity.HasIndex(e => new { e.Nombre, e.Periodicidad }, "UQ_PlanComercial_Nombre_Periodicidad").IsUnique();
+            entity.HasIndex(new[] { nameof(PlanComercial.Nombre), nameof(PlanComercial.Periodicidad) }, "UQ_PlanComercial_Nombre_Periodicidad").IsUnique();
 
             entity.Property(e => e.Activo).HasDefaultValue(true);
             entity.Property(e => e.AlcanceFuncional).HasMaxLength(1000);
@@ -638,7 +638,7 @@ public partial class TeamBalanceContext : DbContext
         {
             entity.ToTable("RolPermiso");
 
-            entity.HasIndex(e => new { e.IdRol, e.IdPermiso }, "UQ_RolPermiso_Rol_Permiso").IsUnique();
+            entity.HasIndex(new[] { nameof(RolPermiso.IdRol), nameof(RolPermiso.IdPermiso) }, "UQ_RolPermiso_Rol_Permiso").IsUnique();
 
             entity.HasOne(d => d.IdPermisoNavigation).WithMany(p => p.RolPermisos)
                 .HasForeignKey(d => d.IdPermiso)
