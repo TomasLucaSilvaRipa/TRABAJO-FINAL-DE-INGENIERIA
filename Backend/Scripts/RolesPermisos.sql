@@ -81,6 +81,7 @@ SET Url = CASE Codigo
     WHEN N'GestionarEncuestas' THEN N'/dashboard/gestion-encuestas'
     WHEN N'GestionarOperadores' THEN N'/dashboard/operadores'
     WHEN N'GestionarRespaldos' THEN N'/dashboard/respaldos'
+    WHEN N'GestionarIdiomas' THEN N'/dashboard/idiomas'
     ELSE Url
 END
 WHERE Url IS NULL;
@@ -120,6 +121,7 @@ USING (VALUES
     ,(N'GestionarEncuestas', N'Crear, modificar, dar de baja y analizar encuestas públicas.', N'/dashboard/gestion-encuestas')
     ,(N'GestionarOperadores', N'Crear, modificar y dar de baja operadores internos de TeamBalance.', N'/dashboard/operadores')
     ,(N'GestionarRespaldos', N'Generar, verificar y probar la restauración de respaldos de base de datos.', N'/dashboard/respaldos')
+    ,(N'GestionarIdiomas', N'Crear idiomas y administrar traducciones de la plataforma.', N'/dashboard/idiomas')
 ) AS origen(Codigo, Descripcion, Url)
 ON destino.Codigo = origen.Codigo
 WHEN MATCHED THEN UPDATE SET Nombre = origen.Codigo, Descripcion = origen.Descripcion, Url = origen.Url, Activo = 1
@@ -137,7 +139,7 @@ FROM dbo.RolPermiso rolPermiso
 INNER JOIN dbo.Rol rol ON rol.ID = rolPermiso.IdRol
 INNER JOIN dbo.Permiso permiso ON permiso.ID = rolPermiso.IdPermiso
 WHERE rol.TipoUsuario <> N'Soporte'
-  AND permiso.Codigo IN (N'ConsultarBitacora', N'GestionarPlanes', N'GestionarBandejaSoporte', N'GestionarNovedades', N'GestionarFaqs', N'GestionarEncuestas', N'GestionarOperadores', N'GestionarRespaldos');
+  AND permiso.Codigo IN (N'ConsultarBitacora', N'GestionarPlanes', N'GestionarBandejaSoporte', N'GestionarNovedades', N'GestionarFaqs', N'GestionarEncuestas', N'GestionarOperadores', N'GestionarRespaldos', N'GestionarIdiomas');
 GO
 
 DELETE rolPermiso
@@ -153,7 +155,7 @@ INNER JOIN dbo.Permiso permiso ON
     (rol.TipoUsuario = N'Dueno' AND permiso.Codigo IN (N'VerDashboard', N'GestionarAgencia', N'GestionarUsuarios', N'GestionarProyectos', N'GestionarTareas', N'GestionarPlantillasTareas', N'GestionarDisponibilidad', N'ConsultarTableroEjecutivo', N'GestionarSuscripcion', N'GestionarRoles', N'VerMisTareas', N'GestionarSoporte', N'GestionarNewsletter', N'Perfil', N'SeguridadCuenta', N'ConsultarNotificaciones', N'ConsultarAyuda'))
     OR (rol.TipoUsuario = N'PM' AND permiso.Codigo IN (N'VerDashboard', N'ConsultarTableroEjecutivo', N'GestionarProyectos', N'GestionarTareas', N'GestionarPlantillasTareas', N'UsarBestFit', N'AnalizarSkills', N'GestionarDisponibilidad', N'VerCalendarioEquipo', N'SimularImpacto', N'VerMisTareas', N'GestionarSoporte', N'GestionarNewsletter', N'Perfil', N'SeguridadCuenta', N'ConsultarNotificaciones', N'ConsultarAyuda'))
     OR (rol.TipoUsuario = N'Empleado' AND permiso.Codigo IN (N'VerDashboard', N'RegistrarHoras', N'GestionarDisponibilidad', N'VerKanban', N'VerCargaOperativa', N'VerMisTareas', N'GestionarSoporte', N'GestionarNewsletter', N'Perfil', N'SeguridadCuenta', N'ConsultarNotificaciones', N'ConsultarAyuda'))
-    OR (rol.TipoUsuario = N'Soporte' AND permiso.Codigo IN (N'VerDashboard', N'GestionarRoles', N'GestionarPlanes', N'ConsultarBitacora', N'GestionarBandejaSoporte', N'GestionarNovedades', N'GestionarFaqs', N'GestionarEncuestas', N'GestionarOperadores', N'GestionarRespaldos', N'Perfil', N'SeguridadCuenta', N'ConsultarNotificaciones', N'ConsultarAyuda'))
+    OR (rol.TipoUsuario = N'Soporte' AND permiso.Codigo IN (N'VerDashboard', N'GestionarRoles', N'GestionarPlanes', N'ConsultarBitacora', N'GestionarBandejaSoporte', N'GestionarNovedades', N'GestionarFaqs', N'GestionarEncuestas', N'GestionarOperadores', N'GestionarRespaldos', N'GestionarIdiomas', N'Perfil', N'SeguridadCuenta', N'ConsultarNotificaciones', N'ConsultarAyuda'))
 WHERE rol.EsRolBase = 1;
 GO
 

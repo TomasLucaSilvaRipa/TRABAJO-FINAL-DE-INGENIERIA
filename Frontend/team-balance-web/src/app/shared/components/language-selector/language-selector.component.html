@@ -6,8 +6,9 @@
   </button>
   @if (abierto()) {
     <div class="tb-language-selector__menu" role="listbox">
-      <button type="button" role="option" [attr.aria-selected]="localization.language() === 'es'" (click)="cambiarIdioma('es')"><span>ES</span> Español</button>
-      <button type="button" role="option" [attr.aria-selected]="localization.language() === 'en'" (click)="cambiarIdioma('en')"><span>EN</span> English</button>
+      @for (idioma of localization.idiomasDisponibles(); track idioma.codigo) {
+        <button type="button" role="option" [attr.aria-selected]="localization.language() === idioma.codigo" (click)="cambiarIdioma(idioma.codigo)"><span>{{ idioma.codigo.toUpperCase() }}</span> {{ idioma.nombre }}</button>
+      }
     </div>
   }
 </div>

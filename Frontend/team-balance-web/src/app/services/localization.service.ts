@@ -1,16 +1,73 @@
-import { Injectable, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { computed, inject, Injectable, signal } from '@angular/core';
 
-export type LanguageCode = 'es' | 'en';
-export type CultureCode = 'es-AR' | 'en-US';
+export type LanguageCode = string;
+export type CultureCode = string;
 
 type TranslationDictionary = Record<string, string>;
+
+export interface IdiomaPlataforma {
+  id: number;
+  codigo: string;
+  nombre: string;
+  activo: boolean;
+  traducciones: TranslationDictionary;
+}
+
+const managementTranslations: Record<'es' | 'en', TranslationDictionary> = {
+  es: {
+    'languages.menu': 'Idiomas', 'languages.kicker': 'Configuración de plataforma', 'languages.title': 'Idiomas y traducciones',
+    'languages.description': 'Creá idiomas y completá sus textos de interfaz. Las claves sin traducir se muestran en inglés.',
+    'languages.newLanguage': 'Nuevo idioma', 'languages.code': 'Código ISO', 'languages.codeHint': 'Ej.: fr o pt-BR', 'languages.name': 'Nombre del idioma',
+    'languages.create': 'Crear idioma', 'languages.select': 'Seleccionar idioma', 'languages.search': 'Buscar texto o clave',
+    'languages.translations': 'Traducciones', 'languages.translationsHint': 'Podés guardar aunque queden campos vacíos.', 'languages.source': 'Texto base en inglés',
+    'languages.translation': 'Traducción', 'languages.active': 'Disponible para usuarios', 'languages.save': 'Guardar idioma',
+    'languages.saving': 'Guardando…', 'languages.created': 'Idioma creado. Ya podés completar sus traducciones.', 'languages.saved': 'Idioma guardado correctamente.',
+    'languages.loadError': 'No pudimos cargar los idiomas.', 'languages.saveError': 'No pudimos guardar el idioma.', 'languages.empty': 'No hay claves que coincidan con la búsqueda.',
+    'languages.total': 'claves disponibles', 'languages.partial': 'traducidas', 'common.language': 'Idioma',
+    'legacy.management': 'GESTIÓN OPERATIVA', 'legacy.direction': 'DIRECCIÓN Y GERENCIA', 'legacy.operationalAnalysis': 'Análisis operativo',
+    'legacy.operationalDescription': 'Consultá capacidad, consumo de horas, eficiencia de perfiles y conveniencia operativa con la información registrada por la agencia.',
+    'legacy.delayRisk': 'Riesgo de retraso', 'legacy.hourControl': 'Control de horas', 'legacy.occupation': 'Ocupación', 'legacy.convenience': 'Conveniencia', 'legacy.overqualification': 'Sobrecalificación', 'legacy.pendingReviews': 'Revisiones pendientes',
+    'legacy.applyFilters': 'Aplicar filtros', 'legacy.clearFilters': 'Limpiar filtros', 'legacy.updateAnalysis': 'Actualizar análisis', 'legacy.updating': 'Actualizando…',
+    'legacy.project': 'Proyecto', 'legacy.client': 'Cliente', 'legacy.responsible': 'Responsable', 'legacy.status': 'Estado', 'legacy.from': 'Desde', 'legacy.to': 'Hasta', 'legacy.allProjects': 'Todos los proyectos', 'legacy.allClients': 'Todos los clientes',
+    'legacy.viewDetail': 'Ver detalle', 'legacy.registerAdjustment': 'Registrar ajuste', 'legacy.adjustment': 'Ajuste', 'legacy.informOwner': 'Informar al Dueño', 'legacy.remaining': 'restantes', 'legacy.exceeded': 'excedidas', 'legacy.noDifference': 'Sin diferencia',
+    'legacy.impactSimulation': 'Simulación de impacto', 'legacy.taskTemplates': 'Plantillas de tareas', 'legacy.skillsCoverage': 'Skills desiertos y cobertura', 'legacy.teamAvailability': 'Disponibilidad del equipo',
+    'legacy.selectTask': 'Seleccionar tarea', 'legacy.selectResource': 'Seleccionar recurso', 'legacy.simulateCandidate': 'Simular candidato', 'legacy.useBestFit': 'Usar Best Fit', 'legacy.noScenarios': 'Sin escenarios para comparar',
+    'legacy.createTemplate': 'Crear plantilla', 'legacy.cancel': 'Cancelar', 'legacy.edit': 'Editar', 'legacy.delete': 'Dar de baja', 'legacy.saveChanges': 'Guardar cambios', 'legacy.create': 'Crear', 'legacy.add': 'Agregar', 'legacy.remove': 'Quitar',
+    'legacy.noDescription': 'Sin descripción base.', 'legacy.undefined': 'Sin definir', 'legacy.priority': 'Prioridad', 'legacy.complexity': 'Complejidad', 'legacy.skill': 'Skill', 'legacy.seniority': 'Seniority',
+  },
+  en: {
+    'languages.menu': 'Languages', 'languages.kicker': 'Platform settings', 'languages.title': 'Languages and translations',
+    'languages.description': 'Create languages and complete their interface texts. Missing keys are shown in English.',
+    'languages.newLanguage': 'New language', 'languages.code': 'ISO code', 'languages.codeHint': 'E.g.: fr or pt-BR', 'languages.name': 'Language name',
+    'languages.create': 'Create language', 'languages.select': 'Select language', 'languages.search': 'Search text or key',
+    'languages.translations': 'Translations', 'languages.translationsHint': 'You can save with empty fields.', 'languages.source': 'English source text',
+    'languages.translation': 'Translation', 'languages.active': 'Available to users', 'languages.save': 'Save language',
+    'languages.saving': 'Saving…', 'languages.created': 'Language created. You can now complete its translations.', 'languages.saved': 'Language saved successfully.',
+    'languages.loadError': 'We could not load languages.', 'languages.saveError': 'We could not save the language.', 'languages.empty': 'No keys match your search.',
+    'languages.total': 'available keys', 'languages.partial': 'translated', 'common.language': 'Language',
+    'legacy.management': 'OPERATIONS', 'legacy.direction': 'MANAGEMENT', 'legacy.operationalAnalysis': 'Operational analysis',
+    'legacy.operationalDescription': 'Review capacity, hour consumption, profile efficiency and operational convenience using your agency’s registered information.',
+    'legacy.delayRisk': 'Delay risk', 'legacy.hourControl': 'Hour control', 'legacy.occupation': 'Utilization', 'legacy.convenience': 'Convenience', 'legacy.overqualification': 'Overqualification', 'legacy.pendingReviews': 'Pending reviews',
+    'legacy.applyFilters': 'Apply filters', 'legacy.clearFilters': 'Clear filters', 'legacy.updateAnalysis': 'Refresh analysis', 'legacy.updating': 'Updating…',
+    'legacy.project': 'Project', 'legacy.client': 'Client', 'legacy.responsible': 'Responsible', 'legacy.status': 'Status', 'legacy.from': 'From', 'legacy.to': 'To', 'legacy.allProjects': 'All projects', 'legacy.allClients': 'All clients',
+    'legacy.viewDetail': 'View details', 'legacy.registerAdjustment': 'Log adjustment', 'legacy.adjustment': 'Adjustment', 'legacy.informOwner': 'Notify owner', 'legacy.remaining': 'remaining', 'legacy.exceeded': 'exceeded', 'legacy.noDifference': 'No difference',
+    'legacy.impactSimulation': 'Impact simulation', 'legacy.taskTemplates': 'Task templates', 'legacy.skillsCoverage': 'Skills gaps and coverage', 'legacy.teamAvailability': 'Team availability',
+    'legacy.selectTask': 'Select task', 'legacy.selectResource': 'Select resource', 'legacy.simulateCandidate': 'Simulate candidate', 'legacy.useBestFit': 'Use Best Fit', 'legacy.noScenarios': 'No scenarios to compare',
+    'legacy.createTemplate': 'Create template', 'legacy.cancel': 'Cancel', 'legacy.edit': 'Edit', 'legacy.delete': 'Deactivate', 'legacy.saveChanges': 'Save changes', 'legacy.create': 'Create', 'legacy.add': 'Add', 'legacy.remove': 'Remove',
+    'legacy.noDescription': 'No base description.', 'legacy.undefined': 'Not defined', 'legacy.priority': 'Priority', 'legacy.complexity': 'Complexity', 'legacy.skill': 'Skill', 'legacy.seniority': 'Seniority',
+  },
+};
 
 @Injectable({
   providedIn: 'root',
 })
 export class LocalizationService {
 
-  private readonly translations: Record<LanguageCode, TranslationDictionary> = {
+  private readonly http = inject(HttpClient);
+  private readonly idiomasRemotos = signal<IdiomaPlataforma[]>([]);
+
+  private readonly translations: Record<string, TranslationDictionary> = {
 
     es: {
       'common.save': 'Guardar',
@@ -1125,16 +1182,39 @@ export class LocalizationService {
 
   readonly culture = signal<CultureCode>((localStorage.getItem('culture') as CultureCode) || 'es-AR');
 
+  readonly idiomasDisponibles = computed(() => [
+    { codigo: 'es', nombre: 'Español' },
+    { codigo: 'en', nombre: 'English' },
+    ...this.idiomasRemotos().filter((idioma) => idioma.codigo !== 'es' && idioma.codigo !== 'en').map(({ codigo, nombre }) => ({ codigo, nombre })),
+  ]);
+
+  constructor() { this.cargarIdiomas(); }
+
+  cargarIdiomas(): void {
+    this.http.get<IdiomaPlataforma[]>('/api/idiomas/activos').subscribe({
+      next: (idiomas) => {
+        this.idiomasRemotos.set(idiomas ?? []);
+        if (!this.idiomasDisponibles().some((idioma) => idioma.codigo === this.language())) this.cambiarIdioma('en');
+      },
+      error: () => this.idiomasRemotos.set([]),
+    });
+  }
+
+  catalogoEnIngles(): TranslationDictionary { return { ...this.translations['en'], ...managementTranslations.en }; }
+  catalogoBase(language: 'es' | 'en'): TranslationDictionary { return { ...this.translations[language], ...managementTranslations[language] }; }
+
   cambiarIdioma(language: LanguageCode): void {
     this.language.set(language);
-    const culture: CultureCode = language === 'es' ? 'es-AR' : 'en-US';
+    const culture: CultureCode = language === 'es' ? 'es-AR' : language === 'en' ? 'en-US' : language;
     this.culture.set(culture);
     localStorage.setItem('language', language);
     localStorage.setItem('culture', culture);
   }
 
   traducir(key: string, language: LanguageCode = this.language(), fallback?: string): string {
-    return this.translations[language][key] ?? fallback ?? key;
+    const remoto = this.idiomasRemotos().find((idioma) => idioma.codigo === language)?.traducciones?.[key];
+    return remoto || this.translations[language]?.[key] || managementTranslations[language as 'es' | 'en']?.[key]
+      || this.translations['en'][key] || managementTranslations.en[key] || fallback || key;
   }
 
   formatearFecha(fecha: Date | string): string {

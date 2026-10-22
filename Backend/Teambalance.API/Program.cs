@@ -53,6 +53,7 @@ builder.Services.AddScoped<MPPRespaldoBaseDatos>();
 builder.Services.AddScoped<MPPSlack>();
 builder.Services.AddScoped<MPPAnaliticaOperativa>();
 builder.Services.AddScoped<MPPNotificacion>();
+builder.Services.AddScoped<MPPIdioma>();
 builder.Services.AddScoped<EmailService>(serviceProvider => new EmailService(
     builder.Configuration["Email:Emisor"],
     builder.Configuration["Email:ClaveAplicacion"],
@@ -90,6 +91,7 @@ builder.Services.AddScoped<BLLRespaldoBaseDatos>();
 builder.Services.AddScoped<BLLSlack>();
 builder.Services.AddScoped<BLLAnaliticaOperativa>();
 builder.Services.AddScoped<BLLNotificacion>();
+builder.Services.AddScoped<BLLIdioma>();
 builder.Services.AddSingleton(builder.Configuration.GetSection("Backup").Get<BackupSettings>() ?? new BackupSettings());
 builder.Services.AddSingleton<ContinuityHistoryXmlService>();
 builder.Services.AddSingleton<EncryptionService>();

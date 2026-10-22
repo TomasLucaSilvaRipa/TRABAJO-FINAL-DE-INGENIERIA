@@ -12,7 +12,7 @@ Chart.register(ArcElement, DoughnutController, Legend, Tooltip);
 })
 export class SurveyResultsChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input({ required: true }) pregunta!: ResultadoPreguntaEncuesta;
-  @Input({ required: true }) idioma!: 'es' | 'en';
+  @Input({ required: true }) idioma!: string;
   @Input({ required: true }) etiquetaRespuestas!: string;
   @ViewChild('grafico', { static: true }) private graficoElemento!: ElementRef<HTMLCanvasElement>;
 

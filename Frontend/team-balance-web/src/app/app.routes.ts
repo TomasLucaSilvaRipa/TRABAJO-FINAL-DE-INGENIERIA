@@ -70,6 +70,7 @@ import { FaqManagerComponent } from './pages/users/support/faq-manager/faq-manag
 import { PublicSurveysComponent } from './pages/public/surveys/surveys.component';
 import { SurveyManagerComponent } from './pages/users/support/survey-manager/survey-manager.component';
 import { SlackLinkingComponent } from './pages/users/support/slack-linking/slack-linking.component';
+import { LanguageManagementComponent } from './pages/users/support/language-management/language-management.component';
 
 export const routes: Routes = [
   {
@@ -255,6 +256,7 @@ export const routes: Routes = [
       { path: 'operadores', component: OperatorsManagementComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarOperadores' }, title: 'Gestión de operadores | TeamBalance' },
       { path: 'vinculaciones-slack', component: SlackLinkingComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarOperadores' }, title: 'Vinculaciones de Slack | TeamBalance' },
       { path: 'respaldos', component: BackupManagerComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarRespaldos' }, title: 'Respaldo y restauración | TeamBalance' },
+      { path: 'idiomas', component: LanguageManagementComponent, canActivate: [supportGuard, permissionGuard], data: { permission: 'GestionarIdiomas' }, title: 'Idiomas y traducciones | TeamBalance' },
       {
         path:'form-elements',
         component:FormElementsComponent,

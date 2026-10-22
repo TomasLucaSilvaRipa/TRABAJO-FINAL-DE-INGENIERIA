@@ -57,5 +57,5 @@ const PRIVACY_CONTENT: Record<LanguageCode, PrivacyContent> = {
 })
 export class PrivacyPolicyComponent {
   private readonly localization = inject(LocalizationService);
-  readonly content = computed(() => PRIVACY_CONTENT[this.localization.language()]);
+  readonly content = computed(() => PRIVACY_CONTENT[this.localization.language()] ?? PRIVACY_CONTENT['en']);
 }

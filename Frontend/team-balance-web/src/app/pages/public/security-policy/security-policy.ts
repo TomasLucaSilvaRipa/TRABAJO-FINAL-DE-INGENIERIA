@@ -37,5 +37,5 @@ const SECURITY_CONTENT: Record<LanguageCode, SecurityContent> = {
 })
 export class SecurityPolicyComponent {
   private readonly localization = inject(LocalizationService);
-  readonly content = computed(() => SECURITY_CONTENT[this.localization.language()]);
+  readonly content = computed(() => SECURITY_CONTENT[this.localization.language()] ?? SECURITY_CONTENT['en']);
 }

@@ -59,5 +59,5 @@ const TERMS_CONTENT: Record<LanguageCode, LegalContent> = {
 })
 export class TermsAndConditions {
   private readonly localization = inject(LocalizationService);
-  readonly content = computed(() => TERMS_CONTENT[this.localization.language()]);
+  readonly content = computed(() => TERMS_CONTENT[this.localization.language()] ?? TERMS_CONTENT['en']);
 }

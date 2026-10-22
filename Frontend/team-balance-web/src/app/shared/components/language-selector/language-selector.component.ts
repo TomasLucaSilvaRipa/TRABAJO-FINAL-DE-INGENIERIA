@@ -28,6 +28,6 @@ export class LanguageSelector {
   }
 
   protected etiquetaIdioma(): string {
-    return this.localization.language() === 'es' ? 'ES' : 'EN';
+    return this.localization.language().toUpperCase();
   }
 }

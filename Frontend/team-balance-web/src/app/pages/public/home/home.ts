@@ -56,8 +56,8 @@ export class HomeComponent {
   private readonly reviewsService = inject(ReviewsService);
   readonly stars = [1, 2, 3, 4, 5];
   readonly reviewNoticeOpen = signal(false);
-  readonly content = computed(() => HOME_CONTENT[this.localization.language()]);
-  readonly reviews = computed(() => [...this.reviewsService.reviews(), ...REVIEWS[this.localization.language()]]);
+  readonly content = computed(() => HOME_CONTENT[this.localization.language()] ?? HOME_CONTENT['en']);
+  readonly reviews = computed(() => [...this.reviewsService.reviews(), ...(REVIEWS[this.localization.language()] ?? REVIEWS['en'])]);
 
   openReviewNotice(): void {
     this.reviewNoticeOpen.set(true);
