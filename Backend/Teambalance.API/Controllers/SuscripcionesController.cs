@@ -49,6 +49,15 @@ public sealed class SuscripcionesController : ControllerBase
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
 
+    [HttpPost("reactivar-con-nota-credito/diferencia")]
+    public async Task<IActionResult> SolicitarReactivacionConCreditoParcial([FromBody] CambioPlanSuscripcionRequest solicitud)
+    {
+        try { return Ok(await _suscripcionBLL.SolicitarReactivacionConCreditoParcial(ObtenerSolicitante(), solicitud)); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+    }
+
     [HttpGet("renovacion-automatica/configuracion")]
     public IActionResult ConsultarConfiguracionRenovacion() => Ejecutar(() => Ok(_suscripcionBLL.ObtenerConfiguracionRenovacionAutomatica(ObtenerSolicitante())));
 
@@ -102,6 +111,17 @@ public sealed class SuscripcionesController : ControllerBase
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
         catch (Exception) { return StatusCode(502, "No fue posible autorizar la renovación automática con Mercado Pago."); }
+    }
+
+    [HttpPost("renovacion-automatica/verificar-mercado-pago")]
+    public async Task<IActionResult> VerificarRenovacionMercadoPago([FromBody] VerificarPagoSuscripcionRequest solicitud)
+    {
+        try { return Ok(await _suscripcionBLL.VerificarRenovacionAutomaticaMercadoPago(ObtenerSolicitante(), solicitud)); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(502, "No fue posible verificar la renovación automática con Mercado Pago."); }
     }
 
     [HttpPost("renovacion-automatica/stripe")]

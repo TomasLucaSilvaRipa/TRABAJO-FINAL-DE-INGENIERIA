@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { LocalizationService } from '../../../services/localization.service';
-import { Encuesta, RespuestaEncuesta, RespuestaPreguntaEncuesta, SurveysService } from '../../../services/surveys.service';
+import { Encuesta, RespuestaEncuesta, RespuestaPreguntaEncuesta, ResultadoEncuesta, SurveysService } from '../../../services/surveys.service';
 
 @Component({
   selector: 'app-public-surveys',
@@ -19,6 +19,8 @@ export class PublicSurveysComponent {
   readonly respuestas = signal<Record<number, number>>({});
   readonly cargando = signal(true);
   readonly enviando = signal(false);
+  readonly cargandoResultados = signal(false);
+  readonly resultados = signal<ResultadoEncuesta | null>(null);
   readonly mensaje = signal('');
   readonly error = signal('');
 
@@ -44,6 +46,7 @@ export class PublicSurveysComponent {
   seleccionar(encuesta: Encuesta): void {
     this.error.set('');
     this.mensaje.set('');
+    this.resultados.set(null);
     this.surveysService.publica(encuesta).subscribe({
       next: detalle => {
         this.encuestaSeleccionada.set(detalle);
@@ -73,10 +76,25 @@ export class PublicSurveysComponent {
         this.enviando.set(false);
         this.mensaje.set(this.t('surveys.sent'));
         this.encuestaSeleccionada.set(null);
+        this.cargarResultados(encuesta);
       },
       error: respuestaError => {
         this.enviando.set(false);
         this.error.set(respuestaError?.error ?? this.t('surveys.sendError'));
+      },
+    });
+  }
+
+  cargarResultados(encuesta: Encuesta): void {
+    this.cargandoResultados.set(true);
+    this.surveysService.resultadosPublicos(encuesta).subscribe({
+      next: resultados => {
+        this.resultados.set(resultados);
+        this.cargandoResultados.set(false);
+      },
+      error: () => {
+        this.error.set(this.t('surveys.resultsError'));
+        this.cargandoResultados.set(false);
       },
     });
   }

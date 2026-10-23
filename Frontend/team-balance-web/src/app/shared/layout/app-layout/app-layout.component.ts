@@ -8,6 +8,7 @@ import { AppHeaderComponent } from '../app-header/app-header.component';
 import { AuthService } from '../../../services/auth.service';
 import { FocusTimerService } from '../../../services/focus-timer.service';
 import { LocalizedStaticContentDirective } from '../../directives/localized-static-content.directive';
+import { ThemeToggleButtonComponent } from '../../components/common/theme-toggle/theme-toggle-button.component';
 
 @Component({
   selector: 'app-layout',
@@ -17,7 +18,8 @@ import { LocalizedStaticContentDirective } from '../../directives/localized-stat
     AppHeaderComponent,
     AppSidebarComponent,
     BackdropComponent,
-    LocalizedStaticContentDirective
+    LocalizedStaticContentDirective,
+    ThemeToggleButtonComponent
   ],
   templateUrl: './app-layout.component.html',
 })
@@ -29,14 +31,29 @@ export class AppLayoutComponent {
   readonly isHovered$;
   readonly isMobileOpen$;
 
-  constructor(public sidebarService: SidebarService, private readonly authService: AuthService) {
+  constructor(public sidebarService: SidebarService, readonly authService: AuthService) {
     this.isExpanded$ = this.sidebarService.isExpanded$;
     this.isHovered$ = this.sidebarService.isHovered$;
     this.isMobileOpen$ = this.sidebarService.isMobileOpen$;
   }
 
+  cerrarSesion(): void {
+    this.authService.cerrarSesion().subscribe({
+      next: () => this.finalizarSesion(),
+      error: () => this.finalizarSesion(),
+    });
+  }
+
+  private finalizarSesion(): void {
+    this.authService.logOut();
+    void this.router.navigate(['/']);
+  }
+
   ngOnInit() {
-    this.authService.actualizarAutorizacionSesion();
+    if (!this.authService.suscripcionRestringida())
+    {
+      this.authService.actualizarAutorizacionSesion();
+    }
   }
 
   get containerClasses() {

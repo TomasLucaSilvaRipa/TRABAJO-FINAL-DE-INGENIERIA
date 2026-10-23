@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { from, Observable, switchMap, tap } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { from, map, Observable, switchMap, tap } from 'rxjs';
 import { EncryptionService } from './security/encryption.service';
 
 export interface RegistryResponse {
@@ -73,6 +73,7 @@ export class AuthService {
   private readonly authApiUrl = '/api/auth';
   private readonly encryptionService = inject(EncryptionService);
   private readonly usuarioSesion = signal<UsuarioSesion | null>(this.leerUsuarioActual());
+  readonly suscripcionRestringida = signal(false);
 
   registrarAgencia(referenciaContratacion: string, agencia: object, recibirNewsletter: boolean, categoriasNewsletterIds: number[]): Observable<RegistryResponse> {
     return this.http.post<RegistryResponse>(
@@ -131,6 +132,14 @@ export class AuthService {
     return this.http.get<{ usuario: UsuarioSesion; roles: RolSesion[]; permisos: PermisoSesion[] }>(`${this.authApiUrl}/autorizacion`);
   }
 
+  validarAccesoAgencia(): Observable<void> {
+    const headers = new HttpHeaders().set('X-TeamBalance-Subscription-Probe', 'true');
+    return this.http.get<unknown[]>(
+      '/api/notificaciones',
+      { headers },
+    ).pipe(map(() => undefined));
+  }
+
   actualizarAutorizacionSesion(): void {
     this.consultarAutorizacion().subscribe({
       next: respuesta => this.guardarUsuario({ ...respuesta.usuario, roles: respuesta.roles, permisos: respuesta.permisos }),
@@ -179,6 +188,11 @@ export class AuthService {
     sessionStorage.removeItem('tokenExpiresAt');
     sessionStorage.removeItem('usuario');
     this.usuarioSesion.set(null);
+    this.suscripcionRestringida.set(false);
+  }
+
+  establecerSuscripcionRestringida(restringida: boolean): void {
+    this.suscripcionRestringida.set(restringida);
   }
 
   guardarUsuario(usuario: UsuarioSesion): void {

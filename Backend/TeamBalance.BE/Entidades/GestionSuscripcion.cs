@@ -7,6 +7,9 @@ public sealed class CambioPlanSuscripcionRequest
     public int IdPlanComercial { get; set; }
     public string ReferenciaInterna { get; set; } = string.Empty;
     public string Proveedor { get; set; } = string.Empty;
+    public decimal ImportePago { get; set; }
+    public string MonedaPago { get; set; } = string.Empty;
+    public decimal CreditoAplicado { get; set; }
 }
 
 public sealed class CancelacionRenovacionRequest
@@ -91,7 +94,7 @@ public sealed class OperacionSuscripcionPendiente
         ReferenciaInterna = referenciaInterna;
     }
 
-    public OperacionSuscripcionPendiente(int idOperacion, int idSuscripcion, int idPlanNuevo, string referenciaInterna, decimal importe, string moneda, string proveedor)
+    public OperacionSuscripcionPendiente(int idOperacion, int idSuscripcion, int idPlanNuevo, string referenciaInterna, decimal importe, string moneda, string proveedor, string tipoOperacion = "")
     {
         IdOperacion = idOperacion;
         IdSuscripcion = idSuscripcion;
@@ -100,6 +103,7 @@ public sealed class OperacionSuscripcionPendiente
         Importe = importe;
         Moneda = moneda;
         Proveedor = proveedor;
+        TipoOperacion = tipoOperacion;
     }
 
     public int IdOperacion { get; set; }
@@ -109,6 +113,7 @@ public sealed class OperacionSuscripcionPendiente
     public decimal Importe { get; set; }
     public string Moneda { get; set; } = string.Empty;
     public string Proveedor { get; set; } = string.Empty;
+    public string TipoOperacion { get; set; } = string.Empty;
     public string ReferenciaProveedor { get; set; } = string.Empty;
     public string EstadoProveedor { get; set; } = string.Empty;
     public string DetalleProveedor { get; set; } = string.Empty;
@@ -150,8 +155,21 @@ public sealed class ConfiguracionRenovacionAutomatica
 
 public sealed class AutorizarRenovacionAutomaticaRequest
 {
-    public string CardToken { get; set; } = string.Empty;
     public string PayerEmail { get; set; } = string.Empty;
+}
+
+public sealed class SolicitudRenovacionMercadoPago
+{
+    public SolicitudRenovacionMercadoPago(string nombrePlan, string referenciaExterna, string payerEmail)
+    {
+        NombrePlan = nombrePlan;
+        ReferenciaExterna = referenciaExterna;
+        PayerEmail = payerEmail;
+    }
+
+    public string NombrePlan { get; set; }
+    public string ReferenciaExterna { get; set; }
+    public string PayerEmail { get; set; }
 }
 
 public sealed class RenovacionProveedorPendiente

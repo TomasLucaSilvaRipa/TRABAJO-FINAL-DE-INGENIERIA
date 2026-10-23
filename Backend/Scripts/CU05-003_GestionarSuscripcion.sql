@@ -104,7 +104,7 @@ CREATE OR ALTER PROCEDURE dbo.usp_Suscripcion_ConsultarOperacionPendiente
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT TOP (1) ID AS IdOperacion, IdSuscripcion, IdPlanNuevo, ReferenciaInterna, Importe, Moneda, Proveedor
+    SELECT TOP (1) ID AS IdOperacion, IdSuscripcion, IdPlanNuevo, ReferenciaInterna, Importe, Moneda, Proveedor, TipoOperacion
     FROM dbo.OperacionSuscripcion
     WHERE ReferenciaInterna = @ReferenciaInterna AND Estado = N'Pendiente';
 END;

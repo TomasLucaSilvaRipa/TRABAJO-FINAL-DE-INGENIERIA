@@ -2,7 +2,8 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
 import { AuthService, DesafioDosFactoresResponse, LogInResponse } from '../../../../services/auth.service';
 import { RecaptchaService } from '../../../../services/recaptcha.service';
@@ -19,6 +20,7 @@ export class SigninFormComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly recaptchaService = inject(RecaptchaService);
+  private readonly route = inject(ActivatedRoute);
   readonly localization = inject(LocalizationService);
 
   showPassword = false;
@@ -32,6 +34,13 @@ export class SigninFormComponent {
     password: ['', Validators.required],
     mantenerSesion: [false],
   });
+
+  constructor() {
+    if (this.route.snapshot.queryParamMap.get('motivo') === 'agencia-inactiva')
+    {
+      this.requestError.set('La agencia no tiene una suscripción activa. Contactá al dueño para reactivar el servicio.');
+    }
+  }
 
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
@@ -81,6 +90,29 @@ export class SigninFormComponent {
 
   private completarInicioSesion(respuesta: LogInResponse, mantenerSesion: boolean): void {
     this.authService.guardarSesion(respuesta, mantenerSesion);
-    window.location.assign('/dashboard');
+    this.submitting.set(true);
+    this.authService.validarAccesoAgencia().pipe(finalize(() => this.submitting.set(false))).subscribe({
+      next: () => {
+        window.location.assign('/dashboard');
+      },
+      error: (error: HttpErrorResponse) => {
+        if (error.status === 403 && error.error?.code === 'SUBSCRIPTION_EXPIRED')
+        {
+          if (this.authService.tienePermiso('GestionarSuscripcion'))
+          {
+            this.authService.establecerSuscripcionRestringida(true);
+            window.location.assign('/dashboard/suscripcion');
+            return;
+          }
+
+          this.authService.logOut();
+          this.requestError.set('La agencia no tiene una suscripción activa. Contactá al dueño para reactivar el servicio.');
+          return;
+        }
+
+        this.authService.logOut();
+        this.requestError.set('No fue posible comprobar el acceso de la agencia. Intentá nuevamente.');
+      },
+    });
   }
 }

@@ -32,7 +32,7 @@ namespace TeamBalance.Services
 
             if (string.IsNullOrWhiteSpace(accessToken)) throw new Exception("No se configuró el Access Token de Mercado Pago.");
 
-        if (CobroPruebaHabilitado())
+        if (CobroPruebaHabilitado() && !pago.UsarImporteExacto)
         {
             (decimal importePrueba, string monedaPrueba) = ObtenerCobroPrueba(pago.CodigoPlan);
             pago = new MercadoPagoPreferenceRequest(pago.Titulo, importePrueba, monedaPrueba, pago.ReferenciaExterna, pago.CodigoPlan);
@@ -106,32 +106,73 @@ namespace TeamBalance.Services
         return (publicKey, importe, moneda);
     }
 
-    public async Task<MercadoPagoPreapproval> CrearRenovacionAutomatica(string nombrePlan, string referenciaExterna, string payerEmail, string cardToken)
+    public CobroMercadoPago ObtenerCobroPlan(PlanComercial plan)
     {
-        if (string.IsNullOrWhiteSpace(cardToken) || string.IsNullOrWhiteSpace(payerEmail)) throw new ArgumentException("Completá el medio de pago y el email de la cuenta de prueba.");
+        if (!CobroPruebaHabilitado()) return new CobroMercadoPago(plan.PrecioVigente, plan.Moneda);
+        (decimal importe, string moneda) = ObtenerCobroPrueba(plan.Nombre);
+        return new CobroMercadoPago(importe, moneda);
+    }
+
+    public async Task<MercadoPagoPreapproval> CrearRenovacionAutomatica(SolicitudRenovacionMercadoPago renovacion)
+    {
+        if (string.IsNullOrWhiteSpace(renovacion.PayerEmail)) throw new ArgumentException("Ingresá el email de la cuenta compradora de Mercado Pago.");
         string? accessToken = _configuration["MercadoPago:AccessToken"];
         if (string.IsNullOrWhiteSpace(accessToken)) throw new InvalidOperationException("No se configuró el Access Token de Mercado Pago.");
-        (decimal importe, string moneda) = ObtenerCobroPrueba(nombrePlan);
-        MercadoPagoPreapprovalRequest body = new MercadoPagoPreapprovalRequest();
-        body.Reason = $"TeamBalance · renovación {nombrePlan}";
-        body.ExternalReference = referenciaExterna;
-        body.PayerEmail = payerEmail;
-        body.CardTokenId = cardToken;
-        body.Status = "authorized";
-        body.AutoRecurring = new MercadoPagoAutoRecurringRequest();
-        body.AutoRecurring.Frequency = 1;
-        body.AutoRecurring.FrequencyType = "months";
-        body.AutoRecurring.TransactionAmount = importe;
-        body.AutoRecurring.CurrencyId = moneda;
+        string? publicBaseUrl = _configuration["Frontend:PublicBaseUrl"];
+        if (string.IsNullOrWhiteSpace(publicBaseUrl) || !Uri.TryCreate(publicBaseUrl, UriKind.Absolute, out Uri? publicUri) || publicUri.Scheme != Uri.UriSchemeHttps)
+            throw new InvalidOperationException("Frontend:PublicBaseUrl debe ser una URL pública con HTTPS para autorizar renovaciones automáticas.");
+        (decimal importe, string moneda) = ObtenerCobroPrueba(renovacion.NombrePlan);
+        MercadoPagoAutoRecurringRequest autoRecurring = new MercadoPagoAutoRecurringRequest(1, "months", importe, moneda);
+        string backUrl = publicBaseUrl.TrimEnd('/') + "/pago/resultado?external_reference=" + Uri.EscapeDataString(renovacion.ReferenciaExterna) + "&renovacion=mercadopago";
+        MercadoPagoPreapprovalRequest body = new MercadoPagoPreapprovalRequest(
+            $"TeamBalance · renovación {renovacion.NombrePlan}",
+            renovacion.ReferenciaExterna,
+            renovacion.PayerEmail,
+            backUrl,
+            "pending",
+            autoRecurring);
         using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "https://api.mercadopago.com/preapproval");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        if (CobroPruebaHabilitado()) request.Headers.TryAddWithoutValidation("X-scope", "stage");
         request.Content = JsonContent.Create(body);
         using HttpResponseMessage response = await _httpClient.SendAsync(request);
-        if (!response.IsSuccessStatusCode) throw new InvalidOperationException($"Mercado Pago no pudo autorizar la renovación: {await response.Content.ReadAsStringAsync()}");
+        if (!response.IsSuccessStatusCode)
+        {
+            string detalle = await response.Content.ReadAsStringAsync();
+            string respuestaProveedor = string.IsNullOrWhiteSpace(detalle)
+                ? $"{(int)response.StatusCode} {response.ReasonPhrase}"
+                : detalle;
+            throw new InvalidOperationException($"Mercado Pago no pudo autorizar la renovación: {respuestaProveedor}");
+        }
         MercadoPagoPreapprovalResponse? resultado = await response.Content.ReadFromJsonAsync<MercadoPagoPreapprovalResponse>();
-        if (resultado is null || string.IsNullOrWhiteSpace(resultado.Id) || string.IsNullOrWhiteSpace(resultado.Status)) throw new InvalidOperationException("Mercado Pago no devolvió la autorización recurrente.");
-        return new MercadoPagoPreapproval(resultado.Id, resultado.Status);
+        if (resultado is null || string.IsNullOrWhiteSpace(resultado.Id) || string.IsNullOrWhiteSpace(resultado.Status) || string.IsNullOrWhiteSpace(resultado.InitPoint)) throw new InvalidOperationException("Mercado Pago no devolvió el enlace para autorizar la renovación.");
+        return new MercadoPagoPreapproval(resultado.Id, resultado.Status, resultado.InitPoint, renovacion.ReferenciaExterna);
+    }
+
+    public async Task<MercadoPagoPreapproval> ConsultarRenovacionAutomatica(string referenciaExterna)
+    {
+        if (string.IsNullOrWhiteSpace(referenciaExterna)) throw new ArgumentException("No se informó la referencia de la renovación automática.");
+        string? accessToken = _configuration["MercadoPago:AccessToken"];
+        if (string.IsNullOrWhiteSpace(accessToken)) throw new InvalidOperationException("No se configuró el Access Token de Mercado Pago.");
+
+        string url = "https://api.mercadopago.com/preapproval/search?q=" + Uri.EscapeDataString(referenciaExterna);
+        using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        using HttpResponseMessage response = await _httpClient.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            string detalle = await response.Content.ReadAsStringAsync();
+            throw new InvalidOperationException($"Mercado Pago no pudo verificar la renovación automática: {detalle}");
+        }
+
+        MercadoPagoPreapprovalSearchResponse? busqueda = await response.Content.ReadFromJsonAsync<MercadoPagoPreapprovalSearchResponse>();
+        MercadoPagoPreapprovalResponse? resultado = busqueda?.Results?
+            .Where(item => string.Equals(item.ExternalReference, referenciaExterna, StringComparison.Ordinal))
+            .OrderByDescending(item => item.LastModified)
+            .FirstOrDefault();
+        if (resultado is null || string.IsNullOrWhiteSpace(resultado.Id) || string.IsNullOrWhiteSpace(resultado.Status))
+            throw new InvalidOperationException("Mercado Pago no encontró la autorización de renovación solicitada.");
+
+        return new MercadoPagoPreapproval(resultado.Id, resultado.Status, resultado.InitPoint ?? string.Empty, resultado.ExternalReference ?? referenciaExterna);
     }
 
     public async Task<List<MercadoPagoAuthorizedPayment>> ConsultarCobrosRecurrentes(string preapprovalId)
@@ -156,7 +197,6 @@ namespace TeamBalance.Services
 
         using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Put, $"https://api.mercadopago.com/preapproval/{Uri.EscapeDataString(preapprovalId)}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        if (CobroPruebaHabilitado()) request.Headers.TryAddWithoutValidation("X-scope", "stage");
         SolicitudEstadoMercadoPago solicitud = new SolicitudEstadoMercadoPago(estado);
         request.Content = JsonContent.Create(solicitud);
 
@@ -167,7 +207,7 @@ namespace TeamBalance.Services
         if (resultado is null || string.IsNullOrWhiteSpace(resultado.Id) || string.IsNullOrWhiteSpace(resultado.Status))
             throw new InvalidOperationException("Mercado Pago no devolvió el estado de la autorización recurrente.");
 
-        return new MercadoPagoPreapproval(resultado.Id, resultado.Status);
+        return new MercadoPagoPreapproval(resultado.Id, resultado.Status, resultado.InitPoint ?? string.Empty, resultado.ExternalReference ?? string.Empty);
     }
 
     private (decimal Importe, string Moneda) ObtenerCobroPrueba(string? codigoPlan)
@@ -254,10 +294,35 @@ namespace TeamBalance.Services
 
         [JsonPropertyName("status")]
         public string? Status { get; set; }
+
+        [JsonPropertyName("init_point")]
+        public string? InitPoint { get; set; }
+
+        [JsonPropertyName("external_reference")]
+        public string? ExternalReference { get; set; }
+
+        [JsonPropertyName("last_modified")]
+        public DateTime? LastModified { get; set; }
+    }
+
+    public sealed class MercadoPagoPreapprovalSearchResponse
+    {
+        [JsonPropertyName("results")]
+        public List<MercadoPagoPreapprovalResponse>? Results { get; set; }
     }
 
     public sealed class MercadoPagoPreapprovalRequest
     {
+        public MercadoPagoPreapprovalRequest(string reason, string externalReference, string payerEmail, string backUrl, string status, MercadoPagoAutoRecurringRequest autoRecurring)
+        {
+            Reason = reason;
+            ExternalReference = externalReference;
+            PayerEmail = payerEmail;
+            BackUrl = backUrl;
+            Status = status;
+            AutoRecurring = autoRecurring;
+        }
+
         [JsonPropertyName("reason")]
         public string Reason { get; set; } = string.Empty;
 
@@ -267,18 +332,26 @@ namespace TeamBalance.Services
         [JsonPropertyName("payer_email")]
         public string PayerEmail { get; set; } = string.Empty;
 
-        [JsonPropertyName("card_token_id")]
-        public string CardTokenId { get; set; } = string.Empty;
+        [JsonPropertyName("back_url")]
+        public string BackUrl { get; set; } = string.Empty;
 
         [JsonPropertyName("status")]
         public string Status { get; set; } = string.Empty;
 
         [JsonPropertyName("auto_recurring")]
-        public MercadoPagoAutoRecurringRequest AutoRecurring { get; set; } = new MercadoPagoAutoRecurringRequest();
+        public MercadoPagoAutoRecurringRequest AutoRecurring { get; set; }
     }
 
     public sealed class MercadoPagoAutoRecurringRequest
     {
+        public MercadoPagoAutoRecurringRequest(int frequency, string frequencyType, decimal transactionAmount, string currencyId)
+        {
+            Frequency = frequency;
+            FrequencyType = frequencyType;
+            TransactionAmount = transactionAmount;
+            CurrencyId = currencyId;
+        }
+
         [JsonPropertyName("frequency")]
         public int Frequency { get; set; }
 
@@ -340,20 +413,22 @@ namespace TeamBalance.Services
         public string CurrencyId { get; set; }
     }
 
-    public sealed record MercadoPagoPreapproval(string Id, string Status);
+    public sealed record MercadoPagoPreapproval(string Id, string Status, string InitPoint, string ExternalReference);
 
     public sealed record MercadoPagoAuthorizedPayment(string Id, decimal TransactionAmount, string CurrencyId, string PaymentId);
+    public sealed record CobroMercadoPago(decimal Importe, string Moneda);
 }
 
 public sealed class MercadoPagoPreferenceRequest
 {
-    public MercadoPagoPreferenceRequest(string titulo, decimal importe, string moneda, string referenciaExterna, string? codigoPlan = null)
+    public MercadoPagoPreferenceRequest(string titulo, decimal importe, string moneda, string referenciaExterna, string? codigoPlan = null, bool usarImporteExacto = false)
     {
         Titulo = titulo;
         Importe = importe;
         Moneda = moneda;
         ReferenciaExterna = referenciaExterna;
         CodigoPlan = codigoPlan;
+        UsarImporteExacto = usarImporteExacto;
     }
 
     public string Titulo { get; }
@@ -361,4 +436,5 @@ public sealed class MercadoPagoPreferenceRequest
     public string Moneda { get; }
     public string ReferenciaExterna { get; }
     public string? CodigoPlan { get; }
+    public bool UsarImporteExacto { get; }
 }

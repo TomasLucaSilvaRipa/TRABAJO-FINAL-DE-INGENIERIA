@@ -66,6 +66,13 @@ public sealed class BLLEncuesta
         catch (Exception ex) when (EsErrorDeRespuesta(ex.Message)) { throw new ArgumentException(ex.Message); }
     }
 
+    public ResultadoEncuesta ConsultarResultadosPublicos(Encuesta encuesta)
+    {
+        if (encuesta.ID <= 0) { throw new ArgumentException("Seleccioná una encuesta válida."); }
+        _encuestaMPP.ConsultarPublica(encuesta);
+        return _encuestaMPP.ConsultarResultados(encuesta);
+    }
+
     public ResultadoEncuesta ConsultarResultados(Encuesta encuesta, Usuario usuario)
     {
         ExigirGestion(usuario);

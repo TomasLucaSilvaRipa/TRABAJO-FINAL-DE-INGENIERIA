@@ -9,6 +9,7 @@ export interface DocumentoComercial { id: number; idAgencia: number; idSuscripci
 export interface InicioActualizacionSuscripcion { urlPago: string; referenciaOperacion: string; importe: number; moneda: string; fechaAplicacion: string; }
 export interface ResultadoGestionSuscripcion { mensaje: string; estado: string; suscripcion?: Suscripcion | null; }
 export interface ConfiguracionRenovacionAutomatica { publicKey: string; importePrueba: number; monedaPrueba: string; nombrePlan: string; }
+export interface ReactivacionConCreditoRequest { idPlanComercial: number; proveedor: 'MercadoPago' | 'Stripe'; }
 
 @Injectable({ providedIn: 'root' })
 export class SuscripcionService {
@@ -24,8 +25,10 @@ export class SuscripcionService {
   cancelarRenovacion(motivo: string): Observable<ResultadoGestionSuscripcion> { return this.http.post<ResultadoGestionSuscripcion>(`${this.url}/cancelar-renovacion`, { motivo }); }
   cancelarServicio(documento: DocumentoComercial): Observable<DocumentoComercial> { return this.http.post<DocumentoComercial>(`${this.url}/cancelar-servicio`, documento); }
   reactivarConNotaCredito(documento: DocumentoComercial): Observable<DocumentoComercial> { return this.http.post<DocumentoComercial>(`${this.url}/reactivar-con-nota-credito`, documento); }
+  solicitarReactivacionConCreditoParcial(solicitud: ReactivacionConCreditoRequest): Observable<InicioActualizacionSuscripcion> { return this.http.post<InicioActualizacionSuscripcion>(`${this.url}/reactivar-con-nota-credito/diferencia`, solicitud); }
   reactivarRenovacion(): Observable<ResultadoGestionSuscripcion> { return this.http.post<ResultadoGestionSuscripcion>(`${this.url}/reactivar-renovacion`, {}); }
-  autorizarRenovacion(cardToken: string, payerEmail: string): Observable<ResultadoGestionSuscripcion> { return this.http.post<ResultadoGestionSuscripcion>(`${this.url}/renovacion-automatica/autorizar`, { cardToken, payerEmail }); }
+  autorizarRenovacion(payerEmail: string): Observable<InicioActualizacionSuscripcion> { return this.http.post<InicioActualizacionSuscripcion>(`${this.url}/renovacion-automatica/autorizar`, { payerEmail }); }
+  verificarRenovacionMercadoPago(referenciaOperacion: string): Observable<ResultadoGestionSuscripcion> { return this.http.post<ResultadoGestionSuscripcion>(`${this.url}/renovacion-automatica/verificar-mercado-pago`, { referenciaOperacion, paymentId: '' }); }
   solicitarRenovacionStripe(): Observable<InicioActualizacionSuscripcion> { return this.http.post<InicioActualizacionSuscripcion>(`${this.url}/renovacion-automatica/stripe`, {}); }
   verificarRenovacionStripe(sessionId: string): Observable<ResultadoGestionSuscripcion> { return this.http.post<ResultadoGestionSuscripcion>(`${this.url}/renovacion-automatica/verificar-stripe`, { paymentId: sessionId }); }
 }

@@ -11,7 +11,49 @@
     @if (cargando()) {
       <p class="tb-empty-state">{{ t('common.loading') }}</p>
     } @else if (mensaje()) {
-      <section class="tb-panel mx-auto max-w-2xl text-center"><p class="tb-eyebrow">{{ t('surveys.thankYouKicker') }}</p><h2 class="mt-2 text-2xl font-extrabold">{{ t('surveys.sent') }}</h2><p class="tb-muted-text mt-3">{{ t('surveys.thankYouDescription') }}</p><a routerLink="/" class="tb-action-button mt-6 inline-flex">{{ t('surveys.backHome') }}</a></section>
+      <div class="survey-complete">
+        <section class="tb-panel survey-thanks">
+          <p class="tb-eyebrow">{{ t('surveys.thankYouKicker') }}</p>
+          <h2>{{ t('surveys.sent') }}</h2>
+          <p class="tb-muted-text">{{ t('surveys.thankYouDescription') }}</p>
+        </section>
+
+        @if (cargandoResultados()) {
+          <section class="tb-panel survey-results-loading">{{ t('surveys.loadingResults') }}</section>
+        } @else if (resultados(); as resultado) {
+          <section class="tb-panel survey-results">
+            <header class="survey-results__header">
+              <div>
+                <p class="tb-page-kicker">{{ t('surveys.resultsKicker') }}</p>
+                <h2>{{ t('surveys.resultsTitle') }}</h2>
+                <p class="tb-muted-text">{{ t('surveys.resultsDescription') }}</p>
+              </div>
+              <div class="survey-results__total"><strong>{{ resultado.cantidadRespuestas }}</strong><span>{{ t('surveys.totalAnswers') }}</span></div>
+            </header>
+
+            <div class="survey-results__questions">
+              @for (pregunta of resultado.preguntas; track pregunta.idPreguntaEncuesta; let indice = $index) {
+                <article class="survey-result-question">
+                  <h3>{{ indice + 1 }}. {{ texto(pregunta.enunciadoEs, pregunta.enunciadoEn) }}</h3>
+                  <div class="survey-bars">
+                    @for (opcion of pregunta.opciones; track opcion.idOpcionEncuesta) {
+                      <div class="survey-bar">
+                        <div class="survey-bar__label"><span>{{ texto(opcion.textoEs, opcion.textoEn) }}</span><strong>{{ opcion.porcentaje }}% · {{ opcion.cantidadRespuestas }}</strong></div>
+                        <div class="survey-bar__track" role="img" [attr.aria-label]="texto(opcion.textoEs, opcion.textoEn) + ': ' + opcion.porcentaje + '%'">
+                          <span [style.width.%]="opcion.porcentaje"></span>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </article>
+              }
+            </div>
+          </section>
+        }
+
+        @if (error()) { <p class="survey-results-error">{{ error() }}</p> }
+        <a routerLink="/" class="tb-action-button survey-back-home">{{ t('surveys.backHome') }}</a>
+      </div>
     } @else if (encuestas().length === 0) {
       <section class="tb-panel mx-auto max-w-2xl text-center"><h2 class="text-2xl font-extrabold">{{ t('surveys.emptyTitle') }}</h2><p class="tb-muted-text mt-3">{{ t('surveys.emptyDescription') }}</p><a routerLink="/" class="tb-secondary-button mt-6 inline-flex">{{ t('surveys.backHome') }}</a></section>
     } @else {

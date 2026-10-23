@@ -72,11 +72,11 @@ export interface ResultadoEncuesta {
 export class SurveysService {
   private readonly http = inject(HttpClient);
   private readonly base = '/api/encuestas';
-  private readonly participanteKey = 'teambalance.encuestas.participante';
 
   publicas(): Observable<Encuesta[]> { return this.http.get<Encuesta[]>(`${this.base}/publicas`); }
   publica(encuesta: Encuesta): Observable<Encuesta> { return this.http.get<Encuesta>(`${this.base}/publicas/${encuesta.id}`); }
   responder(respuesta: RespuestaEncuesta): Observable<void> { return this.http.post<void>(`${this.base}/publicas/${respuesta.idEncuesta}/respuestas`, respuesta); }
+  resultadosPublicos(encuesta: Encuesta): Observable<ResultadoEncuesta> { return this.http.get<ResultadoEncuesta>(`${this.base}/publicas/${encuesta.id}/resultados`); }
   gestion(): Observable<Encuesta[]> { return this.http.get<Encuesta[]>(`${this.base}/gestion`); }
   detalleGestion(encuesta: Encuesta): Observable<Encuesta> { return this.http.get<Encuesta>(`${this.base}/gestion/${encuesta.id}`); }
   guardar(encuesta: Encuesta): Observable<Encuesta> { return this.http.post<Encuesta>(`${this.base}/gestion`, encuesta); }
@@ -84,10 +84,6 @@ export class SurveysService {
   resultados(encuesta: Encuesta): Observable<ResultadoEncuesta> { return this.http.get<ResultadoEncuesta>(`${this.base}/gestion/${encuesta.id}/resultados`); }
 
   identificadorParticipante(): string {
-    const identificadorExistente = localStorage.getItem(this.participanteKey);
-    if (identificadorExistente) { return identificadorExistente; }
-    const identificadorNuevo = crypto.randomUUID();
-    localStorage.setItem(this.participanteKey, identificadorNuevo);
-    return identificadorNuevo;
+    return crypto.randomUUID();
   }
 }

@@ -6,6 +6,7 @@ import { finalize, forkJoin } from 'rxjs';
 import { PlanComercial } from '../../../../services/plan-comercial.service';
 import { ConfiguracionRenovacionAutomatica, DocumentoComercial, OperacionSuscripcion, Suscripcion, SuscripcionService } from '../../../../services/suscripcion.service';
 import { LocalizationService } from '../../../../services/localization.service';
+import { AuthService } from '../../../../services/auth.service';
 
 @Component({
   selector: 'app-subscription',
@@ -17,6 +18,7 @@ import { LocalizationService } from '../../../../services/localization.service';
 export class Subscription {
   private readonly suscripcionService = inject(SuscripcionService);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
   readonly localization = inject(LocalizationService);
   readonly suscripcion = signal<Suscripcion | null>(null);
   readonly cargando = signal(true);
@@ -35,10 +37,9 @@ export class Subscription {
   readonly cargandoFormularioMp = signal(false);
   readonly configuracionRenovacion = signal<ConfiguracionRenovacionAutomatica | null>(null);
   readonly cambioForm = this.formBuilder.nonNullable.group({ idPlanComercial: [0, [Validators.min(1)] ], proveedor: ['MercadoPago', [Validators.required]] });
+  readonly renovacionMercadoPagoForm = this.formBuilder.nonNullable.group({ payerEmail: ['', [Validators.required, Validators.email]] });
   readonly bajaForm = this.formBuilder.nonNullable.group({ motivo: ['', [Validators.required, Validators.maxLength(1000)]] });
   readonly cancelacionServicioForm = this.formBuilder.nonNullable.group({ motivo: ['', [Validators.required, Validators.maxLength(1000)]] });
-  private cardForm: any;
-
   constructor() { this.recargar(); }
 
   recargar(): void {
@@ -71,7 +72,7 @@ export class Subscription {
     this.procesando.set(true); this.error.set(''); this.mensaje.set('');
     const suscripcionActual = this.suscripcion()!;
     const documento: DocumentoComercial = { id: 0, idAgencia: suscripcionActual.idAgencia, idSuscripcion: suscripcionActual.id, tipo: '', numero: '', concepto: '', importe: 0, saldoPendiente: 0, moneda: suscripcionActual.moneda || 'ARS', estado: '', fechaEmision: new Date().toISOString(), motivo: this.cancelacionServicioForm.getRawValue().motivo };
-    this.suscripcionService.cancelarServicio(documento).pipe(finalize(() => this.procesando.set(false))).subscribe({ next: notaCredito => { this.mensaje.set(`Servicio cancelado. Se emitió ${notaCredito.numero} por ${this.localization.formatearMoneda(notaCredito.importe, notaCredito.moneda)} como crédito interno de la agencia.`); this.cancelandoServicio.set(false); this.cancelacionServicioForm.reset({ motivo: '' }); this.recargar(); }, error: error => this.error.set(this.obtenerMensajeError(error, 'No se pudo cancelar el servicio.')) });
+    this.suscripcionService.cancelarServicio(documento).pipe(finalize(() => this.procesando.set(false))).subscribe({ next: notaCredito => { this.authService.establecerSuscripcionRestringida(true); this.mensaje.set(`Servicio cancelado. Se emitió ${notaCredito.numero} por ${this.localization.formatearMoneda(notaCredito.importe, notaCredito.moneda)} como crédito interno de la agencia.`); this.cancelandoServicio.set(false); this.cancelacionServicioForm.reset({ motivo: '' }); this.recargar(); }, error: error => this.error.set(this.obtenerMensajeError(error, 'No se pudo cancelar el servicio.')) });
   }
 
   abrirReactivacionConCredito(): void {
@@ -90,7 +91,25 @@ export class Subscription {
     this.procesando.set(true); this.error.set(''); this.mensaje.set('');
     const suscripcionActual = this.suscripcion()!;
     const documento: DocumentoComercial = { id: 0, idAgencia: suscripcionActual.idAgencia, idSuscripcion: suscripcionActual.id, idPlanComercial: this.cambioForm.getRawValue().idPlanComercial, tipo: '', numero: '', concepto: '', importe: 0, saldoPendiente: 0, moneda: suscripcionActual.moneda || 'ARS', estado: '', fechaEmision: new Date().toISOString() };
-    this.suscripcionService.reactivarConNotaCredito(documento).pipe(finalize(() => this.procesando.set(false))).subscribe({ next: factura => { this.mensaje.set(`Servicio reactivado. La factura ${factura.numero} fue cubierta con el saldo a favor disponible.`); this.cancelarReactivacionConCredito(); this.recargar(); }, error: error => this.error.set(this.obtenerMensajeError(error, 'No se pudo aplicar el saldo a favor.')) });
+    const plan = this.planes().find(item => item.id === documento.idPlanComercial);
+    const creditoMismaMoneda = plan ? this.creditoDisponible(plan) : 0;
+    if (plan && creditoMismaMoneda < plan.precioVigente) {
+      const solicitud = { idPlanComercial: plan.id, proveedor: this.cambioForm.getRawValue().proveedor as 'MercadoPago' | 'Stripe' };
+      this.suscripcionService.solicitarReactivacionConCreditoParcial(solicitud).pipe(finalize(() => this.procesando.set(false))).subscribe({ next: respuesta => window.location.assign(respuesta.urlPago), error: error => this.error.set(this.obtenerMensajeError(error, 'No se pudo preparar el pago de la diferencia.')) });
+      return;
+    }
+    this.suscripcionService.reactivarConNotaCredito(documento).pipe(finalize(() => this.procesando.set(false))).subscribe({ next: factura => { this.authService.establecerSuscripcionRestringida(false); this.mensaje.set(`Servicio reactivado. La factura ${factura.numero} fue cubierta con el saldo a favor disponible.`); this.cancelarReactivacionConCredito(); this.recargar(); }, error: error => this.error.set(this.obtenerMensajeError(error, 'No se pudo aplicar el saldo a favor.')) });
+  }
+
+  planReactivacionSeleccionado(): PlanComercial | undefined { return this.planes().find(plan => plan.id === this.cambioForm.controls.idPlanComercial.value); }
+
+  creditoDisponible(plan: PlanComercial): number {
+    return this.documentos().filter(documento => documento.tipo === 'NotaCredito' && documento.estado === 'Disponible' && documento.moneda === plan.moneda).reduce((total, documento) => total + documento.saldoPendiente, 0);
+  }
+
+  requierePagoDiferencia(): boolean {
+    const plan = this.planReactivacionSeleccionado();
+    return !!plan && this.creditoDisponible(plan) < plan.precioVigente;
   }
 
   totalSaldoAFavor(): number { return this.documentos().filter((documento: DocumentoComercial) => documento.tipo === 'NotaCredito' && documento.estado === 'Disponible').reduce((total: number, documento: DocumentoComercial) => total + documento.saldoPendiente, 0); }
@@ -106,7 +125,6 @@ export class Subscription {
       next: configuracion => {
         this.configuracionRenovacion.set(configuracion);
         this.mostrandoAutorizacion.set(true);
-        window.setTimeout(() => this.inicializarCardForm(configuracion), 0);
       },
       error: error => this.error.set(error?.error?.message ?? error?.error ?? 'No se pudo preparar el formulario seguro de Mercado Pago.')
     });
@@ -118,61 +136,18 @@ export class Subscription {
   }
 
   cerrarAutorizacionRenovacion(): void {
-    this.cardForm?.unmount?.(); this.cardForm = undefined;
     this.mostrandoAutorizacion.set(false); this.configuracionRenovacion.set(null);
+    this.renovacionMercadoPagoForm.reset({ payerEmail: '' });
   }
 
-  private async inicializarCardForm(configuracion: ConfiguracionRenovacionAutomatica): Promise<void> {
-    try {
-      await this.cargarSdkMercadoPago();
-      this.cardForm?.unmount?.();
-      const mp = new window.MercadoPago!(configuracion.publicKey, { locale: 'es-AR' });
-      this.cardForm = mp.cardForm({
-        amount: configuracion.importePrueba.toFixed(2),
-        iframe: true,
-        form: {
-          id: 'tb-renovacion-card-form',
-          cardholderName: { id: 'tb-cardholder-name', placeholder: 'Titular de la tarjeta' },
-          cardholderEmail: { id: 'tb-cardholder-email', placeholder: 'email@testuser.com' },
-          cardNumber: { id: 'tb-card-number', placeholder: 'Número de tarjeta' },
-          cardExpirationDate: { id: 'tb-card-expiration', placeholder: 'MM/AA' },
-          securityCode: { id: 'tb-card-security-code', placeholder: 'CVV' },
-          installments: { id: 'tb-card-installments', placeholder: 'Cuotas' },
-          identificationType: { id: 'tb-card-identification-type', placeholder: 'Tipo de documento' },
-          identificationNumber: { id: 'tb-card-identification-number', placeholder: 'Número de documento' },
-          issuer: { id: 'tb-card-issuer', placeholder: 'Banco emisor' },
-        },
-        callbacks: {
-          onFormMounted: (error: unknown) => { if (error) this.error.set('No se pudo cargar el formulario de Mercado Pago.'); },
-          onSubmit: (event: Event) => {
-            event.preventDefault();
-            const datos = this.cardForm.getCardFormData();
-            if (!datos?.token || !datos?.cardholderEmail) { this.error.set('Completá los datos del medio de pago de prueba.'); return; }
-            this.confirmarAutorizacion(datos.token, datos.cardholderEmail);
-          },
-        },
-      });
-    } catch {
-      this.error.set('No se pudo cargar el formulario seguro de Mercado Pago. Revisá tu conexión e intentá nuevamente.');
-    }
-  }
-
-  private confirmarAutorizacion(cardToken: string, payerEmail: string): void {
+  confirmarAutorizacionMercadoPago(): void {
+    this.renovacionMercadoPagoForm.markAllAsTouched();
+    if (this.renovacionMercadoPagoForm.invalid) return;
     this.procesando.set(true); this.error.set('');
-    this.suscripcionService.autorizarRenovacion(cardToken, payerEmail).pipe(finalize(() => this.procesando.set(false))).subscribe({
-      next: resultado => { this.suscripcion.set(resultado.suscripcion ?? null); this.mensaje.set(resultado.mensaje); this.cerrarAutorizacionRenovacion(); this.recargar(); },
+    const payerEmail: string = this.renovacionMercadoPagoForm.getRawValue().payerEmail.trim();
+    this.suscripcionService.autorizarRenovacion(payerEmail).pipe(finalize(() => this.procesando.set(false))).subscribe({
+      next: resultado => window.location.assign(resultado.urlPago),
       error: error => this.error.set(error?.error?.message ?? error?.error ?? 'No se pudo autorizar la renovación automática.')
-    });
-  }
-
-  private cargarSdkMercadoPago(): Promise<void> {
-    if (window.MercadoPago) return Promise.resolve();
-    return new Promise((resolve, reject) => {
-      const existente = document.querySelector<HTMLScriptElement>('script[data-team-balance-mp-sdk]');
-      if (existente) { existente.addEventListener('load', () => resolve(), { once: true }); existente.addEventListener('error', () => reject(), { once: true }); return; }
-      const script = document.createElement('script');
-      script.src = 'https://sdk.mercadopago.com/js/v2'; script.async = true; script.dataset['teamBalanceMpSdk'] = 'true';
-      script.onload = () => resolve(); script.onerror = () => reject(); document.head.appendChild(script);
     });
   }
 
@@ -193,8 +168,4 @@ export class Subscription {
     if (typeof respuesta.title === 'string' && respuesta.title.trim()) { return respuesta.title; }
     return mensajePredeterminado;
   }
-}
-
-declare global {
-  interface Window { MercadoPago?: new (publicKey: string, options?: { locale?: string }) => any; }
 }

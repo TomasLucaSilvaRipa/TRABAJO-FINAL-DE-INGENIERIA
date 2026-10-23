@@ -34,6 +34,7 @@ import { ForgotPasswordComponent } from './pages/auth-pages/forgot-password/forg
 import { ResetPasswordComponent } from './pages/auth-pages/reset-password/reset-password.component';
 import { ChangePasswordComponent } from './pages/security/change-password/change-password.component';
 import { authGuard } from './guards/auth.guard';
+import { subscriptionRestrictionGuard } from './guards/subscription-restriction.guard';
 import { guestGuard } from './guards/guest.guard';
 import { permissionGuard } from './guards/permission.guard';
 import { supportGuard } from './guards/support.guard';
@@ -186,6 +187,7 @@ export const routes: Routes = [
     path:'dashboard',
     component:AppLayoutComponent,
     canActivate: [authGuard],
+    canActivateChild: [subscriptionRestrictionGuard],
     children:[
       {
         path: '',

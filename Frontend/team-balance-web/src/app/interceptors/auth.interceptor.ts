@@ -16,13 +16,17 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
     authService.logOut();
   }
 
-  const requestConToken = token && !tokenVencido && request.url.startsWith('/api/')
-    ? request.clone({
+  const esVerificacionAcceso = request.headers.has('X-TeamBalance-Subscription-Probe');
+  const requestSinMarcaInterna = esVerificacionAcceso
+    ? request.clone({ headers: request.headers.delete('X-TeamBalance-Subscription-Probe') })
+    : request;
+  const requestConToken = token && !tokenVencido && requestSinMarcaInterna.url.startsWith('/api/')
+    ? requestSinMarcaInterna.clone({
         setHeaders: {
           Authorization: `Bearer ${token}`,
         },
       })
-    : request;
+    : requestSinMarcaInterna;
 
   return next(requestConToken).pipe(
     catchError((error) => {
@@ -33,7 +37,13 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
       }
       else if (error.status === 403 && error.error?.code === 'SUBSCRIPTION_EXPIRED')
       {
-        void router.navigate(['/suscripcion-vencida']);
+        authService.establecerSuscripcionRestringida(true);
+        const esGestionSuscripcion = router.url.split('?')[0] === '/dashboard/suscripcion';
+        if (!esGestionSuscripcion && !esVerificacionAcceso)
+        {
+          const destino = authService.tienePermiso('GestionarSuscripcion') ? '/dashboard/suscripcion' : '/suscripcion-vencida';
+          void router.navigate([destino]);
+        }
       }
 
       return throwError(() => error);

@@ -40,6 +40,12 @@ public sealed class EncuestasController : ControllerBase
         });
     }
 
+    [HttpGet("publicas/{ID:int}/resultados")]
+    public IActionResult ConsultarResultadosPublicos([FromRoute] Encuesta encuesta)
+    {
+        return EjecutarPublico(() => Ok(_encuestaBLL.ConsultarResultadosPublicos(encuesta)));
+    }
+
     [HttpGet("gestion")]
     public IActionResult ConsultarGestion()
     {

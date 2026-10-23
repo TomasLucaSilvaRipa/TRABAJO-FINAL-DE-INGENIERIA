@@ -42,6 +42,7 @@
     <nav class="tb-nav" aria-label="Navegación principal">
       <a class="tb-nav__link" routerLink="/" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="tb-nav__link--active">{{ localization.traducir('menu.home') }}</a>
       <a class="tb-nav__link" routerLink="/plans" routerLinkActive="tb-nav__link--active">{{ localization.traducir('menu.plans') }}</a>
+      <a class="tb-nav__link" routerLink="/novedades" routerLinkActive="tb-nav__link--active">{{ localization.traducir('menu.news') }}</a>
       <a class="tb-nav__link" routerLink="/about-us" routerLinkActive="tb-nav__link--active">{{ localization.traducir('menu.about') }}</a>
       <a class="tb-nav__link" routerLink="/contact" routerLinkActive="tb-nav__link--active">{{ localization.traducir('menu.contact') }}</a>
     </nav>
@@ -63,6 +64,7 @@
         <nav class="tb-mobile-nav__links" aria-label="Navegación móvil">
           <a class="tb-nav__link" routerLink="/" (click)="closeMenu()">{{ localization.traducir('menu.home') }}</a>
           <a class="tb-nav__link" routerLink="/plans" (click)="closeMenu()">{{ localization.traducir('menu.plans') }}</a>
+          <a class="tb-nav__link" routerLink="/novedades" (click)="closeMenu()">{{ localization.traducir('menu.news') }}</a>
           <a class="tb-nav__link" routerLink="/about-us" (click)="closeMenu()">{{ localization.traducir('menu.about') }}</a>
           <a class="tb-nav__link" routerLink="/contact" (click)="closeMenu()">{{ localization.traducir('menu.contact') }}</a>
         </nav>

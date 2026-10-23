@@ -5,6 +5,7 @@ import {
   EstadoContratacionResponse,
 } from '../../../services/contratacion.service';
 import { ResultadoGestionSuscripcion, SuscripcionService } from '../../../services/suscripcion.service';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-payment-result',
@@ -17,6 +18,7 @@ export class PaymentResultComponent {
   private readonly router = inject(Router);
   private readonly contratacionService = inject(ContratacionService);
   private readonly suscripcionService = inject(SuscripcionService);
+  private readonly authService = inject(AuthService);
 
   readonly loading = signal(true);
   readonly errorMessage = signal('');
@@ -37,6 +39,16 @@ export class PaymentResultComponent {
       }
 
       if (referencia.startsWith('ren-')) {
+        if (params.get('renovacion') === 'mercadopago') {
+          this.suscripcionService.verificarRenovacionMercadoPago(referencia).subscribe({
+            next: resultado => { this.resultadoSuscripcion.set(resultado); this.loading.set(false); },
+            error: error => {
+              this.loading.set(false);
+              this.errorMessage.set(error?.error?.message ?? error?.error ?? 'Mercado Pago todavía no confirmó la autorización de renovación.');
+            },
+          });
+          return;
+        }
         if (!paymentId) {
           this.loading.set(false);
           this.errorMessage.set('La autorización de renovación quedó pendiente de confirmación. Volvé a la suscripción para intentarlo nuevamente.');
@@ -52,14 +64,14 @@ export class PaymentResultComponent {
         return;
       }
 
-      if (referencia.startsWith('sus-')) {
+      if (referencia.startsWith('sus-') || referencia.startsWith('cred-')) {
         if (!paymentId) {
           this.loading.set(false);
           this.errorMessage.set('La actualización quedó pendiente de confirmación de Mercado Pago. Volvé a la suscripción para consultar el estado.');
           return;
         }
         this.suscripcionService.verificarActualizacion(referencia, paymentId).subscribe({
-          next: resultado => { this.resultadoSuscripcion.set(resultado); this.loading.set(false); },
+          next: resultado => { this.authService.establecerSuscripcionRestringida(false); this.resultadoSuscripcion.set(resultado); this.loading.set(false); },
           error: error => {
             this.loading.set(false);
             this.errorMessage.set(error?.error?.message ?? error?.error ?? 'No pudimos verificar la actualización de suscripción en este momento.');
