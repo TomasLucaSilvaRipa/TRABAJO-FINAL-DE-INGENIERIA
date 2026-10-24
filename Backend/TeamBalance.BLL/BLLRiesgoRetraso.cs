@@ -87,6 +87,7 @@ public class BLLRiesgoRetraso
         List<RegistroHora> registros = _riesgoMPP.ConsultarRegistrosHora(proyecto);
         Dictionary<int, decimal> horasRegistradasPorTarea = registros.Where(registro => registro.Activo).GroupBy(registro => registro.IdTarea).ToDictionary(grupo => grupo.Key, grupo => grupo.Sum(registro => registro.CantidadHoras));
         List<TareaRiesgoRetraso> tareasPendientes = CrearTareasPendientes(tareas, horasRegistradasPorTarea);
+        List<HitoTareaProyecto> hitosTareas = CrearHitosTareas(tareas, horasRegistradasPorTarea);
         decimal horasRestantes = tareasPendientes.Sum(tarea => tarea.HorasRestantes);
         decimal disponibilidadEquipo = CalcularDisponibilidadEquipo(equipo);
         decimal ritmoAvance = CalcularRitmoAvance(proyecto, registros);
@@ -97,7 +98,7 @@ public class BLLRiesgoRetraso
         List<CausaRiesgo> causas = IdentificarCausas(proyecto, tareasPendientes, horasRestantes, disponibilidadEquipo, ritmoAvance, tareasBloqueadas, fechaEstimada, diasRetraso);
         string nombreCliente = string.IsNullOrWhiteSpace(proyecto.NombreCliente) ? "Cliente #" + proyecto.IdCliente : proyecto.NombreCliente;
         string nombrePM = string.IsNullOrWhiteSpace(proyecto.NombrePMResponsable) ? "PM #" + proyecto.IdPMResponsable : proyecto.NombrePMResponsable;
-        DetalleRiesgoProyecto detalle = new DetalleRiesgoProyecto(proyecto.ID, proyecto.Nombre, nombreCliente, nombrePM, proyecto.Deadline, fechaEstimada, diasRetraso, horasRestantes, disponibilidadEquipo, ritmoAvance, nivelRiesgo, causas, tareasPendientes);
+        DetalleRiesgoProyecto detalle = new DetalleRiesgoProyecto(proyecto.ID, proyecto.Nombre, nombreCliente, nombrePM, proyecto.FechaInicio ?? proyecto.FechaAlta, proyecto.Deadline, fechaEstimada, diasRetraso, horasRestantes, disponibilidadEquipo, ritmoAvance, nivelRiesgo, causas, tareasPendientes, hitosTareas);
         return detalle;
     }
 
@@ -109,17 +110,22 @@ public class BLLRiesgoRetraso
             decimal horasRegistradas = horasRegistradasPorTarea.GetValueOrDefault(tarea.ID);
             decimal porcentajeAvance = Math.Clamp(tarea.PorcentajeAvance, 0, 100);
             decimal horasCubiertasPorAvance = horasEstimadas * porcentajeAvance / 100;
-            return new TareaRiesgoRetraso
-            {
-                IdTarea = tarea.ID,
-                Titulo = tarea.Titulo,
-                Estado = tarea.Estado ?? "Sin estado",
-                Bloqueada = tarea.Bloqueada,
-                HorasEstimadas = horasEstimadas,
-                PorcentajeAvance = porcentajeAvance,
-                HorasRestantes = Math.Max(0, horasEstimadas - Math.Max(horasRegistradas, horasCubiertasPorAvance))
-            };
+            decimal horasRestantes = Math.Max(0, horasEstimadas - Math.Max(horasRegistradas, horasCubiertasPorAvance));
+            return new TareaRiesgoRetraso(tarea.ID, tarea.Titulo, tarea.Estado ?? "Sin estado", tarea.Bloqueada, tarea.FechaInicio, tarea.Deadline, horasEstimadas, porcentajeAvance, horasRestantes);
         }).Where(tarea => tarea.HorasRestantes > 0 || tarea.Bloqueada || string.Equals(tarea.Estado, "Bloqueada", StringComparison.OrdinalIgnoreCase)).OrderByDescending(tarea => tarea.Bloqueada || string.Equals(tarea.Estado, "Bloqueada", StringComparison.OrdinalIgnoreCase)).ThenByDescending(tarea => tarea.HorasRestantes).ToList();
+    }
+
+    private static List<HitoTareaProyecto> CrearHitosTareas(IEnumerable<Tarea> tareas, IReadOnlyDictionary<int, decimal> horasRegistradasPorTarea)
+    {
+        return tareas.Where(tarea => tarea.Activo).Select(tarea =>
+        {
+            decimal horasEstimadas = Math.Max(0, tarea.HorasEstimadas);
+            decimal horasRegistradas = horasRegistradasPorTarea.GetValueOrDefault(tarea.ID);
+            decimal porcentajeAvance = Math.Clamp(tarea.PorcentajeAvance, 0, 100);
+            decimal horasCubiertasPorAvance = horasEstimadas * porcentajeAvance / 100;
+            decimal horasRestantes = Math.Max(0, horasEstimadas - Math.Max(horasRegistradas, horasCubiertasPorAvance));
+            return new HitoTareaProyecto(tarea.ID, tarea.Titulo, tarea.FechaInicio, tarea.Deadline, horasEstimadas, porcentajeAvance, horasRestantes);
+        }).OrderBy(tarea => tarea.Deadline ?? DateTime.MaxValue).ToList();
     }
 
     private static decimal CalcularDisponibilidadEquipo(List<Empleado> equipo)

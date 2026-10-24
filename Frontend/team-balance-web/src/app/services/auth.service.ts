@@ -227,6 +227,14 @@ export class AuthService {
     return this.usuarioActual()?.roles?.some(rol => rol.tipoUsuario === 'Soporte') ?? false;
   }
 
+  tieneTipoUsuario(tipoUsuario: string): boolean {
+    return this.usuarioActual()?.roles?.some(rol => rol.tipoUsuario.toLocaleLowerCase() === tipoUsuario.toLocaleLowerCase()) ?? false;
+  }
+
+  esDueno(): boolean {
+    return this.tieneTipoUsuario('Dueno');
+  }
+
   private obtenerAlmacenamientoSesion(): Storage {
     return sessionStorage.getItem('token') ? sessionStorage : localStorage;
   }

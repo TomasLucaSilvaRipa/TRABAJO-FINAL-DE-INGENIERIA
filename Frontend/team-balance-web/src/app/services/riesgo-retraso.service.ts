@@ -22,6 +22,18 @@ export interface TareaRiesgoRetraso {
   titulo: string;
   estado: string;
   bloqueada: boolean;
+  fechaInicio?: string | null;
+  deadline?: string | null;
+  horasEstimadas: number;
+  porcentajeAvance: number;
+  horasRestantes: number;
+}
+
+export interface HitoTareaProyecto {
+  idTarea: number;
+  titulo: string;
+  fechaInicio?: string | null;
+  deadline?: string | null;
   horasEstimadas: number;
   porcentajeAvance: number;
   horasRestantes: number;
@@ -39,6 +51,7 @@ export interface DetalleRiesgoProyecto {
   nombreProyecto: string;
   nombreCliente: string;
   nombrePM: string;
+  fechaInicio?: string | null;
   deadline?: string | null;
   fechaEstimadaFinalizacion?: string | null;
   diasPosibleRetraso: number;
@@ -48,6 +61,7 @@ export interface DetalleRiesgoProyecto {
   nivelRiesgo: string;
   causas: CausaRiesgo[];
   tareasPendientes: TareaRiesgoRetraso[];
+  hitosTareas: HitoTareaProyecto[];
 }
 
 export interface ResultadoRiesgoRetraso {

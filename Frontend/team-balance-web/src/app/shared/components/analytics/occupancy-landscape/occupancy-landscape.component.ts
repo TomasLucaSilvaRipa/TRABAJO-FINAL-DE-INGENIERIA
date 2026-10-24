@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, effect, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, effect, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 import * as echarts from 'echarts/core';
 import { LineChart, ScatterChart } from 'echarts/charts';
 import { AriaComponent, DataZoomComponent, GridComponent, MarkAreaComponent, MarkLineComponent, TooltipComponent } from 'echarts/components';
@@ -32,6 +32,7 @@ interface NodoPaisaje {
 })
 export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, OnDestroy {
   private readonly zone = inject(NgZone);
+  private readonly changeDetector = inject(ChangeDetectorRef);
   readonly localization = inject(LocalizationService);
   @Input({ required: true }) proyectos: OcupacionProyecto[] = [];
   @Input({ required: true }) empleados: OcupacionEmpleado[] = [];
@@ -82,9 +83,15 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
     this.temporizadorCamara = globalThis.setTimeout(() => {
       this.proyecto = null;
       this.proyectoResaltadoId = proyectoAnterior.idProyecto;
-      this.dibujar();
       this.fase = 'regresando';
-      requestAnimationFrame(() => requestAnimationFrame(() => this.fase = null));
+      this.changeDetector.detectChanges();
+      this.chart?.clear();
+      this.chart?.resize();
+      this.dibujar();
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        this.fase = null;
+        this.changeDetector.detectChanges();
+      }));
       this.temporizadorResaltado = globalThis.setTimeout(() => { this.proyectoResaltadoId = null; this.dibujar(false); }, 1750);
     }, duracion);
   }
@@ -128,12 +135,19 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
     this.fase = 'enfocando';
     this.temporizadorCamara = globalThis.setTimeout(() => {
       this.fase = 'inmersion';
+      this.changeDetector.detectChanges();
       this.temporizadorCamara = globalThis.setTimeout(() => {
         this.proyecto = proyecto;
         this.proyectoResaltadoId = null;
-        this.dibujar();
         this.fase = 'emergiendo';
-        requestAnimationFrame(() => requestAnimationFrame(() => this.fase = null));
+        this.changeDetector.detectChanges();
+        this.chart?.clear();
+        this.chart?.resize();
+        this.dibujar();
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          this.fase = null;
+          this.changeDetector.detectChanges();
+        }));
       }, duracion);
     }, duracion);
   }
@@ -207,19 +221,28 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
     const alto = Math.max(460, nodos.length > 8 ? 520 : 460);
     this.chart.resize({ height: alto });
     const nombres = nodos.map(nodo => nodo.nombre);
-    const datosLinea = nodos.map(nodo => nodo.valor);
+    const ultimoIndice = Math.max(0, nodos.length - 1);
+    const margenExtremo = nodos.length > 1 ? Math.max(.035, ultimoIndice * .025) : .035;
+    const datosLinea: Array<[number, number | null]> = nodos.map((nodo, indice) => [indice, nodo.valor]);
+    if (nodos.length) {
+      datosLinea.unshift([-margenExtremo, nodos[0].valor]);
+      datosLinea.push([ultimoIndice + margenExtremo, nodos[ultimoIndice].valor]);
+    }
     const reducido = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     this.chart.setOption({
       animation: animar && !reducido, animationDuration: 1050, animationDurationUpdate: 760, animationEasing: 'cubicOut', animationEasingUpdate: 'cubicInOut',
       aria: { enabled: true, description: this.proyecto ? `Paisaje de ocupación de empleados del proyecto ${this.proyecto.nombreProyecto}.` : 'Paisaje de ocupación ponderada por proyecto.' },
       grid: { left: 48, right: 38, top: 64, bottom: 88, containLabel: true },
       tooltip: { trigger: 'item', backgroundColor: '#061a2c', borderColor: '#3d8ca9', borderWidth: 1, padding: 14, textStyle: { color: '#effdff' }, extraCssText: 'border-radius:14px;box-shadow:0 22px 52px rgba(0,0,0,.46);min-width:220px;', formatter: (evento: { dataIndex: number }) => nodos[evento.dataIndex] ? this.tooltip(nodos[evento.dataIndex]) : '' },
-      xAxis: { type: 'category', boundaryGap: false, data: nombres, axisTick: { show: false }, axisLine: { lineStyle: { color: '#4b7889', width: 2 } }, axisLabel: { color: '#d9f4fa', interval: 0, width: 132, overflow: 'truncate', rotate: nodos.length > 5 ? 18 : 0, fontWeight: 700, margin: 17 } },
+      xAxis: [
+        { type: 'category', boundaryGap: false, data: nombres, axisTick: { show: false }, axisLine: { lineStyle: { color: '#4b7889', width: 2 } }, axisLabel: { color: '#d9f4fa', interval: 0, width: 132, overflow: 'truncate', rotate: nodos.length > 5 ? 18 : 0, fontWeight: 700, margin: 17 } },
+        { type: 'value', min: -margenExtremo, max: ultimoIndice + margenExtremo, show: false, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { show: false }, splitLine: { show: false } },
+      ],
       yAxis: { type: 'value', min: dominio.min, max: dominio.max, name: this.proyecto ? this.localization.traducir('static.actualUtilization') : this.localization.traducir('static.weightedUtilization'), nameTextStyle: { color: '#a6cad6', fontWeight: 700, padding: [0, 0, 4, 4] }, axisLabel: { color: '#9fc6d1', formatter: '{value}%' }, axisLine: { lineStyle: { color: '#4b7889' } }, splitLine: { lineStyle: { color: 'rgba(132,195,214,.16)', type: 'dashed' } } },
-      dataZoom: nodos.length > 7 ? [{ type: 'inside', xAxisIndex: 0, zoomOnMouseWheel: true, moveOnMouseMove: true }, { type: 'slider', xAxisIndex: 0, height: 13, bottom: 19, borderColor: 'transparent', fillerColor: 'rgba(24,193,225,.27)', backgroundColor: 'rgba(129,194,212,.12)', handleStyle: { color: '#48d7ef', borderColor: '#baf7ff' } }] : [],
+      dataZoom: nodos.length > 7 ? [{ type: 'inside', xAxisIndex: [0, 1], zoomOnMouseWheel: true, moveOnMouseMove: true }, { type: 'slider', xAxisIndex: [0, 1], height: 13, bottom: 19, borderColor: 'transparent', fillerColor: 'rgba(24,193,225,.27)', backgroundColor: 'rgba(129,194,212,.12)', handleStyle: { color: '#48d7ef', borderColor: '#baf7ff' } }] : [],
       series: [
-        { id: 'paisaje-ocupacion', type: 'line', data: datosLinea, smooth: .36, smoothMonotone: 'x', connectNulls: false, showSymbol: false, z: 3, lineStyle: { width: 5, color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#57a6ff' }, { offset: .34, color: '#35d39b' }, { offset: .67, color: '#ffb11b' }, { offset: 1, color: '#ff5b70' }]), shadowBlur: 16, shadowColor: 'rgba(49,207,235,.38)' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(255,104,108,.34)' }, { offset: .35, color: 'rgba(255,178,29,.22)' }, { offset: .62, color: 'rgba(53,211,155,.18)' }, { offset: 1, color: 'rgba(69,157,255,.025)' }]) }, markArea: { silent: true, itemStyle: { opacity: .14 }, data: [[{ yAxis: 0, itemStyle: { color: '#317cc4' } }, { yAxis: 50 }], [{ yAxis: 50, itemStyle: { color: '#249d75' } }, { yAxis: 86 }], [{ yAxis: 86, itemStyle: { color: '#dc8d1d' } }, { yAxis: 100 }], [{ yAxis: 100, itemStyle: { color: '#d64e60' } }, { yAxis: dominio.max }]] }, markLine: { silent: true, symbol: 'none', label: { color: '#b8dce5', fontSize: 11, formatter: (parametro: { value: number }) => `${parametro.value}%` }, lineStyle: { type: 'dashed', color: 'rgba(199,235,242,.45)' }, data: [{ yAxis: 50 }, { yAxis: 86 }, { yAxis: 100 }] } },
-        { id: 'nodos-ocupacion', type: 'scatter', symbol: 'circle', z: 6, data: nodos.map((nodo, indice) => ({ value: nodo.valor === null ? [indice, dominio.min] : [indice, nodo.valor], itemStyle: { color: this.colorEstado(nodo.estado), borderColor: '#effdff', borderWidth: this.proyectoResaltadoId === nodo.id ? 4 : 2, shadowBlur: this.proyectoResaltadoId === nodo.id ? 30 : 18, shadowColor: `${this.colorEstado(nodo.estado)}c7`, opacity: nodo.valor === null ? .45 : 1 } })), symbolSize: 25, label: { show: true, position: 'top', distance: 11, formatter: (evento: { dataIndex: number }) => `{node|${nombres[evento.dataIndex]}}\n{value|${nodos[evento.dataIndex]?.valor?.toFixed(1) ?? '—'}%}`, rich: { node: { color: '#f0feff', fontWeight: 800, backgroundColor: '#10364a', borderColor: '#3e89a5', borderWidth: 1, borderRadius: 8, padding: [4, 7] }, value: { color: '#8fc9d7', fontSize: 10, lineHeight: 17 } } }, emphasis: { scale: 1.48, focus: 'series', itemStyle: { shadowBlur: 32 }, label: { show: true } } },
+        { id: 'paisaje-ocupacion', type: 'line', xAxisIndex: 1, data: datosLinea, silent: true, tooltip: { show: false }, smooth: .36, smoothMonotone: 'x', connectNulls: false, showSymbol: false, z: 3, lineStyle: { width: 5, color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#57a6ff' }, { offset: .34, color: '#35d39b' }, { offset: .67, color: '#ffb11b' }, { offset: 1, color: '#ff5b70' }]), shadowBlur: 16, shadowColor: 'rgba(49,207,235,.38)' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(255,104,108,.34)' }, { offset: .35, color: 'rgba(255,178,29,.22)' }, { offset: .62, color: 'rgba(53,211,155,.18)' }, { offset: 1, color: 'rgba(69,157,255,.025)' }]) }, markArea: { silent: true, itemStyle: { opacity: .14 }, data: [[{ yAxis: 0, itemStyle: { color: '#317cc4' } }, { yAxis: 50 }], [{ yAxis: 50, itemStyle: { color: '#249d75' } }, { yAxis: 86 }], [{ yAxis: 86, itemStyle: { color: '#dc8d1d' } }, { yAxis: 100 }], [{ yAxis: 100, itemStyle: { color: '#d64e60' } }, { yAxis: dominio.max }]] }, markLine: { silent: true, symbol: 'none', label: { color: '#b8dce5', fontSize: 11, formatter: (parametro: { value: number }) => `${parametro.value}%` }, lineStyle: { type: 'dashed', color: 'rgba(199,235,242,.45)' }, data: [{ yAxis: 50 }, { yAxis: 86 }, { yAxis: 100 }] } },
+        { id: 'nodos-ocupacion', type: 'scatter', xAxisIndex: 1, symbol: 'circle', z: 6, data: nodos.map((nodo, indice) => ({ value: nodo.valor === null ? [indice, dominio.min] : [indice, nodo.valor], itemStyle: { color: this.colorEstado(nodo.estado), borderColor: '#effdff', borderWidth: this.proyectoResaltadoId === nodo.id ? 4 : 2, shadowBlur: this.proyectoResaltadoId === nodo.id ? 30 : 18, shadowColor: `${this.colorEstado(nodo.estado)}c7`, opacity: nodo.valor === null ? .45 : 1 } })), symbolSize: 25, label: { show: true, position: 'top', distance: 11, formatter: (evento: { dataIndex: number }) => `{node|${nombres[evento.dataIndex]}}\n{value|${nodos[evento.dataIndex]?.valor?.toFixed(1) ?? '—'}%}`, rich: { node: { color: '#f0feff', fontWeight: 800, backgroundColor: '#10364a', borderColor: '#3e89a5', borderWidth: 1, borderRadius: 8, padding: [4, 7] }, value: { color: '#8fc9d7', fontSize: 10, lineHeight: 17 } } }, emphasis: { scale: 1.48, focus: 'series', itemStyle: { shadowBlur: 32 }, label: { show: true } } },
       ],
     }, { notMerge: true, lazyUpdate: false });
   }

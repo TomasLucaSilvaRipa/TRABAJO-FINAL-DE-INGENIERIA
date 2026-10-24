@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-10-23T21:57:45",
+  "totalKeys": 1595,
+  "description": "Estado de cobertura de traducciones por idioma.",
+  "missingCount": {
+    "es": 0,
+    "en": 0,
+    "fr": 0
+  },
+  "missing": {
+    "es": {},
+    "en": {},
+    "fr": {}
+  }
+}

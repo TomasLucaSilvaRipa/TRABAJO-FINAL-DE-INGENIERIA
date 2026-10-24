@@ -4,7 +4,7 @@
       <div><p class="tb-page-kicker">RADAR TEMPORAL</p><h2>Panorama de riesgo de retraso</h2><p>La demora posible resume la proyección vigente de cada proyecto. Seleccioná uno para explorar su horizonte operativo.</p></div>
       <span class="tb-risk-observatory__signal">{{ riesgos.length }} proyectos analizados</span>
     </header>
-    <div #overviewChart class="tb-risk-observatory__overview-chart"></div>
+    <div #overviewChart class="tb-risk-observatory__overview-chart" data-localization-ignore></div>
     <footer class="tb-risk-observatory__legend"><span><i class="tb-risk-observatory__dot tb-risk-observatory__dot--low"></i>Riesgo bajo</span><span><i class="tb-risk-observatory__dot tb-risk-observatory__dot--medium"></i>Riesgo medio</span><span><i class="tb-risk-observatory__dot tb-risk-observatory__dot--high"></i>Riesgo alto</span><span>La barra representa días de demora posible.</span></footer>
   </section>
 } @else {
@@ -17,14 +17,26 @@
     @if (proyecto.fechaEstimadaFinalizacion) {
       <section class="tb-risk-observatory__temporal">
         <div class="tb-risk-observatory__section-heading"><div><p class="tb-page-kicker">PROYECCIÓN DE CUMPLIMIENTO</p><h3>Horizonte de trabajo pendiente</h3><p>La recta se obtiene de las horas pendientes y de la capacidad efectiva usada por el cálculo actual.</p></div><button type="button" class="tb-link-button" (click)="verFichaProyecto()">Ver detalle completo →</button></div>
-        <div #timelineChart class="tb-risk-observatory__timeline-chart"></div>
+        <div class="tb-risk-observatory__projection-summary">
+          <article><span>{{ localization.traducir('static.project') }} · {{ localization.traducir('common.start') }}</span><strong>{{ fechaLegible(proyecto.fechaInicio) }}</strong></article>
+          <article><span>{{ localization.traducir('static.project') }} · {{ localization.traducir('common.deadline') }}</span><strong>{{ fechaLegible(proyecto.deadline) }}</strong></article>
+          <article><span>{{ localization.traducir('static.estimatedEnd') }}</span><strong>{{ fechaLegible(proyecto.fechaEstimadaFinalizacion) }}</strong></article>
+          <article [class.tb-risk-observatory__projection-summary--ok]="proyecto.diasPosibleRetraso === 0"><span>{{ localization.traducir('static.potentialDelay') }}</span><strong>{{ proyecto.diasPosibleRetraso ? proyecto.diasPosibleRetraso + ' d' : localization.traducir('static.noDelay') }}</strong></article>
+        </div>
+        <div #timelineChart class="tb-risk-observatory__timeline-chart" data-localization-ignore></div>
+        <div class="tb-risk-observatory__timeline-legend">
+          <span><i class="tb-risk-observatory__milestone tb-risk-observatory__milestone--start"></i>{{ localization.traducir('static.project') }} · {{ localization.traducir('common.start') }}</span>
+          <span><i class="tb-risk-observatory__milestone tb-risk-observatory__milestone--task"></i>{{ localization.traducir('static.riskByTask') }}</span>
+          <span><i class="tb-risk-observatory__milestone tb-risk-observatory__milestone--deadline"></i>{{ localization.traducir('static.project') }} · {{ localization.traducir('common.deadline') }}</span>
+          <span><i class="tb-risk-observatory__milestone tb-risk-observatory__milestone--estimate"></i>{{ localization.traducir('static.estimatedEnd') }}</span>
+        </div>
       </section>
     } @else {
       <section class="tb-risk-observatory__unavailable"><strong>Sin proyección temporal disponible</strong><p>El análisis no puede estimar una fecha de finalización con la información actual.</p><button type="button" class="tb-secondary-button" (click)="verFichaProyecto()">Ver causas y detalle</button></section>
     }
 
     <div class="tb-risk-observatory__lower-grid">
-      <section class="tb-risk-observatory__capacity"><div class="tb-risk-observatory__section-heading"><div><p class="tb-page-kicker">CAPACIDAD OPERATIVA</p><h3>Base de la proyección</h3><p>Compara las dos magnitudes semanales disponibles.</p></div><strong>{{ proyecto.horasRestantes }} h <small>pendientes</small></strong></div><div #capacityChart class="tb-risk-observatory__capacity-chart"></div></section>
+      <section class="tb-risk-observatory__capacity"><div class="tb-risk-observatory__section-heading"><div><p class="tb-page-kicker">CAPACIDAD OPERATIVA</p><h3>Base de la proyección</h3><p>Compara las dos magnitudes semanales disponibles.</p></div><strong>{{ proyecto.horasRestantes }} h <small>pendientes</small></strong></div><div #capacityChart class="tb-risk-observatory__capacity-chart" data-localization-ignore></div></section>
       <section class="tb-risk-observatory__alerts"><p class="tb-page-kicker">SEÑALES DETECTADAS</p><h3>Qué requiere atención</h3><div class="tb-risk-observatory__causes">@for (causa of proyecto.causas.slice(0, 3); track causa.descripcion) { <article [class.tb-risk-observatory__cause--high]="causa.nivel === 'Alto'"><span>{{ causa.nivel }}</span><p>{{ causa.descripcion }}</p></article> }</div></section>
     </div>
 

@@ -15,7 +15,7 @@ export class EcommerceComponent {
   readonly usuario: UsuarioSesion | null = this.authService.usuarioActual();
   readonly accesos = [
     { permiso: 'GestionarUsuarios', titulo: 'Gestionar empleados', descripcion: 'Usuarios, roles y perfiles laborales.', ruta: '/dashboard/empleados', accion: 'Abrir' },
-    { permiso: 'GestionarTareas', titulo: 'Planificar tareas', descripcion: 'Priorizá y asigná el trabajo.', ruta: '/dashboard/tareas', accion: 'Planificar' },
+    { permiso: 'GestionarTareas', titulo: 'Planificar tareas', descripcion: 'Priorizá y asigná el trabajo.', ruta: '/dashboard/tareas', accion: 'Planificar', ocultarDueno: true },
     { permiso: 'UsarBestFit', titulo: 'Best Fit', descripcion: 'Compará alternativas de asignación.', ruta: '/dashboard/best-fit', accion: 'Analizar' },
     { permiso: 'AnalizarSkills', titulo: 'Cobertura de skills', descripcion: 'Detectá brechas operativas y prioridades.', ruta: '/dashboard/skills-desiertos', accion: 'Revisar' },
     { permiso: 'RegistrarHoras', titulo: 'Registrar horas', descripcion: 'Actualizá tu dedicación semanal.', ruta: '/dashboard/registrar-horas', accion: 'Registrar' },
@@ -25,7 +25,8 @@ export class EcommerceComponent {
   ];
   constructor() { if (this.puedeVer('GestionarProyectos')) { this.cargarProyectos(); } if (this.puedeVer('AnalizarSkills')) { this.cargarSkillsCriticas(); } }
   puedeVer(permiso: string): boolean { return this.authService.tienePermiso(permiso); }
-  totalAccesos(): number { return this.accesos.filter(acceso => this.puedeVer(acceso.permiso)).length; }
+  puedeVerAcceso(acceso: { permiso: string; ocultarDueno?: boolean }): boolean { return this.puedeVer(acceso.permiso) && !(acceso.ocultarDueno && this.authService.esDueno()); }
+  totalAccesos(): number { return this.accesos.filter(acceso => this.puedeVerAcceso(acceso)).length; }
   cargarProyectos(): void { this.cargandoProyectos.set(true); this.projectsService.consultar().subscribe({ next: (proyectos: Proyecto[]) => { this.proyectos.set(proyectos.filter(proyecto => proyecto.activo)); this.cargandoProyectos.set(false); }, error: () => this.cargandoProyectos.set(false) }); }
   proyectosEnCurso(): number { return this.proyectos().filter(proyecto => proyecto.estado === 'En curso').length; }
   cargarSkillsCriticas(): void { this.cargandoSkills.set(true); this.skillsService.resumen().subscribe({ next: (skills) => { this.skillsCriticas.set(skills); this.cargandoSkills.set(false); }, error: () => this.cargandoSkills.set(false) }); }

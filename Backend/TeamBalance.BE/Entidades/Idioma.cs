@@ -6,6 +6,11 @@ public class Idioma
     {
     }
 
+    public Idioma(int id)
+    {
+        ID = id;
+    }
+
     public Idioma(int id, string codigo, string nombre, bool activo, Dictionary<string, string> traducciones)
     {
         ID = id;

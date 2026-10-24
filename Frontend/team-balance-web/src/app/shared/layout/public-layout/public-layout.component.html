@@ -1,5 +1,5 @@
 <div id="top" class="tb-shell" [class.tb-contrast]="contrastMode()" appLocalizedStaticContent>
-  <a href="#main-content" class="tb-skip-link">Saltar al contenido</a>
+  <a href="#main-content" class="tb-skip-link">{{ localization.traducir('public.accessibility.skipContent') }}</a>
 
   <app-public-header [contrastMode]="contrastMode()" />
 
@@ -14,13 +14,13 @@
     class="tb-contrast-toggle"
     (click)="toggleContrast()"
     [attr.aria-pressed]="contrastMode()"
-    aria-label="Alternar contraste de la página"
+    [attr.aria-label]="localization.traducir('public.accessibility.toggleContrast')"
   >
     @if (contrastMode()) {
       <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v2m0 14v2M5.64 5.64l1.42 1.42m9.88 9.88 1.42 1.42M3 12h2m14 0h2M5.64 18.36l1.42-1.42m9.88-9.88 1.42-1.42M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/></svg>
     } @else {
       <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20.8 15.6A8.5 8.5 0 0 1 8.4 3.2 8.5 8.5 0 1 0 20.8 15.6Z"/></svg>
     }
-    <span>{{ contrastMode() ? 'Modo claro' : 'Más contraste' }}</span>
+    <span>{{ localization.traducir(contrastMode() ? 'public.contrast.lightMode' : 'public.contrast.moreContrast') }}</span>
   </button>
 </div>

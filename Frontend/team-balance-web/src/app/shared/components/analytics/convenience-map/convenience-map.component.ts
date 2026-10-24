@@ -1,12 +1,12 @@
-import { AfterViewInit, Component, effect, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, effect, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 import * as echarts from 'echarts/core';
 import { BarChart, ScatterChart } from 'echarts/charts';
-import { GridComponent, TooltipComponent } from 'echarts/components';
+import { GridComponent, MarkAreaComponent, MarkLineComponent, TooltipComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
 import { ConvenienciaOperativaCliente, ConvenienciaOperativaProyecto } from '../../../../services/analitica-operativa.service';
 import { LocalizationService } from '../../../../services/localization.service';
 
-echarts.use([BarChart, ScatterChart, GridComponent, TooltipComponent, CanvasRenderer]);
+echarts.use([BarChart, ScatterChart, GridComponent, MarkAreaComponent, MarkLineComponent, TooltipComponent, CanvasRenderer]);
 
 type ElementoConveniencia = ConvenienciaOperativaCliente | ConvenienciaOperativaProyecto;
 type TransicionMapa = 'entrando' | 'preparando-entrada' | 'saliendo' | 'preparando-salida' | null;
@@ -19,6 +19,7 @@ type TransicionMapa = 'entrando' | 'preparando-entrada' | 'saliendo' | 'preparan
 })
 export class ConvenienceMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private readonly zone = inject(NgZone);
+  private readonly changeDetector = inject(ChangeDetectorRef);
   protected readonly localization = inject(LocalizationService);
   @Input({ required: true }) clientes: ConvenienciaOperativaCliente[] = [];
   @Input({ required: true }) proyectos: ConvenienciaOperativaProyecto[] = [];
@@ -55,9 +56,15 @@ export class ConvenienceMapComponent implements AfterViewInit, OnChanges, OnDest
     this.transicion = 'saliendo';
     this.temporizadorTransicion = globalThis.setTimeout(() => {
       this.clienteSeleccionado = null;
-      this.dibujar();
       this.transicion = 'preparando-salida';
-      requestAnimationFrame(() => requestAnimationFrame(() => this.transicion = null));
+      this.changeDetector.detectChanges();
+      this.chart?.clear();
+      this.chart?.resize();
+      this.dibujar();
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        this.transicion = null;
+        this.changeDetector.detectChanges();
+      }));
     }, 185);
   }
 
@@ -91,9 +98,15 @@ export class ConvenienceMapComponent implements AfterViewInit, OnChanges, OnDest
     this.transicion = 'entrando';
     this.temporizadorTransicion = globalThis.setTimeout(() => {
       this.clienteSeleccionado = cliente;
-      this.dibujar();
       this.transicion = 'preparando-entrada';
-      requestAnimationFrame(() => requestAnimationFrame(() => this.transicion = null));
+      this.changeDetector.detectChanges();
+      this.chart?.clear();
+      this.chart?.resize();
+      this.dibujar();
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        this.transicion = null;
+        this.changeDetector.detectChanges();
+      }));
     }, 185);
   }
 
@@ -145,8 +158,10 @@ export class ConvenienceMapComponent implements AfterViewInit, OnChanges, OnDest
     const elementos = this.elementosActuales();
     const nombres = elementos.map(elemento => this.etiqueta(elemento));
     const valores = elementos.map(elemento => this.indiceSaldo(elemento));
-    const extremo = Math.max(25, ...valores.map(valor => Math.abs(valor) + 12));
-    const alto = Math.max(395, 315 + (nombres.length > 7 ? 50 : 0));
+    const valorAbsolutoMayor = Math.max(25, ...valores.map(valor => Math.abs(valor)));
+    const intervaloVertical = valorAbsolutoMayor <= 100 ? 25 : valorAbsolutoMayor <= 250 ? 50 : Math.ceil(valorAbsolutoMayor / 5 / 25) * 25;
+    const extremo = Math.max(50, Math.ceil((valorAbsolutoMayor * 1.12) / intervaloVertical) * intervaloVertical);
+    const alto = Math.max(440, 350 + (nombres.length > 7 ? 55 : 0));
     this.chart.resize({ height: alto });
     this.chart.setOption({
       animation: true,
@@ -154,7 +169,7 @@ export class ConvenienceMapComponent implements AfterViewInit, OnChanges, OnDest
       animationDurationUpdate: 540,
       animationEasing: 'cubicOut',
       animationEasingUpdate: 'cubicInOut',
-      grid: { left: 42, right: 36, top: 48, bottom: 82, containLabel: true },
+      grid: { left: 58, right: 46, top: 62, bottom: 94, containLabel: true },
       tooltip: {
         trigger: 'item',
         backgroundColor: '#061b2e', borderColor: '#3285a3', borderWidth: 1, padding: 14,
@@ -164,27 +179,35 @@ export class ConvenienceMapComponent implements AfterViewInit, OnChanges, OnDest
       },
       xAxis: {
         type: 'category', data: nombres,
-        axisLabel: { color: '#cfeef5', interval: 0, width: 118, overflow: 'truncate', rotate: nombres.length > 5 ? 20 : 0, fontWeight: 700 },
-        axisTick: { show: false }, axisLine: { lineStyle: { color: '#3a7184' } },
+        axisLabel: { color: '#d9f5fa', interval: 0, width: 132, overflow: 'truncate', rotate: nombres.length > 5 ? 18 : 0, fontWeight: 700, margin: 18 },
+        axisTick: { show: false }, axisLine: { lineStyle: { color: '#4c8293', width: 2 } },
       },
       yAxis: {
-        type: 'value', min: -extremo, max: extremo,
-        name: this.localization.traducir('static.relativePlannedCost'), nameTextStyle: { color: '#9fc3cf', padding: [0, 0, 0, 12] },
-        axisLabel: { color: '#9fc3cf', formatter: '{value}%' }, axisLine: { lineStyle: { color: '#3a7184' } },
-        splitLine: { lineStyle: { color: 'rgba(118,181,201,.16)', type: 'dashed' } },
+        type: 'value', min: -extremo, max: extremo, interval: intervaloVertical,
+        name: this.localization.traducir('static.relativePlannedCost'), nameGap: 20, nameTextStyle: { color: '#b5d5de', fontWeight: 700, padding: [0, 0, 0, 20] },
+        axisLabel: { color: '#a9ced7', margin: 13, formatter: (valor: number) => `${valor > 0 ? '+' : ''}${valor}%` },
+        axisTick: { show: false }, axisLine: { show: true, lineStyle: { color: '#4c8293' } },
+        splitLine: { lineStyle: { color: 'rgba(118,181,201,.2)', type: 'dashed' } },
+        splitArea: { show: true, areaStyle: { color: ['rgba(64,151,177,.025)', 'rgba(64,151,177,.055)'] } },
       },
       series: [
         {
-          type: 'bar', barWidth: 9, z: 1,
-          data: elementos.map((elemento, indice) => ({ value: valores[indice], itemStyle: { color: `${this.colorEstado(elemento.estadoConveniencia)}82`, borderRadius: 99 } })),
+          type: 'bar', barWidth: 12, z: 2,
+          data: elementos.map((elemento, indice) => {
+            const color = this.colorEstado(elemento.estadoConveniencia);
+            const positivo = valores[indice] >= 0;
+            return { value: valores[indice], itemStyle: { color: new echarts.graphic.LinearGradient(0, positivo ? 1 : 0, 0, positivo ? 0 : 1, [{ offset: 0, color: `${color}45` }, { offset: 1, color }]), borderColor: `${color}a8`, borderWidth: 1, borderRadius: positivo ? [8, 8, 2, 2] : [2, 2, 8, 8], shadowBlur: 12, shadowColor: `${color}42` } };
+          }),
           emphasis: { itemStyle: { opacity: 1 }, focus: 'series' },
+          markArea: { silent: true, data: [[{ yAxis: 0, itemStyle: { color: 'rgba(53,211,155,.055)' } }, { yAxis: extremo }], [{ yAxis: -extremo, itemStyle: { color: 'rgba(255,91,114,.05)' } }, { yAxis: 0 }]] },
+          markLine: { silent: true, symbol: 'none', label: { show: true, position: 'insideEndTop', color: '#aee2ec', formatter: '0%' }, lineStyle: { color: 'rgba(128,220,232,.72)', width: 2 }, data: [{ yAxis: 0 }] },
         },
         {
           type: 'scatter', symbol: 'circle', z: 3,
-          data: elementos.map((elemento, indice) => ({ value: [indice, valores[indice]], itemStyle: { color: this.colorEstado(elemento.estadoConveniencia), borderColor: '#e8fcff', borderWidth: 2, shadowBlur: 20, shadowColor: `${this.colorEstado(elemento.estadoConveniencia)}9f` } })),
-          symbolSize: 26,
-          label: { show: true, position: 'top', distance: 9, formatter: (evento: { dataIndex: number }) => `{node|${nombres[evento.dataIndex]}}`, rich: { node: { color: '#effdff', backgroundColor: '#12384a', borderColor: '#3d829a', borderWidth: 1, borderRadius: 8, padding: [4, 7], fontWeight: 700 } } },
-          emphasis: { scale: 1.35, focus: 'series' },
+          data: elementos.map((elemento, indice) => ({ value: [indice, valores[indice]], label: { position: valores[indice] >= 0 ? 'top' : 'bottom' }, itemStyle: { color: this.colorEstado(elemento.estadoConveniencia), borderColor: '#e8fcff', borderWidth: 2, shadowBlur: 22, shadowColor: `${this.colorEstado(elemento.estadoConveniencia)}b8` } })),
+          symbolSize: 28,
+          label: { show: true, distance: 11, formatter: (evento: { dataIndex: number }) => `{node|${nombres[evento.dataIndex]}}\n{value|${valores[evento.dataIndex] > 0 ? '+' : ''}${valores[evento.dataIndex].toFixed(1)}%}`, rich: { node: { color: '#effdff', backgroundColor: '#12384a', borderColor: '#3d829a', borderWidth: 1, borderRadius: 8, padding: [4, 7], fontWeight: 700 }, value: { color: '#aad4de', fontSize: 11, fontWeight: 700, lineHeight: 19 } } },
+          emphasis: { scale: 1.4, focus: 'series', itemStyle: { shadowBlur: 32 } },
         },
       ],
     }, { notMerge: true });

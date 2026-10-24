@@ -2,12 +2,16 @@
   <div class="mb-7"><p class="tb-page-kicker">{{ localization.traducir('languages.kicker') }}</p><h1 class="tb-page-title">{{ localization.traducir('languages.title') }}</h1><p class="tb-page-description">{{ localization.traducir('languages.description') }}</p></div>
 
   <section class="tb-panel mb-6 p-5">
-    <p class="tb-page-kicker">{{ localization.traducir('languages.newLanguage') }}</p>
-    <div class="mt-3 grid gap-4 md:grid-cols-[180px_minmax(0,1fr)_auto]">
-      <label class="tb-field-label">{{ localization.traducir('languages.code') }}<input [ngModel]="codigoNuevo()" (ngModelChange)="codigoNuevo.set($event)" [placeholder]="localization.traducir('languages.codeHint')" maxlength="16" /></label>
-      <label class="tb-field-label">{{ localization.traducir('languages.name') }}<input [ngModel]="nombreNuevo()" (ngModelChange)="nombreNuevo.set($event)" maxlength="100" /></label>
-      <button type="button" class="tb-button tb-button--primary self-end" [disabled]="creando()" (click)="crear()">{{ creando() ? localization.traducir('common.loading') : localization.traducir('languages.create') }}</button>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div><p class="tb-page-kicker">{{ modoAlta() ? localization.traducir('languages.newLanguage') : localization.traducir('languages.editLanguage') }}</p><p class="tb-muted-text mt-1">{{ modoAlta() ? localization.traducir('languages.createHint') : localization.traducir('languages.editHint') }}</p></div>
+      @if (!modoAlta()) { <button type="button" class="tb-button tb-button--ghost" (click)="iniciarAlta()">{{ localization.traducir('languages.newLanguage') }}</button> }
     </div>
+    <div class="mt-3 grid gap-4 md:grid-cols-[180px_minmax(0,1fr)_auto]">
+      <label class="tb-field-label">{{ localization.traducir('languages.code') }}<input [ngModel]="codigoFormulario()" (ngModelChange)="codigoFormulario.set($event)" [disabled]="!puedeEditarCodigo()" [placeholder]="localization.traducir('languages.codeHint')" maxlength="16" /></label>
+      <label class="tb-field-label">{{ localization.traducir('languages.name') }}<input [ngModel]="nombreFormulario()" (ngModelChange)="nombreFormulario.set($event)" [disabled]="!puedeEditarDatos()" maxlength="100" /></label>
+      <button type="button" class="tb-button tb-button--primary self-end" [disabled]="procesandoDatos() || !puedeEditarDatos()" (click)="guardarDatosIdioma()">{{ procesandoDatos() ? localization.traducir('common.loading') : (modoAlta() ? localization.traducir('languages.create') : localization.traducir('languages.modify')) }}</button>
+    </div>
+    @if (!modoAlta() && !puedeEditarCodigo()) { <p class="mt-3 text-xs text-amber-300">{{ esIdiomaBase(idiomaSeleccionado()!) ? localization.traducir('languages.baseCodeLocked') : localization.traducir('languages.deactivateToEditCode') }}</p> }
   </section>
 
   @if (mensaje()) { <p class="mb-4 rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-200">{{ mensaje() }}</p> }
@@ -16,25 +20,78 @@
   <section class="tb-panel p-5">
     <div class="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
       <aside>
-        <label class="tb-field-label">{{ localization.traducir('languages.select') }}
-          <select [ngModel]="idiomaSeleccionadoId()" (ngModelChange)="idiomaSeleccionadoId.set($event)">
-            @for (idioma of idiomas(); track idioma.id) { <option [ngValue]="idioma.id">{{ idioma.nombre }} ({{ idioma.codigo }})</option> }
-          </select>
-        </label>
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-end lg:flex-col lg:items-stretch">
+          <label class="tb-field-label min-w-0 grow">{{ localization.traducir('languages.select') }}
+            <select [ngModel]="idiomaSeleccionadoId()" (ngModelChange)="seleccionarIdioma($event)">
+              <option [ngValue]="null" disabled>{{ localization.traducir('languages.select') }}</option>
+              @for (idioma of idiomasVisibles(); track idioma.id) { <option [ngValue]="idioma.id">{{ idioma.nombre }} ({{ idioma.codigo }}){{ idioma.activo ? '' : ' — ' + localization.traducir('languages.inactive') }}</option> }
+            </select>
+          </label>
+          <button type="button" role="switch" class="group inline-flex w-fit max-w-full items-center gap-2.5 self-start rounded-full border px-3 py-2 text-xs font-semibold transition-all duration-200 active:scale-[0.97] lg:self-auto" [ngClass]="mostrarInactivos() ? 'border-cyan-300 bg-cyan-400/20 text-cyan-50' : 'border-white/15 bg-white/5 text-slate-300'" [attr.aria-checked]="mostrarInactivos()" (click)="cambiarVisibilidadInactivos(!mostrarInactivos())">
+            <span class="relative h-5 w-9 shrink-0 rounded-full transition-colors duration-200" [class.bg-cyan-400]="mostrarInactivos()" [class.bg-slate-600]="!mostrarInactivos()"><span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200" [class.translate-x-4]="mostrarInactivos()"></span></span>
+            <span class="whitespace-nowrap">{{ localization.traducir('languages.includeInactive') }}</span>
+          </button>
+        </div>
         @if (idiomaSeleccionado(); as idioma) {
-          <label class="mt-4 flex items-center gap-2 text-sm font-semibold"><input type="checkbox" [ngModel]="idioma.activo" (ngModelChange)="cambiarActivo($event)" /> {{ localization.traducir('languages.active') }}</label>
-          <p class="tb-muted-text mt-3">{{ cantidadTraducidas(idioma) }} / {{ claves().length }} {{ localization.traducir('languages.partial') }}</p>
+          <div class="mt-4 flex items-center justify-between gap-3"><span class="text-sm font-semibold">{{ localization.traducir('languages.status') }}</span><span class="rounded-full px-3 py-1 text-xs font-bold" [class.bg-emerald-500]="idioma.activo" [class.text-slate-950]="idioma.activo" [class.bg-slate-600]="!idioma.activo" [class.text-white]="!idioma.activo">{{ idioma.activo ? localization.traducir('languages.activeStatus') : localization.traducir('languages.inactive') }}</span></div>
+          <p class="tb-muted-text mt-3">{{ cantidadTraducidas(idioma) }} / {{ catalogoCompleto().length }} {{ localization.traducir('languages.partial') }}</p>
+          @if (idioma.activo && !esIdiomaBase(idioma)) {
+            <button type="button" class="tb-button tb-button--danger mt-4 w-full" (click)="solicitarBaja(idioma)">{{ localization.traducir('languages.deactivate') }}</button>
+          } @else if (!idioma.activo) {
+            <button type="button" class="tb-button tb-button--primary mt-4 w-full" [disabled]="reactivando()" (click)="reactivar(idioma)">{{ reactivando() ? localization.traducir('languages.reactivating') : localization.traducir('languages.reactivate') }}</button>
+          } @else if (esIdiomaBase(idioma)) {
+            <p class="mt-4 rounded-lg border border-cyan-500/30 bg-cyan-500/10 p-3 text-xs text-cyan-200">{{ localization.traducir('languages.baseProtected') }}</p>
+          }
         }
       </aside>
       <div>
         @if (idiomaSeleccionado(); as idioma) {
           <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><label class="tb-field-label grow">{{ localization.traducir('languages.search') }}<input [ngModel]="busqueda()" (ngModelChange)="busqueda.set($event)" /></label><button type="button" class="tb-button tb-button--primary" [disabled]="guardando()" (click)="guardar()">{{ guardando() ? localization.traducir('languages.saving') : localization.traducir('languages.save') }}</button></div>
-          <p class="tb-muted-text mb-4">{{ localization.traducir('languages.translationsHint') }} {{ claves().length }} {{ localization.traducir('languages.total') }}.</p>
-          <div class="max-h-[62vh] space-y-3 overflow-y-auto pr-2">
-            @for (item of claves(); track item[0]) { <article class="rounded-xl border border-white/10 bg-slate-950/25 p-4"><code class="text-xs text-cyan-300">{{ item[0] }}</code><div class="mt-2 grid gap-3 md:grid-cols-2"><div><span class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ localization.traducir('languages.source') }}</span><p class="mt-1 text-sm text-slate-200">{{ item[1] }}</p></div><label class="tb-field-label text-xs">{{ localization.traducir('languages.translation') }}<input [ngModel]="idioma.traducciones[item[0]] || ''" (ngModelChange)="actualizarTraduccion(item[0], $event)" /></label></div></article> } @empty { <div class="tb-empty-state"><p>{{ localization.traducir('languages.empty') }}</p></div> }
+          <p class="tb-muted-text mb-4">{{ localization.traducir('languages.translationsHint') }} {{ catalogoCompleto().length }} {{ localization.traducir('languages.total') }}.</p>
+          <div class="max-h-[68vh] space-y-2 overflow-y-auto pr-2">
+            @for (area of areasAgrupadas(); track area.id) {
+              <section class="overflow-hidden rounded-xl border border-white/10 bg-slate-950/15">
+                <button type="button" class="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/5" [attr.aria-expanded]="areaAbierta(area.id)" (click)="alternarArea(area.id)">
+                  <span class="min-w-0 grow text-sm font-bold">{{ localization.traducir(area.etiqueta) }}</span><span class="rounded-full bg-cyan-400/10 px-2 py-0.5 text-xs text-cyan-200">{{ area.cantidad }}</span><span class="text-cyan-300 transition-transform duration-300" [class.rotate-180]="areaAbierta(area.id)">⌄</span>
+                </button>
+                <div class="grid transition-[grid-template-rows] duration-300 ease-in-out" [style.grid-template-rows]="areaAbierta(area.id) ? '1fr' : '0fr'">
+                  <div class="min-h-0 overflow-hidden"><div class="space-y-2 border-t border-white/5 p-2">
+                    @for (seccion of area.secciones; track seccion.id) {
+                      <article class="overflow-hidden rounded-lg border border-white/5 bg-white/[0.02]">
+                        <button type="button" class="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-white/5" [attr.aria-expanded]="seccionAbierta(seccion.id)" (click)="alternarSeccion(seccion.id)">
+                          <span class="min-w-0 grow text-sm font-semibold">{{ localization.traducir(seccion.etiqueta) }}</span><span class="text-xs text-slate-400">{{ seccion.entradas.length }}</span><span class="text-xs text-slate-400 transition-transform duration-300" [class.rotate-180]="seccionAbierta(seccion.id)">⌄</span>
+                        </button>
+                        <div class="grid transition-[grid-template-rows] duration-300 ease-in-out" [style.grid-template-rows]="seccionAbierta(seccion.id) ? '1fr' : '0fr'">
+                          <div class="min-h-0 overflow-hidden"><div class="space-y-2 border-t border-white/5 p-2">
+                            @for (item of seccion.entradas; track item[0]) {
+                              <article class="rounded-lg border border-white/10 bg-slate-950/25 p-3"><code class="text-xs text-cyan-300">{{ item[0] }}</code><div class="mt-2 grid gap-3 md:grid-cols-2"><div><span class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ localization.traducir('languages.source') }}</span><p class="mt-1 text-sm text-slate-200">{{ item[1] }}</p></div><label class="tb-field-label text-xs">{{ localization.traducir('languages.translation') }}<input [ngModel]="idioma.traducciones[item[0]] || ''" (ngModelChange)="actualizarTraduccion(item[0], $event)" /></label></div></article>
+                            }
+                          </div></div>
+                        </div>
+                      </article>
+                    }
+                  </div></div>
+                </div>
+              </section>
+            } @empty { <div class="tb-empty-state"><p>{{ localization.traducir('languages.empty') }}</p></div> }
           </div>
         } @else { <div class="tb-empty-state"><p>{{ localization.traducir('languages.select') }}</p></div> }
       </div>
     </div>
   </section>
 </section>
+
+@if (idiomaPendienteBaja(); as idioma) {
+  <div class="tb-dialog-backdrop" (click)="cancelarBaja()">
+    <section class="tb-dialog max-w-lg" role="alertdialog" aria-modal="true" [attr.aria-label]="localization.traducir('languages.deactivate')" (click)="$event.stopPropagation()">
+      <button class="tb-dialog__close" type="button" [disabled]="eliminando()" (click)="cancelarBaja()">×</button>
+      <p class="tb-page-kicker text-amber-300">{{ localization.traducir('languages.warning') }}</p>
+      <h2 class="mt-2 text-xl font-bold">{{ localization.traducir('languages.deactivateTitle') }} “{{ idioma.nombre }}”</h2>
+      <p class="tb-muted-text mt-3">{{ localization.traducir('languages.deactivateDescription') }}</p>
+      <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <button type="button" class="tb-button tb-button--ghost" [disabled]="eliminando()" (click)="cancelarBaja()">{{ localization.traducir('common.cancel') }}</button>
+        <button type="button" class="tb-button tb-button--danger" [disabled]="eliminando()" (click)="confirmarBaja()">{{ eliminando() ? localization.traducir('languages.deactivating') : localization.traducir('languages.confirmDeactivate') }}</button>
+      </div>
+    </section>
+  </div>
+}

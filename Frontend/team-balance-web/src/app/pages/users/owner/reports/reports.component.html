@@ -31,7 +31,7 @@
         <label class="tb-field-label">{{ localization.traducir('static.projectManager') }}<select [(ngModel)]="filtro.idPM" [disabled]="esPM && !esDueno"><option [ngValue]="null">{{ localization.traducir('static.allPMs') }}</option>@for (responsable of responsables(); track responsable.id) { <option [ngValue]="responsable.id">{{ responsable.nombre }} {{ responsable.apellido }}</option> }</select></label>
         <label class="tb-field-label">{{ localization.traducir('static.riskLevel') }}<select [(ngModel)]="filtro.nivelRiesgo"><option [ngValue]="null">{{ localization.traducir('static.all') }}</option><option value="Alto">{{ localization.traducir('static.high') }}</option><option value="Medio">{{ localization.traducir('static.medium') }}</option><option value="Bajo">{{ localization.traducir('static.low') }}</option></select></label>
         <label class="tb-field-label">{{ localization.traducir('static.deadlineWithin') }}<select [(ngModel)]="filtro.diasHastaDeadlineMaximo"><option [ngValue]="null">{{ localization.traducir('static.anyDate') }}</option><option [ngValue]="7">7 {{ localization.traducir('static.days') }}</option><option [ngValue]="14">14 {{ localization.traducir('static.days') }}</option><option [ngValue]="30">30 {{ localization.traducir('static.days') }}</option></select></label>
-        <div class="flex items-end"><button class="tb-action-button" type="button" (click)="consultarRiesgos()" [disabled]="cargando()">{{ cargando() ? 'Actualizando…' : 'Aplicar filtros' }}</button></div>
+        <div class="flex items-end gap-2"><button class="tb-action-button" type="button" (click)="consultarRiesgos()" [disabled]="cargando()">{{ cargando() ? 'Actualizando…' : 'Aplicar filtros' }}</button>@if (hayFiltrosRiesgoAplicados()) { <button class="tb-secondary-button" type="button" (click)="limpiarFiltrosRiesgo()" [disabled]="cargando()">Limpiar filtros</button> }</div>
       </div>
     } @else if (vista() !== 'desvio') {
       <div class="grid gap-4 md:grid-cols-[1fr_auto]"><label class="tb-field-label">Proyecto<select [(ngModel)]="filtro.idProyecto"><option [ngValue]="null">Todos los proyectos</option>@for (proyecto of proyectos(); track proyecto.id) { <option [ngValue]="proyecto.id">{{ proyecto.nombre }}</option> }</select></label><div class="flex items-end"><button class="tb-action-button" type="button" (click)="actualizarVista()" [disabled]="cargando()">{{ cargando() ? 'Actualizando…' : 'Actualizar análisis' }}</button></div></div>
@@ -44,7 +44,7 @@
         <label class="tb-field-label">Desde<input type="date" [(ngModel)]="filtroDesvio.desde" /></label>
         <label class="tb-field-label">Hasta<input type="date" [(ngModel)]="filtroDesvio.hasta" /></label>
         <label class="tb-field-label">Nivel de desvío<select [(ngModel)]="filtroDesvio.nivelDesvio"><option [ngValue]="null">Todos</option><option>Dentro de lo previsto</option><option>En seguimiento</option><option>Excedido</option></select></label>
-        <div class="flex items-end"><button class="tb-action-button" type="button" (click)="consultarDesvioHoras()" [disabled]="cargando()">{{ cargando() ? 'Actualizando…' : 'Aplicar filtros' }}</button></div>
+        <div class="flex items-end gap-2"><button class="tb-action-button" type="button" (click)="consultarDesvioHoras()" [disabled]="cargando()">{{ cargando() ? 'Actualizando…' : 'Aplicar filtros' }}</button><button class="tb-secondary-button" type="button" (click)="limpiarFiltrosDesvio()" [disabled]="cargando() || !hayFiltrosDesvioAplicados()">Limpiar filtros</button></div>
       </div>
     }
   </section>
@@ -105,12 +105,22 @@
 
   @if (vista() === 'desvio' && desvioHoras(); as datos) {
     <section class="space-y-4">
-      <div class="grid gap-4 md:grid-cols-4"><article class="tb-panel"><p class="text-sm text-slate-500">{{ localization.traducir('static.estimatedHours') }}</p><strong class="text-2xl">{{ datos.horasEstimadas }}</strong></article><article class="tb-panel"><p class="text-sm text-slate-500">{{ localization.traducir('static.actualHours') }}</p><strong class="text-2xl">{{ datos.horasReales }}</strong></article><article class="tb-panel"><p class="text-sm text-slate-500">{{ localization.traducir(datos.horasExcedidas > 0 ? 'static.exceededHours' : datos.horasRestantes > 0 ? 'static.remainingHours' : 'static.estimateMet') }}</p><strong class="text-2xl">{{ textoBalanceHoras(datos.horasRestantes, datos.horasExcedidas) }}</strong></article><article class="tb-panel"><p class="text-sm text-slate-500">{{ localization.traducir('static.consumption') }}</p><strong class="text-2xl">{{ datos.porcentajeConsumo }}%</strong></article></div>
       @if (mensajeDesvio()) { <p class="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">{{ mensajeDesvio() }}</p> }
-      @if (datos.proyectos.length) {
-        <app-hours-drilldown-chart [proyectos]="datos.proyectos" (proyectoCambiado)="seleccionarProyectoDesvio($event)" (tareaSeleccionada)="abrirDetalleDesvio($event.proyecto, $event.tarea)" />
-        @if (proyectoDesvioSeleccionado(); as proyecto) { <section class="tb-panel flex flex-wrap items-center justify-between gap-3"><div><p class="tb-page-kicker">PROYECTO SELECCIONADO</p><h2 class="text-lg font-semibold">{{ proyecto.nombreProyecto }}</h2><p class="text-sm text-slate-500">{{ proyecto.nombreCliente }} · {{ proyecto.horasReales }} / {{ proyecto.horasEstimadas }} h</p></div><div class="flex flex-wrap gap-2"><span class="tb-status-badge">{{ proyecto.estado }}</span><button class="tb-secondary-button" type="button" (click)="abrirAccionAjuste(proyecto)">Registrar ajuste</button><button class="tb-action-button" type="button" (click)="prepararComunicacion(proyecto)">Informar al Dueño</button></div></section> }
-      } @else { <section class="tb-panel"><div class="tb-empty-state"><h2>Sin resultados para esos filtros</h2><p>Probá ampliar el período, el responsable o el nivel de desvío.</p></div></section> }
+      <section class="tb-hours-dashboard-frame">
+        <div class="tb-hours-summary-panel">
+          <div class="tb-hours-summary-panel__heading"><span>Resumen del alcance</span><small>Valores consolidados de los filtros aplicados</small></div>
+          <div class="tb-hours-summary-grid">
+            <article class="tb-hours-summary-card" style="--metric-accent:#58d7f5"><p>{{ localization.traducir('static.estimatedHours') }}</p><strong>{{ datos.horasEstimadas }}</strong><span>Base planificada</span></article>
+            <article class="tb-hours-summary-card" [style.--metric-accent]="datos.porcentajeConsumo > 100 ? '#fb5a70' : datos.porcentajeConsumo >= 80 ? '#ffb11b' : '#2ed7a1'"><p>{{ localization.traducir('static.actualHours') }}</p><strong>{{ datos.horasReales }}</strong><span>Tiempo registrado</span></article>
+            <article class="tb-hours-summary-card" [style.--metric-accent]="datos.horasExcedidas > 0 ? '#fb5a70' : datos.horasRestantes > 0 ? '#58d7f5' : '#2ed7a1'"><p>{{ localization.traducir(datos.horasExcedidas > 0 ? 'static.exceededHours' : datos.horasRestantes > 0 ? 'static.remainingHours' : 'static.estimateMet') }}</p><strong>{{ textoBalanceHoras(datos.horasRestantes, datos.horasExcedidas) }}</strong><span>{{ datos.horasExcedidas > 0 ? 'Sobre la estimación' : datos.horasRestantes > 0 ? 'Margen disponible' : 'Objetivo alcanzado' }}</span></article>
+            <article class="tb-hours-summary-card" [style.--metric-accent]="datos.porcentajeConsumo > 100 ? '#fb5a70' : datos.porcentajeConsumo >= 80 ? '#ffb11b' : '#2ed7a1'"><p>{{ localization.traducir('static.consumption') }}</p><strong>{{ datos.porcentajeConsumo }}%</strong><span>{{ datos.porcentajeConsumo > 100 ? 'Excedido' : datos.porcentajeConsumo >= 80 ? 'En seguimiento' : 'Dentro de lo previsto' }}</span></article>
+          </div>
+        </div>
+        @if (datos.proyectos.length) {
+          <app-hours-drilldown-chart [proyectos]="datos.proyectos" (proyectoCambiado)="seleccionarProyectoDesvio($event)" (tareaSeleccionada)="abrirDetalleDesvio($event.proyecto, $event.tarea)" />
+        } @else { <section class="tb-panel"><div class="tb-empty-state"><h2>Sin resultados para esos filtros</h2><p>Probá ampliar el período, el responsable o el nivel de desvío.</p></div></section> }
+      </section>
+      @if (proyectoDesvioSeleccionado(); as proyecto) { <section class="tb-panel flex flex-wrap items-center justify-between gap-3"><div><p class="tb-page-kicker">PROYECTO SELECCIONADO</p><h2 class="text-lg font-semibold">{{ proyecto.nombreProyecto }}</h2><p class="text-sm text-slate-500">{{ proyecto.nombreCliente }} · {{ proyecto.horasReales }} / {{ proyecto.horasEstimadas }} h</p></div><div class="flex flex-wrap gap-2"><span class="tb-status-badge">{{ proyecto.estado }}</span><button class="tb-secondary-button" type="button" (click)="abrirAccionAjuste(proyecto)">Registrar ajuste</button><button class="tb-action-button" type="button" (click)="prepararComunicacion(proyecto)">Informar al Dueño</button></div></section> }
     </section>
   }
 

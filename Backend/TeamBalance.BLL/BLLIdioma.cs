@@ -31,8 +31,27 @@ public class BLLIdioma
     {
         ValidarGestion(solicitante);
         if (idioma.ID <= 0) throw new ArgumentException("El idioma indicado no es válido.");
+        Idioma? idiomaRegistrado = _idiomaMPP.ConsultarPorId(idioma);
+        if (idiomaRegistrado is null) throw new ArgumentException("No existe el idioma indicado.");
         Normalizar(idioma);
+        bool cambiaCodigo = !string.Equals(idiomaRegistrado.Codigo, idioma.Codigo, StringComparison.Ordinal);
+        bool cambiaNombre = !string.Equals(idiomaRegistrado.Nombre, idioma.Nombre, StringComparison.Ordinal);
+        if (idiomaRegistrado.Codigo is "es" or "en" or "fr" && (cambiaCodigo || cambiaNombre)) throw new ArgumentException("El código y el nombre de un idioma base no pueden modificarse.");
+        if (idiomaRegistrado.Activo && cambiaCodigo) throw new ArgumentException("Para corregir el código, primero tenés que dar de baja el idioma.");
+        if (idiomaRegistrado.Codigo is "es" or "en" or "fr" && !idioma.Activo) throw new ArgumentException("Los idiomas base no pueden darse de baja.");
+        if (idiomaRegistrado.Activo && !idioma.Activo) throw new ArgumentException("La baja debe realizarse desde la acción Dar de baja idioma.");
         _idiomaMPP.Modificar(idioma);
+    }
+
+    public void DarDeBaja(Idioma idioma, Usuario solicitante)
+    {
+        ValidarGestion(solicitante);
+        if (idioma.ID <= 0) throw new ArgumentException("El idioma indicado no es válido.");
+        Idioma? idiomaRegistrado = _idiomaMPP.ConsultarPorId(idioma);
+        if (idiomaRegistrado is null) throw new ArgumentException("No existe el idioma indicado.");
+        if (idiomaRegistrado.Codigo is "es" or "en" or "fr") throw new ArgumentException("Los idiomas base no pueden darse de baja.");
+        if (!idiomaRegistrado.Activo) throw new ArgumentException("El idioma ya se encuentra dado de baja.");
+        _idiomaMPP.DarDeBaja(idiomaRegistrado);
     }
 
     private void ValidarGestion(Usuario solicitante)

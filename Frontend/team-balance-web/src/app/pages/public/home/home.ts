@@ -56,8 +56,32 @@ export class HomeComponent {
   private readonly reviewsService = inject(ReviewsService);
   readonly stars = [1, 2, 3, 4, 5];
   readonly reviewNoticeOpen = signal(false);
-  readonly content = computed(() => HOME_CONTENT[this.localization.language()] ?? HOME_CONTENT['en']);
-  readonly reviews = computed(() => [...this.reviewsService.reviews(), ...(REVIEWS[this.localization.language()] ?? REVIEWS['en'])]);
+  readonly content = computed<HomeContent>(() => ({
+    heroEyebrow: this.translate('public.home.hero.eyebrow'), heroTitle: this.translate('public.home.hero.title'), heroAccent: this.translate('public.home.hero.accent'), heroLead: this.translate('public.home.hero.lead'), discoverPlans: this.translate('public.home.hero.discoverPlans'), howItWorks: this.translate('public.home.hero.howItWorks'), proof: [this.translate('public.home.hero.proof1'), this.translate('public.home.hero.proof2'), this.translate('public.home.hero.proof3')],
+    previewAvailable: this.translate('public.home.preview.available'), previewIncrease: this.translate('public.home.preview.increase'), previewWorkload: this.translate('public.home.preview.workload'), previewPeople: this.translate('public.home.preview.people'), previewAlert: this.translate('public.home.preview.alert'), previewProduct: this.translate('public.home.preview.product'), previewDevelopment: this.translate('public.home.preview.development'), previewDesign: this.translate('public.home.preview.design'),
+    surveyKicker: this.translate('public.home.survey.kicker'), surveyTitle: this.translate('public.home.survey.title'), surveyText: this.translate('public.home.survey.text'), surveyAction: this.translate('public.home.survey.action'),
+    overviewEyebrow: this.translate('public.home.overview.eyebrow'), overviewTitle: this.translate('public.home.overview.title'), overviewLead: this.translate('public.home.overview.lead'),
+    cards: [
+      { title: this.translate('public.home.card.capacity.title'), text: this.translate('public.home.card.capacity.text') },
+      { title: this.translate('public.home.card.assignment.title'), text: this.translate('public.home.card.assignment.text') },
+      { title: this.translate('public.home.card.sustainable.title'), text: this.translate('public.home.card.sustainable.text') },
+    ],
+    stats: [
+      { value: this.translate('public.home.stat.skills.value'), label: this.translate('public.home.stat.skills.label') },
+      { value: this.translate('public.home.stat.risk.value'), label: this.translate('public.home.stat.risk.label') },
+      { value: this.translate('public.home.stat.workload.value'), label: this.translate('public.home.stat.workload.label') },
+    ],
+    reviewsEyebrow: this.translate('public.home.reviews.eyebrow'), reviewsTitle: this.translate('public.home.reviews.title'), reviewsLead: this.translate('public.home.reviews.lead'), stars: this.translate('public.home.reviews.stars'), reviewPromptTitle: this.translate('public.home.reviews.promptTitle'), reviewPromptText: this.translate('public.home.reviews.promptText'), leaveReview: this.translate('public.home.reviews.leaveReview'),
+    ctaEyebrow: this.translate('public.home.cta.eyebrow'), ctaTitle: this.translate('public.home.cta.title'), ctaLead: this.translate('public.home.cta.lead'),
+    reviewDialogEyebrow: this.translate('public.home.dialog.eyebrow'), reviewDialogTitle: this.translate('public.home.dialog.title'), reviewDialogText: this.translate('public.home.dialog.text'), choosePlan: this.translate('public.home.dialog.choosePlan'), close: this.translate('public.home.dialog.close'),
+  }));
+
+  private readonly translatedReviews = computed<HomeReview[]>(() => [
+    { rating: 5, title: this.translate('public.home.review1.title'), description: this.translate('public.home.review1.description'), name: 'Mariana López', role: this.translate('public.home.review1.role'), date: this.translate('public.home.review1.date') },
+    { rating: 5, title: this.translate('public.home.review2.title'), description: this.translate('public.home.review2.description'), name: 'Franco Gómez', role: this.translate('public.home.review2.role'), date: this.translate('public.home.review2.date') },
+    { rating: 4, title: this.translate('public.home.review3.title'), description: this.translate('public.home.review3.description'), name: 'Lucía Fernández', role: this.translate('public.home.review3.role'), date: this.translate('public.home.review3.date') },
+  ]);
+  readonly reviews = computed(() => [...this.reviewsService.reviews(), ...this.translatedReviews()]);
 
   openReviewNotice(): void {
     this.reviewNoticeOpen.set(true);
@@ -66,4 +90,6 @@ export class HomeComponent {
   closeReviewNotice(): void {
     this.reviewNoticeOpen.set(false);
   }
+
+  private translate(key: string): string { return this.localization.traducir(key); }
 }

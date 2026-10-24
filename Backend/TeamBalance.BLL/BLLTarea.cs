@@ -26,7 +26,7 @@ public class BLLTarea
     public List<Tarea> ConsultarAsignadas(Usuario usuario) {
         try
         {
-            if (!_rolBLL.TienePermiso(usuario, "VerDashboard")) { throw new UnauthorizedAccessException("No tenés permiso para consultar tus tareas."); }
+            if (EsDueno(usuario) || !_rolBLL.TienePermiso(usuario, "VerMisTareas")) { throw new UnauthorizedAccessException("No tenés permiso para consultar tareas asignadas."); }
             return _tareaMPP.ConsultarPorEmpleado(usuario);
         }
         catch (UnauthorizedAccessException) { throw; }
@@ -302,7 +302,12 @@ public class BLLTarea
         return _recursosMPP.CambiarEstadoSkill(skill); 
     }
     private void ValidarGestionTareas(Usuario usuario) { 
-        if (!_rolBLL.TienePermiso(usuario, "GestionarTareas")) { throw new UnauthorizedAccessException("No tenés permiso para gestionar tareas."); } 
+        if (EsDueno(usuario) || !_rolBLL.TienePermiso(usuario, "GestionarTareas")) { throw new UnauthorizedAccessException("La gestión de tareas está disponible para los PM autorizados."); } 
+    }
+
+    private static bool EsDueno(Usuario usuario)
+    {
+        return usuario.Roles.Any(rol => string.Equals(rol.TipoUsuario, "Dueno", StringComparison.OrdinalIgnoreCase));
     }
 
     private void ValidarSkill(Skill skill)

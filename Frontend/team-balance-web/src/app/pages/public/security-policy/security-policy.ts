@@ -37,5 +37,19 @@ const SECURITY_CONTENT: Record<LanguageCode, SecurityContent> = {
 })
 export class SecurityPolicyComponent {
   private readonly localization = inject(LocalizationService);
-  readonly content = computed(() => SECURITY_CONTENT[this.localization.language()] ?? SECURITY_CONTENT['en']);
+  readonly content = computed<SecurityContent>(() => ({
+    eyebrow: this.translate('public.security.eyebrow'),
+    title: this.translate('public.security.title'),
+    lead: this.translate('public.security.lead'),
+    sections: [
+      { title: this.translate('public.security.section1.title'), paragraphs: [this.translate('public.security.section1.paragraph1'), this.translate('public.security.section1.paragraph2')] },
+      { title: this.translate('public.security.section2.title'), paragraphs: [this.translate('public.security.section2.paragraph1'), this.translate('public.security.section2.paragraph2')] },
+      { title: this.translate('public.security.section3.title'), paragraphs: [this.translate('public.security.section3.paragraph1'), this.translate('public.security.section3.paragraph2')] },
+      { title: this.translate('public.security.section4.title'), paragraphs: [this.translate('public.security.section4.paragraph1'), this.translate('public.security.section4.paragraph2')] },
+      { title: this.translate('public.security.section5.title'), paragraphs: [this.translate('public.security.section5.paragraph1')] },
+    ],
+    notice: this.translate('public.security.notice'),
+  }));
+
+  private translate(key: string): string { return this.localization.traducir(key); }
 }

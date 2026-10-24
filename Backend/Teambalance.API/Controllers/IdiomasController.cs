@@ -40,6 +40,20 @@ public class IdiomasController : ControllerBase
         catch (Exception) { return StatusCode(500, "No fue posible guardar el idioma."); }
     }
 
+    [HttpDelete("{idIdioma:int}")]
+    public IActionResult DarDeBaja(int idIdioma)
+    {
+        try
+        {
+            Idioma idioma = new Idioma(idIdioma);
+            _idiomaBLL.DarDeBaja(idioma, ObtenerSolicitante());
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible dar de baja el idioma."); }
+    }
+
     private Usuario ObtenerSolicitante()
     {
         string? authorization = Request.Headers.Authorization;

@@ -59,5 +59,22 @@ const TERMS_CONTENT: Record<LanguageCode, LegalContent> = {
 })
 export class TermsAndConditions {
   private readonly localization = inject(LocalizationService);
-  readonly content = computed(() => TERMS_CONTENT[this.localization.language()] ?? TERMS_CONTENT['en']);
+  readonly content = computed<LegalContent>(() => ({
+    eyebrow: this.translate('public.terms.eyebrow'),
+    title: this.translate('public.terms.title'),
+    meta: this.translate('public.terms.meta'),
+    intro: this.translate('public.terms.intro'),
+    sections: [
+      { title: this.translate('public.terms.section1.title'), paragraphs: [this.translate('public.terms.section1.paragraph1'), this.translate('public.terms.section1.paragraph2')] },
+      { title: this.translate('public.terms.section2.title'), paragraphs: [this.translate('public.terms.section2.paragraph1'), this.translate('public.terms.section2.paragraph2')] },
+      { title: this.translate('public.terms.section3.title'), paragraphs: [this.translate('public.terms.section3.paragraph1')], items: [this.translate('public.terms.section3.item1'), this.translate('public.terms.section3.item2'), this.translate('public.terms.section3.item3')] },
+      { title: this.translate('public.terms.section4.title'), paragraphs: [this.translate('public.terms.section4.paragraph1'), this.translate('public.terms.section4.paragraph2')] },
+      { title: this.translate('public.terms.section5.title'), paragraphs: [this.translate('public.terms.section5.paragraph1'), this.translate('public.terms.section5.paragraph2')] },
+      { title: this.translate('public.terms.section6.title'), paragraphs: [this.translate('public.terms.section6.paragraph1'), this.translate('public.terms.section6.paragraph2')] },
+      { title: this.translate('public.terms.section7.title'), paragraphs: [this.translate('public.terms.section7.paragraph1'), this.translate('public.terms.section7.paragraph2')] },
+    ],
+    notice: this.translate('public.terms.notice'),
+  }));
+
+  private translate(key: string): string { return this.localization.traducir(key); }
 }

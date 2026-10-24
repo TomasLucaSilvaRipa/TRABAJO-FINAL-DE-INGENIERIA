@@ -107,6 +107,15 @@ export class Reports {
     this.riesgoService.consultar(this.filtro).subscribe({ next: resultado => { this.riesgos.set(resultado.proyectos); this.riesgoSeleccionado.set(null); this.tareaRiesgoSeleccionada.set(null); this.cerrandoDetalleRiesgo.set(false); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo calcular el riesgo de retraso.'); this.cargando.set(false); } });
   }
 
+  protected hayFiltrosRiesgoAplicados(): boolean {
+    return this.filtro.idProyecto != null || this.filtro.idCliente != null || this.filtro.idPM != null || !!this.filtro.nivelRiesgo || this.filtro.diasHastaDeadlineMaximo != null;
+  }
+
+  protected limpiarFiltrosRiesgo(): void {
+    this.filtro = {};
+    this.consultarRiesgos();
+  }
+
   protected consultarOcupacion(): void {
     this.cargando.set(true); this.error.set('');
     this.analiticaService.consultarOcupacion(this.filtroOcupacion).subscribe({ next: resultado => { this.ocupacion.set(resultado); this.detalleOcupacion.set(null); this.cerrandoDetalleOcupacion.set(false); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar la ocupación operativa.'); this.cargando.set(false); } });
@@ -182,6 +191,15 @@ export class Reports {
   protected consultarDesvioHoras(): void {
     this.cargando.set(true); this.error.set('');
     this.analiticaService.consultarDesvioHoras(this.filtroDesvio).subscribe({ next: resultado => { this.desvioHoras.set(resultado); this.proyectoDesvioSeleccionado.set(null); this.detalleDesvio.set(null); this.cerrandoDetalleDesvio.set(false); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar el desvío de horas.'); this.cargando.set(false); } });
+  }
+
+  protected hayFiltrosDesvioAplicados(): boolean {
+    return Object.values(this.filtroDesvio).some(valor => valor !== null && valor !== undefined && valor !== '');
+  }
+
+  protected limpiarFiltrosDesvio(): void {
+    this.filtroDesvio = {};
+    this.consultarDesvioHoras();
   }
 
   protected seleccionarProyectoDesvio(proyecto: DesvioHorasProyecto | null): void { this.proyectoDesvioSeleccionado.set(proyecto); }

@@ -1,10 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
+import publicPageTranslationsData from './public-page-translations.json';
+import privatePageTranslationsData from './private-page-translations.json';
 
 export type LanguageCode = string;
 export type CultureCode = string;
 
 type TranslationDictionary = Record<string, string>;
+
+const publicPageTranslations = publicPageTranslationsData as Record<string, TranslationDictionary>;
+const privatePageTranslations = privatePageTranslationsData as Record<string, TranslationDictionary>;
 
 // Literal UI left in older feature templates. Keeping these in the regular
 // catalog means custom languages receive the same list in Languages too.
@@ -59,12 +64,21 @@ const managementTranslations: Record<'es' | 'en', TranslationDictionary> = {
   es: {
     'languages.menu': 'Idiomas', 'languages.kicker': 'Configuración de plataforma', 'languages.title': 'Idiomas y traducciones',
     'languages.description': 'Creá idiomas y completá sus textos de interfaz. Las claves sin traducir se muestran en inglés.',
-    'languages.newLanguage': 'Nuevo idioma', 'languages.code': 'Código ISO', 'languages.codeHint': 'Ej.: fr o pt-BR', 'languages.name': 'Nombre del idioma',
-    'languages.create': 'Crear idioma', 'languages.select': 'Seleccionar idioma', 'languages.search': 'Buscar texto o clave',
+    'languages.newLanguage': 'Nuevo idioma', 'languages.editLanguage': 'Modificar idioma', 'languages.createHint': 'Ingresá el código ISO y el nombre con el que se mostrará.', 'languages.editHint': 'Modificá los datos del idioma seleccionado.', 'languages.code': 'Código ISO', 'languages.codeHint': 'Ej.: fr o pt-BR', 'languages.name': 'Nombre del idioma',
+    'languages.create': 'Crear idioma', 'languages.modify': 'Modificar idioma', 'languages.modified': 'Idioma modificado correctamente.', 'languages.select': 'Seleccionar idioma', 'languages.search': 'Buscar texto o clave',
     'languages.translations': 'Traducciones', 'languages.translationsHint': 'Podés guardar aunque queden campos vacíos.', 'languages.source': 'Texto base en inglés',
     'languages.translation': 'Traducción', 'languages.active': 'Disponible para usuarios', 'languages.save': 'Guardar idioma',
     'languages.saving': 'Guardando…', 'languages.created': 'Idioma creado. Ya podés completar sus traducciones.', 'languages.saved': 'Idioma guardado correctamente.',
     'languages.loadError': 'No pudimos cargar los idiomas.', 'languages.saveError': 'No pudimos guardar el idioma.', 'languages.empty': 'No hay claves que coincidan con la búsqueda.',
+    'languages.deactivate': 'Dar de baja idioma', 'languages.deactivating': 'Dando de baja…', 'languages.deactivated': 'Idioma dado de baja correctamente.', 'languages.deactivateError': 'No pudimos dar de baja el idioma.',
+    'languages.warning': 'Advertencia', 'languages.deactivateTitle': 'Dar de baja', 'languages.deactivateDescription': 'El idioma dejará de estar disponible para los usuarios. Sus traducciones y su historial se conservarán para que pueda reactivarse posteriormente.', 'languages.confirmDeactivate': 'Confirmar baja', 'languages.baseProtected': 'Español, inglés y francés son idiomas base y no pueden darse de baja.',
+    'languages.showInactive': 'Mostrar también idiomas inactivos', 'languages.includeInactive': 'Ver inactivos', 'languages.inactive': 'Inactivo', 'languages.status': 'Estado', 'languages.activeStatus': 'Activo', 'languages.deactivateToEditCode': 'Para corregir el código ISO, primero tenés que dar de baja el idioma.', 'languages.baseCodeLocked': 'El código ISO y el nombre de un idioma base no pueden modificarse.',
+    'languages.reactivate': 'Reactivar idioma', 'languages.reactivating': 'Reactivando…', 'languages.reactivated': 'Idioma reactivado correctamente.', 'languages.reactivateError': 'No pudimos reactivar el idioma.',
+    'languages.group.public': 'Páginas públicas', 'languages.group.private': 'Área privada', 'languages.group.management': 'Gestión', 'languages.group.navigation': 'Navegación', 'languages.group.shared': 'Compartidas',
+    'languages.section.publicHome': 'Inicio y contenido', 'languages.section.publicHelp': 'Ayuda', 'languages.section.publicNews': 'Novedades', 'languages.section.publicSurveys': 'Encuestas', 'languages.section.publicAccess': 'Acceso y seguridad', 'languages.section.publicPlans': 'Planes y contratación', 'languages.section.publicFooter': 'Pie público',
+    'languages.section.privateDashboard': 'Panel', 'languages.section.privateProjects': 'Proyectos', 'languages.section.privateKanban': 'Kanban', 'languages.section.privateTasks': 'Tareas', 'languages.section.privateMyTasks': 'Mis tareas', 'languages.section.privateHours': 'Horas', 'languages.section.privateEmployees': 'Empleados', 'languages.section.privateAvailability': 'Disponibilidad', 'languages.section.privateAgency': 'Agencia', 'languages.section.privateSubscription': 'Suscripción', 'languages.section.privateRoles': 'Roles',
+    'languages.section.managementHelpdesk': 'Consultas', 'languages.section.managementFaq': 'Gestión de ayuda', 'languages.section.managementSurveys': 'Gestión de encuestas', 'languages.section.managementOperators': 'Operadores', 'languages.section.managementPlans': 'Planes y métricas', 'languages.section.managementBackups': 'Respaldos', 'languages.section.managementLogs': 'Actividad', 'languages.section.managementLanguages': 'Idiomas',
+    'languages.section.navigationSidebar': 'Menú vertical', 'languages.section.navigationHeader': 'Cabecera privada', 'languages.section.sharedCommon': 'Textos comunes', 'languages.section.sharedInterface': 'Interfaz general',
     'languages.total': 'claves disponibles', 'languages.partial': 'traducidas', 'common.language': 'Idioma',
     'legacy.management': 'GESTIÓN OPERATIVA', 'legacy.direction': 'DIRECCIÓN Y GERENCIA', 'legacy.operationalAnalysis': 'Análisis operativo',
     'legacy.operationalDescription': 'Consultá capacidad, consumo de horas, eficiencia de perfiles y conveniencia operativa con la información registrada por la agencia.',
@@ -80,12 +94,21 @@ const managementTranslations: Record<'es' | 'en', TranslationDictionary> = {
   en: {
     'languages.menu': 'Languages', 'languages.kicker': 'Platform settings', 'languages.title': 'Languages and translations',
     'languages.description': 'Create languages and complete their interface texts. Missing keys are shown in English.',
-    'languages.newLanguage': 'New language', 'languages.code': 'ISO code', 'languages.codeHint': 'E.g.: fr or pt-BR', 'languages.name': 'Language name',
-    'languages.create': 'Create language', 'languages.select': 'Select language', 'languages.search': 'Search text or key',
+    'languages.newLanguage': 'New language', 'languages.editLanguage': 'Edit language', 'languages.createHint': 'Enter the ISO code and the name that will be displayed.', 'languages.editHint': 'Edit the selected language details.', 'languages.code': 'ISO code', 'languages.codeHint': 'E.g.: fr or pt-BR', 'languages.name': 'Language name',
+    'languages.create': 'Create language', 'languages.modify': 'Edit language', 'languages.modified': 'Language updated successfully.', 'languages.select': 'Select language', 'languages.search': 'Search text or key',
     'languages.translations': 'Translations', 'languages.translationsHint': 'You can save with empty fields.', 'languages.source': 'English source text',
     'languages.translation': 'Translation', 'languages.active': 'Available to users', 'languages.save': 'Save language',
     'languages.saving': 'Saving…', 'languages.created': 'Language created. You can now complete its translations.', 'languages.saved': 'Language saved successfully.',
     'languages.loadError': 'We could not load languages.', 'languages.saveError': 'We could not save the language.', 'languages.empty': 'No keys match your search.',
+    'languages.deactivate': 'Deactivate language', 'languages.deactivating': 'Deactivating…', 'languages.deactivated': 'Language deactivated successfully.', 'languages.deactivateError': 'We could not deactivate the language.',
+    'languages.warning': 'Warning', 'languages.deactivateTitle': 'Deactivate', 'languages.deactivateDescription': 'The language will no longer be available to users. Its translations and history will be preserved so it can be reactivated later.', 'languages.confirmDeactivate': 'Confirm deactivation', 'languages.baseProtected': 'Spanish, English and French are base languages and cannot be deactivated.',
+    'languages.showInactive': 'Also show inactive languages', 'languages.includeInactive': 'Show inactive', 'languages.inactive': 'Inactive', 'languages.status': 'Status', 'languages.activeStatus': 'Active', 'languages.deactivateToEditCode': 'To correct the ISO code, deactivate the language first.', 'languages.baseCodeLocked': 'The ISO code and name of a base language cannot be changed.',
+    'languages.reactivate': 'Reactivate language', 'languages.reactivating': 'Reactivating…', 'languages.reactivated': 'Language reactivated successfully.', 'languages.reactivateError': 'We could not reactivate the language.',
+    'languages.group.public': 'Public pages', 'languages.group.private': 'Private area', 'languages.group.management': 'Management', 'languages.group.navigation': 'Navigation', 'languages.group.shared': 'Shared',
+    'languages.section.publicHome': 'Home and content', 'languages.section.publicHelp': 'Help', 'languages.section.publicNews': 'News', 'languages.section.publicSurveys': 'Surveys', 'languages.section.publicAccess': 'Access and security', 'languages.section.publicPlans': 'Plans and checkout', 'languages.section.publicFooter': 'Public footer',
+    'languages.section.privateDashboard': 'Dashboard', 'languages.section.privateProjects': 'Projects', 'languages.section.privateKanban': 'Kanban', 'languages.section.privateTasks': 'Tasks', 'languages.section.privateMyTasks': 'My tasks', 'languages.section.privateHours': 'Hours', 'languages.section.privateEmployees': 'Employees', 'languages.section.privateAvailability': 'Availability', 'languages.section.privateAgency': 'Agency', 'languages.section.privateSubscription': 'Subscription', 'languages.section.privateRoles': 'Roles',
+    'languages.section.managementHelpdesk': 'Requests', 'languages.section.managementFaq': 'Help management', 'languages.section.managementSurveys': 'Survey management', 'languages.section.managementOperators': 'Operators', 'languages.section.managementPlans': 'Plans and metrics', 'languages.section.managementBackups': 'Backups', 'languages.section.managementLogs': 'Activity', 'languages.section.managementLanguages': 'Languages',
+    'languages.section.navigationSidebar': 'Side menu', 'languages.section.navigationHeader': 'Private header', 'languages.section.sharedCommon': 'Common text', 'languages.section.sharedInterface': 'General interface',
     'languages.total': 'available keys', 'languages.partial': 'translated', 'common.language': 'Language',
     'legacy.management': 'OPERATIONS', 'legacy.direction': 'MANAGEMENT', 'legacy.operationalAnalysis': 'Operational analysis',
     'legacy.operationalDescription': 'Review capacity, hour consumption, profile efficiency and operational convenience using your agency’s registered information.',
@@ -1227,6 +1250,11 @@ export class LocalizationService {
     }
   };
 
+  private readonly staticContentKeys = new Set([
+    ...Object.keys(legacyStaticTranslations.es),
+    ...Object.keys(privatePageTranslations['es']),
+  ]);
+
   readonly language = signal<LanguageCode>((localStorage.getItem('language') as LanguageCode) || 'es');
 
   readonly culture = signal<CultureCode>((localStorage.getItem('culture') as CultureCode) || 'es-AR');
@@ -1249,8 +1277,8 @@ export class LocalizationService {
     });
   }
 
-  catalogoEnIngles(): TranslationDictionary { return { ...this.translations['en'], ...managementTranslations.en, ...legacyStaticTranslations.en }; }
-  catalogoBase(language: 'es' | 'en'): TranslationDictionary { return { ...this.translations[language], ...managementTranslations[language], ...legacyStaticTranslations[language] }; }
+  catalogoEnIngles(): TranslationDictionary { return { ...this.translations['en'], ...managementTranslations.en, ...legacyStaticTranslations.en, ...publicPageTranslations['en'], ...privatePageTranslations['es'], ...this.nonEmptyTranslations(privatePageTranslations['en']) }; }
+  catalogoBase(language: 'es' | 'en'): TranslationDictionary { return { ...this.translations[language], ...managementTranslations[language], ...legacyStaticTranslations[language], ...publicPageTranslations[language], ...privatePageTranslations['es'], ...privatePageTranslations[language] }; }
 
   cambiarIdioma(language: LanguageCode): void {
     this.language.set(language);
@@ -1262,19 +1290,59 @@ export class LocalizationService {
 
   traducir(key: string, language: LanguageCode = this.language(), fallback?: string): string {
     const remoto = this.idiomasRemotos().find((idioma) => idioma.codigo === language)?.traducciones?.[key];
-    return remoto || this.translations[language]?.[key] || managementTranslations[language as 'es' | 'en']?.[key] || legacyStaticTranslations[language as 'es' | 'en']?.[key]
-      || this.translations['en'][key] || managementTranslations.en[key] || legacyStaticTranslations.en[key] || fallback || key;
+    return remoto || this.translations[language]?.[key] || managementTranslations[language as 'es' | 'en']?.[key] || legacyStaticTranslations[language as 'es' | 'en']?.[key] || publicPageTranslations[language]?.[key] || privatePageTranslations[language]?.[key]
+      || this.translations['en'][key] || managementTranslations.en[key] || legacyStaticTranslations.en[key] || publicPageTranslations['en']?.[key] || privatePageTranslations['en'][key] || privatePageTranslations['es'][key] || fallback || key;
   }
 
-  /** Translates only registered legacy literals, preserving user-provided data. */
+  /** Finds only registered interface literals, preserving user-provided data. */
+  claveTextoEstatico(texto: string): string | null {
+    const value = texto.trim();
+    if (!value) return null;
+    const catalogs: TranslationDictionary[] = [
+      this.translations['es'],
+      this.translations['en'],
+      managementTranslations.es,
+      managementTranslations.en,
+      legacyStaticTranslations.es,
+      legacyStaticTranslations.en,
+      publicPageTranslations['es'],
+      publicPageTranslations['en'],
+      privatePageTranslations['es'],
+      privatePageTranslations['en'],
+      ...this.idiomasRemotos().map((idioma) => idioma.traducciones),
+    ];
+    for (const catalog of catalogs) {
+      const entry = Object.entries(catalog).find(([, translation]) => translation?.trim() === value);
+      if (entry) return entry[0];
+    }
+    return null;
+  }
+
+  /** Resolves only keys used by literal legacy/private templates. */
+  claveContenidoEstatico(texto: string): string | null {
+    const value = texto.trim();
+    if (!value) return null;
+    const catalogs: TranslationDictionary[] = [
+      legacyStaticTranslations.es,
+      legacyStaticTranslations.en,
+      privatePageTranslations['es'],
+      privatePageTranslations['en'],
+      ...this.idiomasRemotos().map((idioma) => idioma.traducciones),
+    ];
+    for (const catalog of catalogs) {
+      const entry = Object.entries(catalog).find(([key, translation]) => this.staticContentKeys.has(key) && translation?.trim() === value);
+      if (entry) return entry[0];
+    }
+    return null;
+  }
+
+  /** Translates only registered interface literals, preserving user-provided data. */
   traducirTextoEstatico(texto: string, language: LanguageCode = this.language()): string {
     const leading = texto.match(/^\s*/)?.[0] ?? '';
     const trailing = texto.match(/\s*$/)?.[0] ?? '';
     const value = texto.trim();
     if (!value) return texto;
-    const key = Object.keys(legacyStaticTranslations.es).find((candidate) =>
-      legacyStaticTranslations.es[candidate] === value || legacyStaticTranslations.en[candidate] === value,
-    );
+    const key = this.claveTextoEstatico(value);
     return key ? `${leading}${this.traducir(key, language)}${trailing}` : texto;
   }
 
@@ -1300,6 +1368,10 @@ export class LocalizationService {
 
   formatearMoneda( monto: number, moneda: string = 'USD'): string {
     return new Intl.NumberFormat( this.culture(), { style: 'currency', currency: moneda,}).format(monto);
+  }
+
+  private nonEmptyTranslations(catalog: TranslationDictionary): TranslationDictionary {
+    return Object.fromEntries(Object.entries(catalog).filter(([, value]) => !!value?.trim()));
   }
 
 }

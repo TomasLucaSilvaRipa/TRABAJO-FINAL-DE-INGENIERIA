@@ -35,6 +35,14 @@ BEGIN
     SELECT ID, Codigo, Nombre, TraduccionesJson, Activo FROM dbo.Idioma ORDER BY Activo DESC, Nombre;
 END;
 GO
+CREATE OR ALTER PROCEDURE dbo.usp_Idioma_ConsultarPorId
+    @IdIdioma INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT ID, Codigo, Nombre, TraduccionesJson, Activo FROM dbo.Idioma WHERE ID = @IdIdioma;
+END;
+GO
 CREATE OR ALTER PROCEDURE dbo.usp_Idioma_Registrar
     @Codigo NVARCHAR(16), @Nombre NVARCHAR(100), @Activo BIT, @TraduccionesJson NVARCHAR(MAX)
 AS
@@ -54,5 +62,16 @@ BEGIN
         TraduccionesJson = @TraduccionesJson, FechaBaja = CASE WHEN @Activo = 0 THEN SYSUTCDATETIME() ELSE NULL END
     WHERE ID = @IdIdioma;
     IF @@ROWCOUNT = 0 THROW 50001, 'No existe el idioma indicado.', 1;
+END;
+GO
+CREATE OR ALTER PROCEDURE dbo.usp_Idioma_DarDeBaja
+    @IdIdioma INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE dbo.Idioma
+    SET Activo = 0, FechaBaja = SYSUTCDATETIME()
+    WHERE ID = @IdIdioma AND Activo = 1;
+    IF @@ROWCOUNT = 0 THROW 50001, 'No existe un idioma activo con el identificador indicado.', 1;
 END;
 GO

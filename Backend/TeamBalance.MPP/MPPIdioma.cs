@@ -14,6 +14,16 @@ public class MPPIdioma
     public List<Idioma> ConsultarActivos() => Consultar("dbo.usp_Idioma_ConsultarActivos");
     public List<Idioma> ConsultarGestion() => Consultar("dbo.usp_Idioma_ConsultarGestion");
 
+    public Idioma? ConsultarPorId(Idioma idioma)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>
+        {
+            new SqlParameter("@IdIdioma", idioma.ID),
+        };
+        DataTable tabla = _conexion.Leer("dbo.usp_Idioma_ConsultarPorId", parametros);
+        return tabla.Rows.Count == 0 ? null : Crear(tabla.Rows[0]);
+    }
+
     public Idioma Registrar(Idioma idioma)
     {
         DataTable resultado = _conexion.Leer("dbo.usp_Idioma_Registrar", Parametros(idioma));
@@ -27,6 +37,15 @@ public class MPPIdioma
         List<SqlParameter> parametros = Parametros(idioma);
         parametros.Insert(0, new SqlParameter("@IdIdioma", idioma.ID));
         if (!_conexion.Escribir("dbo.usp_Idioma_Modificar", parametros)) throw new InvalidOperationException("No fue posible guardar el idioma.");
+    }
+
+    public void DarDeBaja(Idioma idioma)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>
+        {
+            new SqlParameter("@IdIdioma", idioma.ID),
+        };
+        if (!_conexion.Escribir("dbo.usp_Idioma_DarDeBaja", parametros)) throw new InvalidOperationException("No fue posible dar de baja el idioma.");
     }
 
     private List<Idioma> Consultar(string procedimiento)

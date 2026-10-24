@@ -17,6 +17,7 @@ interface PaginaBuscable {
   palabras: string;
   soloSoporte?: boolean;
   ocultarSoporte?: boolean;
+  ocultarDueno?: boolean;
 }
 
 @Component({
@@ -49,13 +50,13 @@ export class AppHeaderComponent {
     { ruta: '/dashboard/reportes', permiso: 'ConsultarTableroEjecutivo', titulo: 'menu.reports', descripcion: 'dashboardSearch.reports.description', palabras: 'reportes metricas indicadores tablero ejecutivo' },
     { ruta: '/dashboard/configuracion-agencia', permiso: 'GestionarAgencia', titulo: 'menu.agency', descripcion: 'dashboardSearch.agency.description', palabras: 'agencia configuracion datos comerciales facturacion' },
     { ruta: '/dashboard/suscripcion', permiso: 'GestionarSuscripcion', titulo: 'menu.subscription', descripcion: 'dashboardSearch.subscription.description', palabras: 'suscripcion renovacion plan pago vencimiento' },
-    { ruta: '/dashboard/tareas', permiso: 'GestionarTareas', titulo: 'menu.tasks', descripcion: 'dashboardSearch.tasks.description', palabras: 'tareas asignar planificar prioridades' },
-    { ruta: '/dashboard/plantillas-tareas', permiso: 'GestionarPlantillasTareas', titulo: 'menu.templates', descripcion: 'dashboardSearch.templates.description', palabras: 'plantillas tareas reutilizar' },
+    { ruta: '/dashboard/tareas', permiso: 'GestionarTareas', titulo: 'menu.tasks', descripcion: 'dashboardSearch.tasks.description', palabras: 'tareas asignar planificar prioridades', ocultarDueno: true },
+    { ruta: '/dashboard/plantillas-tareas', permiso: 'GestionarPlantillasTareas', titulo: 'menu.templates', descripcion: 'dashboardSearch.templates.description', palabras: 'plantillas tareas reutilizar', ocultarDueno: true },
     { ruta: '/dashboard/best-fit', permiso: 'UsarBestFit', titulo: 'menu.bestFit', descripcion: 'dashboardSearch.bestFit.description', palabras: 'best fit sugerencia asignacion skills disponibilidad' },
     { ruta: '/dashboard/calendario-equipo', permiso: 'VerCalendarioEquipo', titulo: 'menu.teamCalendar', descripcion: 'dashboardSearch.teamCalendar.description', palabras: 'calendario equipo planificacion disponibilidad' },
     { ruta: '/dashboard/simulacion-impacto', permiso: 'SimularImpacto', titulo: 'menu.simulation', descripcion: 'dashboardSearch.simulation.description', palabras: 'simulacion impacto planificacion cambios' },
     { ruta: '/dashboard/skills-desiertos', permiso: 'AnalizarSkills', titulo: 'menu.skillsCoverage', descripcion: 'dashboardSearch.skills.description', palabras: 'skills habilidades cobertura brechas' },
-    { ruta: '/dashboard/mis-tareas', permiso: 'VerMisTareas', titulo: 'menu.myTasks', descripcion: 'dashboardSearch.myTasks.description', palabras: 'mis tareas pendientes asignadas' },
+    { ruta: '/dashboard/mis-tareas', permiso: 'VerMisTareas', titulo: 'menu.myTasks', descripcion: 'dashboardSearch.myTasks.description', palabras: 'mis tareas pendientes asignadas', ocultarDueno: true },
     { ruta: '/dashboard/kanban', permiso: 'VerKanban', titulo: 'menu.kanban', descripcion: 'dashboardSearch.kanban.description', palabras: 'kanban tablero tareas avance estado' },
     { ruta: '/dashboard/kanban-proyectos', permiso: 'GestionarTareas', titulo: 'menu.kanban', descripcion: 'dashboardSearch.kanban.description', palabras: 'kanban proyectos tablero tareas avance estado' },
     { ruta: '/dashboard/registrar-horas', permiso: 'RegistrarHoras', titulo: 'menu.registerHours', descripcion: 'dashboardSearch.hours.description', palabras: 'registrar horas dedicacion tiempo' },
@@ -129,6 +130,7 @@ export class AppHeaderComponent {
   private puedeVerPagina(pagina: PaginaBuscable): boolean {
     if (pagina.soloSoporte && !this.authService.esSoporte()) { return false; }
     if (pagina.ocultarSoporte && this.authService.esSoporte()) { return false; }
+    if (pagina.ocultarDueno && this.authService.esDueno()) { return false; }
     return this.authService.tienePermiso(pagina.permiso);
   }
 

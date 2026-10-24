@@ -57,5 +57,21 @@ const PRIVACY_CONTENT: Record<LanguageCode, PrivacyContent> = {
 })
 export class PrivacyPolicyComponent {
   private readonly localization = inject(LocalizationService);
-  readonly content = computed(() => PRIVACY_CONTENT[this.localization.language()] ?? PRIVACY_CONTENT['en']);
+  readonly content = computed<PrivacyContent>(() => ({
+    eyebrow: this.translate('public.privacy.eyebrow'),
+    title: this.translate('public.privacy.title'),
+    meta: this.translate('public.privacy.meta'),
+    intro: this.translate('public.privacy.intro'),
+    sections: [
+      { title: this.translate('public.privacy.section1.title'), paragraphs: [this.translate('public.privacy.section1.paragraph1'), this.translate('public.privacy.section1.paragraph2')] },
+      { title: this.translate('public.privacy.section2.title'), paragraphs: [], items: [this.translate('public.privacy.section2.item1'), this.translate('public.privacy.section2.item2'), this.translate('public.privacy.section2.item3'), this.translate('public.privacy.section2.item4'), this.translate('public.privacy.section2.item5')] },
+      { title: this.translate('public.privacy.section3.title'), paragraphs: [this.translate('public.privacy.section3.paragraph1'), this.translate('public.privacy.section3.paragraph2')] },
+      { title: this.translate('public.privacy.section4.title'), paragraphs: [this.translate('public.privacy.section4.paragraph1'), this.translate('public.privacy.section4.paragraph2')] },
+      { title: this.translate('public.privacy.section5.title'), paragraphs: [this.translate('public.privacy.section5.paragraph1'), this.translate('public.privacy.section5.paragraph2')] },
+      { title: this.translate('public.privacy.section6.title'), paragraphs: [this.translate('public.privacy.section6.paragraph1')] },
+    ],
+    notice: this.translate('public.privacy.notice'),
+  }));
+
+  private translate(key: string): string { return this.localization.traducir(key); }
 }

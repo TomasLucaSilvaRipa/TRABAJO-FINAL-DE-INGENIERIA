@@ -14,7 +14,7 @@
   </header>
 
   <div class="tb-convenience-map__stage">
-    <div #chart class="tb-convenience-map__canvas"></div>
+    <div #chart class="tb-convenience-map__canvas" data-localization-ignore></div>
     @if (!elementosActuales().length) { <div class="tb-convenience-map__empty"><strong>{{ localization.traducir('static.noElements') }}</strong><span>{{ localization.traducir('static.adjustFilters') }}</span></div> }
   </div>
 

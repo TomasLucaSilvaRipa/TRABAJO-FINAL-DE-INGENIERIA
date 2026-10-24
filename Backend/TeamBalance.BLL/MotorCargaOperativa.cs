@@ -34,7 +34,10 @@ public class MotorCargaOperativa
                 : Math.Round(horasRestantes * asignacionesTarea.Sum(asignacion => asignacion.HorasAsignadas) / tarea.HorasEstimadas, 2);
             if (horasPlanificadasEmpleado <= 0) { continue; }
 
-            DateTime inicioPlanificacion = Max(DateTime.Today, tarea.FechaInicio!.Value.Date);
+            // La ocupación pertenece al período consultado. Usar DateTime.Today
+            // hacía que, durante el fin de semana, el inicio quedara después del
+            // viernes que cierra la semana y todas las tareas se descartaran.
+            DateTime inicioPlanificacion = Max(inicioPeriodo, tarea.FechaInicio!.Value.Date);
             DateTime finPlanificacion = tarea.Deadline!.Value.Date;
             if (finPlanificacion < inicioPlanificacion) { continue; }
 
