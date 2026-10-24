@@ -5,12 +5,13 @@ import { Router, RouterModule } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { Cliente, Proyecto, ProjectsService } from '../../../../services/projects.service';
 import { AnalisisCoberturaSkill, FiltroCoberturaSkill, SkillsDesiertosService, SugerenciaEmpleadoSkill } from '../../../../services/skills-desiertos.service';
+import { SkillsCoverageMatrixComponent } from '../../../../shared/components/analytics/skills-coverage-matrix/skills-coverage-matrix.component';
 
-type OrdenRanking = 'criticidad' | 'demanda' | 'cobertura';
+type OrdenRanking = 'criticidad' | 'demanda' | 'cobertura' | 'proyectos' | 'tipo';
 
 @Component({
   selector: 'app-skills-desiertos',
-  imports: [DatePipe, FormsModule, RouterModule],
+  imports: [DatePipe, FormsModule, RouterModule, SkillsCoverageMatrixComponent],
   templateUrl: './skills-desiertos.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -35,6 +36,7 @@ export class SkillsDesiertosComponent {
   readonly cargandoSugerencias = signal(false);
   readonly cerrandoPagina = signal(false);
   readonly orden = signal<OrdenRanking>('criticidad');
+  readonly areaSeleccionada = signal('');
   readonly filtro: FiltroCoberturaSkill = { fechaDesde: this.fechaIso(0), fechaHasta: this.fechaIso(90), idProyecto: null, idCliente: null };
   tipoAccion = 'Contratación';
   observacion = '';
@@ -61,11 +63,15 @@ export class SkillsDesiertosComponent {
   }
 
   resultadosOrdenados(): AnalisisCoberturaSkill[] {
-    const resultados = [...this.resultados()];
+    const resultados = this.resultados().filter(resultado => !this.areaSeleccionada() || (resultado.categoriaSkill ?? 'Sin categoría') === this.areaSeleccionada());
     if (this.orden() === 'demanda') { return resultados.sort((a, b) => b.demandaHoras - a.demandaHoras); }
     if (this.orden() === 'cobertura') { return resultados.sort((a, b) => a.porcentajeCobertura - b.porcentajeCobertura); }
+    if (this.orden() === 'proyectos') { return resultados.sort((a, b) => b.cantidadProyectosAfectados - a.cantidadProyectosAfectados || b.puntajeCriticidad - a.puntajeCriticidad); }
+    if (this.orden() === 'tipo') { return resultados.sort((a, b) => a.tipoBrecha.localeCompare(b.tipoBrecha) || b.puntajeCriticidad - a.puntajeCriticidad); }
     return resultados.sort((a, b) => b.puntajeCriticidad - a.puntajeCriticidad || a.demandaHoras - b.demandaHoras);
   }
+
+  areasDisponibles(): string[] { return [...new Set(this.resultados().map(resultado => resultado.categoriaSkill || 'Sin categoría'))].sort(); }
 
   abrirDetalle(resultado: AnalisisCoberturaSkill): void {
     this.limpiarMensajes();
@@ -136,8 +142,8 @@ export class SkillsDesiertosComponent {
     return Math.max(4, Math.round(resultado.demandaHoras * 100 / maximo));
   }
 
-  resumenCritico(): number { return this.resultados().filter((resultado) => resultado.criticidad === 'Crítica' || resultado.criticidad === 'Alta').length; }
-  totalDemanda(): number { return this.resultados().reduce((total, resultado) => total + resultado.demandaHoras, 0); }
+  resumenCritico(): number { return this.resultadosOrdenados().filter((resultado) => resultado.criticidad === 'Crítica' || resultado.criticidad === 'Alta').length; }
+  totalDemanda(): number { return this.resultadosOrdenados().reduce((total, resultado) => total + resultado.demandaHoras, 0); }
   porcentajeCapacidad(resultado: AnalisisCoberturaSkill): number { return Math.min(100, Math.max(0, resultado.porcentajeCobertura)); }
 
   private limpiarMensajes(): void { this.error.set(''); this.mensaje.set(''); }

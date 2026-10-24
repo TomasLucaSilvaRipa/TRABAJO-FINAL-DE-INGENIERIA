@@ -50,6 +50,7 @@ public class BLLConsultaPlan
             consulta.Consulta = consulta.Consulta.Trim();
             consulta.Activo = true;
             ConsultaPlan resultado = _consultaMPP.Registrar(consulta);
+            _bitacoraBLL.Add(new Bitacora(null, null, "ConsultaPlan", resultado.ID, "RegistrarConsultaPlan", $"Se registró una consulta pública sobre el plan {planComercial.Nombre}.", "Exitoso", "Informacion", "Planes"));
             return resultado;
         }
         catch (KeyNotFoundException ex) { throw new KeyNotFoundException(ex.Message); }

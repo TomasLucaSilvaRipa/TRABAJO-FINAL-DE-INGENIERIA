@@ -151,6 +151,24 @@ public class RecursosController : ControllerBase
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
 
+    [HttpGet("calendario-equipo")]
+    public IActionResult ConsultarCalendarioEquipo([FromQuery] ConsultaCalendarioEquipo consulta)
+    {
+        try { return Ok(_recursosBLL.ConsultarCalendarioEquipo(consulta, ObtenerSolicitante())); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return BadRequest(ex.Message); }
+    }
+
+    [HttpGet("empleados/{idUsuarioEmpleado:int}/rendimiento")]
+    public IActionResult ConsultarRendimientoEmpleado([FromRoute] int idUsuarioEmpleado, [FromQuery] int meses = 6)
+    {
+        try { return Ok(_recursosBLL.ConsultarRendimientoEmpleado(idUsuarioEmpleado, meses, ObtenerSolicitante())); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return BadRequest(ex.Message); }
+    }
+
     [HttpPost("ausencias/{IdAusencia:int}/aprobar")]
     public IActionResult AprobarAusencia([FromRoute] ResolucionAusenciaEmpleado resolucionRuta, [FromBody] ResolucionAusenciaEmpleado resolucion)
     {

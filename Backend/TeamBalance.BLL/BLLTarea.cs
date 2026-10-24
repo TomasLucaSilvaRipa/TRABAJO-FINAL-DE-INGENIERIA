@@ -14,7 +14,7 @@ public class BLLTarea
     {
         try
         {
-            ValidarGestionTareas(usuario);
+            ValidarConsultaTareas(usuario);
             if (ObtenerAgencia(usuario))
             {
                 return _tareaMPP.Consultar(usuario);
@@ -37,11 +37,25 @@ public class BLLTarea
     {
         try
         {
-            ValidarGestionTareas(usuario);
+            ValidarConsultaTareas(usuario);
             List<Tarea> tareas = _tareaMPP.Consultar(usuario, filtro);
             return tareas;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    public List<Tarea> ConsultarTableroProyectos(Usuario usuario, FiltroTarea filtro)
+    {
+        if (!usuario.IdAgencia.HasValue) { throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."); }
+        bool esDueno = EsDueno(usuario);
+        bool esPM = usuario.Roles.Any(rol => string.Equals(rol.TipoUsuario, "PM", StringComparison.OrdinalIgnoreCase));
+        if (!esDueno && !esPM) { throw new UnauthorizedAccessException("No tenés acceso al tablero de proyectos."); }
+
+        List<Tarea> tareas = _tareaMPP.Consultar(usuario, filtro);
+        if (esDueno) { return tareas; }
+
+        HashSet<int> tareasDelPM = _tareaMPP.ConsultarPorPM(usuario).Select(tarea => tarea.ID).ToHashSet();
+        return tareas.Where(tarea => tareasDelPM.Contains(tarea.ID)).ToList();
     }
     public List<Tarea> ConsultarPorPM(Usuario usuario)
     {
@@ -63,7 +77,9 @@ public class BLLTarea
             {
                 throw new UnauthorizedAccessException("No tenés acceso a esta tarea.");
             }
-            return _tareaMPP.GuardarComentarios(tarea,usuario);
+            bool resultado = _tareaMPP.GuardarComentarios(tarea,usuario);
+            _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Tarea", tarea.ID, "ModificarComentariosTarea", "Se modificaron los comentarios de una tarea asignada.", "Exitoso", "Informacion", "Kanban"));
+            return resultado;
         }
         catch (UnauthorizedAccessException) { throw; }
         catch (Exception ex) { throw new Exception(ex.Message); }
@@ -97,11 +113,13 @@ public class BLLTarea
             {
                 PrepararAsignaciones(tarea, usuario);
                 ValidarAsignaciones(tarea);
+                bool esAlta = tarea.ID == 0;
                 Tarea resultado = _tareaMPP.Guardar(tarea, usuario);
                 if (tarea.Asignaciones is not null)
                 {
                     resultado.Asignaciones = _asignacionMPP.Sincronizar(resultado, tarea.Asignaciones, usuario);
                 }
+                _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Tarea", resultado.ID, esAlta ? "RegistrarTarea" : "ModificarTarea", esAlta ? $"Se registró la tarea {resultado.Titulo}." : $"Se modificó la tarea {resultado.Titulo}.", "Exitoso", "Informacion", "Planificación"));
                 return resultado;
             }
             else { throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."); }
@@ -216,7 +234,9 @@ public class BLLTarea
             ValidarGestionTareas(usuario);
             if (ObtenerAgencia(usuario))
             {
-                return _tareaMPP.CambiarEstado(tarea, usuario);
+                bool resultado = _tareaMPP.CambiarEstado(tarea, usuario);
+                _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Tarea", tarea.ID, tarea.Activo ? "ActivarTarea" : "DarBajaTarea", tarea.Activo ? "Se activó una tarea." : "Se dio de baja una tarea.", "Exitoso", "Informacion", "Planificación"));
+                return resultado;
             }
             else { throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."); }
         }catch (Exception ex) { throw new Exception(ex.Message); }
@@ -231,6 +251,7 @@ public class BLLTarea
             List<Tarea> tareas = ConsultarAsignadas(usuario);
             if (!tareas.Any(item => item.ID == tarea.ID)) { throw new UnauthorizedAccessException("No tenés acceso a esta tarea."); }
             bool resultado = _tareaMPP.CambiarEstadoPropio(tarea, usuario);
+            _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Tarea", tarea.ID, "CambiarEstadoTarea", $"El empleado cambió el estado de la tarea a {tarea.Estado}.", "Exitoso", "Informacion", "Kanban"));
             return resultado;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
@@ -273,7 +294,9 @@ public class BLLTarea
         {
             ValidarGestionTareas(usuario);
             ValidarSkill(skill);
-            return _recursosMPP.RegistrarSkill(skill);
+            Skill resultado = _recursosMPP.RegistrarSkill(skill);
+            _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Skill", resultado.ID, "RegistrarSkill", $"Se registró la skill {resultado.Nombre} desde la gestión de tareas.", "Exitoso", "Informacion", "Planificación"));
+            return resultado;
         }
         catch (ArgumentException) { throw; }
         catch (Exception ex) { throw new Exception(ex.Message); }
@@ -286,7 +309,9 @@ public class BLLTarea
             ValidarGestionTareas(usuario);
             if (skill.ID <= 0) { throw new ArgumentException("Seleccioná una skill válida para modificar."); }
             ValidarSkill(skill);
-            return _recursosMPP.ModificarSkill(skill);
+            Skill resultado = _recursosMPP.ModificarSkill(skill);
+            _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Skill", resultado.ID, "ModificarSkill", $"Se modificó la skill {resultado.Nombre} desde la gestión de tareas.", "Exitoso", "Informacion", "Planificación"));
+            return resultado;
         }
         catch (ArgumentException) { throw; }
         catch (Exception ex) { throw new Exception(ex.Message); }
@@ -298,11 +323,23 @@ public class BLLTarea
         return _recursosMPP.ConsultarAreasSkills().Where(area => area.Activo).ToList();
     }
     public bool CambiarEstadoSkill(Skill skill, Usuario usuario) { 
-        ValidarGestionTareas(usuario); 
-        return _recursosMPP.CambiarEstadoSkill(skill); 
+        ValidarGestionTareas(usuario);
+        bool resultado = _recursosMPP.CambiarEstadoSkill(skill);
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Skill", skill.ID, skill.Activo ? "ActivarSkill" : "DarBajaSkill", skill.Activo ? "Se activó una skill desde la gestión de tareas." : "Se dio de baja una skill desde la gestión de tareas.", "Exitoso", "Informacion", "Planificación"));
+        return resultado;
     }
     private void ValidarGestionTareas(Usuario usuario) { 
         if (EsDueno(usuario) || !_rolBLL.TienePermiso(usuario, "GestionarTareas")) { throw new UnauthorizedAccessException("La gestión de tareas está disponible para los PM autorizados."); } 
+    }
+
+    private void ValidarConsultaTareas(Usuario usuario)
+    {
+        if (EsDueno(usuario))
+        {
+            if (!_rolBLL.TienePermiso(usuario, "GestionarProyectos")) { throw new UnauthorizedAccessException("No tenés permiso para consultar el tablero de proyectos."); }
+            return;
+        }
+        if (!_rolBLL.TienePermiso(usuario, "GestionarTareas")) { throw new UnauthorizedAccessException("No tenés permiso para consultar tareas."); }
     }
 
     private static bool EsDueno(Usuario usuario)

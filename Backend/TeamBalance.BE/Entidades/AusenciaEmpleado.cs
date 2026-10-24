@@ -129,3 +129,29 @@ public class EmpleadoDisponibilidadOpcion
     public int IdUsuario { get; set; }
     public string NombreCompleto { get; set; } = string.Empty;
 }
+
+public class ConsultaCalendarioEquipo
+{
+    public DateTime FechaDesde { get; set; }
+    public DateTime FechaHasta { get; set; }
+    public int? IdProyecto { get; set; }
+    public int? IdEmpleado { get; set; }
+}
+
+public class EventoCalendarioEquipo
+{
+    public int IdEmpleado { get; set; }
+    public int IdUsuario { get; set; }
+    public string NombreEmpleado { get; set; } = string.Empty;
+    public decimal HorasSemanales { get; set; }
+    public int? IdAusencia { get; set; }
+    public string? TipoPeriodo { get; set; }
+    public DateTime? FechaInicio { get; set; }
+    public DateTime? FechaFin { get; set; }
+    public decimal? HorasNoDisponibles { get; set; }
+    public string? Estado { get; set; }
+    public string? Motivo { get; set; }
+    public string? MotivoResolucion { get; set; }
+    public int CantidadTareasAfectadas { get; set; }
+    public string? TareasAfectadas { get; set; }
+}

@@ -10,10 +10,12 @@ public class BLLRol
         "ConsultarBitacora", "GestionarPlanes", "GestionarBandejaSoporte", "GestionarNovedades", "GestionarFaqs", "GestionarEncuestas", "GestionarOperadores", "GestionarRespaldos", "ConsultarIngresosPlataforma"
     };
     private readonly MPPRol _rolMPP;
+    private readonly BLLBitacora _bitacoraBLL;
 
-    public BLLRol(MPPRol rolMPP)
+    public BLLRol(MPPRol rolMPP, BLLBitacora bitacoraBLL)
     {
         _rolMPP = rolMPP;
+        _bitacoraBLL = bitacoraBLL;
     }
 
     public Rol ConsultarRolPorNombre(Rol rol)
@@ -77,6 +79,7 @@ public class BLLRol
         ValidarGestionRol(rol, solicitante);
         rol.ID = _rolMPP.RegistrarRol(rol);
         _rolMPP.ReemplazarPermisos(rol);
+        _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "Rol", rol.ID, "RegistrarRol", $"Se registró el rol {rol.Nombre}.", "Exitoso", "Informacion", "Usuarios"));
         return rol;
     }
 
@@ -90,11 +93,13 @@ public class BLLRol
         ValidarGestionRol(rol, solicitante);
         _rolMPP.ModificarRol(rol);
         _rolMPP.ReemplazarPermisos(rol);
+        _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "Rol", rol.ID, "ModificarRol", $"Se modificó el rol {rol.Nombre} y sus permisos.", "Exitoso", "Informacion", "Usuarios"));
     }
 
-    public void CambiarEstado(Rol rol)
+    public void CambiarEstado(Rol rol, Usuario solicitante)
     {
         _rolMPP.CambiarEstado(rol);
+        _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "Rol", rol.ID, rol.Activo ? "ActivarRol" : "DarBajaRol", rol.Activo ? $"Se activó el rol {rol.Nombre}." : $"Se dio de baja el rol {rol.Nombre}.", "Exitoso", "Informacion", "Usuarios"));
     }
 
     private static void ValidarRol(Rol rol)

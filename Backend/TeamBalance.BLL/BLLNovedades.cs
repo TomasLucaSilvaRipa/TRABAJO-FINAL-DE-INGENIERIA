@@ -24,6 +24,7 @@ public sealed class BLLNovedades
         ExigirPermiso(usuario, "GestionarNewsletter");
         ValidarPreferencias(solicitud);
         _novedadesMPP.GuardarPreferencias(usuario, solicitud);
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "PreferenciaNewsletter", usuario.ID, "ModificarPreferenciasNewsletter", "El usuario modificó sus preferencias de newsletter.", "Exitoso", "Informacion", "Novedades"));
     }
     public List<Noticia> Gestion(Usuario usuario) { ExigirGestionNovedades(usuario); return _novedadesMPP.Gestion(); }
     public async Task<Noticia> Guardar(Usuario usuario, GuardarNoticiaRequest solicitud)
@@ -43,6 +44,7 @@ public sealed class BLLNovedades
         {
             foreach ((string email, string nombre) in _novedadesMPP.Destinatarios(noticia)) if (await _emailService.EnviarNewsletter(email, nombre, noticia.Titulo, noticia.Contenido, noticia.Categoria)) enviadas++;
             _novedadesMPP.MarcarDifundida(noticia);
+            _bitacoraBLL.Add(new Bitacora(null, null, "Noticia", noticia.ID, "DifundirNewsletter", $"Se procesó la difusión de la novedad '{noticia.Titulo}'.", "Exitoso", "Informacion", "Novedades"));
         }
         return enviadas;
     }

@@ -39,6 +39,7 @@ public class BLLTelegram
         string token = Convert.ToHexString(RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
         DateTime fechaExpiracion = DateTime.Now.AddMinutes(10);
         _usuarioMPP.CrearSolicitudTelegram(usuario, _seguridad.GenerarHashToken(token), "Registro", fechaExpiracion);
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Usuario", usuario.ID, "PrepararValidacionTelegram", "El usuario inició la validación inicial mediante Telegram.", "Pendiente", "Informacion", "Registro"));
         return new PreparacionTelegram($"https://t.me/{NombreBot}?start={token}", $"/start {token}", fechaExpiracion);
     }
 
@@ -76,7 +77,9 @@ public class BLLTelegram
         EstadoTelegram estado = _usuarioMPP.ConsultarEstadoTelegram(usuario);
         if (!estado.Vinculado) throw new InvalidOperationException("No hay una cuenta de Telegram vinculada.");
         string codigo = GenerarCodigo();
-        return _usuarioMPP.CrearSolicitudDesvinculacionTelegram(usuario, _seguridad.GenerarHashToken(codigo), DateTime.Now.AddMinutes(5), codigo);
+        EntregaTelegram entrega = _usuarioMPP.CrearSolicitudDesvinculacionTelegram(usuario, _seguridad.GenerarHashToken(codigo), DateTime.Now.AddMinutes(5), codigo);
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Usuario", usuario.ID, "SolicitarDesvinculacionTelegram", "El usuario solicitó desvincular Telegram de su cuenta.", "Pendiente", "Advertencia", "Seguridad"));
+        return entrega;
     }
 
     public void ConfirmarDesvinculacion(Usuario usuario, string codigo)
@@ -88,7 +91,9 @@ public class BLLTelegram
     private EntregaTelegram PrepararReenvio(Usuario usuario, string tipo)
     {
         string codigo = GenerarCodigo();
-        return _usuarioMPP.ReenviarCodigoTelegram(usuario, tipo, _seguridad.GenerarHashToken(codigo), DateTime.Now.AddMinutes(5), codigo);
+        EntregaTelegram entrega = _usuarioMPP.ReenviarCodigoTelegram(usuario, tipo, _seguridad.GenerarHashToken(codigo), DateTime.Now.AddMinutes(5), codigo);
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Usuario", usuario.ID, "ReenviarCodigoTelegram", $"Se generó un nuevo código de Telegram para {tipo.ToLowerInvariant()}.", "Exitoso", "Informacion", string.Equals(tipo, "Registro", StringComparison.OrdinalIgnoreCase) ? "Registro" : "Seguridad"));
+        return entrega;
     }
 
     private static string GenerarCodigo()

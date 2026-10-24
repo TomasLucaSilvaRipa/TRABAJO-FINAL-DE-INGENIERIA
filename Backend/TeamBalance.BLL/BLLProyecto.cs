@@ -7,11 +7,13 @@ public class BLLProyecto
 {
     private readonly MPPProyecto _proyectoMPP;
     private readonly BLLRol _rolBLL;
+    private readonly BLLBitacora _bitacoraBLL;
 
-    public BLLProyecto(MPPProyecto proyectoMPP, BLLRol rolBLL)
+    public BLLProyecto(MPPProyecto proyectoMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL)
     {
         _proyectoMPP = proyectoMPP;
         _rolBLL = rolBLL;
+        _bitacoraBLL = bitacoraBLL;
     }
 
     public void CrearEstadosBase(Agencia agencia)
@@ -79,7 +81,9 @@ public class BLLProyecto
             if (string.IsNullOrWhiteSpace(proyecto.Nombre) || proyecto.IdCliente <= 0 || proyecto.IdPMResponsable <= 0) { throw new ArgumentException("Completá nombre, cliente y responsable del proyecto."); }
             proyecto.Nombre = proyecto.Nombre.Trim();
             proyecto.Estado = string.IsNullOrWhiteSpace(proyecto.Estado) ? "Planificado" : proyecto.Estado.Trim();
+            bool esAlta = proyecto.ID == 0;
             Proyecto resultado = _proyectoMPP.Guardar(proyecto);
+            _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Proyecto", resultado.ID, esAlta ? "RegistrarProyecto" : "ModificarProyecto", esAlta ? $"Se registró el proyecto {resultado.Nombre}." : $"Se modificó el proyecto {resultado.Nombre}.", "Exitoso", "Informacion", "Proyectos"));
             return resultado;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
@@ -93,6 +97,7 @@ public class BLLProyecto
             if (string.IsNullOrWhiteSpace(cliente.Nombre)) { throw new ArgumentException("Ingresá el nombre del cliente."); }
             cliente.Nombre = cliente.Nombre.Trim();
             Cliente resultado = _proyectoMPP.RegistrarCliente(cliente, usuario);
+            _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Cliente", resultado.ID, "RegistrarCliente", $"Se registró el cliente {resultado.Nombre}.", "Exitoso", "Informacion", "Proyectos"));
             return resultado;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
@@ -106,6 +111,7 @@ public class BLLProyecto
             if (string.IsNullOrWhiteSpace(cliente.Nombre)) { throw new ArgumentException("Ingresá el nombre del cliente."); }
             cliente.Nombre = cliente.Nombre.Trim();
             Cliente resultado = _proyectoMPP.ModificarCliente(cliente, usuario);
+            _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Cliente", resultado.ID, "ModificarCliente", $"Se modificó el cliente {resultado.Nombre}.", "Exitoso", "Informacion", "Proyectos"));
             return resultado;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
@@ -118,6 +124,7 @@ public class BLLProyecto
             cliente.IdAgencia = ObtenerAgencia(usuario);
             ValidarDueno(usuario);
             bool resultado = _proyectoMPP.CambiarEstadoCliente(cliente);
+            _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Cliente", cliente.ID, cliente.Activo ? "ActivarCliente" : "DarBajaCliente", cliente.Activo ? "Se activó un cliente." : "Se dio de baja un cliente.", "Exitoso", "Informacion", "Proyectos"));
             return resultado;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
@@ -130,6 +137,7 @@ public class BLLProyecto
             proyecto.IdAgencia = ObtenerAgencia(usuario);
             ValidarDueno(usuario);
             bool resultado = _proyectoMPP.CambiarEstado(proyecto);
+            _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Proyecto", proyecto.ID, proyecto.Activo ? "ActivarProyecto" : "DarBajaProyecto", proyecto.Activo ? "Se activó un proyecto." : "Se dio de baja un proyecto.", "Exitoso", "Informacion", "Proyectos"));
             return resultado;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
@@ -143,6 +151,7 @@ public class BLLProyecto
             ValidarDueno(usuario);
             Proyecto detalle = _proyectoMPP.ConsultarDetalle(proyecto);
             bool resultado = _proyectoMPP.Cerrar(detalle);
+            _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Proyecto", detalle.ID, "CerrarProyecto", $"Se cerró el proyecto {detalle.Nombre}.", "Exitoso", "Informacion", "Proyectos"));
             return resultado;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }

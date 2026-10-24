@@ -97,4 +97,16 @@ public partial class SimulacionImpacto
 
     [NotMapped]
     public string? NombreProyecto { get; set; }
+
+    [NotMapped]
+    public string? NombreEmpleado { get; set; }
+
+    [NotMapped]
+    public string? NombreSkillRequerida { get; set; }
+
+    [NotMapped]
+    public string? NivelSkillCandidato { get; set; }
+
+    [NotMapped]
+    public bool TieneSkillRequerida { get; set; }
 }

@@ -1,0 +1,18 @@
+<section class="tb-skills-matrix" aria-labelledby="skills-matrix-title">
+  <header class="tb-skills-matrix__header">
+    <div>
+      <p class="tb-page-kicker">MATRIZ DE COBERTURA</p>
+      <h2 id="skills-matrix-title">Demanda frente a capacidad disponible</h2>
+      <p>Cada columna representa una skill real del alcance. La tercera fila resume el porcentaje cubierto y su criticidad operativa.</p>
+    </div>
+    <div class="tb-skills-matrix__legend" aria-label="Leyenda de criticidad">
+      <span><i class="is-low"></i>Baja</span><span><i class="is-medium"></i>Media</span><span><i class="is-high"></i>Alta</span><span><i class="is-critical"></i>Crítica</span>
+    </div>
+  </header>
+  <div class="tb-skills-matrix__scene">
+    <div #chart class="tb-skills-matrix__chart" role="img" aria-label="Matriz interactiva de cobertura de skills"></div>
+    @if (cargando) { <div class="tb-skills-matrix__empty"><strong>Calculando cobertura…</strong><span>Comparando tareas, niveles de dominio, disponibilidad y carga.</span></div> }
+    @else if (!resultados.length) { <div class="tb-skills-matrix__empty"><strong>Sin demanda de skills en este alcance</strong><span>Ampliá el período o seleccioná otro proyecto, cliente o área.</span></div> }
+  </div>
+  <footer>La intensidad de Demanda y Capacidad se calcula dentro del alcance filtrado; Cobertura conserva la clasificación real del análisis.</footer>
+</section>

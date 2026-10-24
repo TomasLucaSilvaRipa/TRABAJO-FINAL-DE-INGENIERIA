@@ -17,11 +17,16 @@ BEGIN
     DECLARE @FinSemana DATE = DATEADD(DAY, 6, @InicioSemana);
 
     SELECT
-        T.HorasEstimadas AS HorasTarea,
+        CAST((T.HorasEstimadas * (100 - ISNULL(T.PorcentajeAvance, 0)) / 100.0) /
+            CASE WHEN T.Deadline <= CAST(GETDATE() AS DATE) THEN 1 ELSE CEILING(DATEDIFF(DAY, CAST(GETDATE() AS DATE), T.Deadline) / 7.0) END AS DECIMAL(18,2)) AS HorasTarea,
         T.Deadline AS DeadlineTarea,
         T.Prioridad AS PrioridadTarea,
         T.Titulo AS NombreTarea,
         P.Nombre AS NombreProyecto,
+        CONCAT(UE.Nombre, N' ', UE.Apellido) AS NombreEmpleado,
+        S.Nombre AS NombreSkillRequerida,
+        ES.Nivel AS NivelSkillCandidato,
+        CONVERT(bit, CASE WHEN T.IdSkillRequerido IS NULL OR ES.ID IS NOT NULL THEN 1 ELSE 0 END) AS TieneSkillRequerida,
         ISNULL(DB.HorasSemanales, E.HorasDisponiblesSemanales) AS CapacidadSemanal,
         ISNULL(Carga.CargaActual, 0) AS CargaActual,
         ISNULL(Ausencias.DiasAusenciaProximaSemana, 0) AS DiasAusenciaProximaSemana
@@ -31,6 +36,8 @@ BEGIN
     INNER JOIN dbo.Usuario UPM ON UPM.ID = PM.IdUsuario AND UPM.ID = @IdUsuario AND UPM.Activo = 1
     INNER JOIN dbo.Empleado E ON E.ID = @IdEmpleadoCandidato AND E.Activo = 1
     INNER JOIN dbo.Usuario UE ON UE.ID = E.IdUsuario AND UE.IdAgencia = UPM.IdAgencia AND UE.Activo = 1
+    LEFT JOIN dbo.Skill S ON S.ID = T.IdSkillRequerido
+    LEFT JOIN dbo.EmpleadoSkill ES ON ES.IdEmpleado = E.ID AND ES.IdSkill = T.IdSkillRequerido AND ES.Activo = 1
     OUTER APPLY
     (
         SELECT TOP 1 Disponibilidad.HorasSemanales
@@ -40,17 +47,12 @@ BEGIN
     ) DB
     OUTER APPLY
     (
-        SELECT SUM(CASE WHEN COALESCE(Asignacion.HorasAsignadas, TareaActiva.HorasEstimadas) - ISNULL(HorasReales.HorasReales, 0) > 0
-            THEN COALESCE(Asignacion.HorasAsignadas, TareaActiva.HorasEstimadas) - ISNULL(HorasReales.HorasReales, 0)
+        SELECT SUM(CASE WHEN COALESCE(Asignacion.HorasAsignadas, TareaActiva.HorasEstimadas) * (100 - ISNULL(TareaActiva.PorcentajeAvance, 0)) / 100.0 > 0
+            THEN (COALESCE(Asignacion.HorasAsignadas, TareaActiva.HorasEstimadas) * (100 - ISNULL(TareaActiva.PorcentajeAvance, 0)) / 100.0) /
+                CASE WHEN TareaActiva.Deadline IS NULL OR TareaActiva.Deadline <= CAST(GETDATE() AS DATE) THEN 1 ELSE CEILING(DATEDIFF(DAY, CAST(GETDATE() AS DATE), TareaActiva.Deadline) / 7.0) END
             ELSE 0 END) AS CargaActual
         FROM dbo.Tarea TareaActiva
         LEFT JOIN dbo.AsignacionTarea Asignacion ON Asignacion.IdTarea = TareaActiva.ID AND Asignacion.IdEmpleado = E.ID AND Asignacion.Activa = 1
-        OUTER APPLY
-        (
-            SELECT SUM(Registro.CantidadHoras) AS HorasReales
-            FROM dbo.RegistroHora Registro
-            WHERE Registro.IdTarea = TareaActiva.ID AND Registro.Activo = 1
-        ) HorasReales
         WHERE (Asignacion.ID IS NOT NULL OR (TareaActiva.IdEmpleadoAsignado = E.ID AND NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea Existente WHERE Existente.IdTarea = TareaActiva.ID AND Existente.Activa = 1)))
             AND TareaActiva.Activo = 1
             AND TareaActiva.ID <> @IdTarea
@@ -80,7 +82,52 @@ BEGIN
         AND ISNULL(T.Estado, N'Pendiente') NOT IN (N'Finalizada', N'Finalizado')
         AND P.Activo = 1
         AND P.IdAgencia = UPM.IdAgencia
+        AND T.IdEmpleadoAsignado IS NULL
+        AND NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.Activa = 1)
         AND ISNULL(DB.HorasSemanales, E.HorasDisponiblesSemanales) > 0;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_SimulacionImpacto_ConsultarConservadas
+    @IdUsuario INT,
+    @IdTarea INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT SI.*,
+           CAST((T.HorasEstimadas * (100 - ISNULL(T.PorcentajeAvance, 0)) / 100.0) /
+               CASE WHEN T.Deadline IS NULL OR T.Deadline <= CAST(GETDATE() AS DATE) THEN 1 ELSE CEILING(DATEDIFF(DAY, CAST(GETDATE() AS DATE), T.Deadline) / 7.0) END AS DECIMAL(18,2)) AS HorasTarea,
+           ISNULL(DB.HorasSemanales, E.HorasDisponiblesSemanales) AS CapacidadSemanal,
+           0 AS DiasAusenciaProximaSemana,
+           T.Deadline AS DeadlineTarea,
+           T.Prioridad AS PrioridadTarea,
+           T.Titulo AS NombreTarea,
+           P.Nombre AS NombreProyecto,
+           CONCAT(UE.Nombre, N' ', UE.Apellido) AS NombreEmpleado,
+           S.Nombre AS NombreSkillRequerida,
+           ES.Nivel AS NivelSkillCandidato,
+           CONVERT(bit, CASE WHEN T.IdSkillRequerido IS NULL OR ES.ID IS NOT NULL THEN 1 ELSE 0 END) AS TieneSkillRequerida
+    FROM dbo.SimulacionImpacto SI
+    INNER JOIN dbo.Tarea T ON T.ID = SI.IdTarea
+    INNER JOIN dbo.Proyecto P ON P.ID = T.IdProyecto
+    INNER JOIN dbo.PM PM ON PM.ID = P.IdPMResponsable AND PM.Activo = 1
+    INNER JOIN dbo.Usuario UPM ON UPM.ID = PM.IdUsuario AND UPM.ID = @IdUsuario AND UPM.Activo = 1
+    INNER JOIN dbo.Empleado E ON E.ID = SI.IdEmpleadoCandidato
+    INNER JOIN dbo.Usuario UE ON UE.ID = E.IdUsuario AND UE.IdAgencia = UPM.IdAgencia
+    LEFT JOIN dbo.Skill S ON S.ID = T.IdSkillRequerido
+    LEFT JOIN dbo.EmpleadoSkill ES ON ES.IdEmpleado = E.ID AND ES.IdSkill = T.IdSkillRequerido AND ES.Activo = 1
+    OUTER APPLY
+    (
+        SELECT TOP 1 Disponibilidad.HorasSemanales
+        FROM dbo.DisponibilidadBase Disponibilidad
+        WHERE Disponibilidad.IdEmpleado = E.ID AND Disponibilidad.Activo = 1
+        ORDER BY Disponibilidad.ID DESC
+    ) DB
+    WHERE SI.IdUsuarioCreador = @IdUsuario
+      AND SI.Activo = 1
+      AND (@IdTarea IS NULL OR SI.IdTarea = @IdTarea)
+    ORDER BY SI.FechaCreacion DESC, SI.ID DESC;
 END;
 GO
 

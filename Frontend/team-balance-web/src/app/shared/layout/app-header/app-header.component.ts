@@ -58,7 +58,7 @@ export class AppHeaderComponent {
     { ruta: '/dashboard/skills-desiertos', permiso: 'AnalizarSkills', titulo: 'menu.skillsCoverage', descripcion: 'dashboardSearch.skills.description', palabras: 'skills habilidades cobertura brechas' },
     { ruta: '/dashboard/mis-tareas', permiso: 'VerMisTareas', titulo: 'menu.myTasks', descripcion: 'dashboardSearch.myTasks.description', palabras: 'mis tareas pendientes asignadas', ocultarDueno: true },
     { ruta: '/dashboard/kanban', permiso: 'VerKanban', titulo: 'menu.kanban', descripcion: 'dashboardSearch.kanban.description', palabras: 'kanban tablero tareas avance estado' },
-    { ruta: '/dashboard/kanban-proyectos', permiso: 'GestionarTareas', titulo: 'menu.kanban', descripcion: 'dashboardSearch.kanban.description', palabras: 'kanban proyectos tablero tareas avance estado' },
+    { ruta: '/dashboard/kanban-proyectos', permiso: 'GestionarProyectos', titulo: 'menu.kanban', descripcion: 'dashboardSearch.kanban.description', palabras: 'kanban proyectos tablero tareas avance estado' },
     { ruta: '/dashboard/registrar-horas', permiso: 'RegistrarHoras', titulo: 'menu.registerHours', descripcion: 'dashboardSearch.hours.description', palabras: 'registrar horas dedicacion tiempo' },
     { ruta: '/dashboard/disponibilidad', permiso: 'GestionarDisponibilidad', titulo: 'menu.availability', descripcion: 'dashboardSearch.availability.description', palabras: 'disponibilidad horario capacidad' },
     { ruta: '/dashboard/licencias', permiso: 'GestionarDisponibilidad', titulo: 'dashboardSearch.licenses.title', descripcion: 'dashboardSearch.licenses.description', palabras: 'licencias ausencias vacaciones' },

@@ -57,6 +57,21 @@ public class MPPSimulacionImpacto
         catch (Exception ex) { throw new Exception(ex.Message, ex); }
     }
 
+    public List<SimulacionImpacto> ConsultarConservadas(int? idTarea, Usuario usuario)
+    {
+        try
+        {
+            List<SqlParameter> parametros = new List<SqlParameter>()
+            {
+                new SqlParameter("@IdUsuario", usuario.ID),
+                new SqlParameter("@IdTarea", (object?)idTarea ?? DBNull.Value)
+            };
+            DataTable tabla = _conexion.Leer("dbo.usp_SimulacionImpacto_ConsultarConservadas", parametros);
+            return tabla.Rows.Cast<DataRow>().Select(CrearConservada).ToList();
+        }
+        catch (Exception ex) { throw new Exception(ex.Message, ex); }
+    }
+
     public bool Descartar(SimulacionImpacto simulacion, Usuario usuario)
     {
         try
@@ -83,7 +98,29 @@ public class MPPSimulacionImpacto
 
     private static SimulacionImpacto CrearDatosOperativos(DataRow fila, SimulacionImpacto simulacion, Usuario usuario)
     {
-        return new SimulacionImpacto(simulacion.IdTarea, simulacion.IdEmpleadoCandidato, usuario.ID, Convert.ToDecimal(fila["CargaActual"]), Convert.ToDecimal(fila["HorasTarea"]), Convert.ToDecimal(fila["CapacidadSemanal"]), Convert.ToInt32(fila["DiasAusenciaProximaSemana"]), fila["DeadlineTarea"] == DBNull.Value ? null : Convert.ToDateTime(fila["DeadlineTarea"]), Convert.ToString(fila["PrioridadTarea"]), Convert.ToString(fila["NombreTarea"]), Convert.ToString(fila["NombreProyecto"]));
+        SimulacionImpacto resultado = new SimulacionImpacto(simulacion.IdTarea, simulacion.IdEmpleadoCandidato, usuario.ID, Convert.ToDecimal(fila["CargaActual"]), Convert.ToDecimal(fila["HorasTarea"]), Convert.ToDecimal(fila["CapacidadSemanal"]), Convert.ToInt32(fila["DiasAusenciaProximaSemana"]), fila["DeadlineTarea"] == DBNull.Value ? null : Convert.ToDateTime(fila["DeadlineTarea"]), Convert.ToString(fila["PrioridadTarea"]), Convert.ToString(fila["NombreTarea"]), Convert.ToString(fila["NombreProyecto"]));
+        resultado.NombreEmpleado = Convert.ToString(fila["NombreEmpleado"]);
+        resultado.NombreSkillRequerida = Convert.ToString(fila["NombreSkillRequerida"]);
+        resultado.NivelSkillCandidato = Convert.ToString(fila["NivelSkillCandidato"]);
+        resultado.TieneSkillRequerida = Convert.ToBoolean(fila["TieneSkillRequerida"]);
+        return resultado;
+    }
+
+    private static SimulacionImpacto CrearConservada(DataRow fila)
+    {
+        SimulacionImpacto resultado = CrearPersistida(fila);
+        resultado.HorasTarea = Convert.ToDecimal(fila["HorasTarea"]);
+        resultado.CapacidadSemanal = Convert.ToDecimal(fila["CapacidadSemanal"]);
+        resultado.DiasAusenciaProximaSemana = Convert.ToInt32(fila["DiasAusenciaProximaSemana"]);
+        resultado.DeadlineTarea = fila["DeadlineTarea"] == DBNull.Value ? null : Convert.ToDateTime(fila["DeadlineTarea"]);
+        resultado.PrioridadTarea = Convert.ToString(fila["PrioridadTarea"]);
+        resultado.NombreTarea = Convert.ToString(fila["NombreTarea"]);
+        resultado.NombreProyecto = Convert.ToString(fila["NombreProyecto"]);
+        resultado.NombreEmpleado = Convert.ToString(fila["NombreEmpleado"]);
+        resultado.NombreSkillRequerida = Convert.ToString(fila["NombreSkillRequerida"]);
+        resultado.NivelSkillCandidato = Convert.ToString(fila["NivelSkillCandidato"]);
+        resultado.TieneSkillRequerida = Convert.ToBoolean(fila["TieneSkillRequerida"]);
+        return resultado;
     }
 
     private static SimulacionImpacto CrearPersistida(DataRow fila)
@@ -116,5 +153,9 @@ public class MPPSimulacionImpacto
         destino.PrioridadTarea = origen.PrioridadTarea;
         destino.NombreTarea = origen.NombreTarea;
         destino.NombreProyecto = origen.NombreProyecto;
+        destino.NombreEmpleado = origen.NombreEmpleado;
+        destino.NombreSkillRequerida = origen.NombreSkillRequerida;
+        destino.NivelSkillCandidato = origen.NivelSkillCandidato;
+        destino.TieneSkillRequerida = origen.TieneSkillRequerida;
     }
 }

@@ -102,6 +102,8 @@ namespace TeamBalance.BLL
             }
 
             EstadoContratacionPersistido resultado = _contratacionMPP.ActualizarResultadoPago(contratacionServicio, referenciaProveedor, estadoProveedor, mensajeProveedor);
+            string resultadoBitacora = string.Equals(resultado.EstadoContratacion, "Aprobada", StringComparison.OrdinalIgnoreCase) ? "Exitoso" : "Pendiente";
+            _bitacoraBLL.Add(new Bitacora(resultado.IdUsuario, resultado.IdAgencia, "ContratacionServicio", null, "VerificarPagoContratacion", $"El proveedor informó el estado {resultado.EstadoContratacion} para la contratación {resultado.ReferenciaContratacion}.", resultadoBitacora, "Informacion", "Contratacion"));
 
             if (string.Equals(resultado.EstadoContratacion, "Aprobada", StringComparison.OrdinalIgnoreCase))
             {

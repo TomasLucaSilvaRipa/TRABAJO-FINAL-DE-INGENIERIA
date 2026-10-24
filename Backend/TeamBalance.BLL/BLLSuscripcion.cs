@@ -111,8 +111,9 @@ public sealed class BLLSuscripcion
         return new InicioActualizacionSuscripcion(urlPago, operacion.ReferenciaInterna, operacion.Importe, operacion.Moneda, DateTime.Now);
     }
 
-    public async Task<ResultadoGestionSuscripcion> VerificarActualizacionPago(VerificarPagoSuscripcionRequest solicitud)
+    public async Task<ResultadoGestionSuscripcion> VerificarActualizacionPago(Usuario solicitante, VerificarPagoSuscripcionRequest solicitud)
     {
+        ValidarDueño(solicitante);
         if (string.IsNullOrWhiteSpace(solicitud.ReferenciaOperacion) || string.IsNullOrWhiteSpace(solicitud.PaymentId)) throw new ArgumentException("No recibimos la referencia de la operación de actualización.");
 
         OperacionSuscripcionPendiente operacion = new OperacionSuscripcionPendiente(solicitud.ReferenciaOperacion);
@@ -148,6 +149,7 @@ public sealed class BLLSuscripcion
             : rechazada
                 ? "El proveedor rechazó la actualización de suscripción."
                 : "La actualización quedó pendiente de confirmación del proveedor.";
+        RegistrarBitacora(solicitante, suscripcion, "VerificarActualizacionSuscripcion", mensaje);
         return new ResultadoGestionSuscripcion(mensaje, suscripcion.Estado, suscripcion);
     }
 
@@ -284,6 +286,7 @@ public sealed class BLLSuscripcion
                     renovacion.Moneda = pago.Moneda;
                     renovacion.Detalle = $"Cobro recurrente aprobado por Stripe (suscripción {renovacion.ReferenciaRenovacionProveedor}).";
                     _suscripcionMPP.AplicarCobroRecurrente(renovacion);
+                    _bitacoraBLL.Add(new Bitacora(null, renovacion.IdAgencia, "Suscripcion", renovacion.IdSuscripcion, "AplicarCobroRecurrente", $"Se aplicó un cobro recurrente de {renovacion.Importe:0.##} {renovacion.Moneda} informado por Stripe.", "Exitoso", "Informacion", "Suscripción"));
                     aplicados++;
                 }
             }
@@ -297,6 +300,7 @@ public sealed class BLLSuscripcion
                     renovacion.Moneda = pago.CurrencyId;
                     renovacion.Detalle = $"Cobro recurrente aprobado por Mercado Pago (autorización {renovacion.ReferenciaRenovacionProveedor}).";
                     _suscripcionMPP.AplicarCobroRecurrente(renovacion);
+                    _bitacoraBLL.Add(new Bitacora(null, renovacion.IdAgencia, "Suscripcion", renovacion.IdSuscripcion, "AplicarCobroRecurrente", $"Se aplicó un cobro recurrente de {renovacion.Importe:0.##} {renovacion.Moneda} informado por Mercado Pago.", "Exitoso", "Informacion", "Suscripción"));
                     aplicados++;
                 }
             }
@@ -312,11 +316,13 @@ public sealed class BLLSuscripcion
         if (!string.IsNullOrWhiteSpace(actual.ReferenciaRenovacionProveedor)) throw new InvalidOperationException("La suscripción ya tiene una autorización recurrente configurada.");
         PlanComercial plan = _planMPP.ConsultarPlan(new PlanComercial(actual.IdPlanComercial));
         string urlPago = await _stripeService.CrearRenovacionAutomatica(actual, plan);
+        RegistrarBitacora(solicitante, actual, "SolicitarRenovacionAutomaticaStripe", "Se inició la autorización de renovación automática mediante Stripe.");
         return new InicioActualizacionSuscripcion(urlPago, $"ren-{actual.ID}", plan.PrecioVigente, plan.Moneda, actual.FechaVencimiento);
     }
 
-    public async Task<ResultadoGestionSuscripcion> VerificarRenovacionAutomaticaStripe(string sessionId)
+    public async Task<ResultadoGestionSuscripcion> VerificarRenovacionAutomaticaStripe(Usuario solicitante, string sessionId)
     {
+        ValidarDueño(solicitante);
         (string id, string estado, string referencia, decimal importe, string moneda, string referenciaRenovacion) = await _stripeService.ConsultarPago(sessionId);
         if (!referencia.StartsWith("ren-", StringComparison.Ordinal) || !int.TryParse(referencia.AsSpan(4), out int idSuscripcion)) throw new InvalidOperationException("La sesión de Stripe no corresponde a una renovación automática.");
         if (!string.Equals(estado, "approved", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(referenciaRenovacion)) throw new InvalidOperationException("Stripe todavía no confirmó la autorización de la renovación automática.");
@@ -327,6 +333,7 @@ public sealed class BLLSuscripcion
         suscripcion.EstadoRenovacionProveedor = "active";
         suscripcion.ProveedorRenovacion = "Stripe";
         _suscripcionMPP.RegistrarRenovacionProveedor(suscripcion);
+        RegistrarBitacora(solicitante, suscripcion, "AutorizarRenovacionAutomatica", "Se autorizó una renovación automática mediante Stripe.");
         return new ResultadoGestionSuscripcion("Renovación automática autorizada correctamente. Stripe realizará los cobros según el calendario del plan.", "Activa");
     }
 

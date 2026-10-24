@@ -42,7 +42,9 @@ public class BLLRecursos
         if (string.IsNullOrWhiteSpace(skill.Nombre)) { throw new ArgumentException("Ingresá el nombre de la skill."); }
         if (!skill.IdAreaSkill.HasValue || !_recursosMPP.ConsultarAreasSkills().Any(area => area.ID == skill.IdAreaSkill.Value && area.Activo)) { throw new ArgumentException("Seleccioná un área válida para la skill."); }
         skill.Nombre = skill.Nombre.Trim();
-        return _recursosMPP.RegistrarSkill(skill);
+        Skill resultado = _recursosMPP.RegistrarSkill(skill);
+        _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "Skill", resultado.ID, "RegistrarSkill", $"Se registró la skill {resultado.Nombre}.", "Exitoso", "Informacion", "Recursos"));
+        return resultado;
     }
 
     public bool CambiarEstadoSkill(Skill skill, Usuario solicitante)
@@ -51,6 +53,7 @@ public class BLLRecursos
         {
             ValidarGestionUsuarios(solicitante);
             bool resultado = _recursosMPP.CambiarEstadoSkill(skill);
+            _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "Skill", skill.ID, skill.Activo ? "ActivarSkill" : "DarBajaSkill", skill.Activo ? "Se activó una skill." : "Se dio de baja una skill.", "Exitoso", "Informacion", "Recursos"));
             return resultado;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
@@ -108,6 +111,7 @@ public class BLLRecursos
         }
         CifrarObservacionDisponibilidad(empleado);
         _recursosMPP.GuardarFichaEmpleado(empleado, solicitante);
+        _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "Empleado", empleado.ID, "ModificarFichaEmpleado", "Se modificó la ficha laboral, las skills o la disponibilidad base de un empleado.", "Exitoso", "Informacion", "Recursos"));
     }
 
     public Empleado ConsultarMiDisponibilidad(Usuario usuario)
@@ -131,6 +135,7 @@ public class BLLRecursos
             if (disponibilidad.HoraFin <= disponibilidad.HoraInicio) { throw new ArgumentException("La hora de finalización debe ser posterior a la de inicio."); }
             disponibilidad.Observacion = _fieldEncryptionService.CifrarObservacionDisponibilidad(disponibilidad);
             _recursosMPP.GuardarMiDisponibilidad(disponibilidad, usuario);
+            _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "DisponibilidadBase", disponibilidad.ID, "ModificarDisponibilidadPropia", "El empleado modificó su disponibilidad base.", "Exitoso", "Informacion", "Recursos"));
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
@@ -173,6 +178,22 @@ public class BLLRecursos
     {
         try { ValidarGestorDisponibilidad(solicitante); return _recursosMPP.ConsultarEmpleadosDisponibilidad(solicitante); }
         catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    public List<EventoCalendarioEquipo> ConsultarCalendarioEquipo(ConsultaCalendarioEquipo consulta, Usuario solicitante)
+    {
+        ValidarGestorDisponibilidad(solicitante);
+        if (consulta.FechaDesde == DateTime.MinValue || consulta.FechaHasta == DateTime.MinValue || consulta.FechaHasta.Date < consulta.FechaDesde.Date) { throw new ArgumentException("Seleccioná un período válido para el calendario."); }
+        if ((consulta.FechaHasta.Date - consulta.FechaDesde.Date).TotalDays > 62) { throw new ArgumentException("El calendario permite consultar hasta 62 días por vez."); }
+        return _recursosMPP.ConsultarCalendarioEquipo(consulta, solicitante);
+    }
+
+    public List<PuntoRendimientoEmpleado> ConsultarRendimientoEmpleado(int idUsuarioEmpleado, int meses, Usuario solicitante)
+    {
+        ValidarGestorDisponibilidad(solicitante);
+        if (idUsuarioEmpleado <= 0) { throw new ArgumentException("Seleccioná un empleado válido."); }
+        if (meses != 3 && meses != 6 && meses != 12) { throw new ArgumentException("El período debe ser de 3, 6 o 12 meses."); }
+        return _recursosMPP.ConsultarRendimientoEmpleado(idUsuarioEmpleado, meses, solicitante);
     }
 
     public ResultadoGestionDisponibilidad AprobarAusencia(ResolucionAusenciaEmpleado resolucion, Usuario solicitante)

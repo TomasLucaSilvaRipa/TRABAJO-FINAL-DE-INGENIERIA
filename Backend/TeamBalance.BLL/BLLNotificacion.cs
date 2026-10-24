@@ -7,8 +7,9 @@ public class BLLNotificacion
 {
     private readonly MPPNotificacion _notificacionMPP;
     private readonly BLLRol _rolBLL;
+    private readonly BLLBitacora _bitacoraBLL;
 
-    public BLLNotificacion(MPPNotificacion notificacionMPP, BLLRol rolBLL) { _notificacionMPP = notificacionMPP; _rolBLL = rolBLL; }
+    public BLLNotificacion(MPPNotificacion notificacionMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL) { _notificacionMPP = notificacionMPP; _rolBLL = rolBLL; _bitacoraBLL = bitacoraBLL; }
 
     public List<NotificacionUsuario> ConsultarPropias(Usuario solicitante)
     {
@@ -20,12 +21,14 @@ public class BLLNotificacion
     {
         ValidarAcceso(solicitante);
         _notificacionMPP.MarcarLeida(solicitante.ID, idNotificacion);
+        _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "Notificacion", idNotificacion, "MarcarNotificacionLeida", "El usuario marcó una notificación como leída.", "Exitoso", "Informacion", "General"));
     }
 
     public void MarcarTodasLeidas(Usuario solicitante)
     {
         ValidarAcceso(solicitante);
         _notificacionMPP.MarcarTodasLeidas(solicitante.ID);
+        _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "Notificacion", null, "MarcarNotificacionesLeidas", "El usuario marcó todas sus notificaciones como leídas.", "Exitoso", "Informacion", "General"));
     }
 
     private void ValidarAcceso(Usuario solicitante)

@@ -6,11 +6,12 @@
 
   <section class="tb-panel tb-workflow-panel mt-6">
     <div class="tb-panel-heading"><div><h2>Alcance del análisis</h2><p>Combiná período, proyecto y cliente. El ranking compara demanda planificada con capacidad y carga disponible.</p></div></div>
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
       <label class="tb-navy-field-label">Desde<input type="date" [(ngModel)]="filtro.fechaDesde"></label>
       <label class="tb-navy-field-label">Hasta<input type="date" [(ngModel)]="filtro.fechaHasta"></label>
       <label class="tb-navy-field-label">Proyecto<select [(ngModel)]="filtro.idProyecto"><option [ngValue]="null">Todos los proyectos</option>@for(proyecto of proyectos();track proyecto.id){<option [ngValue]="proyecto.id">{{proyecto.nombre}}</option>}</select></label>
       <label class="tb-navy-field-label">Cliente<select [(ngModel)]="filtro.idCliente"><option [ngValue]="null">Todos los clientes</option>@for(cliente of clientes();track cliente.id){<option [ngValue]="cliente.id">{{cliente.nombre}}</option>}</select></label>
+      <label class="tb-navy-field-label">Área<select [ngModel]="areaSeleccionada()" (ngModelChange)="areaSeleccionada.set($event)"><option value="">Todas las áreas</option>@for(area of areasDisponibles();track area){<option [value]="area">{{area}}</option>}</select></label>
       <div class="flex items-end"><button type="button" class="tb-action-button w-full" [disabled]="cargando()" (click)="analizar()">{{cargando() ? 'Analizando…' : 'Analizar cobertura'}}</button></div>
     </div>
   </section>
@@ -19,13 +20,15 @@
   @if(mensaje()){<p class="mt-5 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-200">{{mensaje()}}</p>}
 
   <section class="mt-6 grid gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-3 dark:border-slate-700 dark:bg-slate-700">
-    <div class="bg-white p-5 dark:bg-slate-900"><span class="tb-muted-text">Skills analizadas</span><strong class="mt-1 block text-3xl">{{resultados().length}}</strong></div>
+    <div class="bg-white p-5 dark:bg-slate-900"><span class="tb-muted-text">Skills analizadas</span><strong class="mt-1 block text-3xl">{{resultadosOrdenados().length}}</strong></div>
     <div class="bg-white p-5 dark:bg-slate-900"><span class="tb-muted-text">Brechas críticas / altas</span><strong class="mt-1 block text-3xl text-red-500">{{resumenCritico()}}</strong></div>
     <div class="bg-white p-5 dark:bg-slate-900"><span class="tb-muted-text">Demanda planificada</span><strong class="mt-1 block text-3xl">{{totalDemanda()}} h</strong></div>
   </section>
 
+  <app-skills-coverage-matrix class="mt-7 block" [resultados]="resultadosOrdenados()" [cargando]="cargando()" (skillSeleccionado)="abrirDetalle($event)" />
+
   <section class="tb-list-section mt-7">
-    <div class="tb-list-section__header"><div><p class="tb-page-kicker">RANKING OPERATIVO</p><h2>Skills a priorizar</h2><p class="tb-muted-text">Las skills críticas aparecen primero: sin capacidad disponible o con compromisos próximos.</p></div><label class="tb-navy-field-label min-w-52">Ordenar por<select [ngModel]="orden()" (ngModelChange)="orden.set($event)"><option value="criticidad">Criticidad</option><option value="demanda">Mayor demanda</option><option value="cobertura">Menor cobertura</option></select></label></div>
+    <div class="tb-list-section__header"><div><p class="tb-page-kicker">RANKING OPERATIVO</p><h2>Skills a priorizar</h2><p class="tb-muted-text">Las skills críticas aparecen primero: sin capacidad disponible o con compromisos próximos.</p></div><label class="tb-navy-field-label min-w-52">Ordenar por<select [ngModel]="orden()" (ngModelChange)="orden.set($event)"><option value="criticidad">Criticidad</option><option value="demanda">Mayor demanda</option><option value="cobertura">Menor cobertura</option><option value="proyectos">Proyectos afectados</option><option value="tipo">Tipo de brecha</option></select></label></div>
 
     @if(cargando()) { <div class="tb-empty-state mt-4"><h3>Calculando cobertura…</h3><p>Se están comparando tareas, skills, disponibilidad y carga operativa.</p></div> }
     @else { <div class="space-y-3">@for(resultado of resultadosOrdenados();track resultado.idSkill){<button type="button" class="tb-skill-row" (click)="abrirDetalle(resultado)"><div class="flex min-w-0 flex-1 items-start gap-4"><span class="mt-1 h-12 w-1 shrink-0 rounded-full" [class]="colorCriticidad(resultado)"></span><div class="min-w-0 text-left"><div class="flex flex-wrap items-center gap-2"><h3>{{resultado.nombreSkill}}</h3><span [class]="claseCriticidad(resultado)">{{resultado.criticidad}}</span><span class="tb-status tb-status--neutral">{{resultado.tipoBrecha}}</span></div><p>{{resultado.cantidadTareasAfectadas}} tareas · {{resultado.cantidadProyectosAfectados}} proyectos · Próximo vencimiento: {{resultado.deadlineMasProximo | date:'dd/MM/yyyy'}}</p></div></div><div class="tb-skill-row__meters"><div><span>Demanda</span><strong>{{resultado.demandaHoras}} h</strong><div class="tb-skill-meter"><i [style.width.%]="anchoDemanda(resultado)" [class]="colorCriticidad(resultado)"></i></div></div><div><span>Capacidad disponible</span><strong>{{resultado.capacidadDisponibleHoras}} h</strong><div class="tb-skill-meter"><i class="bg-emerald-500" [style.width.%]="porcentajeCapacidad(resultado)"></i></div></div></div><span class="tb-button tb-button--ghost">Ver detalle →</span></button>}@empty{<div class="tb-empty-state mt-4"><h3>No hay tareas planificadas en este alcance</h3><p>Probá ampliar el período o elegí otro proyecto o cliente.</p></div>}</div>}

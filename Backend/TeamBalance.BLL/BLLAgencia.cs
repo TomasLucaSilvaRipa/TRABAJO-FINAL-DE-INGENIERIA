@@ -133,7 +133,9 @@ public class BLLAgencia
         agencia.ID = ValidarUsuarioConAgencia(solicitante).IdAgencia.Value;
         agencia.NombreComercial = agencia.NombreComercial.Trim();
         agencia.EmailContacto = agencia.EmailContacto.Trim().ToLowerInvariant();
-        return _agenciaMPP.ModificarAgencia(agencia);
+        Agencia resultado = _agenciaMPP.ModificarAgencia(agencia);
+        _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "Agencia", resultado.ID, "ModificarAgencia", $"Se modificaron los datos de la agencia {resultado.NombreComercial}.", "Exitoso", "Informacion", "Usuarios"));
+        return resultado;
     }
 
     public Suscripcion? ConsultarSuscripcionActual(Usuario solicitante)

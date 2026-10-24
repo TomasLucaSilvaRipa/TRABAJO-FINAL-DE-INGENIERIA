@@ -21,7 +21,7 @@ public class AnaliticaOperativaController : ControllerBase
     public IActionResult ConsultarOcupacion([FromQuery] FiltroOcupacionOperativa filtro)
     {
         try { return Ok(_analiticaBLL.ConsultarOcupacion(ObtenerSolicitante(), filtro)); }
-        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception) { return StatusCode(500, "No fue posible analizar la ocupación operativa."); }
     }
@@ -30,7 +30,7 @@ public class AnaliticaOperativaController : ControllerBase
     public IActionResult ConsultarMiCargaOperativa()
     {
         try { return Ok(_analiticaBLL.ConsultarMiCargaOperativa(ObtenerSolicitante())); }
-        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
         catch (Exception) { return StatusCode(500, "No fue posible consultar tu carga operativa."); }
     }
 
@@ -38,7 +38,7 @@ public class AnaliticaOperativaController : ControllerBase
     public IActionResult ConsultarDetalleOcupacionEmpleado([FromQuery] FiltroOcupacionOperativa filtro)
     {
         try { return Ok(_analiticaBLL.ConsultarDetalleOcupacionEmpleado(ObtenerSolicitante(), filtro)); }
-        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
         catch (Exception) { return StatusCode(500, "No fue posible consultar el detalle de ocupación."); }

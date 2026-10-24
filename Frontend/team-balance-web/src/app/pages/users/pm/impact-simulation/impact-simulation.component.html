@@ -59,12 +59,15 @@
     </section>
   }
 
-  @if (escenarios().length) {
+  @if (cargandoConservadas()) { <section class="tb-panel"><div class="tb-empty-state"><h2>Recuperando escenarios conservados…</h2><p>La carga real permanece sin modificaciones.</p></div></section> }
+  @else if (escenarios().length) {
     <section class="space-y-4">
       <div class="flex items-center justify-between">
         <h2 class="text-xl font-bold">Escenarios comparados</h2>
         <span class="text-sm text-slate-400">{{ escenarios().length }} escenario(s)</span>
       </div>
+
+      <app-simulation-impact-chart [escenarios]="escenariosVisuales()" />
 
       <div class="grid gap-4 lg:grid-cols-2">
         @for (escenario of escenarios(); track escenario.idEmpleadoCandidato) {
@@ -72,7 +75,7 @@
             <div class="flex items-start justify-between gap-3">
               <div>
                 <p class="tb-page-kicker">CANDIDATO</p>
-                <h3 class="text-xl font-bold">{{ nombreEmpleado(escenario.idEmpleadoCandidato) }}</h3>
+                <h3 class="text-xl font-bold">{{ nombreEmpleado(escenario.idEmpleadoCandidato, escenario.nombreEmpleado) }}</h3>
                 @if (escenario.nombreTarea) {
                   <p class="mt-1 text-sm text-slate-400">{{ escenario.nombreProyecto }} · {{ escenario.nombreTarea }}</p>
                 }
@@ -96,7 +99,8 @@
 
             <div class="mt-4 text-sm">
               <p class="font-semibold">Resumen de tarea</p>
-              <p class="mt-1 text-slate-400">{{ escenario.horasTarea }} h estimadas · Prioridad {{ escenario.prioridadTarea || 'Sin definir' }} · Deadline {{ escenario.deadlineTarea | date:'dd/MM/yyyy' }}</p>
+              <p class="mt-1 text-slate-400">{{ horasEstimadasTarea(escenario) }} h estimadas · {{ escenario.horasTarea }} h de impacto semanal · Prioridad {{ escenario.prioridadTarea || 'Sin definir' }} · Deadline {{ escenario.deadlineTarea | date:'dd/MM/yyyy' }}</p>
+              @if (escenario.nombreSkillRequerida) { <p class="mt-2 text-slate-400">Skill requerida: <strong class="text-slate-200">{{ escenario.nombreSkillRequerida }}</strong> · Nivel del candidato: <strong [class.text-amber-300]="!escenario.tieneSkillRequerida" [class.text-emerald-300]="escenario.tieneSkillRequerida">{{ escenario.tieneSkillRequerida ? (escenario.nivelSkillCandidato || 'Sin nivel') : 'No registrada' }}</strong></p> }
             </div>
 
             @if (advertencias(escenario).length) {

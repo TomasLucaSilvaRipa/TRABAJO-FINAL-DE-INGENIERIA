@@ -9,8 +9,9 @@ public class BLLIdioma
     private static readonly Regex CodigoValido = new("^[a-z]{2,10}(?:-[A-Z]{2})?$", RegexOptions.CultureInvariant);
     private readonly MPPIdioma _idiomaMPP;
     private readonly BLLRol _rolBLL;
+    private readonly BLLBitacora _bitacoraBLL;
 
-    public BLLIdioma(MPPIdioma idiomaMPP, BLLRol rolBLL) { _idiomaMPP = idiomaMPP; _rolBLL = rolBLL; }
+    public BLLIdioma(MPPIdioma idiomaMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL) { _idiomaMPP = idiomaMPP; _rolBLL = rolBLL; _bitacoraBLL = bitacoraBLL; }
 
     public List<Idioma> ConsultarActivos() => _idiomaMPP.ConsultarActivos();
 
@@ -24,7 +25,9 @@ public class BLLIdioma
     {
         ValidarGestion(solicitante);
         Normalizar(idioma);
-        return _idiomaMPP.Registrar(idioma);
+        Idioma resultado = _idiomaMPP.Registrar(idioma);
+        _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "Idioma", resultado.ID, "RegistrarIdioma", $"Se registró el idioma {resultado.Nombre} ({resultado.Codigo}).", "Exitoso", "Informacion", "General"));
+        return resultado;
     }
 
     public void Modificar(Idioma idioma, Usuario solicitante)
@@ -41,6 +44,7 @@ public class BLLIdioma
         if (idiomaRegistrado.Codigo is "es" or "en" or "fr" && !idioma.Activo) throw new ArgumentException("Los idiomas base no pueden darse de baja.");
         if (idiomaRegistrado.Activo && !idioma.Activo) throw new ArgumentException("La baja debe realizarse desde la acción Dar de baja idioma.");
         _idiomaMPP.Modificar(idioma);
+        _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "Idioma", idioma.ID, "ModificarIdioma", $"Se modificó el idioma {idioma.Nombre} ({idioma.Codigo}) y sus traducciones.", "Exitoso", "Informacion", "General"));
     }
 
     public void DarDeBaja(Idioma idioma, Usuario solicitante)
@@ -52,6 +56,7 @@ public class BLLIdioma
         if (idiomaRegistrado.Codigo is "es" or "en" or "fr") throw new ArgumentException("Los idiomas base no pueden darse de baja.");
         if (!idiomaRegistrado.Activo) throw new ArgumentException("El idioma ya se encuentra dado de baja.");
         _idiomaMPP.DarDeBaja(idiomaRegistrado);
+        _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "Idioma", idiomaRegistrado.ID, "DarBajaIdioma", $"Se dio de baja el idioma {idiomaRegistrado.Nombre} ({idiomaRegistrado.Codigo}).", "Exitoso", "Advertencia", "General"));
     }
 
     private void ValidarGestion(Usuario solicitante)

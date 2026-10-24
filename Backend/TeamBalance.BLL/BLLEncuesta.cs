@@ -62,6 +62,7 @@ public sealed class BLLEncuesta
         try
         {
             _encuestaMPP.Responder(respuesta);
+            _bitacoraBLL.Add(new Bitacora(null, null, "Encuesta", respuesta.IdEncuesta, "ResponderEncuesta", "Se registró una respuesta anónima para una encuesta pública.", "Exitoso", "Informacion", "Encuestas"));
         }
         catch (Exception ex) when (EsErrorDeRespuesta(ex.Message)) { throw new ArgumentException(ex.Message); }
     }

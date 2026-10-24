@@ -242,7 +242,7 @@ export const routes: Routes = [
       { path: 'mis-tareas', component: MyTasksComponent, canActivate: [permissionGuard], data: { permission: 'VerMisTareas', excludedRoleTypes: ['Dueno'] }, title: 'Mis tareas | TeamBalance' },
       { path: 'detalle-tarea', component: TaskDetailComponent, canActivate: [permissionGuard], data: { permission: 'VerMisTareas', excludedRoleTypes: ['Dueno'] }, title: 'Detalle de tarea | TeamBalance' },
       { path: 'kanban', component: KanbanBoard, canActivate: [permissionGuard], data: { permission: 'VerKanban' }, title: 'Tablero Kanban | TeamBalance' },
-      { path: 'kanban-proyectos', component: ProjectKanbanComponent, canActivate: [permissionGuard], data: { permission: 'GestionarTareas' }, title: 'Kanban de proyectos | TeamBalance' },
+      { path: 'kanban-proyectos', component: ProjectKanbanComponent, canActivate: [permissionGuard], data: { permission: 'GestionarProyectos' }, title: 'Kanban de proyectos | TeamBalance' },
       { path: 'registrar-horas', component: RegisterHoursComponent, canActivate: [permissionGuard], data: { permission: 'RegistrarHoras' }, title: 'Registrar horas | TeamBalance' },
       { path: 'disponibilidad', component: AvailabilityComponent, canActivate: [permissionGuard], data: { permission: 'GestionarDisponibilidad' }, title: 'Mi disponibilidad | TeamBalance' },
       { path: 'licencias', component: LicensesComponent, canActivate: [permissionGuard], data: { permission: 'GestionarDisponibilidad' }, title: 'Licencias y ausencias | TeamBalance' },

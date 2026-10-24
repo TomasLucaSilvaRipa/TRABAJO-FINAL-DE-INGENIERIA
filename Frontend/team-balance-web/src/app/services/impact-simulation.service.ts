@@ -22,6 +22,10 @@ export interface SimulacionImpacto {
   prioridadTarea?: string;
   nombreTarea?: string;
   nombreProyecto?: string;
+  nombreEmpleado?: string;
+  nombreSkillRequerida?: string;
+  nivelSkillCandidato?: string;
+  tieneSkillRequerida?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -31,6 +35,11 @@ export class ImpactSimulationService {
 
   consultarTareasDisponibles(): Observable<Tarea[]> {
     return this.http.get<Tarea[]>(`${this.url}/tareas`);
+  }
+
+  consultarConservadas(idTarea?: number): Observable<SimulacionImpacto[]> {
+    const sufijo = idTarea ? `?idTarea=${idTarea}` : '';
+    return this.http.get<SimulacionImpacto[]>(`${this.url}/conservadas${sufijo}`);
   }
 
   calcular(simulacion: Partial<SimulacionImpacto>): Observable<SimulacionImpacto> {

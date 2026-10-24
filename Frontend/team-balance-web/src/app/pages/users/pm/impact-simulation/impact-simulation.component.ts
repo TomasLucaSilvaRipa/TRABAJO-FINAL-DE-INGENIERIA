@@ -1,14 +1,15 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { BestFitService, RecomendacionBestFit } from '../../../../services/best-fit.service';
 import { ImpactSimulationService, SimulacionImpacto } from '../../../../services/impact-simulation.service';
 import { Tarea, TareaOpciones, TasksService } from '../../../../services/tasks.service';
+import { EscenarioVisualSimulacion, SimulationImpactChartComponent } from '../../../../shared/components/analytics/simulation-impact-chart/simulation-impact-chart.component';
 
 @Component({
   selector: 'app-impact-simulation',
-  imports: [DatePipe, FormsModule],
+  imports: [DatePipe, FormsModule, SimulationImpactChartComponent],
   templateUrl: './impact-simulation.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -25,9 +26,23 @@ export class ImpactSimulationComponent {
   readonly idTarea = signal(0);
   readonly idEmpleado = signal(0);
   readonly cargando = signal(false);
+  readonly cargandoConservadas = signal(false);
   readonly error = signal('');
   readonly mensaje = signal('');
   readonly Math = Math;
+  readonly escenariosVisuales = computed<EscenarioVisualSimulacion[]>(() => this.escenarios().map(escenario => ({
+    idEmpleado: escenario.idEmpleadoCandidato,
+    nombreEmpleado: this.nombreEmpleado(escenario.idEmpleadoCandidato, escenario.nombreEmpleado),
+    nombreTarea: escenario.nombreTarea ?? this.tareas().find(tarea => tarea.id === escenario.idTarea)?.titulo ?? 'Tarea seleccionada',
+    nombreProyecto: escenario.nombreProyecto ?? 'Proyecto del PM',
+    ocupacionActual: Number(escenario.porcentajeOcupacionActual ?? 0),
+    ocupacionProyectada: Number(escenario.porcentajeOcupacionProyectado ?? 0),
+    cargaActual: Number(escenario.cargaActual ?? 0),
+    cargaProyectada: Number(escenario.cargaProyectada ?? 0),
+    disponibilidadRestante: Number(escenario.disponibilidadRestante ?? 0),
+    impacto: escenario.impactoOperativo ?? 'Sin clasificar',
+    conservado: escenario.id > 0,
+  })));
 
   constructor() {
     this.cargarTareas();
@@ -40,6 +55,7 @@ export class ImpactSimulationComponent {
     this.recomendaciones.set([]);
     this.mensaje.set('');
     this.error.set('');
+    if (idTarea) { this.cargarConservadas(idTarea); }
   }
 
   simular(): void {
@@ -114,10 +130,12 @@ export class ImpactSimulationComponent {
     });
   }
 
-  nombreEmpleado(idEmpleado: number): string {
+  nombreEmpleado(idEmpleado: number, nombreGuardado?: string): string {
     const empleado = this.empleados().find((item) => item.id === idEmpleado);
-    return empleado ? `${empleado.nombre} ${empleado.apellido}` : 'Recurso seleccionado';
+    return empleado ? `${empleado.nombre} ${empleado.apellido}` : nombreGuardado || 'Recurso seleccionado';
   }
+
+  horasEstimadasTarea(escenario: SimulacionImpacto): number { return Number(this.tareas().find(tarea => tarea.id === escenario.idTarea)?.horasEstimadas ?? 0); }
 
   advertencias(escenario: SimulacionImpacto): string[] {
     try {
@@ -141,6 +159,7 @@ export class ImpactSimulationComponent {
 
         if (idTareaRuta && tareas.some((tarea: Tarea) => tarea.id === idTareaRuta)) {
           this.idTarea.set(idTareaRuta);
+          this.cargarConservadas(idTareaRuta);
         }
       },
       error: (respuesta) => this.error.set(this.obtenerMensajeError(respuesta, 'No se pudieron cargar las tareas pendientes del PM.')),
@@ -151,6 +170,14 @@ export class ImpactSimulationComponent {
     this.tasksService.opciones().subscribe({
       next: (opciones: TareaOpciones) => this.empleados.set(opciones.empleados),
       error: (respuesta) => this.error.set(this.obtenerMensajeError(respuesta, 'No se pudieron cargar los recursos.')),
+    });
+  }
+
+  private cargarConservadas(idTarea: number): void {
+    this.cargandoConservadas.set(true);
+    this.simulationService.consultarConservadas(idTarea).subscribe({
+      next: escenarios => { this.escenarios.set(escenarios); this.cargandoConservadas.set(false); },
+      error: respuesta => { this.cargandoConservadas.set(false); this.error.set(this.obtenerMensajeError(respuesta, 'No se pudieron recuperar los escenarios conservados.')); },
     });
   }
 

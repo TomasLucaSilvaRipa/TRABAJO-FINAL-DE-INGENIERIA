@@ -6,12 +6,13 @@ import { AreaSkill, FichaEmpleado, ResourcesService, Skill } from '../../../../s
 import { PerfilEmpleado, UsuarioGestion, UsuariosService } from '../../../../services/usuarios.service';
 import { LocalizationService } from '../../../../services/localization.service';
 import { AuthService } from '../../../../services/auth.service';
+import { EmployeePerformanceHistoryComponent } from '../../../../shared/components/analytics/employee-performance-history/employee-performance-history.component';
 
-@Component({ selector: 'app-employee-management', imports: [ReactiveFormsModule], templateUrl: './employee-management.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
+@Component({ selector: 'app-employee-management', imports: [ReactiveFormsModule, EmployeePerformanceHistoryComponent], templateUrl: './employee-management.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
 export class EmployeeManagement {
   private readonly formBuilder = inject(FormBuilder); private readonly usuariosService = inject(UsuariosService); private readonly rolesService = inject(RolesService); private readonly recursosService = inject(ResourcesService); private readonly authService = inject(AuthService);
   readonly localization = inject(LocalizationService);
-  readonly usuarios = signal<UsuarioGestion[]>([]); readonly roles = signal<Rol[]>([]); readonly skills = signal<Skill[]>([]); readonly areasSkills = signal<AreaSkill[]>([]); readonly soporteInicialDisponible = signal(false); readonly cargando = signal(true); readonly error = signal(''); readonly mensaje = signal(''); readonly editandoId = signal<number | null>(null); readonly rolesSeleccionados = signal<number[]>([]); readonly skillsSeleccionadas = signal<number[]>([]); readonly usuarioFicha = signal<UsuarioGestion | null>(null); readonly fichaConsultada = signal<FichaEmpleado | null>(null); readonly cargandoFicha = signal(false); readonly exportandoFicha = signal(false); readonly panelFichaAbierto = signal(false);
+  readonly usuarios = signal<UsuarioGestion[]>([]); readonly roles = signal<Rol[]>([]); readonly skills = signal<Skill[]>([]); readonly areasSkills = signal<AreaSkill[]>([]); readonly soporteInicialDisponible = signal(false); readonly cargando = signal(true); readonly error = signal(''); readonly mensaje = signal(''); readonly editandoId = signal<number | null>(null); readonly rolesSeleccionados = signal<number[]>([]); readonly skillsSeleccionadas = signal<number[]>([]); readonly nivelesSkills = signal<Record<number, string>>({}); readonly nivelesDisponibles = ['Básico', 'Medio', 'Avanzado']; readonly usuarioFicha = signal<UsuarioGestion | null>(null); readonly fichaConsultada = signal<FichaEmpleado | null>(null); readonly cargandoFicha = signal(false); readonly exportandoFicha = signal(false); readonly panelFichaAbierto = signal(false);
   readonly busquedaSimple = signal(''); readonly mostrarBusquedaAvanzada = signal(false); readonly filtroNombre = signal(''); readonly filtroEmail = signal(''); readonly filtroRol = signal(''); readonly filtroEstado = signal(''); readonly filtroSeniority = signal('');
   private cierreFicha: ReturnType<typeof setTimeout> | null = null;
   readonly form = this.formBuilder.group({ nombre: ['', Validators.required], apellido: ['', Validators.required], email: ['', [Validators.required, Validators.email]], passwordHash: [''], costoHora: [0, Validators.min(0)], horasDisponiblesSemanales: [40, Validators.min(1)], seniority: ['Junior'], estadoLaboral: ['Activo'], horaInicio: ['09:00', Validators.required], horaFin: ['18:00', Validators.required], observacionDisponibilidad: [''] });
@@ -51,7 +52,7 @@ export class EmployeeManagement {
     this.rolesSeleccionados.set(usuario.roles.map(rol => rol.id)); this.skillsSeleccionadas.set([]);
     this.form.patchValue({ nombre: usuario.nombre, apellido: usuario.apellido, email: usuario.email, passwordHash: '', costoHora: usuario.empleado?.costoHora ?? 0, horasDisponiblesSemanales: usuario.empleado?.horasDisponiblesSemanales ?? 40, seniority: usuario.empleado?.seniority ?? 'Junior', estadoLaboral: usuario.empleado?.estadoLaboral ?? 'Activo', horaInicio: '09:00', horaFin: '18:00', observacionDisponibilidad: '' });
     if (usuario.empleado) {
-      this.recursosService.consultarFichaEmpleado(usuario.id).subscribe({ next: (ficha) => { this.skillsSeleccionadas.set(ficha.empleadoSkills.map(skill => skill.idSkill));
+      this.recursosService.consultarFichaEmpleado(usuario.id).subscribe({ next: (ficha) => { this.skillsSeleccionadas.set(ficha.empleadoSkills.map(skill => skill.idSkill)); this.nivelesSkills.set(Object.fromEntries(ficha.empleadoSkills.map(skill => [skill.idSkill, this.normalizarNivelSkill(skill.nivel)])));
         this.form.patchValue({ horaInicio: ficha.disponibilidadBase?.horaInicio ?? '09:00', horaFin: ficha.disponibilidadBase?.horaFin ?? '18:00', observacionDisponibilidad: ficha.disponibilidadBase?.observacion ?? '', horasDisponiblesSemanales: ficha.disponibilidadBase?.horasSemanales ?? usuario.empleado?.horasDisponiblesSemanales ?? 40 }); }, error: () => this.error.set('No fue posible cargar la ficha laboral del empleado.')
       });
     }
@@ -92,11 +93,21 @@ export class EmployeeManagement {
 
   cancelarEdicion(): void {
     this.editandoId.set(null); this.rolesSeleccionados.set([]);
-    this.skillsSeleccionadas.set([]); this.form.reset({ costoHora: 0, horasDisponiblesSemanales: 40, seniority: 'Junior', estadoLaboral: 'Activo', horaInicio: '09:00', horaFin: '18:00', observacionDisponibilidad: '' });
+    this.skillsSeleccionadas.set([]); this.nivelesSkills.set({}); this.form.reset({ costoHora: 0, horasDisponiblesSemanales: 40, seniority: 'Junior', estadoLaboral: 'Activo', horaInicio: '09:00', horaFin: '18:00', observacionDisponibilidad: '' });
   }
 
   cambiarRol(idRol: number, seleccionado: boolean): void { this.rolesSeleccionados.update(roles => seleccionado ? [...new Set([...roles, idRol])] : roles.filter(id => id !== idRol)); }
-  cambiarSkill(idSkill: number, seleccionado: boolean): void { this.skillsSeleccionadas.update(skills => seleccionado ? [...new Set([...skills, idSkill])] : skills.filter(id => id !== idSkill)); }
+  cambiarSkill(idSkill: number, seleccionado: boolean): void {
+    this.skillsSeleccionadas.update(skills => seleccionado ? [...new Set([...skills, idSkill])] : skills.filter(id => id !== idSkill));
+    this.nivelesSkills.update(niveles => {
+      const actualizados = { ...niveles };
+      if (seleccionado) { actualizados[idSkill] ??= 'Medio'; }
+      else { delete actualizados[idSkill]; }
+      return actualizados;
+    });
+  }
+  cambiarNivelSkill(idSkill: number, nivel: string): void { this.nivelesSkills.update(niveles => ({ ...niveles, [idSkill]: this.normalizarNivelSkill(nivel) })); }
+  nivelSkill(idSkill: number): string { return this.nivelesSkills()[idSkill] ?? 'Medio'; }
   registrarSkill(): void { if (this.skillForm.invalid) { this.error.set('Completá el nombre y el área de la skill.'); return; } const datos = this.skillForm.getRawValue(); this.recursosService.registrarSkill({ nombre: datos.nombre ?? '', idAreaSkill: datos.idAreaSkill }).subscribe({ next: () => { this.skillForm.reset(); this.recursosService.consultarSkills().subscribe(skills => this.skills.set(skills)); }, error: (respuesta: unknown) => this.error.set(this.obtenerMensajeError(respuesta, 'No se pudo registrar la skill.')) }); }
   cambiarEstadoSkill(skill: Skill): void { this.recursosService.cambiarEstadoSkill({ ...skill, activo: !skill.activo }).subscribe({ next: () => this.recursosService.consultarSkills().subscribe(skills => this.skills.set(skills)), error: () => this.error.set('No se pudo actualizar la skill.') }); }
   cambiarEstado(usuario: UsuarioGestion): void {
@@ -109,7 +120,8 @@ export class EmployeeManagement {
   private guardarFichaSiCorresponde(idUsuario: number, mensajeExito: string): void { if (!this.tieneTipoUsuario('Empleado')) { this.finalizarGuardado(mensajeExito); return; } const ficha: FichaEmpleado = this.crearFichaEmpleado(); ficha.id = idUsuario; this.recursosService.guardarFichaEmpleado(ficha).subscribe({ next: () => this.finalizarGuardado(mensajeExito), error: (respuesta: unknown) => this.error.set(this.obtenerMensajeError(respuesta, 'El usuario fue guardado, pero no se pudo completar su ficha laboral.')) }); }
   private finalizarGuardado(mensajeExito: string): void { this.mensaje.set(mensajeExito); this.cancelarEdicion(); this.cargar(); }
   private crearPerfilEmpleado(): PerfilEmpleado { const datos = this.form.getRawValue(); return { costoHora: Number(datos.costoHora ?? 0), horasDisponiblesSemanales: Number(datos.horasDisponiblesSemanales ?? 40), seniority: datos.seniority ?? 'Junior', estadoLaboral: datos.estadoLaboral ?? 'Activo' }; }
-  private crearFichaEmpleado(): FichaEmpleado { const datos = this.form.getRawValue(); return { empleadoSkills: this.skillsSeleccionadas().map(idSkill => ({ idSkill, nivel: 'Intermedio', activo: true })), disponibilidadBase: { horaInicio: datos.horaInicio ?? '09:00', horaFin: datos.horaFin ?? '18:00', horasSemanales: Number(datos.horasDisponiblesSemanales ?? 40), observacion: datos.observacionDisponibilidad ?? '', activo: true } }; }
+  private crearFichaEmpleado(): FichaEmpleado { const datos = this.form.getRawValue(); return { empleadoSkills: this.skillsSeleccionadas().map(idSkill => ({ idSkill, nivel: this.nivelSkill(idSkill), activo: true })), disponibilidadBase: { horaInicio: datos.horaInicio ?? '09:00', horaFin: datos.horaFin ?? '18:00', horasSemanales: Number(datos.horasDisponiblesSemanales ?? 40), observacion: datos.observacionDisponibilidad ?? '', activo: true } }; }
+  private normalizarNivelSkill(nivel?: string): string { const valor = (nivel ?? '').trim().toLocaleLowerCase(); if (valor === 'básico' || valor === 'basico' || valor === 'bajo' || valor === 'junior') { return 'Básico'; } if (valor === 'avanzado' || valor === 'alto' || valor === 'experto') { return 'Avanzado'; } return 'Medio'; }
   private abrirImpresionLegajo(ventana: Window, usuario: UsuarioGestion, ficha: FichaEmpleado): void {
     const disponibilidad = ficha.disponibilidadBase; const skills = ficha.empleadoSkills.map(skill => `${this.nombreSkill(skill.idSkill)}${skill.nivel ? ` (${skill.nivel})` : ''}`).join(', ') || 'Sin skills registradas';
     const costo = this.esDueno() ? `<p><strong>Costo por hora:</strong> ${usuario.empleado?.costoHora ?? 0}</p>` : '';

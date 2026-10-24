@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -13,6 +13,9 @@ export interface TareaDisponibilidadAfectada { idTarea: number; titulo: string; 
 export interface ResultadoGestionDisponibilidad { ausencia: AusenciaEmpleado; tareasAfectadas: TareaDisponibilidadAfectada[]; }
 export interface ResolucionAusenciaEmpleado { idAusencia?: number; fechaInicioAprobada?: string | null; fechaFinAprobada?: string | null; horasNoDisponiblesAprobadas?: number | null; motivoResolucion?: string; }
 export interface EmpleadoDisponibilidadOpcion { idUsuario: number; nombreCompleto: string; }
+export interface ConsultaCalendarioEquipo { fechaDesde: string; fechaHasta: string; idProyecto?: number | null; idEmpleado?: number | null; }
+export interface EventoCalendarioEquipo { idEmpleado: number; idUsuario: number; nombreEmpleado: string; horasSemanales: number; idAusencia?: number | null; tipoPeriodo?: string | null; fechaInicio?: string | null; fechaFin?: string | null; horasNoDisponibles?: number | null; estado?: string | null; motivo?: string | null; motivoResolucion?: string | null; cantidadTareasAfectadas: number; tareasAfectadas?: string | null; }
+export interface PuntoRendimientoEmpleado { periodo: string; cumplimientoPlazos: number; desvioHoras: number; tareasFinalizadas: number; reasignaciones: number; observaciones: number; horasEstimadas: number; horasTrabajadas: number; }
 
 @Injectable({ providedIn: 'root' })
 export class ResourcesService {
@@ -34,4 +37,11 @@ export class ResourcesService {
   aprobarParcialmenteAusencia(idAusencia: number, resolucion: ResolucionAusenciaEmpleado): Observable<ResultadoGestionDisponibilidad> { return this.http.post<ResultadoGestionDisponibilidad>(`${this.url}/ausencias/${idAusencia}/aprobar-parcial`, resolucion); }
   rechazarAusencia(idAusencia: number, resolucion: ResolucionAusenciaEmpleado): Observable<AusenciaEmpleado> { return this.http.post<AusenciaEmpleado>(`${this.url}/ausencias/${idAusencia}/rechazar`, resolucion); }
   registrarAusenciaDirecta(ausencia: AusenciaEmpleado): Observable<ResultadoGestionDisponibilidad> { return this.http.post<ResultadoGestionDisponibilidad>(`${this.url}/ausencias/directa`, ausencia); }
+  consultarCalendarioEquipo(consulta: ConsultaCalendarioEquipo): Observable<EventoCalendarioEquipo[]> {
+    let parametros = new HttpParams().set('fechaDesde', consulta.fechaDesde).set('fechaHasta', consulta.fechaHasta);
+    if (consulta.idProyecto) { parametros = parametros.set('idProyecto', consulta.idProyecto); }
+    if (consulta.idEmpleado) { parametros = parametros.set('idEmpleado', consulta.idEmpleado); }
+    return this.http.get<EventoCalendarioEquipo[]>(`${this.url}/calendario-equipo`, { params: parametros });
+  }
+  consultarRendimientoEmpleado(idUsuario: number, meses: number): Observable<PuntoRendimientoEmpleado[]> { return this.http.get<PuntoRendimientoEmpleado[]>(`${this.url}/empleados/${idUsuario}/rendimiento`, { params: { meses } }); }
 }

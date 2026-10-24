@@ -5,12 +5,15 @@ import { RouterLink } from '@angular/router';
 import { Tarea, TasksService } from '../../../../services/tasks.service';
 import { Proyecto, ProjectsService } from '../../../../services/projects.service';
 import { LocalizationService } from '../../../../services/localization.service';
+import { AuthService } from '../../../../services/auth.service';
 
 @Component({ selector: 'app-project-kanban', imports: [CommonModule, DatePipe, FormsModule, RouterLink], templateUrl: './project-kanban.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
 export class ProjectKanbanComponent {
   private readonly tasksService = inject(TasksService);
   private readonly projectsService = inject(ProjectsService);
+  private readonly authService = inject(AuthService);
   readonly localization = inject(LocalizationService);
+  readonly esDueno = this.authService.esDueno();
   readonly tareas = signal<Tarea[]>([]);
   readonly proyectos = signal<Proyecto[]>([]);
   readonly proyectoSeleccionado = signal<number | null>(null);
@@ -24,7 +27,7 @@ export class ProjectKanbanComponent {
 
   cargarTareas(): void {
     this.error.set('');
-    this.tasksService.filtrar({ idProyecto: this.proyectoSeleccionado() }).subscribe({ next: (tareas: Tarea[]) => this.tareas.set(tareas), error: error => this.error.set(typeof error?.error === 'string' ? error.error : error?.error?.message || 'No se pudieron cargar las tareas de los proyectos disponibles.') });
+    this.tasksService.consultarTableroProyectos({ idProyecto: this.proyectoSeleccionado() }).subscribe({ next: (tareas: Tarea[]) => this.tareas.set(tareas), error: error => this.error.set(typeof error?.error === 'string' ? error.error : error?.error?.message || 'No se pudieron cargar las tareas de los proyectos disponibles.') });
   }
 
   seleccionarProyecto(idProyecto: string): void {

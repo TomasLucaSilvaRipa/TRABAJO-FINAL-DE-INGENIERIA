@@ -27,6 +27,7 @@ public class BLLSimulacionImpacto
 
             return _tareaMPP.ConsultarPorPM(usuario)
                 .Where(tarea => tarea.Activo
+                    && !tarea.IdEmpleadoAsignado.HasValue
                     && tarea.HorasEstimadas > 0
                     && tarea.Deadline.HasValue
                     && !string.Equals(tarea.Estado, "Finalizada", StringComparison.OrdinalIgnoreCase)
@@ -61,7 +62,7 @@ public class BLLSimulacionImpacto
             datosOperativos.AdvertenciasJson = JsonSerializer.Serialize(advertencias);
             datosOperativos.ImpactoOperativo = datosOperativos.GeneraSobrecarga
                 ? "Sobrecarga"
-                : ocupacionProyectada >= 80 || datosOperativos.DiasAusenciaProximaSemana > 0
+                : ocupacionProyectada >= 86 || datosOperativos.DiasAusenciaProximaSemana > 0
                     ? "Capacidad comprometida"
                     : "Viable";
             datosOperativos.FechaCreacion = DateTime.Now;
@@ -73,6 +74,13 @@ public class BLLSimulacionImpacto
         catch (UnauthorizedAccessException) { throw; }
         catch (ArgumentException) { throw; }
         catch (Exception ex) { throw new Exception(ex.Message, ex); }
+    }
+
+    public List<SimulacionImpacto> ConsultarConservadas(int? idTarea, Usuario usuario)
+    {
+        ValidarPermiso(usuario);
+        if (idTarea.HasValue && idTarea.Value <= 0) { throw new ArgumentException("La tarea seleccionada no es válida."); }
+        return _simulacionMPP.ConsultarConservadas(idTarea, usuario);
     }
 
     public SimulacionImpacto Conservar(SimulacionImpacto simulacion, Usuario usuario)
@@ -142,13 +150,18 @@ public class BLLSimulacionImpacto
             advertencias.Add($"El empleado tiene {simulacion.DiasAusenciaProximaSemana} día(s) de ausencia aprobada durante la próxima semana.");
         }
 
+        if (!string.IsNullOrWhiteSpace(simulacion.NombreSkillRequerida) && !simulacion.TieneSkillRequerida)
+        {
+            advertencias.Add($"El empleado no tiene registrada la skill requerida: {simulacion.NombreSkillRequerida}.");
+        }
+
         if (disponibilidadRestante < 0)
         {
             advertencias.Add("La asignación supera la disponibilidad operativa semanal del empleado.");
         }
-        else if (ocupacionProyectada >= 80)
+        else if (ocupacionProyectada >= 86)
         {
-            advertencias.Add("La asignación deja al empleado con una ocupación igual o superior al 80%.");
+            advertencias.Add("La asignación deja al empleado en la zona de capacidad comprometida (86% o más).");
         }
 
         if (simulacion.DeadlineTarea.HasValue)

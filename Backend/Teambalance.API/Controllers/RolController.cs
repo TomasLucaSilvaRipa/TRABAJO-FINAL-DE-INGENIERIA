@@ -63,14 +63,18 @@ public class RolController : ControllerBase
     [HttpPatch("{idRol:int}/estado")]
     public IActionResult CambiarEstado([FromBody] Rol rol)
     {
-        try { ValidarGestionRoles(); _rolBLL.CambiarEstado(rol); return NoContent(); }
+        try { Usuario solicitante = ObtenerSolicitante(); ValidarGestionRoles(solicitante); _rolBLL.CambiarEstado(rol, solicitante); return NoContent(); }
         catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
         catch (Exception){ return StatusCode(500, "No fue posible actualizar el rol."); }
     }
 
     private void ValidarGestionRoles()
     {
-        Usuario solicitante = ObtenerSolicitante();
+        ValidarGestionRoles(ObtenerSolicitante());
+    }
+
+    private void ValidarGestionRoles(Usuario solicitante)
+    {
         if (!_rolBLL.TienePermiso(solicitante, "GestionarRoles"))
         {
             throw new UnauthorizedAccessException("No tenés permiso para gestionar roles.");

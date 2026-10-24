@@ -75,7 +75,8 @@ public sealed class SuscripcionesController : ControllerBase
     [HttpPost("operaciones/{ReferenciaOperacion}/verificar-pago")]
     public async Task<IActionResult> VerificarPago([FromRoute] VerificarPagoSuscripcionRequest solicitudRuta, [FromBody] VerificarPagoSuscripcionRequest solicitud)
     {
-        try { solicitud.ReferenciaOperacion = solicitudRuta.ReferenciaOperacion; return Ok(await _suscripcionBLL.VerificarActualizacionPago(solicitud)); }
+        try { solicitud.ReferenciaOperacion = solicitudRuta.ReferenciaOperacion; return Ok(await _suscripcionBLL.VerificarActualizacionPago(ObtenerSolicitante(), solicitud)); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(new RespuestaErrorSuscripcion("SUBSCRIPTION_OPERATION_NOT_FOUND", ex.Message)); }
         catch (ArgumentException ex) { return BadRequest(new RespuestaErrorSuscripcion("SUBSCRIPTION_VALIDATION", ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(new RespuestaErrorSuscripcion("SUBSCRIPTION_OPERATION_REJECTED", ex.Message)); }
@@ -138,7 +139,8 @@ public sealed class SuscripcionesController : ControllerBase
     [HttpPost("renovacion-automatica/verificar-stripe")]
     public async Task<IActionResult> VerificarRenovacionStripe([FromBody] VerificarPagoSuscripcionRequest solicitud)
     {
-        try { return Ok(await _suscripcionBLL.VerificarRenovacionAutomaticaStripe(solicitud.PaymentId)); }
+        try { return Ok(await _suscripcionBLL.VerificarRenovacionAutomaticaStripe(ObtenerSolicitante(), solicitud.PaymentId)); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
         catch (Exception) { return StatusCode(502, "No fue posible verificar la renovación automática con Stripe."); }

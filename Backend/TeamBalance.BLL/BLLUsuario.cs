@@ -86,7 +86,12 @@ public class BLLUsuario
             return false;
         }
 
-        return _usuarioMPP.ValidarCuenta(_seguridad.GenerarHashToken(token));
+        bool resultado = _usuarioMPP.ValidarCuenta(_seguridad.GenerarHashToken(token));
+        if (resultado)
+        {
+            _bitacoraBLL.Add(new Bitacora(null, null, "ValidacionCuenta", null, "ValidarCuenta", "Se validó una cuenta mediante el enlace de correo electrónico.", "Exitoso", "Informacion", "Registro"));
+        }
+        return resultado;
     }
 
     public void ReemplazarValidacionEmail(Usuario usuario, ValidacionCuenta validacion)
@@ -155,6 +160,7 @@ public class BLLUsuario
         string claveManual = Base32Encoding.ToString(KeyGeneration.GenerateRandomKey(20));
         DateTime fechaExpiracion = DateTime.Now.AddMinutes(10);
         _usuarioMPP.GuardarAutenticacionDosFactoresPendiente(usuario, _fieldEncryptionService.CifrarSecretoAutenticacionDosFactores(claveManual), fechaExpiracion);
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Usuario", usuario.ID, "PrepararGoogleAuthenticator", "El usuario inició la activación de Google Authenticator.", "Pendiente", "Informacion", "Seguridad"));
         string etiqueta = Uri.EscapeDataString("TeamBalance:" + usuario.Email);
         string emisor = Uri.EscapeDataString("TeamBalance");
         return new PreparacionTotp($"otpauth://totp/{etiqueta}?secret={claveManual}&issuer={emisor}&algorithm=SHA1&digits=6&period=30", claveManual, fechaExpiracion);
@@ -263,7 +269,12 @@ public class BLLUsuario
     {
         if (!string.IsNullOrWhiteSpace(accessToken))
         {
+            Usuario? usuario = ConsultarUsuarioSesion(accessToken);
             _usuarioMPP.CerrarSesion(_seguridad.GenerarHashToken(accessToken));
+            if (usuario is not null)
+            {
+                RegistrarEventoSeguridad(usuario, "CerrarSesion", "El usuario cerró su sesión en TeamBalance.", "Exitoso", "Informacion");
+            }
         }
     }
 
@@ -407,6 +418,7 @@ public class BLLUsuario
         _usuarioMPP.ModificarUsuario(usuario);
         _usuarioMPP.ReemplazarRoles(usuario);
         RegistrarPerfiles(usuario);
+        _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "Usuario", usuario.ID, "ModificarUsuarioAgencia", "Se modificaron los datos y roles de un usuario de la agencia.", "Exitoso", "Informacion", "Usuarios"));
     }
 
     public void CambiarEstadoUsuarioAgencia(Usuario usuario, Usuario solicitante)

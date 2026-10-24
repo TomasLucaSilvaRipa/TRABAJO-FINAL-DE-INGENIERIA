@@ -15,6 +15,7 @@ export class TasksService {
 
   consultar(): Observable<Tarea[]> { return this.http.get<Tarea[]>(this.url); }
   filtrar(filtro: FiltroTarea): Observable<Tarea[]> { return this.http.post<Tarea[]>(`${this.url}/filtrar`, filtro); }
+  consultarTableroProyectos(filtro: FiltroTarea): Observable<Tarea[]> { return this.http.post<Tarea[]>(`${this.url}/tablero-proyectos`, filtro); }
 
   consultarMias(): Observable<Tarea[]> {  return this.http.get<Tarea[]>(`${this.url}/mias`); }
   consultarTableroProyectoPropio(tarea: Partial<Tarea>): Observable<Tarea[]> { return this.http.post<Tarea[]>(`${this.url}/mias/tablero-proyecto`, tarea); }

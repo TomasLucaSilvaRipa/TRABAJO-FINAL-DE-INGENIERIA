@@ -41,6 +41,15 @@ public class SimulacionesImpactoController : ControllerBase
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
+    [HttpGet("conservadas")]
+    public IActionResult ConsultarConservadas([FromQuery] int? idTarea)
+    {
+        try { return Ok(_simulacionBLL.ConsultarConservadas(idTarea, ValidarSesion())); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
+
     [HttpPost]
     public IActionResult Conservar([FromBody] SimulacionImpacto simulacion)
     {

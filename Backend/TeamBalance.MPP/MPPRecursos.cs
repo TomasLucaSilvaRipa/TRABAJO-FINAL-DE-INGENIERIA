@@ -289,4 +289,50 @@ public class MPPRecursos
         DataTable tabla = _conexion.Leer("dbo.usp_Disponibilidad_EsGestor", new List<SqlParameter> { new("@IdUsuario", usuario.ID), new("@IdAgencia", usuario.IdAgencia) });
         return tabla.Rows.Count > 0 && Convert.ToBoolean(tabla.Rows[0]["EsGestor"]);
     }
+
+    public List<EventoCalendarioEquipo> ConsultarCalendarioEquipo(ConsultaCalendarioEquipo consulta, Usuario solicitante)
+    {
+        DataTable tabla = _conexion.Leer("dbo.usp_Disponibilidad_ConsultarCalendarioEquipo", new List<SqlParameter>
+        {
+            new SqlParameter("@IdAgencia", solicitante.IdAgencia),
+            new SqlParameter("@IdUsuarioSolicitante", solicitante.ID),
+            new SqlParameter("@FechaDesde", consulta.FechaDesde),
+            new SqlParameter("@FechaHasta", consulta.FechaHasta),
+            new SqlParameter("@IdProyecto", (object?)consulta.IdProyecto ?? DBNull.Value),
+            new SqlParameter("@IdEmpleado", (object?)consulta.IdEmpleado ?? DBNull.Value)
+        });
+        return tabla.Rows.Cast<DataRow>().Select(fila => new EventoCalendarioEquipo
+        {
+            IdEmpleado = Convert.ToInt32(fila["IdEmpleado"]),
+            IdUsuario = Convert.ToInt32(fila["IdUsuario"]),
+            NombreEmpleado = Convert.ToString(fila["NombreEmpleado"]) ?? string.Empty,
+            HorasSemanales = Convert.ToDecimal(fila["HorasSemanales"]),
+            IdAusencia = fila["IdAusencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAusencia"]),
+            TipoPeriodo = fila["TipoPeriodo"] == DBNull.Value ? null : Convert.ToString(fila["TipoPeriodo"]),
+            FechaInicio = fila["FechaInicio"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaInicio"]),
+            FechaFin = fila["FechaFin"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaFin"]),
+            HorasNoDisponibles = fila["HorasNoDisponibles"] == DBNull.Value ? null : Convert.ToDecimal(fila["HorasNoDisponibles"]),
+            Estado = fila["Estado"] == DBNull.Value ? null : Convert.ToString(fila["Estado"]),
+            Motivo = fila["Motivo"] == DBNull.Value ? null : Convert.ToString(fila["Motivo"]),
+            MotivoResolucion = fila["MotivoResolucion"] == DBNull.Value ? null : Convert.ToString(fila["MotivoResolucion"]),
+            CantidadTareasAfectadas = Convert.ToInt32(fila["CantidadTareasAfectadas"]),
+            TareasAfectadas = fila["TareasAfectadas"] == DBNull.Value ? null : Convert.ToString(fila["TareasAfectadas"])
+        }).ToList();
+    }
+
+    public List<PuntoRendimientoEmpleado> ConsultarRendimientoEmpleado(int idUsuarioEmpleado, int meses, Usuario solicitante)
+    {
+        DataTable tabla = _conexion.Leer("dbo.usp_Empleado_ConsultarRendimiento", new List<SqlParameter>
+        {
+            new SqlParameter("@IdAgencia", solicitante.IdAgencia), new SqlParameter("@IdUsuarioSolicitante", solicitante.ID),
+            new SqlParameter("@IdUsuarioEmpleado", idUsuarioEmpleado), new SqlParameter("@Meses", meses)
+        });
+        return tabla.Rows.Cast<DataRow>().Select(fila => new PuntoRendimientoEmpleado
+        {
+            Periodo = Convert.ToDateTime(fila["Periodo"]), CumplimientoPlazos = Convert.ToDecimal(fila["CumplimientoPlazos"]),
+            DesvioHoras = Convert.ToDecimal(fila["DesvioHoras"]), TareasFinalizadas = Convert.ToInt32(fila["TareasFinalizadas"]),
+            Reasignaciones = Convert.ToInt32(fila["Reasignaciones"]), Observaciones = Convert.ToInt32(fila["Observaciones"]),
+            HorasEstimadas = Convert.ToDecimal(fila["HorasEstimadas"]), HorasTrabajadas = Convert.ToDecimal(fila["HorasTrabajadas"])
+        }).ToList();
+    }
 }

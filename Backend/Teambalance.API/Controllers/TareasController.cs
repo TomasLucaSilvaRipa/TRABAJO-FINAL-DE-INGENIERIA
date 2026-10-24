@@ -83,6 +83,15 @@ public class TareasController : ControllerBase
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
+
+    [HttpPost("tablero-proyectos")]
+    public IActionResult ConsultarTableroProyectos([FromBody] FiltroTarea filtro)
+    {
+        try { return Ok(_tareaBLL.ConsultarTableroProyectos(ValidarSesion(), filtro)); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return StatusCode(500, ex.Message); }
+    }
     [HttpPost] public IActionResult Guardar([FromBody] Tarea tarea) 
     { 
         try 

@@ -1,5 +1,4 @@
 import { Component, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Skill } from '../../../../services/resources.service';
 import { PlantillaTarea, TaskTemplatesService } from '../../../../services/task-templates.service';
@@ -12,7 +11,7 @@ interface ChecklistItem {
 
 @Component({
   selector: 'app-task-templates',
-  imports: [DatePipe, ReactiveFormsModule],
+  imports: [ReactiveFormsModule],
   templateUrl: './task-templates.component.html',
 })
 export class TaskTemplatesComponent {

@@ -29,13 +29,20 @@ public class BLLAnaliticaOperativa
 
     public AnalisisOcupacionOperativa ConsultarOcupacion(Usuario usuario, FiltroOcupacionOperativa? filtro = null)
     {
-        ValidarDueno(usuario);
+        ValidarAccesoOcupacion(usuario);
         FiltroOcupacionOperativa filtroAplicado = filtro ?? new FiltroOcupacionOperativa();
         ValidarFiltroOcupacion(filtroAplicado);
-        List<Empleado> empleados = _analiticaMPP.ConsultarEmpleadosActivos(usuario).Where(empleado => !filtroAplicado.IdEmpleado.HasValue || empleado.ID == filtroAplicado.IdEmpleado.Value).ToList();
         List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, filtroAplicado.IdProyecto, filtroAplicado.IdCliente);
         List<Tarea> tareas = contextos.SelectMany(contexto => contexto.Tareas).ToList();
         List<AsignacionTarea> asignaciones = _asignacionMPP.ConsultarActivas(tareas.Select(tarea => tarea.ID), usuario);
+        List<Empleado> empleados = _analiticaMPP.ConsultarEmpleadosActivos(usuario);
+        if (EsPMSinRolDueno(usuario))
+        {
+            HashSet<int> empleadosDelAlcance = asignaciones.Where(asignacion => asignacion.Activa).Select(asignacion => asignacion.IdEmpleado).ToHashSet();
+            empleadosDelAlcance.UnionWith(tareas.Where(tarea => tarea.IdEmpleadoAsignado.HasValue).Select(tarea => tarea.IdEmpleadoAsignado!.Value));
+            empleados = empleados.Where(empleado => empleadosDelAlcance.Contains(empleado.ID)).ToList();
+        }
+        empleados = empleados.Where(empleado => !filtroAplicado.IdEmpleado.HasValue || empleado.ID == filtroAplicado.IdEmpleado.Value).ToList();
         List<RegistroHora> registros = contextos.SelectMany(contexto => contexto.Registros).ToList();
         (DateTime desde, DateTime hasta) = _motorCargaOperativa.ObtenerPeriodo(filtroAplicado);
         Dictionary<int, decimal> horasPlanificadasPorTarea = new Dictionary<int, decimal>();
@@ -133,7 +140,7 @@ public class BLLAnaliticaOperativa
 
     public DetalleOcupacionEmpleado ConsultarDetalleOcupacionEmpleado(Usuario usuario, FiltroOcupacionOperativa filtro)
     {
-        ValidarDueno(usuario);
+        ValidarAccesoOcupacion(usuario);
         if (!filtro.IdEmpleado.HasValue) { throw new ArgumentException("Seleccioná un empleado para consultar el detalle de ocupación."); }
         AnalisisOcupacionOperativa analisis = ConsultarOcupacion(usuario, filtro);
         OcupacionEmpleado empleado = analisis.Empleados.FirstOrDefault(item => item.IdEmpleado == filtro.IdEmpleado.Value) ?? throw new KeyNotFoundException("No se encontró el empleado dentro de los filtros seleccionados.");
@@ -599,6 +606,13 @@ public class BLLAnaliticaOperativa
         ValidarPermisoEjecutivo(usuario);
         bool autorizado = usuario.Roles.Any(rol => string.Equals(rol.TipoUsuario, "Dueno", StringComparison.OrdinalIgnoreCase) || string.Equals(rol.TipoUsuario, "PM", StringComparison.OrdinalIgnoreCase));
         if (!autorizado) { throw new UnauthorizedAccessException("Este análisis está disponible para Dueños y PM."); }
+    }
+
+    private static void ValidarAccesoOcupacion(Usuario usuario)
+    {
+        if (!usuario.IdAgencia.HasValue) { throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."); }
+        bool autorizado = usuario.Roles.Any(rol => string.Equals(rol.TipoUsuario, "Dueno", StringComparison.OrdinalIgnoreCase) || string.Equals(rol.TipoUsuario, "PM", StringComparison.OrdinalIgnoreCase));
+        if (!autorizado) { throw new UnauthorizedAccessException("El análisis de ocupación está disponible para Dueños y PM."); }
     }
 
     private void ValidarPermisoEjecutivo(Usuario usuario)

@@ -8,11 +8,13 @@ public class BLLRegistroHora
     private const int DiasMaximosRetroactivos = 30;
     private readonly MPPRegistroHora _registroHoraMPP;
     private readonly BLLRol _rolBLL;
+    private readonly BLLBitacora _bitacoraBLL;
 
-    public BLLRegistroHora(MPPRegistroHora registroHoraMPP, BLLRol rolBLL)
+    public BLLRegistroHora(MPPRegistroHora registroHoraMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL)
     {
         _registroHoraMPP = registroHoraMPP;
         _rolBLL = rolBLL;
+        _bitacoraBLL = bitacoraBLL;
     }
 
     public RegistroHora Registrar(RegistroHora registro, Usuario usuario)
@@ -44,7 +46,10 @@ public class BLLRegistroHora
         try
         {
             ValidarRegistros(registros, usuario);
-            return _registroHoraMPP.RegistrarImputaciones(registros, usuario);
+            List<RegistroHora> resultados = _registroHoraMPP.RegistrarImputaciones(registros, usuario);
+            decimal totalHoras = resultados.Sum(registro => registro.CantidadHoras);
+            _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "RegistroHora", resultados.FirstOrDefault()?.ID, "RegistrarImputacionesHoras", $"Se registraron {resultados.Count} imputación(es) por un total de {totalHoras:0.##} horas.", "Exitoso", "Informacion", "Registro"));
+            return resultados;
         }
         catch (UnauthorizedAccessException ex) { throw new UnauthorizedAccessException(ex.Message); }
         catch (ArgumentException ex) { throw new ArgumentException(ex.Message); }
