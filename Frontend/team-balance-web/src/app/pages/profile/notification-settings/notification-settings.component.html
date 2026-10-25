@@ -1,0 +1,41 @@
+<section class="tb-workspace settings-page">
+  <header class="settings-hero">
+    <div><p class="tb-page-kicker">{{ localization.traducir('private.emailSettings.kicker') }}</p><h1 class="tb-page-title">{{ localization.traducir('private.emailSettings.title') }}</h1><p class="tb-page-description">{{ localization.traducir('private.emailSettings.subtitle') }}</p></div>
+    <div class="mail-emblem" aria-hidden="true"><span>✉</span></div>
+  </header>
+
+  @if (loading()) { <section class="tb-panel"><p class="tb-muted-text">{{ localization.traducir('private.emailSettings.loading') }}</p></section> }
+  @else {
+    <section class="settings-board">
+      @if (isEmployee) {
+        <label class="preference-card">
+          <span class="preference-card__icon preference-card__icon--cyan">☀</span>
+          <span class="preference-card__copy"><strong>{{ localization.traducir('private.emailSettings.dailyTitle') }}</strong><small>{{ localization.traducir('private.emailSettings.dailyText') }}</small></span>
+          <input class="toggle" type="checkbox" [(ngModel)]="preferences.resumenDiarioActivo" />
+        </label>
+        @if (preferences.resumenDiarioActivo) {
+          <label class="time-card"><span><strong>{{ localization.traducir('private.emailSettings.deliveryTime') }}</strong><small>{{ localization.traducir('private.emailSettings.argentinaTime') }}</small></span><input type="time" [(ngModel)]="preferences.horaResumenDiario" /></label>
+        }
+        <label class="preference-card">
+          <span class="preference-card__icon preference-card__icon--amber">⌛</span>
+          <span class="preference-card__copy"><strong>{{ localization.traducir('private.emailSettings.deadlineTitle') }}</strong><small>{{ localization.traducir('private.emailSettings.deadlineText') }}</small></span>
+          <input class="toggle" type="checkbox" [(ngModel)]="preferences.alertasDeadlineActivo" />
+        </label>
+      }
+      @if (isOwner) {
+        <label class="preference-card">
+          <span class="preference-card__icon preference-card__icon--lime">▥</span>
+          <span class="preference-card__copy"><strong>{{ localization.traducir('private.emailSettings.weeklyTitle') }}</strong><small>{{ localization.traducir('private.emailSettings.weeklyText') }}</small></span>
+          <input class="toggle" type="checkbox" [(ngModel)]="preferences.resumenSemanalActivo" />
+        </label>
+      }
+      @if (!isEmployee && !isOwner) { <div class="tb-empty-state"><h2>{{ localization.traducir('private.emailSettings.noOptionsTitle') }}</h2><p>{{ localization.traducir('private.emailSettings.noOptionsText') }}</p></div> }
+    </section>
+    <footer class="settings-actions">
+      <p>{{ localization.traducir('private.emailSettings.securityNote') }}</p>
+      <button type="button" class="tb-action-button" [disabled]="saving()" (click)="save()">{{ saving() ? localization.traducir('private.emailSettings.saving') : localization.traducir('private.emailSettings.save') }}</button>
+    </footer>
+    @if (success()) { <p class="feedback feedback--success">{{ localization.traducir('private.emailSettings.saved') }}</p> }
+    @if (error()) { <p class="feedback feedback--error">{{ error() }}</p> }
+  }
+</section>

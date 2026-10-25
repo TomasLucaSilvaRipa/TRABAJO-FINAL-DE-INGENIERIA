@@ -1,0 +1,16 @@
+<main class="action-shell">
+  <section class="action-card">
+    <div class="action-mark" aria-hidden="true">✓</div>
+    @if (loading()) { <p>{{ localization.traducir('private.taskAction.loading') }}</p> }
+    @else if (completed()) {
+      <p class="eyebrow">{{ localization.traducir('private.taskAction.completedKicker') }}</p><h1>{{ localization.traducir('private.taskAction.completedTitle') }}</h1>
+      <p>{{ localization.traducir('private.taskAction.completedText') }}</p><a routerLink="/signin" class="action-button">{{ localization.traducir('private.taskAction.signIn') }}</a>
+    } @else if (action(); as current) {
+      <p class="eyebrow">{{ localization.traducir('private.taskAction.kicker') }}</p><h1>{{ localization.traducir('private.taskAction.title') }}</h1>
+      <div class="task-summary"><strong>{{ current.tituloTarea }}</strong><span>{{ current.proyecto }}</span><span>{{ localization.traducir('private.taskAction.newStatus') }}: <b>{{ current.accion }}</b></span></div>
+      @if (current.disponible) { <button type="button" class="action-button" [disabled]="processing()" (click)="confirm()">{{ processing() ? localization.traducir('private.taskAction.processing') : localization.traducir('private.taskAction.confirm') }}</button> }
+      @else { <p class="notice">{{ localization.traducir('private.taskAction.expired') }}</p> }
+    }
+    @if (error()) { <p class="notice notice--error">{{ error() }}</p> }
+  </section>
+</main>

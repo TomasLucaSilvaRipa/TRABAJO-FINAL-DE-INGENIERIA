@@ -2,7 +2,8 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Tarea, TasksService } from '../../../../services/tasks.service';
+import { ArchivoAdjuntoTarea, EstadoTarea, Tarea, TasksService } from '../../../../services/tasks.service';
+import { forkJoin, map } from 'rxjs';
 import { LocalizationService } from '../../../../services/localization.service';
 import { FocusTimerService } from '../../../../services/focus-timer.service';
 
@@ -44,12 +45,17 @@ export class KanbanBoard {
   readonly vistaProyecto = signal(false);
   readonly proyectoGeneral = signal<number | null>(null);
   readonly panelAbierto = signal(false);
-  readonly columnas = ['Pendiente', 'En progreso', 'Bloqueada', 'Finalizada'];
+  readonly estados = signal<EstadoTarea[]>([]);
+  readonly adjuntosReales = signal<Array<{ archivo: ArchivoAdjuntoTarea; url: string }>>([]);
+  readonly subiendoAdjunto = signal(false);
   private cierrePanel: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    this.tasksService.consultarEstados().subscribe({ next: estados => this.estados.set(estados), error: () => this.estados.set([]) });
     this.cargarTableroPersonal();
   }
+
+  columnas(): string[] { return this.estados().length ? this.estados().map(estado => estado.nombre) : ['Pendiente', 'En progreso', 'Bloqueada', 'Finalizada']; }
 
   tareasPorEstado(estado: string): Tarea[] {
     return this.tareasMostradas()
@@ -78,10 +84,12 @@ export class KanbanBoard {
     this.nuevoComentario.set('');
     this.estadoSeleccionado.set(estadoDestino || tarea.estado || 'Pendiente');
     this.motivoBloqueo.set(tarea.motivoBloqueo || '');
+    this.cargarAdjuntos(tarea.id);
     requestAnimationFrame(() => this.panelAbierto.set(true));
   }
 
   cerrarTarea(): void {
+    this.adjuntosReales().forEach(item => URL.revokeObjectURL(item.url)); this.adjuntosReales.set([]);
     this.panelAbierto.set(false);
     if (this.cierrePanel) {
       clearTimeout(this.cierrePanel);
@@ -172,6 +180,29 @@ export class KanbanBoard {
     }
   }
 
+  descargarAdjunto(item: { archivo: ArchivoAdjuntoTarea; url: string }): void { const enlace = document.createElement('a'); enlace.href = item.url; enlace.download = item.archivo.nombreOriginal; enlace.click(); }
+  async adjuntarArchivos(evento: Event): Promise<void>
+  {
+    const tarea = this.tareaSeleccionada(); const input = evento.target as HTMLInputElement; if (!tarea || !this.esPropia(tarea)) return;
+    const seleccionados = Array.from(input.files ?? []); input.value = ''; if (!seleccionados.length) return;
+    if (seleccionados.some(archivo => archivo.size > 25 * 1024 * 1024)) { this.error.set('Cada archivo debe pesar como máximo 25 MB.'); return; }
+    this.subiendoAdjunto.set(true); const preparados: File[] = []; for (const archivo of seleccionados) preparados.push(await this.optimizarImagen(archivo));
+    forkJoin(preparados.map(archivo => this.tasksService.subirAdjunto(tarea.id, archivo))).subscribe({ next: () => { this.subiendoAdjunto.set(false); this.cargarAdjuntos(tarea.id); }, error: error => { this.subiendoAdjunto.set(false); this.error.set(this.obtenerMensajeError(error, 'No se pudieron cargar los adjuntos.')); } });
+  }
+  private cargarAdjuntos(idTarea: number): void
+  {
+    this.tasksService.consultarAdjuntos(idTarea).subscribe({ next: archivos => {
+      if (!archivos.length) { this.adjuntosReales.set([]); return; }
+      forkJoin(archivos.map(archivo => this.tasksService.descargarAdjunto(idTarea, archivo.id).pipe(map(blob => ({ archivo, url: URL.createObjectURL(blob) }))))).subscribe({ next: items => this.adjuntosReales.set(items), error: () => this.adjuntosReales.set([]) });
+    }, error: () => this.adjuntosReales.set([]) });
+  }
+  private async optimizarImagen(archivo: File): Promise<File>
+  {
+    if (!archivo.type.startsWith('image/') || archivo.type === 'image/gif') return archivo;
+    const bitmap = await createImageBitmap(archivo); const escala = Math.min(1, 1800 / Math.max(bitmap.width, bitmap.height)); const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(bitmap.width * escala)); canvas.height = Math.max(1, Math.round(bitmap.height * escala)); canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height); bitmap.close();
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/webp', .82)); return blob && blob.size < archivo.size ? new File([blob], archivo.name.replace(/\.[^.]+$/, '') + '.webp', { type: 'image/webp' }) : archivo;
+  }
+
   guardarAvance(): void {
     const tarea = this.tareaSeleccionada();
     if (!tarea || !this.esPropia(tarea)) {
@@ -244,7 +275,8 @@ export class KanbanBoard {
     const porcentajeAvance = checklist.length ? Math.round((checklist.filter(item => item.completada).length / checklist.length) * 100) : tarea.porcentajeAvance;
     this.guardando.set(true);
     this.error.set('');
-    this.tasksService.actualizarAvancePropio({ ...tarea, estado, checklistJson: JSON.stringify(checklist), porcentajeAvance, motivoBloqueo: motivoBloqueo || null }).subscribe({
+    const estadoConfigurado = this.estados().find(item => item.nombre.toLocaleLowerCase() === estado.toLocaleLowerCase());
+    this.tasksService.actualizarAvancePropio({ ...tarea, idEstadoTarea: estadoConfigurado?.id ?? tarea.idEstadoTarea, estado, checklistJson: JSON.stringify(checklist), porcentajeAvance, motivoBloqueo: motivoBloqueo || null }).subscribe({
       next: resultado => {
         this.guardando.set(false);
         this.actualizarListaLocal(resultado);

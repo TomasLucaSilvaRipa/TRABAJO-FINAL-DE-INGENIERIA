@@ -1,4 +1,5 @@
 using TeamBalance.BLL;
+using TeamBalance.BE.Entidades;
 using TeamBalance.DAL;
 using TeamBalance.MPP;
 using TeamBalance.Services;
@@ -56,6 +57,9 @@ builder.Services.AddScoped<MPPAnaliticaOperativa>();
 builder.Services.AddScoped<MPPNotificacion>();
 builder.Services.AddScoped<MPPIdioma>();
 builder.Services.AddScoped<MPPIngresosPlataforma>();
+builder.Services.AddScoped<MPPCorreoOperativo>();
+builder.Services.AddScoped<MPPAdjuntoTarea>();
+builder.Services.AddScoped<MPPAlertaOperativa>();
 builder.Services.AddScoped<EmailService>(serviceProvider => new EmailService(
     builder.Configuration["Email:Emisor"],
     builder.Configuration["Email:ClaveAplicacion"],
@@ -96,6 +100,12 @@ builder.Services.AddScoped<BLLAnaliticaOperativa>();
 builder.Services.AddScoped<BLLNotificacion>();
 builder.Services.AddScoped<BLLIdioma>();
 builder.Services.AddScoped<BLLIngresosPlataforma>();
+builder.Services.AddScoped<BLLCorreoOperativo>();
+builder.Services.AddScoped<BLLAdjuntoTarea>();
+builder.Services.AddScoped<BLLAlertaOperativa>();
+builder.Services.AddHttpClient("SlackPush");
+builder.Services.AddScoped<SlackPushService>(serviceProvider => new SlackPushService(serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient("SlackPush"), builder.Configuration["Slack:BotToken"]));
+builder.Services.AddSingleton(builder.Configuration.GetSection("AttachmentStorage").Get<AttachmentStorageSettings>() ?? new AttachmentStorageSettings());
 builder.Services.AddSingleton(builder.Configuration.GetSection("Backup").Get<BackupSettings>() ?? new BackupSettings());
 builder.Services.AddSingleton<ContinuityHistoryXmlService>();
 builder.Services.AddSingleton<EncryptionService>();
@@ -103,6 +113,7 @@ builder.Services.AddHostedService<SubscriptionExpirationHostedService>();
 builder.Services.AddHostedService<NewsPublisherHostedService>();
 builder.Services.AddHostedService<BackupHostedService>();
 builder.Services.AddHostedService<TelegramPollingHostedService>();
+builder.Services.AddHostedService<OperationalEmailHostedService>();
 
 builder.Services.AddHttpClient<PasswordSecurityWebService>( client => { client.BaseAddress = new Uri(builder.Configuration["PasswordSecurityWebService:BaseUrl"]!); });
 

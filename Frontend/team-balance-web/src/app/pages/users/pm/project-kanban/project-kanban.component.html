@@ -35,7 +35,7 @@
     <p class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ error() }}</p>
   }
   <div class="grid gap-4 xl:grid-cols-4">
-    @for (estado of columnas; track estado) {
+    @for (estado of columnas(); track estado) {
       <section class="tb-panel">
         <div class="flex justify-between">
           <h2>{{ estadoTraducido(estado) }}</h2>

@@ -98,6 +98,31 @@ public class BLLTarea
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
+    public List<EstadoTarea> ConsultarEstados(Usuario usuario)
+    {
+        if (!usuario.IdAgencia.HasValue) throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.");
+        return _tareaMPP.ConsultarEstados(usuario);
+    }
+
+    public EstadoTarea GuardarEstadoPersonalizado(EstadoTarea estado, Usuario usuario)
+    {
+        ValidarGestionEstados(usuario);
+        if (string.IsNullOrWhiteSpace(estado.Nombre)) throw new ArgumentException("Indicá un nombre para el estado.");
+        estado.Nombre = estado.Nombre.Trim();
+        EstadoTarea resultado = _tareaMPP.GuardarEstadoPersonalizado(estado, usuario);
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "EstadoTarea", resultado.ID, estado.ID == 0 ? "RegistrarEstadoTarea" : "ModificarEstadoTarea", $"Se {(estado.ID == 0 ? "registró" : "modificó")} el estado personalizado {resultado.Nombre}.", "Exitoso", "Informacion", "Planificación"));
+        return resultado;
+    }
+
+    public bool DesactivarEstadoPersonalizado(EstadoTarea estado, Usuario usuario)
+    {
+        ValidarGestionEstados(usuario);
+        if (estado.ID <= 0) throw new ArgumentException("Seleccioná un estado válido.");
+        bool resultado = _tareaMPP.DesactivarEstadoPersonalizado(estado, usuario);
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "EstadoTarea", estado.ID, "DesactivarEstadoTarea", "Se desactivó un estado personalizado de tareas.", "Exitoso", "Advertencia", "Planificación"));
+        return resultado;
+    }
+
     public Tarea Guardar(Tarea tarea, Usuario usuario)
     {
         try
@@ -247,7 +272,7 @@ public class BLLTarea
         try
         {
             if (!_rolBLL.TienePermiso(usuario, "VerKanban")) { throw new UnauthorizedAccessException("No tenés permiso para actualizar tareas desde el tablero."); }
-            if (tarea.ID <= 0 || string.IsNullOrWhiteSpace(tarea.Estado)) { throw new ArgumentException("Indicá la tarea y el estado a actualizar."); }
+            if (tarea.ID <= 0 || (tarea.IdEstadoTarea <= 0 && string.IsNullOrWhiteSpace(tarea.Estado))) { throw new ArgumentException("Indicá la tarea y el estado a actualizar."); }
             List<Tarea> tareas = ConsultarAsignadas(usuario);
             if (!tareas.Any(item => item.ID == tarea.ID)) { throw new UnauthorizedAccessException("No tenés acceso a esta tarea."); }
             bool resultado = _tareaMPP.CambiarEstadoPropio(tarea, usuario);
@@ -330,6 +355,12 @@ public class BLLTarea
     }
     private void ValidarGestionTareas(Usuario usuario) { 
         if (EsDueno(usuario) || !_rolBLL.TienePermiso(usuario, "GestionarTareas")) { throw new UnauthorizedAccessException("La gestión de tareas está disponible para los PM autorizados."); } 
+    }
+
+    private static void ValidarGestionEstados(Usuario usuario)
+    {
+        if (!EsDueno(usuario)) throw new UnauthorizedAccessException("Solamente el dueño de la agencia puede configurar estados personalizados.");
+        if (!usuario.IdAgencia.HasValue) throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.");
     }
 
     private void ValidarConsultaTareas(Usuario usuario)

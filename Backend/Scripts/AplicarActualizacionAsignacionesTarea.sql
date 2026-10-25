@@ -13,3 +13,7 @@
 :r .\CU02-008_Slack.sql
 :r .\SkillsDesiertos.sql
 :r .\RiesgoRetraso.sql
+:r .\CorreosOperativos.sql
+:r .\EstadosTareaPersonalizados.sql
+:r .\AdjuntosTarea.sql
+:r .\AlertasOperativas.sql

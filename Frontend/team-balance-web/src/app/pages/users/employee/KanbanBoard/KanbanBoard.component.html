@@ -14,7 +14,7 @@
     <p class="text-sm text-slate-500">{{localization.traducir('kanban.loading')}}</p>
   } @else {
     <div class="grid gap-4 xl:grid-cols-4">
-      @for (estado of columnas; track estado) {
+      @for (estado of columnas(); track estado) {
         <section class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/60" (dragover)="$event.preventDefault()" (drop)="soltarEnEstado(estado)">
           <div class="flex items-center justify-between"><h2 class="font-semibold text-slate-900 dark:text-white">{{estado}}</h2><span class="tb-status-badge">{{tareasPorEstado(estado).length}}</span></div>
           <div class="mt-4 space-y-3">
@@ -65,9 +65,14 @@
       </section>
     }
 
+    @if (adjuntosReales().length) {
+      <section class="mt-5 rounded-xl border border-slate-700 bg-slate-900 p-4"><div><h3 class="font-semibold text-white">Archivos adjuntos</h3><p class="mt-1 text-xs text-slate-400">Material almacenado de forma segura en TeamBalance.</p></div><div class="mt-3 grid grid-cols-2 gap-3">@for(item of adjuntosReales(); track item.archivo.id){<button type="button" class="overflow-hidden rounded-lg border border-slate-700 text-left transition hover:border-cyan-400" (click)="descargarAdjunto(item)">@if(item.archivo.esImagen){<img [src]="item.url" [alt]="item.archivo.nombreOriginal" class="h-28 w-full object-cover" />}@else{<div class="flex h-28 items-center justify-center bg-slate-800 text-3xl">↧</div>}<span class="block truncate p-2 text-xs text-slate-200">{{item.archivo.nombreOriginal}}</span></button>}</div></section>
+    }
+    @if (esPropia(tarea)) { <label class="tb-secondary-button mt-3 inline-flex cursor-pointer">{{subiendoAdjunto() ? 'Cargando archivos…' : 'Adjuntar archivo'}}<input class="sr-only" type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" [disabled]="subiendoAdjunto()" (change)="adjuntarArchivos($event)" /></label> }
+
     @if (esPropia(tarea)) {
       <section class="mt-5 space-y-4">
-        <label class="tb-field-label">Estado<select [ngModel]="estadoSeleccionado()" (ngModelChange)="estadoSeleccionado.set($event)">@for (estado of columnas; track estado) { <option [value]="estado">{{estado}}</option> }</select></label>
+        <label class="tb-field-label">Estado<select [ngModel]="estadoSeleccionado()" (ngModelChange)="estadoSeleccionado.set($event)">@for (estado of columnas(); track estado) { <option [value]="estado">{{estado}}</option> }</select></label>
         @if (estadoSeleccionado() === 'Bloqueada') { <label class="tb-field-label">Motivo del bloqueo<textarea rows="2" [ngModel]="motivoBloqueo()" (ngModelChange)="motivoBloqueo.set($event)" placeholder="Explicá qué impide continuar."></textarea></label> }
 
         <div class="rounded-xl border border-slate-700 p-4">

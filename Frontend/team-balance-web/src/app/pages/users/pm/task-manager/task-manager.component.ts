@@ -1,10 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AreaSkill, Skill } from '../../../../services/resources.service';
-import { AsignacionTarea, FiltroTarea, Tarea, TareaOpciones, TasksService } from '../../../../services/tasks.service';
+import { ArchivoAdjuntoTarea, AsignacionTarea, FiltroTarea, Tarea, TareaOpciones, TasksService } from '../../../../services/tasks.service';
 import { LocalizationService } from '../../../../services/localization.service';
 import { BestFitService, RecomendacionBestFit } from '../../../../services/best-fit.service';
 import { PlantillaTarea, TaskTemplatesService } from '../../../../services/task-templates.service';
+import { forkJoin } from 'rxjs';
 
 interface ChecklistItem {
     texto: string;
@@ -35,6 +36,8 @@ export class TaskManagerComponent {
     readonly asignaciones = signal<AsignacionTarea[]>([]);
     readonly areasSkills = signal<AreaSkill[]>([]);
     readonly skillEnEdicion = signal<Skill | null>(null);
+    readonly adjuntos = signal<ArchivoAdjuntoTarea[]>([]);
+    readonly archivosNuevos = signal<File[]>([]);
 
     readonly form = this.fb.group({
         id: [0],
@@ -88,6 +91,8 @@ export class TaskManagerComponent {
         this.recomendacionesConservadas.set([]);
         this.mensajeSugerencias.set('');
         this.asignaciones.set([]);
+        this.adjuntos.set([]);
+        this.archivosNuevos.set([]);
         this.mostrar.set(true);
     }
 
@@ -107,6 +112,8 @@ export class TaskManagerComponent {
         this.mensajeSugerencias.set('');
         this.asignaciones.set([]);
         this.service.consultarAsignaciones(tarea.id).subscribe({ next: asignaciones => this.asignaciones.set(asignaciones.filter(item => item.activa !== false)) });
+        this.cargarAdjuntos(tarea.id);
+        this.archivosNuevos.set([]);
         this.cargarRecomendacionesConservadas(tarea.id);
         this.mostrar.set(true);
     }
@@ -147,14 +154,6 @@ export class TaskManagerComponent {
         }
 
         const datos = this.form.getRawValue();
-        const urls = this.obtenerUrlsAdjuntas(datos.archivosAdjuntosJson);
-
-        if (urls.length > 5 || urls.some(url => !this.esUrlImagen(url)))
-        {
-            this.error.set('Indicá hasta 5 URLs válidas de imágenes externas.');
-            return;
-        }
-
         const asignaciones = this.prepararAsignaciones(datos.idEmpleadoAsignado, Number(datos.horasEstimadas ?? 0));
         if (!this.validarAsignaciones(datos.idEmpleadoAsignado, asignaciones, Number(datos.horasEstimadas ?? 0)))
         {
@@ -166,24 +165,51 @@ export class TaskManagerComponent {
             fechaInicio: datos.fechaInicio || null,
             deadline: datos.deadline || null,
             checklistJson: JSON.stringify(this.checklist()),
-            archivosAdjuntosJson: urls.length === 0 ? null : JSON.stringify(urls),
+            archivosAdjuntosJson: datos.archivosAdjuntosJson || null,
             asignaciones
         } as unknown as Partial<Tarea>;
 
         this.service.guardar(tarea).subscribe({
             next: (resultado: Tarea) =>{
-                if (sugerirRecurso)
-                {
-                    this.form.patchValue({ id: resultado.id });
-                    this.sugerirRecurso(true);
-                }
-                else
-                {
-                    this.mostrar.set(false);
-                }
-                this.cargar();
+                this.subirPendientes(resultado, sugerirRecurso);
             },error: respuesta => this.error.set(this.obtenerMensajeError(respuesta, 'No se pudo guardar la tarea.'))
         });
+    }
+
+    async seleccionarArchivos(evento: Event): Promise<void>
+    {
+        const input = evento.target as HTMLInputElement;
+        const seleccionados = Array.from(input.files ?? []);
+        if (seleccionados.some(archivo => archivo.size > 25 * 1024 * 1024)) { this.error.set('Cada archivo debe pesar como máximo 25 MB.'); input.value = ''; return; }
+        const disponibles = Math.max(0, 20 - this.adjuntos().length - this.archivosNuevos().length);
+        const preparados: File[] = [];
+        for (const archivo of seleccionados.slice(0, disponibles)) preparados.push(await this.optimizarImagen(archivo));
+        this.archivosNuevos.update(actuales => [...actuales, ...preparados]);
+        input.value = '';
+    }
+
+    quitarArchivoNuevo(indice: number): void { this.archivosNuevos.update(items => items.filter((_, posicion) => posicion !== indice)); }
+    eliminarAdjunto(adjunto: ArchivoAdjuntoTarea): void { const idTarea = this.form.controls.id.value; if (!idTarea) return; this.service.eliminarAdjunto(idTarea, adjunto.id).subscribe({ next: () => this.cargarAdjuntos(idTarea), error: respuesta => this.error.set(this.obtenerMensajeError(respuesta, 'No se pudo eliminar el adjunto.')) }); }
+    abrirAdjunto(adjunto: ArchivoAdjuntoTarea): void { this.service.descargarAdjunto(adjunto.idTarea, adjunto.id).subscribe({ next: contenido => { const url = URL.createObjectURL(contenido); window.open(url, '_blank', 'noopener,noreferrer'); setTimeout(() => URL.revokeObjectURL(url), 60000); }, error: respuesta => this.error.set(this.obtenerMensajeError(respuesta, 'No se pudo descargar el adjunto.')) }); }
+    tamanoArchivo(bytes: number): string { return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`; }
+
+    private cargarAdjuntos(idTarea: number): void { this.service.consultarAdjuntos(idTarea).subscribe({ next: items => this.adjuntos.set(items), error: () => this.adjuntos.set([]) }); }
+    private subirPendientes(tarea: Tarea, sugerirRecurso: boolean): void
+    {
+        const archivos = this.archivosNuevos();
+        const finalizar = () => { this.archivosNuevos.set([]); if (sugerirRecurso) { this.form.patchValue({ id: tarea.id }); this.sugerirRecurso(true); } else { this.mostrar.set(false); } this.cargar(); };
+        if (!archivos.length) { finalizar(); return; }
+        forkJoin(archivos.map(archivo => this.service.subirAdjunto(tarea.id, archivo))).subscribe({ next: () => finalizar(), error: respuesta => { this.form.patchValue({ id: tarea.id }); this.cargarAdjuntos(tarea.id); this.error.set(this.obtenerMensajeError(respuesta, 'La tarea se guardó, pero no se pudieron cargar todos los adjuntos.')); } });
+    }
+
+    private async optimizarImagen(archivo: File): Promise<File>
+    {
+        if (!archivo.type.startsWith('image/') || archivo.type === 'image/gif') return archivo;
+        const bitmap = await createImageBitmap(archivo); const maximo = 1800; const escala = Math.min(1, maximo / Math.max(bitmap.width, bitmap.height));
+        const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(bitmap.width * escala)); canvas.height = Math.max(1, Math.round(bitmap.height * escala)); canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height); bitmap.close();
+        const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/webp', 0.82));
+        if (!blob || blob.size >= archivo.size) return archivo;
+        return new File([blob], archivo.name.replace(/\.[^.]+$/, '') + '.webp', { type: 'image/webp', lastModified: Date.now() });
     }
 
     aplicarFiltro(): void

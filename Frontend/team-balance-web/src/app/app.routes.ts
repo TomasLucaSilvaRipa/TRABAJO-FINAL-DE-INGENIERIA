@@ -74,6 +74,8 @@ import { SurveyManagerComponent } from './pages/users/support/survey-manager/sur
 import { SlackLinkingComponent } from './pages/users/support/slack-linking/slack-linking.component';
 import { LanguageManagementComponent } from './pages/users/support/language-management/language-management.component';
 import { PlatformRevenueComponent } from './pages/users/support/platform-revenue/platform-revenue.component';
+import { NotificationSettingsComponent } from './pages/profile/notification-settings/notification-settings.component';
+import { TaskEmailActionComponent } from './pages/public/task-email-action/task-email-action.component';
 
 export const routes: Routes = [
   {
@@ -178,6 +180,11 @@ export const routes: Routes = [
         title: 'Reenviar validación | TeamBalance',
       },
       {
+        path: 'accion-tarea',
+        component: TaskEmailActionComponent,
+        title: 'Actualizar tarea | TeamBalance',
+      },
+      {
         path: 'signup',
         redirectTo: 'plans',
         pathMatch: 'full',
@@ -214,6 +221,13 @@ export const routes: Routes = [
         canActivate: [permissionGuard],
         data: { permission: 'SeguridadCuenta' },
         title:'Seguridad de la cuenta | TeamBalance'
+      },
+      {
+        path:'configuracion-notificaciones',
+        component:NotificationSettingsComponent,
+        canActivate: [permissionGuard],
+        data: { permission: 'Perfil' },
+        title:'Preferencias de correo | TeamBalance'
       },
       {
         path:'planes',

@@ -56,7 +56,11 @@ public class UsuarioController : ControllerBase
     [HttpPut("operadores/{idUsuario:int}")]
     public IActionResult ModificarOperador(int idUsuario, [FromBody] Usuario operador)
     {
-        try { operador.ID = idUsuario; _usuarioBLL.ModificarOperador(operador, ObtenerSolicitante()); return NoContent(); }
+        try
+        {
+            operador.ID = idUsuario;
+            _usuarioBLL.ModificarOperador(operador, ObtenerSolicitante()); return NoContent();
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }

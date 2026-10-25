@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { Tarea, TasksService } from '../../../../services/tasks.service';
+import { EstadoTarea, Tarea, TasksService } from '../../../../services/tasks.service';
 import { Proyecto, ProjectsService } from '../../../../services/projects.service';
 import { LocalizationService } from '../../../../services/localization.service';
 import { AuthService } from '../../../../services/auth.service';
@@ -18,12 +18,15 @@ export class ProjectKanbanComponent {
   readonly proyectos = signal<Proyecto[]>([]);
   readonly proyectoSeleccionado = signal<number | null>(null);
   readonly error = signal('');
-  readonly columnas = ['Pendiente', 'En progreso', 'Bloqueada', 'Finalizada'];
+  readonly estados = signal<EstadoTarea[]>([]);
 
   constructor() {
+    this.tasksService.consultarEstados().subscribe({ next: estados => this.estados.set(estados), error: () => this.estados.set([]) });
     this.projectsService.consultar().subscribe({ next: (proyectos: Proyecto[]) => this.proyectos.set(proyectos), error: () => this.error.set('No se pudieron cargar los proyectos disponibles.') });
     this.cargarTareas();
   }
+
+  columnas(): string[] { return this.estados().length ? this.estados().map(estado => estado.nombre) : ['Pendiente', 'En progreso', 'Bloqueada', 'Finalizada']; }
 
   cargarTareas(): void {
     this.error.set('');

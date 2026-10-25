@@ -118,10 +118,13 @@ BEGIN
 END
 GO
 
-CREATE OR ALTER PROCEDURE dbo.usp_Tarea_ActualizarEstadoEmpleado @ID INT, @IdUsuario INT, @Estado NVARCHAR(50) AS
+CREATE OR ALTER PROCEDURE dbo.usp_Tarea_ActualizarEstadoEmpleado @ID INT, @IdUsuario INT, @Estado NVARCHAR(80) AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE T SET Estado = @Estado
+    DECLARE @IdEstadoTarea INT;
+    SELECT TOP(1) @IdEstadoTarea=ET.ID FROM dbo.Tarea T INNER JOIN dbo.Proyecto P ON P.ID=T.IdProyecto INNER JOIN dbo.EstadoTarea ET ON ET.IdAgencia=P.IdAgencia AND ET.Nombre=@Estado AND ET.Activo=1 WHERE T.ID=@ID;
+    IF @IdEstadoTarea IS NULL THROW 51107, 'El estado seleccionado no pertenece a la agencia o está inactivo.', 1;
+    UPDATE T SET IdEstadoTarea=@IdEstadoTarea, Estado = @Estado
     FROM dbo.Tarea T
     WHERE T.ID = @ID AND T.Activo = 1
       AND (

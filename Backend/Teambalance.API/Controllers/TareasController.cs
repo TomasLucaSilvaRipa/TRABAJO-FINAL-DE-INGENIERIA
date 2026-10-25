@@ -63,6 +63,39 @@ public class TareasController : ControllerBase
     public IActionResult Opciones() { 
         return Ok(_tareaBLL.ConsultarOpciones(ValidarSesion())); 
     }
+    [HttpGet("estados")]
+    public IActionResult ConsultarEstados()
+    {
+        try { return Ok(_tareaBLL.ConsultarEstados(ValidarSesion())); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
+    }
+
+    [HttpPost("estados")]
+    public IActionResult RegistrarEstado([FromBody] EstadoTarea estado)
+    {
+        try { estado.ID = 0; return Ok(_tareaBLL.GuardarEstadoPersonalizado(estado, ValidarSesion())); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return BadRequest(ex.Message); }
+    }
+
+    [HttpPut("estados/{id:int}")]
+    public IActionResult ModificarEstado(int id, [FromBody] EstadoTarea estado)
+    {
+        try { estado.ID = id; return Ok(_tareaBLL.GuardarEstadoPersonalizado(estado, ValidarSesion())); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return BadRequest(ex.Message); }
+    }
+
+    [HttpDelete("estados/{id:int}")]
+    public IActionResult DesactivarEstado(int id)
+    {
+        try { return Ok(_tareaBLL.DesactivarEstadoPersonalizado(new EstadoTarea { ID = id }, ValidarSesion())); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) { return BadRequest(ex.Message); }
+    }
     [HttpGet("{idTarea:int}/asignaciones")]
     public IActionResult ConsultarAsignaciones(int idTarea)
     {

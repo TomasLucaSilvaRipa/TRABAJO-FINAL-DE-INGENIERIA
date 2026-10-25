@@ -96,6 +96,7 @@ public class MPPTarea
             List<SqlParameter> parametros = new List<SqlParameter>() {
                 new SqlParameter("@ID", tarea.ID),
                 new SqlParameter("@IdUsuario", usuario.ID),
+                new SqlParameter("@IdEstadoTarea", tarea.IdEstadoTarea > 0 ? tarea.IdEstadoTarea : DBNull.Value),
                 new SqlParameter("@Estado", tarea.Estado ?? string.Empty),
                 new SqlParameter("@ChecklistJson", (object?)tarea.ChecklistJson ?? DBNull.Value),
                 new SqlParameter("@PorcentajeAvance", tarea.PorcentajeAvance),
@@ -120,6 +121,23 @@ public class MPPTarea
             GestionTareaOpciones opciones = new GestionTareaOpciones(proyectos, estados, empleados, skills); return opciones;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+    public List<EstadoTarea> ConsultarEstados(Usuario usuario)
+    {
+        return CrearEstados(_conexion.Leer("dbo.usp_EstadoTarea_Consultar", new List<SqlParameter> { new("@IdAgencia", usuario.IdAgencia) }));
+    }
+
+    public EstadoTarea GuardarEstadoPersonalizado(EstadoTarea estado, Usuario usuario)
+    {
+        string procedimiento = estado.ID == 0 ? "dbo.usp_EstadoTarea_RegistrarPersonalizado" : "dbo.usp_EstadoTarea_ModificarPersonalizado";
+        List<SqlParameter> parametros = new() { new("@IdAgencia", usuario.IdAgencia), new("@Nombre", estado.Nombre) };
+        if (estado.ID > 0) parametros.Insert(0, new SqlParameter("@ID", estado.ID));
+        return CrearEstados(_conexion.Leer(procedimiento, parametros)).Single();
+    }
+
+    public bool DesactivarEstadoPersonalizado(EstadoTarea estado, Usuario usuario)
+    {
+        return _conexion.Escribir("dbo.usp_EstadoTarea_DesactivarPersonalizado", new List<SqlParameter> { new("@ID", estado.ID), new("@IdAgencia", usuario.IdAgencia) });
     }
     private static List<SqlParameter> CrearParametros(Tarea tarea, Usuario usuario)
     {

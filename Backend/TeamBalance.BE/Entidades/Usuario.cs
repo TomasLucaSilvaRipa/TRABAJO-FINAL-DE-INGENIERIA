@@ -14,8 +14,7 @@ public partial class Usuario
         AsignacionesComoAsignador = new List<AsignacionTarea>();
     }
 
-    public Usuario(int id)
-        : this()
+    public Usuario(int id): this()
     {
         ID = id;
     }
