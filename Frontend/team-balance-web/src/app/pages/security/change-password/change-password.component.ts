@@ -2,10 +2,11 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { DatePipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { EMPTY, finalize, switchMap } from 'rxjs';
 import { AuthService, EstadoDosFactoresResponse, EstadoTelegramResponse, PreparacionTelegramResponse, PreparacionTotpResponse } from '../../../services/auth.service';
 import { PageBreadcrumbComponent } from '../../../shared/components/common/page-breadcrumb/page-breadcrumb.component';
 import { LocalizationService } from '../../../services/localization.service';
+import { PasswordEvaluation, PasswordSecurityService } from '../../../services/security/password-security.service';
 import QRCode from 'qrcode';
 
 @Component({
@@ -17,6 +18,7 @@ import QRCode from 'qrcode';
 export class ChangePasswordComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  private readonly passwordSecurityService = inject(PasswordSecurityService);
   readonly localization = inject(LocalizationService);
 
   readonly submitting = signal(false);
@@ -138,8 +140,17 @@ export class ChangePasswordComponent {
 
     this.submitting.set(true);
 
-    this.authService.cambiarPassword(form.passwordActual, form.password)
-      .pipe(finalize(() => this.submitting.set(false)))
+    this.passwordSecurityService.evaluar(form.password)
+      .pipe(
+        switchMap((evaluacion) => {
+          if (!evaluacion.valida) {
+            this.requestError.set(this.mensajePoliticaPassword(evaluacion));
+            return EMPTY;
+          }
+          return this.authService.cambiarPassword(form.passwordActual, form.password);
+        }),
+        finalize(() => this.submitting.set(false)),
+      )
       .subscribe({
         next: (respuesta) => {
           this.authService.logOut();
@@ -147,5 +158,15 @@ export class ChangePasswordComponent {
         },
         error: (error) => this.requestError.set(typeof error.error === 'string' ? error.error : 'No fue posible modificar la contraseña. Intentá nuevamente.'),
       });
+  }
+
+  private mensajePoliticaPassword(evaluacion: PasswordEvaluation): string {
+    const faltantes: string[] = [];
+    if (!evaluacion.requisitos.longitud) faltantes.push('al menos 8 caracteres');
+    if (!evaluacion.requisitos.mayuscula) faltantes.push('una mayúscula');
+    if (!evaluacion.requisitos.minuscula) faltantes.push('una minúscula');
+    if (!evaluacion.requisitos.numero) faltantes.push('un número');
+    if (!evaluacion.requisitos.caracterEspecial) faltantes.push('un signo');
+    return `La nueva contraseña debe incluir ${faltantes.join(', ')}.`;
   }
 }

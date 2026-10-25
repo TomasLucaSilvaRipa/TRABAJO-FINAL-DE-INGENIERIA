@@ -1,0 +1,17 @@
+<main class="talent-map">
+  <header class="talent-map__page-head"><div><p>INTELIGENCIA DE EQUIPO</p><h1>Mapa de talento</h1><span>Colaboraciones observadas en tus proyectos durante el último trimestre. La posición no representa rendimiento.</span></div><div class="talent-map__metrics"><div><strong>{{nodos().length}}</strong><span>personas</span></div><div><strong>{{totalColaboraciones()}}</strong><span>proyectos compartidos</span></div></div></header>
+  <section class="talent-map__filters">
+    <label>Skill observada<select [value]="skillFiltro()" (change)="skillFiltro.set(+$any($event.target).value);empleadoSeleccionado.set(null)"><option [value]="0">Todas las skills</option>@for(skill of opciones().skills;track skill.id){<option [value]="skill.id">{{skill.nombre}}</option>}</select></label>
+    <label>Proyecto<select [value]="proyectoFiltro()" (change)="proyectoFiltro.set(+$any($event.target).value);empleadoSeleccionado.set(null)"><option [value]="0">Todos mis proyectos</option>@for(proyecto of proyectosVisibles();track proyecto.id){<option [value]="proyecto.id">{{proyecto.nombre}}</option>}</select></label>
+    <label>Seniority<select [value]="seniorityFiltro()" (change)="seniorityFiltro.set($any($event.target).value);empleadoSeleccionado.set(null)"><option value="">Todos</option><option>Junior</option><option>Semisenior</option><option>Senior</option></select></label>
+    <button type="button" (click)="limpiarFiltros()">Limpiar filtros</button>
+  </section>
+  @if(error()){<p class="talent-map__error">{{error()}}</p>}
+  <section class="talent-map__panel" [class.is-loading]="cargando()">
+    @if(cargando()){<div class="talent-map__loading"><span></span><strong>Reconstruyendo colaboraciones reales…</strong></div>}
+    @if(!cargando() && !nodos().length){<div class="talent-map__empty"><strong>No hay una red visible con este alcance</strong><span>Se necesitan empleados asignados a tareas del trimestre. Una persona aislada puede aparecer, pero para formar conexiones dos empleados deben compartir un proyecto.</span></div>}
+    <div #chart class="talent-map__chart"></div>
+    <footer><span>Grosor de línea = cantidad de proyectos compartidos</span><span>Color del nodo = skill más observada en tareas</span><span>Usá la rueda para ampliar y arrastrá para explorar</span></footer>
+  </section>
+  @if(nodoSeleccionado();as nodo){<aside class="talent-map__detail"><div><p>FOCO DE TALENTO</p><h2>{{nodo.nombre}}</h2><span>{{nodo.seniority}} · {{nodo.relaciones}} relación(es) visibles</span></div><button type="button" (click)="empleadoSeleccionado.set(null)">Volver a la red general</button><dl><div><dt>Skill destacada</dt><dd>{{nodo.skillPrincipal}}</dd></div><div><dt>Skills observadas</dt><dd>{{nodo.skills.join(' · ') || 'Sin skills observadas en tareas'}}</dd></div><div><dt>Proyectos del alcance</dt><dd>{{nodo.proyectos.join(' · ') || 'Sin proyectos visibles'}}</dd></div></dl></aside>}
+</main>

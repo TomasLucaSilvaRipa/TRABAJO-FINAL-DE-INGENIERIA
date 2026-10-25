@@ -1,16 +1,18 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { Proyecto, ProjectsService } from '../../../../services/projects.service';
 import { EventoCalendarioEquipo, ResourcesService } from '../../../../services/resources.service';
+import { LocalizationService } from '../../../../services/localization.service';
 
 type VistaCalendario = 'semana' | 'mes';
 interface FilaCalendario { idEmpleado: number; nombreEmpleado: string; horasSemanales: number; eventos: EventoCalendarioEquipo[]; }
 
 @Component({
   selector: 'app-team-calendar',
-  imports: [DatePipe, FormsModule],
+  imports: [DatePipe, FormsModule, RouterLink],
   templateUrl: './team-calendar.component.html',
   styleUrl: './team-calendar.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -18,6 +20,7 @@ interface FilaCalendario { idEmpleado: number; nombreEmpleado: string; horasSema
 export class TeamCalendar {
   private readonly resources = inject(ResourcesService);
   private readonly projectsService = inject(ProjectsService);
+  readonly localization = inject(LocalizationService);
   readonly vista = signal<VistaCalendario>('semana');
   readonly fechaReferencia = signal(this.isoLocal(new Date()));
   readonly idProyecto = signal<number | null>(null);

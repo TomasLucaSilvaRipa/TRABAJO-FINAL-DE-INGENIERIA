@@ -6,6 +6,7 @@ import { AnaliticaOperativaService, OcupacionEmpleado } from '../../../../servic
   selector: 'app-my-workload',
   imports: [DecimalPipe],
   templateUrl: './MyWorkload.component.html',
+  styleUrl: './MyWorkload.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MyWorkload {
@@ -15,6 +16,12 @@ export class MyWorkload {
   readonly cargando = signal(true);
   readonly error = signal<string | null>(null);
   readonly porcentajeVisual = computed(() => Math.min(100, Math.max(0, this.carga()?.porcentajeOcupacion ?? 0)));
+  readonly anguloOcupacion = computed(() => `${this.porcentajeVisual() * 3.6}deg`);
+  readonly colorOcupacion = computed(() => {
+    const porcentaje = this.porcentajeVisual();
+    const matiz = Math.max(0, 145 - porcentaje * 1.45);
+    return `hsl(${matiz} 82% 55%)`;
+  });
   readonly claseEstado = computed(() => {
     switch (this.carga()?.estadoCarga) {
       case 'Crítico': return 'tb-status--danger';

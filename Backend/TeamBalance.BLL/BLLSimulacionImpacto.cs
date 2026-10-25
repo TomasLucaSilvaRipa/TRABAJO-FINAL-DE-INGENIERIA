@@ -27,7 +27,6 @@ public class BLLSimulacionImpacto
 
             return _tareaMPP.ConsultarPorPM(usuario)
                 .Where(tarea => tarea.Activo
-                    && !tarea.IdEmpleadoAsignado.HasValue
                     && tarea.HorasEstimadas > 0
                     && tarea.Deadline.HasValue
                     && !string.Equals(tarea.Estado, "Finalizada", StringComparison.OrdinalIgnoreCase)

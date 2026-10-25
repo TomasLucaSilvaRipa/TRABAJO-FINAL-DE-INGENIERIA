@@ -22,6 +22,19 @@ interface NodoPaisaje {
   participantes: number;
   empleado?: OcupacionEmpleado;
   asignacion?: OcupacionEmpleadoProyecto;
+  valorReal?: number | null;
+  estadoReal?: string;
+  estadoSimulado?: string;
+  simulado?: boolean;
+}
+
+export interface SimulacionOcupacionVisual {
+  idProyecto: number;
+  idEmpleado: number;
+  nombreEmpleado: string;
+  porcentajeProyectado: number;
+  horasImpacto: number;
+  afectados: Array<{ idEmpleado: number; porcentajeProyectado: number }>;
 }
 
 @Component({
@@ -36,6 +49,7 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
   readonly localization = inject(LocalizationService);
   @Input({ required: true }) proyectos: OcupacionProyecto[] = [];
   @Input({ required: true }) empleados: OcupacionEmpleado[] = [];
+  @Input() simulacion: SimulacionOcupacionVisual | null = null;
   @Output() empleadoSeleccionado = new EventEmitter<{ empleado: OcupacionEmpleado; proyecto: OcupacionProyecto }>();
   @ViewChild('chart') private readonly chartElement?: ElementRef<HTMLDivElement>;
 
@@ -61,6 +75,7 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
       this.proyectoResaltadoId = null;
       if (this.chart) this.dibujar();
     }
+    else if (changes['simulacion'] && this.chart) { this.dibujar(); }
   }
 
   ngOnDestroy(): void {
@@ -127,6 +142,7 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
       this.empleadoSeleccionado.emit({ empleado: nodo.empleado, proyecto: this.proyecto });
       return;
     }
+    if (this.proyecto) return;
     const proyecto = this.proyectos[indice];
     if (!proyecto) return;
     const duracion = this.duracionCamara();
@@ -163,7 +179,11 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
 
   private nodosActuales(): NodoPaisaje[] {
     if (!this.proyecto) return this.proyectos.map(proyecto => this.nodoProyecto(proyecto));
-    return this.proyecto.empleados.map(asignacion => this.nodoEmpleado(asignacion));
+    const nodos = this.proyecto.empleados.map(asignacion => this.nodoEmpleado(asignacion));
+    if (this.simulacion?.idProyecto === this.proyecto.idProyecto && !nodos.some(nodo => nodo.id === this.simulacion!.idEmpleado)) {
+      nodos.push({ id: this.simulacion.idEmpleado, nombre: this.simulacion.nombreEmpleado, cliente: this.proyecto.nombreCliente, valor: this.simulacion.porcentajeProyectado, valorReal: null, estado: this.estadoPorcentaje(this.simulacion.porcentajeProyectado), estadoReal: 'Sin datos', estadoSimulado: this.estadoPorcentaje(this.simulacion.porcentajeProyectado), horas: this.simulacion.horasImpacto, capacidad: 0, participantes: 1, simulado: true });
+    }
+    return nodos;
   }
 
   private nodoProyecto(proyecto: OcupacionProyecto): NodoPaisaje {
@@ -172,12 +192,26 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
     const coeficiente = horasConOcupacion > 0
       ? contribuciones.reduce((total, item) => total + item.empleado.porcentajeOcupacion * item.asignacion.horasEstimadas, 0) / horasConOcupacion
       : null;
-    return { id: proyecto.idProyecto, nombre: proyecto.nombreProyecto, cliente: proyecto.nombreCliente, valor: coeficiente, estado: coeficiente === null ? 'Sin datos' : this.estadoPorcentaje(coeficiente), horas: proyecto.horasEstimadasActivas, capacidad: contribuciones.reduce((total, item) => total + item.empleado.horasDisponibles, 0), participantes: proyecto.empleados.length };
+    const simulacion = this.simulacion?.idProyecto === proyecto.idProyecto ? this.simulacion : null;
+    const contribucionActual = contribuciones.find(item => item.empleado.idEmpleado === simulacion?.idEmpleado);
+    const horasImpacto = simulacion?.horasImpacto ?? 0;
+    const denominadorProyectado = horasConOcupacion + horasImpacto;
+    const numeradorReal = contribuciones.reduce((total, item) => total + item.empleado.porcentajeOcupacion * item.asignacion.horasEstimadas, 0);
+    const numeradorSinCandidato = contribucionActual ? numeradorReal - contribucionActual.empleado.porcentajeOcupacion * contribucionActual.asignacion.horasEstimadas : numeradorReal;
+    const horasCandidato = (contribucionActual?.asignacion.horasEstimadas ?? 0) + horasImpacto;
+    const coeficienteProyectado = simulacion && denominadorProyectado > 0 ? (numeradorSinCandidato + simulacion.porcentajeProyectado * horasCandidato) / denominadorProyectado : coeficiente;
+    const estadoReal = coeficiente === null ? 'Sin datos' : this.estadoPorcentaje(coeficiente);
+    return { id: proyecto.idProyecto, nombre: proyecto.nombreProyecto, cliente: proyecto.nombreCliente, valor: coeficienteProyectado, valorReal: coeficiente, estado: coeficienteProyectado === null ? 'Sin datos' : this.estadoPorcentaje(coeficienteProyectado), estadoReal, estadoSimulado: simulacion && coeficienteProyectado !== null ? this.estadoPorcentaje(coeficienteProyectado) : undefined, simulado: !!simulacion, horas: proyecto.horasEstimadasActivas + horasImpacto, capacidad: contribuciones.reduce((total, item) => total + item.empleado.horasDisponibles, 0), participantes: proyecto.empleados.length + (simulacion && !contribucionActual ? 1 : 0) };
   }
 
   private nodoEmpleado(asignacion: OcupacionEmpleadoProyecto): NodoPaisaje {
     const empleado = this.empleados.find(item => item.idEmpleado === asignacion.idEmpleado);
-    return { id: asignacion.idEmpleado, nombre: asignacion.nombreEmpleado, cliente: this.proyecto?.nombreCliente ?? '', valor: empleado?.porcentajeOcupacion ?? null, estado: empleado?.estadoCarga ?? 'Sin datos', horas: asignacion.horasEstimadas, capacidad: empleado?.horasDisponibles ?? 0, participantes: 1, empleado, asignacion };
+    const escenario = this.simulacion;
+    const afectado = escenario && escenario.idProyecto === this.proyecto?.idProyecto ? escenario.afectados.find(item => item.idEmpleado === asignacion.idEmpleado) : undefined;
+    const simulacion = escenario && escenario.idProyecto === this.proyecto?.idProyecto && escenario.idEmpleado === asignacion.idEmpleado ? escenario : null;
+    const porcentajeProyectado = simulacion?.porcentajeProyectado ?? afectado?.porcentajeProyectado;
+    const valorReal = empleado?.porcentajeOcupacion ?? null;
+    return { id: asignacion.idEmpleado, nombre: asignacion.nombreEmpleado, cliente: this.proyecto?.nombreCliente ?? '', valor: porcentajeProyectado ?? valorReal, valorReal, estado: porcentajeProyectado !== undefined ? this.estadoPorcentaje(porcentajeProyectado) : empleado?.estadoCarga ?? 'Sin datos', estadoReal: empleado?.estadoCarga ?? 'Sin datos', estadoSimulado: porcentajeProyectado !== undefined ? this.estadoPorcentaje(porcentajeProyectado) : undefined, simulado: porcentajeProyectado !== undefined, horas: Math.max(0, asignacion.horasEstimadas + (simulacion?.horasImpacto ?? 0) - (afectado ? this.simulacion?.horasImpacto ?? 0 : 0)), capacidad: empleado?.horasDisponibles ?? 0, participantes: 1, empleado, asignacion };
   }
 
   private estadoPorcentaje(porcentaje: number): string {
@@ -210,7 +244,8 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
     const lineaAlcance = this.proyecto ? `${this.localization.traducir('static.assignedHours')}: ${nodo.horas.toFixed(2)} h` : `${this.localization.traducir('static.activePlannedLoad')}: ${nodo.horas.toFixed(2)} h`;
     const contexto = this.proyecto ? `${this.localization.traducir('static.employeeCapacity')}: ${nodo.capacidad.toFixed(2)} h` : `${this.localization.traducir('static.employeesInvolved')}: ${nodo.participantes}`;
     const click = this.proyecto ? this.localization.traducir('static.clickTasksAction') : this.localization.traducir('static.clickProjectTeam');
-    return `<div style="min-width:238px;line-height:1.55"><strong style="display:block;font-size:14px;margin-bottom:3px">${this.escaparHtml(nodo.nombre)}</strong><span style="display:block;color:#9fc5d2;margin-bottom:8px">${this.escaparHtml(nodo.cliente)}</span><b style="display:block;color:${this.colorEstado(nodo.estado)};margin-bottom:9px">${valor} · ${this.escaparHtml(this.localization.traducirTextoEstatico(nodo.estado))}</b><div style="border-top:1px solid rgba(159,197,210,.35);padding-top:8px;margin-top:4px">${lineaAlcance}<br/>${contexto}</div><small style="display:block;margin-top:10px;color:#6ce5ff">${click}</small></div>`;
+    const comparacion = nodo.simulado ? `<div style="margin:8px 0;color:#ffe7a6">Real: <b>${nodo.valorReal?.toFixed(2) ?? '—'}%</b> → Simulado: <b>${nodo.valor?.toFixed(2) ?? '—'}%</b></div>` : '';
+    return `<div style="min-width:238px;line-height:1.55"><strong style="display:block;font-size:14px;margin-bottom:3px">${this.escaparHtml(nodo.nombre)}</strong><span style="display:block;color:#9fc5d2;margin-bottom:8px">${this.escaparHtml(nodo.cliente)}</span><b style="display:block;color:${this.colorEstado(nodo.estado)};margin-bottom:9px">${valor} · ${this.escaparHtml(this.localization.traducirTextoEstatico(nodo.estado))}</b>${comparacion}<div style="border-top:1px solid rgba(159,197,210,.35);padding-top:8px;margin-top:4px">${lineaAlcance}<br/>${contexto}</div><small style="display:block;margin-top:10px;color:#6ce5ff">${click}</small></div>`;
   }
 
   private dibujar(animar = true): void {
@@ -242,7 +277,7 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
       dataZoom: nodos.length > 7 ? [{ type: 'inside', xAxisIndex: [0, 1], zoomOnMouseWheel: true, moveOnMouseMove: true }, { type: 'slider', xAxisIndex: [0, 1], height: 13, bottom: 19, borderColor: 'transparent', fillerColor: 'rgba(24,193,225,.27)', backgroundColor: 'rgba(129,194,212,.12)', handleStyle: { color: '#48d7ef', borderColor: '#baf7ff' } }] : [],
       series: [
         { id: 'paisaje-ocupacion', type: 'line', xAxisIndex: 1, data: datosLinea, silent: true, tooltip: { show: false }, smooth: .36, smoothMonotone: 'x', connectNulls: false, showSymbol: false, z: 3, lineStyle: { width: 5, color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#57a6ff' }, { offset: .34, color: '#35d39b' }, { offset: .67, color: '#ffb11b' }, { offset: 1, color: '#ff5b70' }]), shadowBlur: 16, shadowColor: 'rgba(49,207,235,.38)' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(255,104,108,.34)' }, { offset: .35, color: 'rgba(255,178,29,.22)' }, { offset: .62, color: 'rgba(53,211,155,.18)' }, { offset: 1, color: 'rgba(69,157,255,.025)' }]) }, markArea: { silent: true, itemStyle: { opacity: .14 }, data: [[{ yAxis: 0, itemStyle: { color: '#317cc4' } }, { yAxis: 50 }], [{ yAxis: 50, itemStyle: { color: '#249d75' } }, { yAxis: 86 }], [{ yAxis: 86, itemStyle: { color: '#dc8d1d' } }, { yAxis: 100 }], [{ yAxis: 100, itemStyle: { color: '#d64e60' } }, { yAxis: dominio.max }]] }, markLine: { silent: true, symbol: 'none', label: { color: '#b8dce5', fontSize: 11, formatter: (parametro: { value: number }) => `${parametro.value}%` }, lineStyle: { type: 'dashed', color: 'rgba(199,235,242,.45)' }, data: [{ yAxis: 50 }, { yAxis: 86 }, { yAxis: 100 }] } },
-        { id: 'nodos-ocupacion', type: 'scatter', xAxisIndex: 1, symbol: 'circle', z: 6, data: nodos.map((nodo, indice) => ({ value: nodo.valor === null ? [indice, dominio.min] : [indice, nodo.valor], itemStyle: { color: this.colorEstado(nodo.estado), borderColor: '#effdff', borderWidth: this.proyectoResaltadoId === nodo.id ? 4 : 2, shadowBlur: this.proyectoResaltadoId === nodo.id ? 30 : 18, shadowColor: `${this.colorEstado(nodo.estado)}c7`, opacity: nodo.valor === null ? .45 : 1 } })), symbolSize: 25, label: { show: true, position: 'top', distance: 11, formatter: (evento: { dataIndex: number }) => `{node|${nombres[evento.dataIndex]}}\n{value|${nodos[evento.dataIndex]?.valor?.toFixed(1) ?? '—'}%}`, rich: { node: { color: '#f0feff', fontWeight: 800, backgroundColor: '#10364a', borderColor: '#3e89a5', borderWidth: 1, borderRadius: 8, padding: [4, 7] }, value: { color: '#8fc9d7', fontSize: 10, lineHeight: 17 } } }, emphasis: { scale: 1.48, focus: 'series', itemStyle: { shadowBlur: 32 }, label: { show: true } } },
+        { id: 'nodos-ocupacion', type: 'scatter', xAxisIndex: 1, symbol: 'circle', z: 6, data: nodos.map((nodo, indice) => ({ value: nodo.valor === null ? [indice, dominio.min] : [indice, nodo.valor], symbolSize: nodo.simulado ? 31 : 25, itemStyle: { color: this.colorEstado(nodo.estadoReal ?? nodo.estado), borderColor: nodo.simulado ? this.colorEstado(nodo.estadoSimulado ?? nodo.estado) : '#effdff', borderWidth: nodo.simulado ? 7 : this.proyectoResaltadoId === nodo.id ? 4 : 2, shadowBlur: nodo.simulado ? 34 : this.proyectoResaltadoId === nodo.id ? 30 : 18, shadowColor: nodo.simulado ? `${this.colorEstado(nodo.estadoSimulado ?? nodo.estado)}ee` : `${this.colorEstado(nodo.estado)}c7`, opacity: nodo.valor === null ? .45 : 1 } })), symbolSize: 25, label: { show: true, position: 'top', distance: 11, formatter: (evento: { dataIndex: number }) => `{node|${nombres[evento.dataIndex]}}\n{value|${nodos[evento.dataIndex]?.valor?.toFixed(1) ?? '—'}%${nodos[evento.dataIndex]?.simulado ? ' · SIMULADO' : ''}}`, rich: { node: { color: '#f0feff', fontWeight: 800, backgroundColor: '#10364a', borderColor: '#3e89a5', borderWidth: 1, borderRadius: 8, padding: [4, 7] }, value: { color: '#8fc9d7', fontSize: 10, lineHeight: 17 } } }, emphasis: { scale: 1.48, focus: 'series', itemStyle: { shadowBlur: 32 }, label: { show: true } } },
       ],
     }, { notMerge: true, lazyUpdate: false });
   }

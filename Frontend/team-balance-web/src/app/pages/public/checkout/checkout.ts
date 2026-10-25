@@ -79,6 +79,12 @@ export class CheckoutComponent {
     return this.localization.traducir(`plans.feature.${feature}`, undefined, feature);
   }
 
+  planDescription(): string {
+    const plan = this.plan();
+    if (!plan) return '';
+    return this.localization.traducir(`plans.description.${plan.nombre.toLowerCase()}`, undefined, plan.descripcion ?? '');
+  }
+
   continueToPayment(): void {
     if (this.paymentIntegrationPending()) {
       return;

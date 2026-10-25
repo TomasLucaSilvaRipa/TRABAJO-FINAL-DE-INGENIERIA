@@ -6,6 +6,8 @@ import { Proyecto, ProjectsService } from '../../../services/projects.service';
 import { LocalizationService } from '../../../services/localization.service';
 import { AnalisisCoberturaSkill, SkillsDesiertosService } from '../../../services/skills-desiertos.service';
 
+interface AccesoDashboard { permiso: string; titulo?: string; tituloClave?: string; descripcion?: string; descripcionClave?: string; ruta: string; accion?: string; accionClave?: string; ocultarDueno?: boolean; }
+
 @Component({ selector: 'app-ecommerce', standalone: true, imports: [CommonModule, RouterModule], templateUrl: './ecommerce.component.html' })
 export class EcommerceComponent {
   readonly authService = inject(AuthService); private readonly projectsService = inject(ProjectsService); private readonly skillsService = inject(SkillsDesiertosService);
@@ -13,7 +15,7 @@ export class EcommerceComponent {
   readonly proyectos = signal<Proyecto[]>([]); readonly proyectosAbiertos = signal(true); readonly cargandoProyectos = signal(false);
   readonly skillsCriticas = signal<AnalisisCoberturaSkill[]>([]); readonly cargandoSkills = signal(false);
   readonly usuario: UsuarioSesion | null = this.authService.usuarioActual();
-  readonly accesos = [
+  readonly accesos: AccesoDashboard[] = [
     { permiso: 'GestionarUsuarios', titulo: 'Gestionar empleados', descripcion: 'Usuarios, roles y perfiles laborales.', ruta: '/dashboard/empleados', accion: 'Abrir' },
     { permiso: 'GestionarTareas', titulo: 'Planificar tareas', descripcion: 'Priorizá y asigná el trabajo.', ruta: '/dashboard/tareas', accion: 'Planificar', ocultarDueno: true },
     { permiso: 'UsarBestFit', titulo: 'Best Fit', descripcion: 'Compará alternativas de asignación.', ruta: '/dashboard/best-fit', accion: 'Analizar' },
@@ -25,7 +27,7 @@ export class EcommerceComponent {
   ];
   constructor() { if (this.puedeVer('GestionarProyectos')) { this.cargarProyectos(); } if (this.puedeVer('AnalizarSkills')) { this.cargarSkillsCriticas(); } }
   puedeVer(permiso: string): boolean { return this.authService.tienePermiso(permiso); }
-  puedeVerAcceso(acceso: { permiso: string; ocultarDueno?: boolean }): boolean { return this.puedeVer(acceso.permiso) && !(acceso.ocultarDueno && this.authService.esDueno()); }
+  puedeVerAcceso(acceso: AccesoDashboard): boolean { return this.puedeVer(acceso.permiso) && !(acceso.ocultarDueno && this.authService.esDueno()); }
   totalAccesos(): number { return this.accesos.filter(acceso => this.puedeVerAcceso(acceso)).length; }
   cargarProyectos(): void { this.cargandoProyectos.set(true); this.projectsService.consultar().subscribe({ next: (proyectos: Proyecto[]) => { this.proyectos.set(proyectos.filter(proyecto => proyecto.activo)); this.cargandoProyectos.set(false); }, error: () => this.cargandoProyectos.set(false) }); }
   proyectosEnCurso(): number { return this.proyectos().filter(proyecto => proyecto.estado === 'En curso').length; }

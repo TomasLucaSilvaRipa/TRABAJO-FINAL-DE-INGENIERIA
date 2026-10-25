@@ -7,10 +7,12 @@ import { PerfilEmpleado, UsuarioGestion, UsuariosService } from '../../../../ser
 import { LocalizationService } from '../../../../services/localization.service';
 import { AuthService } from '../../../../services/auth.service';
 import { EmployeePerformanceHistoryComponent } from '../../../../shared/components/analytics/employee-performance-history/employee-performance-history.component';
+import { EmployeeSkillsMatrixComponent } from '../../../../shared/components/analytics/employee-skills-matrix/employee-skills-matrix.component';
+import { PasswordEvaluation, PasswordSecurityService } from '../../../../services/security/password-security.service';
 
-@Component({ selector: 'app-employee-management', imports: [ReactiveFormsModule, EmployeePerformanceHistoryComponent], templateUrl: './employee-management.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
+@Component({ selector: 'app-employee-management', imports: [ReactiveFormsModule, EmployeePerformanceHistoryComponent, EmployeeSkillsMatrixComponent], templateUrl: './employee-management.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
 export class EmployeeManagement {
-  private readonly formBuilder = inject(FormBuilder); private readonly usuariosService = inject(UsuariosService); private readonly rolesService = inject(RolesService); private readonly recursosService = inject(ResourcesService); private readonly authService = inject(AuthService);
+  private readonly formBuilder = inject(FormBuilder); private readonly usuariosService = inject(UsuariosService); private readonly rolesService = inject(RolesService); private readonly recursosService = inject(ResourcesService); private readonly authService = inject(AuthService); private readonly passwordSecurityService = inject(PasswordSecurityService);
   readonly localization = inject(LocalizationService);
   readonly usuarios = signal<UsuarioGestion[]>([]); readonly roles = signal<Rol[]>([]); readonly skills = signal<Skill[]>([]); readonly areasSkills = signal<AreaSkill[]>([]); readonly soporteInicialDisponible = signal(false); readonly cargando = signal(true); readonly error = signal(''); readonly mensaje = signal(''); readonly editandoId = signal<number | null>(null); readonly rolesSeleccionados = signal<number[]>([]); readonly skillsSeleccionadas = signal<number[]>([]); readonly nivelesSkills = signal<Record<number, string>>({}); readonly nivelesDisponibles = ['Básico', 'Medio', 'Avanzado']; readonly usuarioFicha = signal<UsuarioGestion | null>(null); readonly fichaConsultada = signal<FichaEmpleado | null>(null); readonly cargandoFicha = signal(false); readonly exportandoFicha = signal(false); readonly panelFichaAbierto = signal(false);
   readonly busquedaSimple = signal(''); readonly mostrarBusquedaAvanzada = signal(false); readonly filtroNombre = signal(''); readonly filtroEmail = signal(''); readonly filtroRol = signal(''); readonly filtroEstado = signal(''); readonly filtroSeniority = signal('');
@@ -43,9 +45,34 @@ export class EmployeeManagement {
     this.error.set(''); this.mensaje.set('');
     if (this.form.invalid || this.rolesSeleccionados().length === 0 || (this.editandoId() === null && !this.form.controls.passwordHash.value)) { this.error.set('Completá los datos obligatorios, la contraseña temporal y al menos un rol.'); return; }
     if (this.tieneTipoUsuario('Empleado') && this.skillsSeleccionadas().length === 0) { this.error.set('Seleccioná al menos una skill para el empleado.'); return; }
+    if (this.editandoId() === null) {
+      const password = this.form.controls.passwordHash.value ?? '';
+      this.passwordSecurityService.evaluar(password).subscribe({
+        next: evaluacion => {
+          if (!evaluacion.valida) { this.error.set(this.mensajePoliticaPassword(evaluacion)); return; }
+          this.persistirUsuario();
+        },
+        error: respuesta => this.error.set(this.obtenerMensajeError(respuesta, 'No fue posible validar la contraseña temporal. Intentá nuevamente.')),
+      });
+      return;
+    }
+    this.persistirUsuario();
+  }
+
+  private persistirUsuario(): void {
     const datos = this.form.getRawValue(); const usuario: Partial<UsuarioGestion> = { id: this.editandoId() ?? 0, nombre: datos.nombre ?? '', apellido: datos.apellido ?? '', email: datos.email ?? '', passwordHash: datos.passwordHash ?? '', estado: 'PendienteValidacion', activo: true, roles: this.roles().filter(rol => this.rolesSeleccionados().includes(rol.id)), empleado: this.tieneTipoUsuario('Empleado') ? this.crearPerfilEmpleado() : null };
     if (this.editandoId() === null) { this.usuariosService.registrarUsuario(usuario).subscribe({ next: (registrado) => this.guardarFichaSiCorresponde(registrado.id, 'Usuario registrado. Se envió un correo para validar su cuenta.'), error: (respuesta: unknown) => this.error.set(this.obtenerMensajeError(respuesta, 'No fue posible guardar el usuario.')) }); return; }
     this.usuariosService.modificarUsuario(usuario as UsuarioGestion).subscribe({ next: () => this.guardarFichaSiCorresponde(this.editandoId()!, 'Usuario actualizado correctamente.'), error: (respuesta: unknown) => this.error.set(this.obtenerMensajeError(respuesta, 'No fue posible guardar el usuario.')) });
+  }
+
+  private mensajePoliticaPassword(evaluacion: PasswordEvaluation): string {
+    const faltantes: string[] = [];
+    if (!evaluacion.requisitos.longitud) faltantes.push('al menos 8 caracteres');
+    if (!evaluacion.requisitos.mayuscula) faltantes.push('una mayúscula');
+    if (!evaluacion.requisitos.minuscula) faltantes.push('una minúscula');
+    if (!evaluacion.requisitos.numero) faltantes.push('un número');
+    if (!evaluacion.requisitos.caracterEspecial) faltantes.push('un signo');
+    return `La contraseña temporal debe incluir ${faltantes.join(', ')}.`;
   }
   editar(usuario: UsuarioGestion): void {
     this.editandoId.set(usuario.id);

@@ -59,6 +59,7 @@ import { ImpactSimulationComponent } from './pages/users/pm/impact-simulation/im
 import { ProjectKanbanComponent } from './pages/users/pm/project-kanban/project-kanban.component';
 import { TaskTemplatesComponent } from './pages/users/pm/task-templates/task-templates.component';
 import { SkillsDesiertosComponent } from './pages/users/pm/skills-desiertos/skills-desiertos.component';
+import { TalentMapComponent } from './pages/users/pm/talent-map/talent-map.component';
 import { NotificationsComponent } from './pages/global/notifications/notifications.component';
 import { HelpComponent } from './pages/global/help/help.component';
 import { SubscriptionExpiredComponent } from './pages/public/subscription-expired/subscription-expired.component';
@@ -239,6 +240,7 @@ export const routes: Routes = [
       { path: 'calendario-equipo', component: TeamCalendar, canActivate: [permissionGuard], data: { permission: 'VerCalendarioEquipo' }, title: 'Calendario del equipo | TeamBalance' },
       { path: 'simulacion-impacto', component: ImpactSimulationComponent, canActivate: [permissionGuard], data: { permission: 'SimularImpacto' }, title: 'Simulación de impacto | TeamBalance' },
       { path: 'skills-desiertos', component: SkillsDesiertosComponent, canActivate: [permissionGuard], data: { permission: 'AnalizarSkills' }, title: 'Cobertura de skills | TeamBalance' },
+      { path: 'mapa-talento', component: TalentMapComponent, canActivate: [permissionGuard], data: { permission: 'AnalizarSkills', excludedRoleTypes: ['Dueno'] }, title: 'Mapa de talento | TeamBalance' },
       { path: 'mis-tareas', component: MyTasksComponent, canActivate: [permissionGuard], data: { permission: 'VerMisTareas', excludedRoleTypes: ['Dueno'] }, title: 'Mis tareas | TeamBalance' },
       { path: 'detalle-tarea', component: TaskDetailComponent, canActivate: [permissionGuard], data: { permission: 'VerMisTareas', excludedRoleTypes: ['Dueno'] }, title: 'Detalle de tarea | TeamBalance' },
       { path: 'kanban', component: KanbanBoard, canActivate: [permissionGuard], data: { permission: 'VerKanban' }, title: 'Tablero Kanban | TeamBalance' },

@@ -17,8 +17,15 @@ BEGIN
     DECLARE @FinSemana DATE = DATEADD(DAY, 6, @InicioSemana);
 
     SELECT
-        CAST((T.HorasEstimadas * (100 - ISNULL(T.PorcentajeAvance, 0)) / 100.0) /
-            CASE WHEN T.Deadline <= CAST(GETDATE() AS DATE) THEN 1 ELSE CEILING(DATEDIFF(DAY, CAST(GETDATE() AS DATE), T.Deadline) / 7.0) END AS DECIMAL(18,2)) AS HorasTarea,
+        CAST(CASE WHEN EXISTS
+            (
+                SELECT 1 FROM dbo.AsignacionTarea ATActual
+                WHERE ATActual.IdTarea = T.ID AND ATActual.IdEmpleado = E.ID AND ATActual.Activa = 1
+            ) OR (T.IdEmpleadoAsignado = E.ID AND NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea ATExistente WHERE ATExistente.IdTarea = T.ID AND ATExistente.Activa = 1))
+            THEN 0
+            ELSE (T.HorasEstimadas * (100 - ISNULL(T.PorcentajeAvance, 0)) / 100.0) /
+                CASE WHEN T.Deadline <= CAST(GETDATE() AS DATE) THEN 1 ELSE CEILING(DATEDIFF(DAY, CAST(GETDATE() AS DATE), T.Deadline) / 7.0) END
+            END AS DECIMAL(18,2)) AS HorasTarea,
         T.Deadline AS DeadlineTarea,
         T.Prioridad AS PrioridadTarea,
         T.Titulo AS NombreTarea,
@@ -55,7 +62,6 @@ BEGIN
         LEFT JOIN dbo.AsignacionTarea Asignacion ON Asignacion.IdTarea = TareaActiva.ID AND Asignacion.IdEmpleado = E.ID AND Asignacion.Activa = 1
         WHERE (Asignacion.ID IS NOT NULL OR (TareaActiva.IdEmpleadoAsignado = E.ID AND NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea Existente WHERE Existente.IdTarea = TareaActiva.ID AND Existente.Activa = 1)))
             AND TareaActiva.Activo = 1
-            AND TareaActiva.ID <> @IdTarea
             AND ISNULL(TareaActiva.Estado, N'Pendiente') NOT IN (N'Finalizada', N'Finalizado')
     ) Carga
     OUTER APPLY
@@ -82,8 +88,6 @@ BEGIN
         AND ISNULL(T.Estado, N'Pendiente') NOT IN (N'Finalizada', N'Finalizado')
         AND P.Activo = 1
         AND P.IdAgencia = UPM.IdAgencia
-        AND T.IdEmpleadoAsignado IS NULL
-        AND NOT EXISTS (SELECT 1 FROM dbo.AsignacionTarea AT WHERE AT.IdTarea = T.ID AND AT.Activa = 1)
         AND ISNULL(DB.HorasSemanales, E.HorasDisponiblesSemanales) > 0;
 END;
 GO

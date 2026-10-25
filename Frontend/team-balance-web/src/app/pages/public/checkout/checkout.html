@@ -9,119 +9,119 @@
 <section class="tb-section tb-checkout-section">
   <div class="tb-container tb-checkout-grid">
     <form class="tb-checkout-form" [formGroup]="checkoutForm" (ngSubmit)="continueToPayment()" novalidate>
-      <section class="tb-checkout-form__section" aria-labelledby="agency-data-title">
+      <section class="tb-checkout-form__section tb-checkout-form__section--agency" aria-labelledby="agency-data-title">
         <div class="tb-checkout-form__heading">
-          <p class="tb-eyebrow">01 · Datos comerciales</p>
-          <h2 id="agency-data-title">Datos de la agencia</h2>
-          <p>Usaremos esta información para preparar tu contratación y la facturación.</p>
+          <p class="tb-eyebrow">{{ localization.traducir('checkout.agencyStep') }}</p>
+          <h2 id="agency-data-title">{{ localization.traducir('checkout.agencyTitle') }}</h2>
+          <p>{{ localization.traducir('checkout.agencyHelp') }}</p>
         </div>
 
         <div class="tb-form__row">
           <div class="tb-field">
-            <label for="commercialName">Nombre comercial</label>
+            <label for="commercialName">{{ localization.traducir('checkout.commercialName') }}</label>
             <input id="commercialName" type="text" formControlName="commercialName" autocomplete="organization" />
             @if (checkoutForm.controls.commercialName.touched && checkoutForm.controls.commercialName.invalid) {
-              <small class="tb-field__error">Ingresá el nombre comercial.</small>
+              <small class="tb-field__error">{{ localization.traducir('checkout.error.commercialName') }}</small>
             }
           </div>
           <div class="tb-field">
-            <label for="legalName">Razón social</label>
+            <label for="legalName">{{ localization.traducir('checkout.legalName') }}</label>
             <input id="legalName" type="text" formControlName="legalName" />
             @if (checkoutForm.controls.legalName.touched && checkoutForm.controls.legalName.invalid) {
-              <small class="tb-field__error">Ingresá la razón social.</small>
+              <small class="tb-field__error">{{ localization.traducir('checkout.error.legalName') }}</small>
             }
           </div>
         </div>
 
         <div class="tb-form__row">
           <div class="tb-field">
-            <label for="taxId">CUIT / identificación fiscal</label>
+            <label for="taxId">{{ localization.traducir('checkout.taxId') }}</label>
             <input id="taxId" type="text" formControlName="taxId" inputmode="numeric" />
             @if (checkoutForm.controls.taxId.touched && checkoutForm.controls.taxId.invalid) {
-              <small class="tb-field__error">Ingresá la identificación fiscal.</small>
+              <small class="tb-field__error">{{ localization.traducir('checkout.error.taxId') }}</small>
             }
           </div>
           <div class="tb-field">
-            <label for="taxCondition">Condición fiscal</label>
+            <label for="taxCondition">{{ localization.traducir('checkout.taxCondition') }}</label>
             <select id="taxCondition" formControlName="taxCondition">
-              <option value="" disabled>Seleccionar condición</option>
-              <option value="registered">Responsable Inscripto</option>
-              <option value="monotributo">Monotributista</option>
-              <option value="exempt">Exento</option>
-              <option value="consumer">Consumidor Final</option>
-              <option value="other">Otra</option>
+              <option value="" disabled>{{ localization.traducir('checkout.selectTaxCondition') }}</option>
+              <option value="registered">{{ localization.traducir('checkout.tax.registered') }}</option>
+              <option value="monotributo">{{ localization.traducir('checkout.tax.monotributo') }}</option>
+              <option value="exempt">{{ localization.traducir('checkout.tax.exempt') }}</option>
+              <option value="consumer">{{ localization.traducir('checkout.tax.consumer') }}</option>
+              <option value="other">{{ localization.traducir('checkout.tax.other') }}</option>
             </select>
             @if (checkoutForm.controls.taxCondition.touched && checkoutForm.controls.taxCondition.invalid) {
-              <small class="tb-field__error">Seleccioná una condición fiscal.</small>
+              <small class="tb-field__error">{{ localization.traducir('checkout.error.taxCondition') }}</small>
             }
           </div>
         </div>
 
         <div class="tb-form__row">
           <div class="tb-field">
-            <label for="billingEmail">Email de facturación o contacto comercial</label>
+            <label for="billingEmail">{{ localization.traducir('checkout.billingEmail') }}</label>
             <input id="billingEmail" type="email" formControlName="billingEmail" autocomplete="email" />
             @if (checkoutForm.controls.billingEmail.touched && checkoutForm.controls.billingEmail.invalid) {
-              <small class="tb-field__error">Ingresá un email válido.</small>
+              <small class="tb-field__error">{{ localization.traducir('checkout.error.email') }}</small>
             }
           </div>
           <div class="tb-field">
-            <label for="phone">Teléfono de contacto</label>
+            <label for="phone">{{ localization.traducir('checkout.contactPhone') }}</label>
             <input id="phone" type="tel" formControlName="phone" autocomplete="tel" />
             @if (checkoutForm.controls.phone.touched && checkoutForm.controls.phone.invalid) {
-              <small class="tb-field__error">Ingresá un teléfono de contacto.</small>
+              <small class="tb-field__error">{{ localization.traducir('checkout.error.phone') }}</small>
             }
           </div>
         </div>
       </section>
 
-      <section class="tb-checkout-form__section" aria-labelledby="responsible-title">
+      <section class="tb-checkout-form__section tb-checkout-form__section--responsible" aria-labelledby="responsible-title">
         <div class="tb-checkout-form__heading">
-          <p class="tb-eyebrow">02 · Responsable</p>
-          <h2 id="responsible-title">Responsable de la contratación</h2>
-          <p>Será el contacto principal para acompañar el inicio de TeamBalance.</p>
+          <p class="tb-eyebrow">{{ localization.traducir('checkout.responsibleStep') }}</p>
+          <h2 id="responsible-title">{{ localization.traducir('checkout.responsibleTitle') }}</h2>
+          <p>{{ localization.traducir('checkout.responsibleHelp') }}</p>
         </div>
 
         <div class="tb-form__row">
           <div class="tb-field">
-            <label for="firstName">Nombre</label>
+            <label for="firstName">{{ localization.traducir('checkout.firstName') }}</label>
             <input id="firstName" type="text" formControlName="firstName" autocomplete="given-name" />
             @if (checkoutForm.controls.firstName.touched && checkoutForm.controls.firstName.invalid) {
-              <small class="tb-field__error">Ingresá el nombre.</small>
+              <small class="tb-field__error">{{ localization.traducir('checkout.error.firstName') }}</small>
             }
           </div>
           <div class="tb-field">
-            <label for="lastName">Apellido</label>
+            <label for="lastName">{{ localization.traducir('checkout.lastName') }}</label>
             <input id="lastName" type="text" formControlName="lastName" autocomplete="family-name" />
             @if (checkoutForm.controls.lastName.touched && checkoutForm.controls.lastName.invalid) {
-              <small class="tb-field__error">Ingresá el apellido.</small>
+              <small class="tb-field__error">{{ localization.traducir('checkout.error.lastName') }}</small>
             }
           </div>
         </div>
 
         <div class="tb-form__row">
           <div class="tb-field">
-            <label for="workEmail">Email laboral</label>
+            <label for="workEmail">{{ localization.traducir('checkout.workEmail') }}</label>
             <input id="workEmail" type="email" formControlName="workEmail" autocomplete="email" />
             @if (checkoutForm.controls.workEmail.touched && checkoutForm.controls.workEmail.invalid) {
-              <small class="tb-field__error">Ingresá un email válido.</small>
+              <small class="tb-field__error">{{ localization.traducir('checkout.error.email') }}</small>
             }
           </div>
           <div class="tb-field">
-            <label for="role">Cargo o función</label>
+            <label for="role">{{ localization.traducir('checkout.role') }}</label>
             <input id="role" type="text" formControlName="role" autocomplete="organization-title" />
             @if (checkoutForm.controls.role.touched && checkoutForm.controls.role.invalid) {
-              <small class="tb-field__error">Indicá el cargo o función.</small>
+              <small class="tb-field__error">{{ localization.traducir('checkout.error.role') }}</small>
             }
           </div>
         </div>
       </section>
 
-      <section class="tb-checkout-form__section" aria-labelledby="payment-title">
+      <section class="tb-checkout-form__section tb-checkout-form__section--payment" aria-labelledby="payment-title">
         <div class="tb-checkout-form__heading">
-          <p class="tb-eyebrow">03 · Pago</p>
-          <h2 id="payment-title">Medio de pago</h2>
-          <p>La operación se realizará fuera de TeamBalance, en el sitio seguro del proveedor que elijas.</p>
+          <p class="tb-eyebrow">{{ localization.traducir('checkout.paymentStep') }}</p>
+          <h2 id="payment-title">{{ localization.traducir('checkout.paymentTitle') }}</h2>
+          <p>{{ localization.traducir('checkout.paymentHelp') }}</p>
         </div>
 
         <div class="tb-payment-options">
@@ -130,7 +130,7 @@
             <span class="tb-payment-option__radio" aria-hidden="true"></span>
             <span>
               <strong>Mercado Pago</strong>
-              <small>Pago seguro para Argentina y Latinoamérica.</small>
+              <small>{{ localization.traducir('checkout.mercadoPagoDescription') }}</small>
             </span>
           </label>
           <label class="tb-payment-option" [class.tb-payment-option--selected]="checkoutForm.controls.paymentProvider.value === 'Stripe'">
@@ -138,30 +138,30 @@
             <span class="tb-payment-option__radio" aria-hidden="true"></span>
             <span>
               <strong>Stripe</strong>
-              <small>Pago seguro internacional con tarjeta en dólares.</small>
+              <small>{{ localization.traducir('checkout.stripeDescription') }}</small>
             </span>
           </label>
         </div>
 
-        <p class="tb-payment-notice">El pago se realizará de forma segura en el sitio del proveedor seleccionado. TeamBalance no almacena los datos de tu tarjeta.</p>
+        <p class="tb-payment-notice">{{ localization.traducir('checkout.paymentNotice') }}</p>
       </section>
 
       <section class="tb-checkout-form__section tb-checkout-form__section--final">
         <label class="tb-terms-check">
           <input type="checkbox" formControlName="acceptsTerms" />
           <span>
-            Leí y acepto los <a routerLink="/terms-and-conditions">Términos y Condiciones</a> de TeamBalance.
+            {{ localization.traducir('checkout.termsPrefix') }} <a routerLink="/terms-and-conditions">{{ localization.traducir('checkout.termsLink') }}</a>{{ localization.traducir('checkout.termsSuffix') }}
           </span>
         </label>
         @if (checkoutForm.controls.acceptsTerms.touched && checkoutForm.controls.acceptsTerms.invalid) {
-          <p class="tb-field__error">Necesitás aceptar los Términos y Condiciones para continuar.</p>
+          <p class="tb-field__error">{{ localization.traducir('checkout.termsError') }}</p>
         }
 
         @if (reviewingCommercialData()) {
           <div class="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950" role="alert">
-            <strong>Revisá los datos antes de continuar.</strong>
-            <p class="mt-1">El CUIT, la razón social, los datos de facturación y el plan se usarán para crear la contratación. Después de redirigirte al proveedor de pago no se podrán cambiar desde este proceso.</p>
-            <div class="mt-4 flex flex-wrap gap-3"><button class="tb-button tb-button--primary" type="button" [disabled]="paymentIntegrationPending()" (click)="confirmPayment()">Confirmar y continuar al pago</button><button class="tb-button" type="button" [disabled]="paymentIntegrationPending()" (click)="editCommercialData()">Modificar datos</button></div>
+            <strong>{{ localization.traducir('checkout.reviewTitle') }}</strong>
+            <p class="mt-1">{{ localization.traducir('checkout.reviewText') }}</p>
+            <div class="mt-4 flex flex-wrap gap-3"><button class="tb-button tb-button--primary" type="button" [disabled]="paymentIntegrationPending()" (click)="confirmPayment()">{{ localization.traducir('checkout.confirmPayment') }}</button><button class="tb-button" type="button" [disabled]="paymentIntegrationPending()" (click)="editCommercialData()">{{ localization.traducir('checkout.editData') }}</button></div>
           </div>
         } @else {
           <button class="tb-button tb-button--primary tb-checkout-submit" type="submit" [disabled]="checkoutForm.invalid || !plan() || paymentIntegrationPending()">
@@ -186,14 +186,14 @@
           <p class="tb-field__error">{{ localization.traducir('checkout.noPlan') }}</p>
         } @else {
           <h2 id="order-summary-title">TeamBalance {{ plan()!.nombre }}</h2>
-          <p class="tb-order-summary__plan">{{ plan()!.descripcion }}</p>
+          <p class="tb-order-summary__plan">{{ planDescription() }}</p>
           <p class="tb-order-summary__price"><span>{{ plan()!.moneda }}</span> {{ plan()!.precioVigente }} <small>/ {{ localization.traducir('plans.month') }}</small></p>
         }
         <a class="tb-order-summary__change" routerLink="/plans">{{ localization.traducir('checkout.changePlan') }}</a>
       </div>
 
       <div class="tb-order-summary__included">
-        <p>{{ localization.traducir('plans.comparison.title') }}:</p>
+        <p>{{ localization.traducir('checkout.included') }}</p>
         <ul>
           @for (feature of features(); track feature) {
             <li>{{ featureLabel(feature) }}</li>

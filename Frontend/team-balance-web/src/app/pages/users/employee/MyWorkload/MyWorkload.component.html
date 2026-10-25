@@ -34,16 +34,15 @@
       <div class="mt-8 grid items-center gap-8 md:grid-cols-[1fr_auto]">
         <div>
           <div class="h-4 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700" [attr.aria-label]="porcentajeVisual() + '% de ocupación'">
-            <div class="h-full rounded-full transition-[width] duration-500" [class.bg-cyan-600]="cargaActual.estadoCarga === 'Balanceado'" [class.bg-emerald-500]="cargaActual.estadoCarga === 'Subutilizado'" [class.bg-amber-500]="cargaActual.estadoCarga === 'Sobrecargado'" [class.bg-rose-500]="cargaActual.estadoCarga === 'Crítico'" [style.width.%]="porcentajeVisual()"></div>
+            <div class="workload-progress h-full rounded-full" [style.--occupancy-color]="colorOcupacion()" [style.width.%]="porcentajeVisual()"></div>
           </div>
           <div class="mt-3 flex flex-wrap justify-between gap-2 text-sm text-slate-600 dark:text-slate-300">
             <span>{{ cargaActual.horasEstimadasActivas | number:'1.0-2' }} h asignadas</span>
             <span>{{ cargaActual.horasDisponibles | number:'1.0-2' }} h de capacidad semanal</span>
           </div>
         </div>
-        <div class="grid h-28 w-28 place-items-center rounded-full border-8 text-center" [class.border-cyan-600]="cargaActual.estadoCarga === 'Balanceado'" [class.border-emerald-500]="cargaActual.estadoCarga === 'Subutilizado'" [class.border-amber-500]="cargaActual.estadoCarga === 'Sobrecargado'" [class.border-rose-500]="cargaActual.estadoCarga === 'Crítico'">
-          <strong class="text-2xl text-slate-900 dark:text-white">{{ cargaActual.porcentajeOcupacion | number:'1.0-0' }}%</strong>
-          <span class="text-xs text-slate-500">ocupación</span>
+        <div class="workload-ring" [style.--occupancy-angle]="anguloOcupacion()" [style.--occupancy-color]="colorOcupacion()" role="img" [attr.aria-label]="porcentajeVisual() + '% de ocupación'">
+          <div class="workload-ring__content"><strong>{{ cargaActual.porcentajeOcupacion | number:'1.0-0' }}%</strong><span>ocupación</span></div>
         </div>
       </div>
 

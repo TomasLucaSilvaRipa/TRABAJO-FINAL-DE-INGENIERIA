@@ -1,83 +1,47 @@
-<section class="tb-workspace space-y-6">
-  <header>
-    <p class="tb-page-kicker">ASIGNACIÓN DE RECURSOS</p>
-    <h1 class="tb-page-title">Best Fit</h1>
-    <p class="tb-page-description">Compará recursos compatibles según skill, seniority requerido, capacidad para el deadline, carga actual e historial operativo.</p>
+<main class="best-fit">
+  <header class="best-fit__hero">
+    <div><p>ASIGNACIÓN INTELIGENTE</p><h1>Best Fit</h1><span>El ranking cruza skill, seniority, capacidad, carga e historial. Recomienda candidatos; nunca asigna automáticamente.</span></div>
   </header>
 
-  <section class="tb-panel space-y-4">
-    <label class="tb-field-label">Tarea
-      <select [ngModel]="tareaSeleccionada()" (ngModelChange)="seleccionarTarea($event)">
-        <option [ngValue]="0">Seleccionar tarea</option>
-        @for(tarea of tareas();track tarea.id){<option [ngValue]="tarea.id">{{tarea.titulo}}</option>}
-      </select>
-    </label>
-    @if(tareaActual()){
-      <p class="tb-page-kicker">RESUMEN DE LA TAREA</p>
-      <div class="mt-3 grid gap-3 text-sm md:grid-cols-4">
-        <p><strong>Complejidad:</strong> {{tareaActual()?.complejidad}}</p>
-        <p><strong>Seniority requerido:</strong> {{nivelExperienciaConsiderado(tareaActual())}}</p>
-        <p><strong>Horas estimadas:</strong> {{tareaActual()?.horasEstimadas}} h</p>
-        <p><strong>Prioridad:</strong> {{tareaActual()?.prioridad || 'Sin definir'}}</p>
-        <p><strong>Inicio:</strong> {{tareaActual()?.fechaInicio | date:'dd/MM/yyyy'}}</p>
-        <p><strong>Deadline:</strong> {{tareaActual()?.deadline | date:'dd/MM/yyyy'}}</p>
-      </div>
-      <div><button class="tb-action-button" type="button" (click)="buscar()" [disabled]="cargando()">{{cargando() ? 'Analizando…' : 'Buscar recurso recomendado'}}</button></div>
-    }
+  <section class="best-fit__mission">
+    <label>Tarea a evaluar<select [ngModel]="tareaSeleccionada()" (ngModelChange)="seleccionarTarea($event)"><option [ngValue]="0">Seleccionar tarea</option>@for(tarea of tareas();track tarea.id){<option [ngValue]="tarea.id">{{tarea.titulo}}</option>}</select></label>
+    @if(tareaActual();as tarea){
+      <div class="best-fit__task-grid"><article><span>Complejidad</span><strong>{{tarea.complejidad}}</strong></article><article><span>Seniority requerido</span><strong>{{nivelExperienciaConsiderado(tarea)}}</strong></article><article><span>Esfuerzo</span><strong>{{tarea.horasEstimadas}} h</strong></article><article><span>Prioridad</span><strong>{{tarea.prioridad || 'Sin definir'}}</strong></article><article><span>Ventana</span><strong>{{tarea.fechaInicio | date:'dd/MM'}} → {{tarea.deadline | date:'dd/MM/yyyy'}}</strong></article></div>
+      <button class="best-fit__analyze" type="button" (click)="buscar()" [disabled]="cargando()"><span>{{cargando() ? 'Calculando afinidad…' : 'Analizar candidatos'}}</span><i aria-hidden="true">→</i></button>
+    }@else{<div class="best-fit__task-hint"><strong>Elegí una tarea preparada para el análisis</strong><span>Debe tener skill, seniority, horas, inicio y deadline.</span></div>}
   </section>
 
-  @if(error()){<p class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{error()}}</p>}
-  @if(mensaje()){<p class="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{{mensaje()}}</p>}
+  @if(error()){<p class="best-fit__notice is-error">{{error()}}</p>}
+  @if(mensaje()){<p class="best-fit__notice is-success">{{mensaje()}}</p>}
 
   @if(recomendaciones().length){
-    <section class="tb-panel space-y-4">
-      <div class="flex flex-wrap items-end gap-3">
-        <label class="tb-field-label">Filtrar por seniority
-          <select [ngModel]="seniorityFiltro()" (ngModelChange)="seniorityFiltro.set($event)"><option value="">Todos</option><option value="Junior">Junior</option><option value="Semi Senior">Semi Senior</option><option value="Senior">Senior</option><option value="Lead">Lead</option></select>
-        </label>
-        <label class="tb-field-label">Disponibilidad mínima semanal
-          <input type="number" min="0" [ngModel]="disponibilidadMinima()" (ngModelChange)="disponibilidadMinima.set($event === '' ? null : +$event)">
-        </label>
-        <label class="tb-field-label">Carga máxima actual (%)
-          <input type="number" min="0" max="100" [ngModel]="cargaMaxima()" (ngModelChange)="cargaMaxima.set($event === '' ? null : +$event)">
-        </label>
-        <label class="tb-field-label">Priorizar
-          <select [ngModel]="ordenamiento()" (ngModelChange)="ordenamiento.set($event)"><option value="compatibilidad">Compatibilidad</option><option value="disponibilidad">Mayor disponibilidad</option><option value="carga">Menor carga</option></select>
-        </label>
-        <button class="tb-secondary-button" type="button" (click)="limpiarFiltros()">Limpiar filtros</button>
-      </div>
-
-      @if(recomendacionesVisibles().length){
-        <div class="space-y-3">
-          @for(recomendacion of recomendacionesVisibles();track recomendacion.idEmpleadoSugerido){
-            <article class="tb-data-row">
-              <div>
-                <h2>{{recomendacion.nombreEmpleado}}</h2>
-                <p>{{recomendacion.seniorityEmpleado}} · {{recomendacion.horasDisponibles}} h disponibles · {{recomendacion.cargaActualPorcentaje}}% de carga actual</p>
-                <p class="mt-1 text-xs text-slate-500">Aporte previsto a esta tarea: {{aporteSemanalEstimado(recomendacion)}} h/semana · Margen semanal restante: {{recomendacion.margenHorasSemanales}} h</p>
-              </div>
-              <div class="flex flex-wrap items-center justify-end gap-3">
-                <span class="tb-status-badge">{{recomendacion.puntajeCompatibilidad}}/100</span>
-                <button type="button" class="tb-secondary-button" (click)="detalle.set(recomendacion)">Ver compatibilidad</button>
-                <button type="button" class="tb-action-button" (click)="conservar(recomendacion)" [disabled]="guardando()===recomendacion.idEmpleadoSugerido || recomendacion.seleccionadaPorPM">{{recomendacion.seleccionadaPorPM ? 'Recomendado' : guardando()===recomendacion.idEmpleadoSugerido ? 'Guardando…' : 'Conservar recomendación'}}</button>
-              </div>
-            </article>
-          }
-        </div>
-      } @else {<div class="tb-empty-state"><h2>No hay candidatos con esos filtros</h2><p>Probá reducir la disponibilidad mínima o aumentar la carga máxima permitida.</p></div>}
+    <section class="best-fit__results">
+      <header><div><p>RANKING OPERATIVO</p><h2>{{recomendacionesVisibles().length}} candidato(s) comparables</h2></div><span>Los puntajes provienen del motor actual</span></header>
+      <div class="best-fit__filters"><label>Seniority<select [ngModel]="seniorityFiltro()" (ngModelChange)="seniorityFiltro.set($event)"><option value="">Todos</option><option value="Junior">Junior</option><option value="Semi Senior">Semi Senior</option><option value="Semisenior">Semisenior</option><option value="Senior">Senior</option><option value="Lead">Lead</option></select></label><label>Disponibilidad mínima<input type="number" min="0" placeholder="Horas/semana" [ngModel]="disponibilidadMinima()" (ngModelChange)="disponibilidadMinima.set($event === '' ? null : +$event)"></label><label>Carga máxima<input type="number" min="0" max="100" placeholder="Porcentaje" [ngModel]="cargaMaxima()" (ngModelChange)="cargaMaxima.set($event === '' ? null : +$event)"></label><label>Ordenar por<select [ngModel]="ordenamiento()" (ngModelChange)="ordenamiento.set($event)"><option value="compatibilidad">Compatibilidad</option><option value="disponibilidad">Mayor disponibilidad</option><option value="carga">Menor carga</option></select></label><button type="button" (click)="limpiarFiltros()">Limpiar filtros</button></div>
+      @if(recomendacionesVisibles().length){<div class="best-fit__ranking">
+        @for(recomendacion of recomendacionesVisibles();track recomendacion.idEmpleadoSugerido;let posicion=$index){
+          <article class="candidate" [class.is-selected]="recomendacion.seleccionadaPorPM">
+            <div class="candidate__rank"><span>#{{posicion+1}}</span></div>
+            <div class="candidate__identity"><div class="candidate__avatar">{{recomendacion.nombreEmpleado.slice(0,1)}}</div><div><h3>{{recomendacion.nombreEmpleado}}</h3><p>{{recomendacion.seniorityEmpleado}} · {{estadoCompatibilidad(recomendacion.puntajeCompatibilidad)}}</p></div></div>
+            <div class="candidate__score" [style.--score]="recomendacion.puntajeCompatibilidad" [style.--score-color]="colorCompatibilidad(recomendacion.puntajeCompatibilidad)"><strong>{{recomendacion.puntajeCompatibilidad}}</strong><span>/100</span></div>
+            <div class="candidate__signals">
+              <div><span>Skill</span><i><b [style.width.%]="recomendacion.puntajeSkill"></b></i><strong>{{recomendacion.puntajeSkill}}</strong></div>
+              <div><span>Seniority</span><i><b [style.width.%]="recomendacion.puntajeSeniority"></b></i><strong>{{recomendacion.puntajeSeniority}}</strong></div>
+              <div><span>Capacidad</span><i><b [style.width.%]="recomendacion.puntajeCapacidad"></b></i><strong>{{recomendacion.puntajeCapacidad}}</strong></div>
+              <div><span>Carga</span><i><b [style.width.%]="recomendacion.puntajeCargaActual"></b></i><strong>{{recomendacion.puntajeCargaActual}}</strong></div>
+              <div><span>Historial</span><i><b [style.width.%]="recomendacion.puntajeHistorial"></b></i><strong>{{recomendacion.puntajeHistorial}}</strong></div>
+            </div>
+            <div class="candidate__capacity"><div><span>Disponible</span><strong>{{recomendacion.horasDisponibles}} h</strong></div><div><span>Carga actual</span><strong>{{recomendacion.cargaActualPorcentaje}}%</strong></div><div><span>Aporte previsto</span><strong>{{aporteSemanalEstimado(recomendacion)}} h/sem.</strong></div><div><span>Margen posterior</span><strong [class.is-negative]="recomendacion.margenHorasSemanales < 0">{{recomendacion.margenHorasSemanales}} h</strong></div></div>
+            <div class="candidate__actions"><button type="button" (click)="detalle.set(recomendacion)">Explorar compatibilidad</button><button class="is-primary" type="button" (click)="conservar(recomendacion)" [disabled]="guardando()===recomendacion.idEmpleadoSugerido || recomendacion.seleccionadaPorPM">{{recomendacion.seleccionadaPorPM ? 'Recomendación conservada' : guardando()===recomendacion.idEmpleadoSugerido ? 'Guardando…' : 'Conservar escenario'}}</button></div>
+          </article>
+        }
+      </div>}@else{<div class="best-fit__empty"><strong>No hay candidatos con esos filtros</strong><span>Reducí la disponibilidad mínima o ampliá la carga máxima.</span></div>}
     </section>
-  } @else if(tareaActual()) {
-    <section class="tb-panel tb-empty-state"><h2>No hay candidatos operativamente viables</h2><p>La tarea cumple las condiciones, pero ningún empleado puede asumirla sin comprometer su capacidad o el deadline.</p></section>
-  } @else {
-    <section class="tb-panel tb-empty-state"><h2>Seleccioná una tarea para continuar</h2><p>Solo se muestran tareas propias con skill, seniority requerido, horas estimadas, inicio y deadline definidos. Aunque ya tenga empleados asignados, Best Fit puede proponer otro recurso para distribuir horas pendientes.</p></section>
+  }@else if(tareaActual() && !cargando()){
+    <section class="best-fit__empty"><strong>Todavía no hay un ranking calculado</strong><span>Presioná “Analizar candidatos”. Si el motor no encuentra capacidad viable, también lo indicará acá.</span></section>
+  }@else if(!tareaActual()){
+    <section class="best-fit__empty"><strong>Compará antes de asignar</strong><span>Best Fit no modifica la tarea: podés revisar alternativas y conservar una recomendación para decidir después.</span></section>
   }
 
-  @if(detalle()){
-    <section class="tb-panel space-y-3">
-      <div class="flex items-center justify-between gap-3"><div><p class="tb-page-kicker">DETALLE DE COMPATIBILIDAD</p><h2 class="text-xl font-semibold">{{detalle()?.nombreEmpleado}}</h2></div><button class="tb-secondary-button" type="button" (click)="detalle.set(null)">Cerrar</button></div>
-      <p>{{detalle()?.detalleCompatibilidad}}</p>
-      <div class="grid gap-3 text-sm md:grid-cols-2"><p><strong>Fortalezas:</strong> {{detalle()?.fortalezas || 'Sin fortalezas adicionales registradas.'}}</p><p><strong>Advertencias:</strong> {{detalle()?.advertencias || 'Sin advertencias operativas.'}}</p></div>
-      <p class="text-sm text-slate-500">Historial comparable: {{detalle()?.cantidadTareasHistoricasComparables}} tarea(s). Con menos de tres, el motor aplica un valor histórico neutral.</p>
-    </section>
-  }
-</section>
+  @if(detalle();as candidato){<div class="best-fit__backdrop" (click)="detalle.set(null)"></div><aside class="best-fit__drawer" role="dialog" aria-modal="true" aria-label="Detalle de compatibilidad"><header><div><p>LECTURA DEL PUNTAJE</p><h2>{{candidato.nombreEmpleado}}</h2><span>{{candidato.puntajeCompatibilidad}}/100 · {{estadoCompatibilidad(candidato.puntajeCompatibilidad)}}</span></div><button type="button" (click)="detalle.set(null)">×</button></header><p class="best-fit__explanation">{{candidato.detalleCompatibilidad}}</p><section><h3>Fortalezas</h3><p>{{candidato.fortalezas || 'Sin fortalezas adicionales registradas.'}}</p></section><section class="is-warning"><h3>Advertencias</h3><p>{{candidato.advertencias || 'Sin advertencias operativas.'}}</p></section><footer>Historial comparable: {{candidato.cantidadTareasHistoricasComparables}} tarea(s). Con menos de tres, el motor conserva un valor histórico neutral.</footer></aside>}
+</main>

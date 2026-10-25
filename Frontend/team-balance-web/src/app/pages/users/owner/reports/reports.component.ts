@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Cliente, ProjectsService, Proyecto, UsuarioOpcion } from '../../../../services/projects.service';
@@ -6,9 +6,11 @@ import { ConfiguracionReporteEjecutivo, ReporteEjecutivo, ReporteEjecutivoServic
 import { DetalleRiesgoProyecto, FiltroRiesgoRetraso, NuevoSeguimientoRiesgoRetraso, RiesgoRetrasoService, TareaRiesgoRetraso } from '../../../../services/riesgo-retraso.service';
 import { AccionAjusteDesvioHoras, AnalisisConvenienciaOperativa, AnalisisDesvioHoras, AnalisisOcupacionOperativa, AnalisisSobrecalificacionPerfiles, AnaliticaOperativaService, ConvenienciaOperativaCliente, ConvenienciaOperativaProyecto, DesvioHorasProyecto, DesvioHorasTarea, DetalleConvenienciaOperativa, DetalleDesvioHorasTarea, DetalleOcupacionEmpleado, DetalleOcupacionTarea, FiltroConvenienciaOperativa, FiltroDesvioHoras, FiltroOcupacionOperativa, NuevoSeguimientoConvenienciaOperativa, OcupacionEmpleado, OcupacionProyecto, RevisionOperativaPendiente, SobrecalificacionTarea } from '../../../../services/analitica-operativa.service';
 import { AuthService } from '../../../../services/auth.service';
+import { ImpactSimulationService, SimulacionImpacto } from '../../../../services/impact-simulation.service';
 import { LocalizationService } from '../../../../services/localization.service';
+import { AsignacionTarea, Tarea, TareaOpciones, TasksService } from '../../../../services/tasks.service';
 import { HoursDrilldownChartComponent } from '../../../../shared/components/analytics/hours-drilldown-chart/hours-drilldown-chart.component';
-import { OccupancyLandscapeComponent } from '../../../../shared/components/analytics/occupancy-landscape/occupancy-landscape.component';
+import { OccupancyLandscapeComponent, SimulacionOcupacionVisual } from '../../../../shared/components/analytics/occupancy-landscape/occupancy-landscape.component';
 import { OverqualificationMapComponent } from '../../../../shared/components/analytics/overqualification-map/overqualification-map.component';
 import { RiesgoTareaSeleccionada, RiskObservatoryComponent } from '../../../../shared/components/analytics/risk-observatory/risk-observatory.component';
 import { ConvenienceMapComponent } from '../../../../shared/components/analytics/convenience-map/convenience-map.component';
@@ -23,6 +25,8 @@ export class Reports {
   private readonly reporteService = inject(ReporteEjecutivoService);
   private readonly analiticaService = inject(AnaliticaOperativaService);
   private readonly authService = inject(AuthService);
+  private readonly simulationService = inject(ImpactSimulationService);
+  private readonly tasksService = inject(TasksService);
   protected readonly localization = inject(LocalizationService);
   protected readonly proyectos = signal<Proyecto[]>([]);
   protected readonly clientes = signal<Cliente[]>([]);
@@ -32,6 +36,32 @@ export class Reports {
   protected readonly tareaRiesgoSeleccionada = signal<RiesgoTareaSeleccionada | null>(null);
   protected readonly cerrandoDetalleRiesgo = signal(false);
   protected readonly ocupacion = signal<AnalisisOcupacionOperativa | null>(null);
+  protected readonly tareasSimulacion = signal<Tarea[]>([]);
+  protected readonly empleadosSimulacion = signal<TareaOpciones['empleados']>([]);
+  protected readonly escenariosConservados = signal<SimulacionImpacto[]>([]);
+  protected readonly escenarioOcupacion = signal<SimulacionImpacto | null>(null);
+  protected readonly asignacionesTareaSimulacion = signal<AsignacionTarea[]>([]);
+  protected readonly idTareaSimulacion = signal(0);
+  protected readonly idEmpleadoSimulacion = signal(0);
+  protected readonly idEscenarioConservado = signal(0);
+  protected readonly cargandoSimulacion = signal(false);
+  protected readonly simulacionVisual = computed<SimulacionOcupacionVisual | null>(() => {
+    const escenario = this.escenarioOcupacion();
+    const tarea = this.tareasSimulacion().find(item => item.id === escenario?.idTarea);
+    if (!escenario || !tarea) { return null; }
+    const empleado = this.empleadosSimulacion().find(item => item.id === escenario.idEmpleadoCandidato);
+    const asignaciones = this.asignacionesTareaSimulacion().filter(item => item.activa !== false && item.idEmpleado !== escenario.idEmpleadoCandidato);
+    const totalAsignado = asignaciones.reduce((total, item) => total + Number(item.horasAsignadas || 0), 0);
+    const horasImpacto = Number(escenario.horasTarea ?? 0);
+    const datosOcupacion = this.ocupacion();
+    const afectados = asignaciones.map(asignacion => {
+      const actual = datosOcupacion?.empleados.find(item => item.idEmpleado === asignacion.idEmpleado);
+      const proporcion = totalAsignado > 0 ? Number(asignacion.horasAsignadas || 0) / totalAsignado : 1 / Math.max(1, asignaciones.length);
+      const reduccion = actual?.horasDisponibles ? horasImpacto * proporcion / actual.horasDisponibles * 100 : 0;
+      return { idEmpleado: asignacion.idEmpleado, porcentajeProyectado: Math.max(0, Number(actual?.porcentajeOcupacion ?? 0) - reduccion) };
+    });
+    return { idProyecto: tarea.idProyecto, idEmpleado: escenario.idEmpleadoCandidato, nombreEmpleado: escenario.nombreEmpleado || (empleado ? `${empleado.nombre} ${empleado.apellido}` : 'Recurso simulado'), porcentajeProyectado: Number(escenario.porcentajeOcupacionProyectado ?? 0), horasImpacto, afectados };
+  });
   protected readonly detalleOcupacion = signal<DetalleOcupacionEmpleado | null>(null);
   protected readonly cerrandoDetalleOcupacion = signal(false);
   protected readonly situacionARevisar = signal<DetalleOcupacionEmpleado | null>(null);
@@ -83,10 +113,11 @@ export class Reports {
   }
 
   protected cambiarVista(vista: VistaAnalisis): void {
+    if (vista !== 'ocupacion') { this.restaurarOcupacionReal(); }
     this.vista.set(vista);
     this.error.set('');
     if (vista === 'riesgo' && this.riesgos().length === 0) { this.consultarRiesgos(); }
-    if (vista === 'ocupacion' && !this.ocupacion()) { this.consultarOcupacion(); }
+    if (vista === 'ocupacion') { if (!this.ocupacion()) { this.consultarOcupacion(); } this.cargarOpcionesSimulacion(); }
     if (vista === 'desvio') { this.consultarDesvioHoras(); }
     if (vista === 'conveniencia' && !this.conveniencia()) { this.consultarConveniencia(); }
     if (vista === 'sobrecalificacion' && !this.sobrecalificacion()) { this.consultarSobrecalificacion(); }
@@ -117,8 +148,53 @@ export class Reports {
   }
 
   protected consultarOcupacion(): void {
+    this.restaurarOcupacionReal();
     this.cargando.set(true); this.error.set('');
     this.analiticaService.consultarOcupacion(this.filtroOcupacion).subscribe({ next: resultado => { this.ocupacion.set(resultado); this.detalleOcupacion.set(null); this.cerrandoDetalleOcupacion.set(false); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar la ocupación operativa.'); this.cargando.set(false); } });
+  }
+
+  protected simularEnOcupacion(): void {
+    if (!this.idTareaSimulacion() || !this.idEmpleadoSimulacion()) { this.error.set('Seleccioná una tarea y un empleado para simular.'); return; }
+    this.error.set(''); this.cargandoSimulacion.set(true);
+    this.simulationService.calcular({ idTarea: this.idTareaSimulacion(), idEmpleadoCandidato: this.idEmpleadoSimulacion() }).subscribe({
+      next: escenario => { this.aplicarEscenarioOcupacion(escenario); this.idEscenarioConservado.set(0); this.cargandoSimulacion.set(false); },
+      error: respuesta => { this.error.set(typeof respuesta?.error === 'string' ? respuesta.error : 'No se pudo calcular la simulación.'); this.cargandoSimulacion.set(false); },
+    });
+  }
+
+  protected conservarSimulacionOcupacion(): void {
+    const escenario = this.escenarioOcupacion(); if (!escenario || escenario.id > 0) { return; }
+    this.cargandoSimulacion.set(true);
+    this.simulationService.conservar(escenario).subscribe({ next: guardado => { this.escenarioOcupacion.set(guardado); this.escenariosConservados.update(items => [guardado, ...items.filter(item => item.id !== guardado.id)]); this.idEscenarioConservado.set(guardado.id); this.cargandoSimulacion.set(false); }, error: respuesta => { this.error.set(typeof respuesta?.error === 'string' ? respuesta.error : 'No se pudo conservar la simulación.'); this.cargandoSimulacion.set(false); } });
+  }
+
+  protected revisarEscenarioConservado(id: number): void {
+    this.error.set('');
+    this.idEscenarioConservado.set(id);
+    const escenario = this.escenariosConservados().find(item => item.id === id) ?? null;
+    this.aplicarEscenarioOcupacion(escenario);
+    this.idTareaSimulacion.set(escenario?.idTarea ?? 0);
+    this.idEmpleadoSimulacion.set(escenario?.idEmpleadoCandidato ?? 0);
+  }
+
+  protected restaurarOcupacionReal(): void { this.escenarioOcupacion.set(null); this.asignacionesTareaSimulacion.set([]); this.idEscenarioConservado.set(0); }
+
+  private aplicarEscenarioOcupacion(escenario: SimulacionImpacto | null): void {
+    this.escenarioOcupacion.set(escenario);
+    this.asignacionesTareaSimulacion.set([]);
+    if (!escenario) { return; }
+    const tarea = this.tareasSimulacion().find(item => item.id === escenario.idTarea);
+    this.tasksService.consultarAsignaciones(escenario.idTarea).subscribe({
+      next: asignaciones => this.asignacionesTareaSimulacion.set(asignaciones.length ? asignaciones : tarea?.idEmpleadoAsignado ? [{ idEmpleado: tarea.idEmpleadoAsignado, horasAsignadas: tarea.horasEstimadas, activa: true }] : []),
+      error: () => this.asignacionesTareaSimulacion.set(tarea?.idEmpleadoAsignado ? [{ idEmpleado: tarea.idEmpleadoAsignado, horasAsignadas: tarea.horasEstimadas, activa: true }] : []),
+    });
+  }
+
+  private cargarOpcionesSimulacion(): void {
+    if (!this.esPM || this.esDueno || this.tareasSimulacion().length) { return; }
+    this.simulationService.consultarTareasDisponibles().subscribe({ next: tareas => this.tareasSimulacion.set(tareas), error: () => this.error.set('No se pudieron cargar las tareas disponibles para simular.') });
+    this.tasksService.opciones().subscribe({ next: opciones => this.empleadosSimulacion.set(opciones.empleados), error: () => this.error.set('No se pudieron cargar los empleados disponibles para simular.') });
+    this.simulationService.consultarConservadas().subscribe({ next: escenarios => this.escenariosConservados.set(escenarios), error: () => this.error.set('No se pudieron cargar las simulaciones conservadas.') });
   }
 
   protected estiloEstadoOcupacion(estado: string): EstadoVisualOcupacion {

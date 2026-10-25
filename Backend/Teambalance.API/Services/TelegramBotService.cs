@@ -35,12 +35,21 @@ public sealed class TelegramBotService
 
     public async Task<bool> EnviarCodigoAsync(long chatId, string codigo, string proposito, CancellationToken cancellationToken)
     {
-        if (!Configurado) return false;
         string texto = $"TeamBalance — {proposito}\n\nTu código de verificación es: {codigo}\n\nVence en 5 minutos. Si no solicitaste esta acción, ignorá este mensaje.";
-        SolicitudEnvioTelegram solicitud = new SolicitudEnvioTelegram(chatId, texto);
-        HttpResponseMessage respuesta = await _httpClient.PostAsJsonAsync(CrearUri("sendMessage"), solicitud, cancellationToken);
-        if (respuesta.IsSuccessStatusCode) return true;
-        _logger.LogWarning("Telegram no aceptó el envío de un código. Estado HTTP: {Estado}", (int)respuesta.StatusCode);
+        return await EnviarMensajeAsync(chatId, texto, cancellationToken);
+    }
+
+    public async Task<bool> EnviarMensajeAsync(long chatId, string texto, CancellationToken cancellationToken)
+    {
+        if (!Configurado || chatId <= 0 || string.IsNullOrWhiteSpace(texto)) return false;
+        for (int intento = 1; intento <= 3; intento++)
+        {
+            SolicitudEnvioTelegram solicitud = new SolicitudEnvioTelegram(chatId, texto);
+            using HttpResponseMessage respuesta = await _httpClient.PostAsJsonAsync(CrearUri("sendMessage"), solicitud, cancellationToken);
+            if (respuesta.IsSuccessStatusCode) return true;
+            _logger.LogWarning("Telegram no aceptó el envío de un mensaje. Estado HTTP: {Estado}. Intento {Intento}/3.", (int)respuesta.StatusCode, intento);
+            if (intento < 3) await Task.Delay(TimeSpan.FromMilliseconds(700 * intento), cancellationToken);
+        }
         return false;
     }
 
@@ -83,16 +92,10 @@ public sealed class TelegramPollingHostedService : BackgroundService
                 IReadOnlyList<TelegramUpdate> actualizaciones = await _telegram.ObtenerActualizacionesAsync(offset, stoppingToken);
                 foreach (TelegramUpdate actualizacion in actualizaciones)
                 {
+                    await ProcesarActualizacionAsync(actualizacion, stoppingToken);
+                    // Confirmamos la actualización recién después de procesarla. Si la base o Telegram
+                    // fallan temporalmente, el comando vuelve a intentarse en el próximo ciclo.
                     offset = Math.Max(offset, actualizacion.UpdateId + 1L);
-                    TelegramMessage? mensaje = actualizacion.Message;
-                    if (mensaje?.Chat is null || mensaje.From is null || !string.Equals(mensaje.Chat.Type, "private", StringComparison.OrdinalIgnoreCase)) continue;
-                    if (string.IsNullOrWhiteSpace(mensaje.Text) || !mensaje.Text.StartsWith("/start", StringComparison.OrdinalIgnoreCase)) continue;
-                    string[] partes = mensaje.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                    if (partes.Length != 2) continue;
-                    using IServiceScope scope = _scopeFactory.CreateScope();
-                    BLLTelegram bllTelegram = scope.ServiceProvider.GetRequiredService<BLLTelegram>();
-                    TeamBalance.BE.Entidades.EntregaTelegram entrega = bllTelegram.ProcesarInicioBot(partes[1], mensaje.From.Id, mensaje.Chat.Id, mensaje.From.Username);
-                    if (entrega.Valida) await _telegram.EnviarCodigoAsync(entrega.ChatId, entrega.Codigo, string.Equals(entrega.Tipo, "Registro", StringComparison.Ordinal) ? "Validación de cuenta" : "Vinculación de Telegram", stoppingToken);
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { break; }
@@ -102,6 +105,39 @@ public sealed class TelegramPollingHostedService : BackgroundService
                 await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
             }
         }
+    }
+
+    private async Task ProcesarActualizacionAsync(TelegramUpdate actualizacion, CancellationToken cancellationToken)
+    {
+        TelegramMessage? mensaje = actualizacion.Message;
+        if (mensaje?.Chat is null || mensaje.From is null || !string.Equals(mensaje.Chat.Type, "private", StringComparison.OrdinalIgnoreCase)) return;
+        if (string.IsNullOrWhiteSpace(mensaje.Text) || !mensaje.Text.StartsWith("/start", StringComparison.OrdinalIgnoreCase)) return;
+
+        string[] partes = mensaje.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (partes.Length != 2)
+        {
+            await _telegram.EnviarMensajeAsync(mensaje.Chat.Id, "Abrí nuevamente la vinculación desde TeamBalance y usá el enlace o el comando completo que aparece allí.", cancellationToken);
+            return;
+        }
+
+        using IServiceScope scope = _scopeFactory.CreateScope();
+        BLLTelegram bllTelegram = scope.ServiceProvider.GetRequiredService<BLLTelegram>();
+        TeamBalance.BE.Entidades.EntregaTelegram entrega = bllTelegram.ProcesarInicioBot(partes[1], mensaje.From.Id, mensaje.Chat.Id, mensaje.From.Username);
+        if (!entrega.Valida)
+        {
+            await _telegram.EnviarMensajeAsync(
+                mensaje.Chat.Id,
+                "No pudimos usar este enlace. Puede haber vencido o haber sido reemplazado por una solicitud más reciente. Volvé a TeamBalance, generá un enlace nuevo y usá únicamente el último comando.",
+                cancellationToken);
+            return;
+        }
+
+        bool enviado = await _telegram.EnviarCodigoAsync(
+            entrega.ChatId,
+            entrega.Codigo,
+            string.Equals(entrega.Tipo, "Registro", StringComparison.Ordinal) ? "Validación de cuenta" : "Vinculación de Telegram",
+            cancellationToken);
+        if (!enviado) _logger.LogError("Telegram no aceptó el código después de tres intentos para el chat {ChatId}. El usuario podrá solicitar un reenvío desde TeamBalance.", entrega.ChatId);
     }
 }
 

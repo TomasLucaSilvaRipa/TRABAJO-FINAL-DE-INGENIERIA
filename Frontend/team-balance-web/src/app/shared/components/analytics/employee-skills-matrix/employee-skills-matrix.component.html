@@ -1,0 +1,23 @@
+<section class="skills-matrix">
+  <header class="skills-matrix__header">
+    <div><p>MATRIZ DE CAPACIDADES</p><h2>Skills del equipo</h2><span>Editá niveles reales sin confundir una skill no registrada con un nivel Básico.</span></div>
+    <div class="skills-matrix__legend"><i class="is-basico"></i>Básico <i class="is-medio"></i>Medio <i class="is-avanzado"></i>Avanzado <i class="is-empty"></i>Sin registrar</div>
+  </header>
+  <div class="skills-matrix__filters">
+    <label>Buscar empleado<input [value]="busqueda()" (input)="busqueda.set($any($event.target).value)" placeholder="Nombre o apellido" /></label>
+    <label>Skill<select [value]="skillFiltro()" (change)="skillFiltro.set(+$any($event.target).value)"><option [value]="0">Todas</option>@for(skill of skills;track skill.id){@if(skill.activo){<option [value]="skill.id">{{skill.nombre}}</option>}}</select></label>
+    <label>Seniority<select [value]="seniorityFiltro()" (change)="seniorityFiltro.set($any($event.target).value)"><option value="">Todos</option><option>Junior</option><option>Semisenior</option><option>Senior</option></select></label>
+    <button type="button" (click)="limpiarFiltros()">Limpiar filtros</button>
+  </div>
+  @if(error()){<p class="skills-matrix__notice is-error">{{error()}}</p>}
+  @if(mensaje()){<p class="skills-matrix__notice is-success">{{mensaje()}}</p>}
+  @if(cargando()){<div class="skills-matrix__loading">Construyendo matriz de capacidades…</div>}@else{
+    <div class="skills-matrix__layout">
+      <div class="skills-matrix__scroll">
+        <table><thead><tr><th>Empleado</th>@for(skill of skills;track skill.id){@if(skill.activo){<th>{{skill.nombre}}</th>}}</tr></thead>
+        <tbody>@for(fila of filasVisibles();track fila.usuario.id){<tr [class.is-selected]="empleadoSeleccionado()===fila.usuario.id"><th><button type="button" (click)="seleccionarEmpleado(fila.usuario.id)"><strong>{{fila.usuario.nombre}} {{fila.usuario.apellido}}</strong><span>{{fila.usuario.empleado?.seniority}}</span></button></th>@for(skill of skills;track skill.id){@if(skill.activo){<td [class]="claseNivel(nivel(fila,skill.id))"><select [value]="nivel(fila,skill.id)" [disabled]="!!guardando()" (change)="cambiarNivel(fila,skill.id,$any($event.target).value)" [title]="fila.usuario.nombre+' · '+skill.nombre+' · '+(nivel(fila,skill.id)||'Sin registrar')"><option value="">Sin registrar</option><option value="Básico">Básico</option><option value="Medio">Medio</option><option value="Avanzado">Avanzado</option></select>@if(guardando()===fila.usuario.id+'-'+skill.id){<span class="skills-matrix__saving">Guardando…</span>}</td>}}</tr>}@empty{<tr><td class="skills-matrix__empty" [attr.colspan]="skills.length+1">No hay empleados que coincidan con los filtros.</td></tr>}</tbody></table>
+      </div>
+      <aside class="skills-matrix__radar"><div><p>PERFIL RADIAL</p><h3>@if(filaSeleccionada();as fila){ {{fila.usuario.nombre}} {{fila.usuario.apellido}} }@else{ Seleccioná un empleado }</h3><span>Escala: 1 Básico · 2 Medio · 3 Avanzado</span></div><div #radar class="skills-matrix__radar-chart"></div>@if(filaSeleccionada() && filaSeleccionada()!.ficha.empleadoSkills.length<2){<p class="skills-matrix__radar-empty">Se necesitan al menos dos skills para formar el perfil.</p>}</aside>
+    </div>
+  }
+</section>

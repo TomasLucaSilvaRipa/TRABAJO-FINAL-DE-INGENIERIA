@@ -22,8 +22,9 @@ public class BLLUsuario
     private readonly MPPRecursos _recursosMPP;
     private readonly MPPTarea _tareaMPP;
     private readonly FieldEncryptionService _fieldEncryptionService;
+    private readonly BLLPasswordSecurity _passwordSecurityBLL;
 
-    public BLLUsuario(MPPUsuario usuarioMPP, BLLBitacora bitacoraBLL, Seguridad seguridad, EmailService emailService, RecaptchaService recaptchaService, BLLRol rolBLL, MPPRecursos recursosMPP, MPPTarea tareaMPP, FieldEncryptionService fieldEncryptionService)
+    public BLLUsuario(MPPUsuario usuarioMPP, BLLBitacora bitacoraBLL, Seguridad seguridad, EmailService emailService, RecaptchaService recaptchaService, BLLRol rolBLL, MPPRecursos recursosMPP, MPPTarea tareaMPP, FieldEncryptionService fieldEncryptionService, BLLPasswordSecurity passwordSecurityBLL)
     {
         _usuarioMPP = usuarioMPP;
         _bitacoraBLL = bitacoraBLL;
@@ -34,6 +35,7 @@ public class BLLUsuario
         _recursosMPP = recursosMPP;
         _tareaMPP = tareaMPP;
         _fieldEncryptionService = fieldEncryptionService;
+        _passwordSecurityBLL = passwordSecurityBLL;
     }
 
     public bool EmailDisponible(Usuario usuario)
@@ -359,6 +361,7 @@ public class BLLUsuario
     public async Task<Usuario> RegistrarUsuarioAgencia(Usuario usuario, Usuario solicitante)
     {
         ValidarPermiso(solicitante, "GestionarUsuarios");
+        await ValidarPasswordConServicio(usuario.PasswordHash);
         PrepararUsuarioGestion(usuario, solicitante);
 
         bool esSoporte = usuario.Roles.Any(rol => string.Equals(rol.TipoUsuario, "Soporte", StringComparison.OrdinalIgnoreCase));
@@ -603,6 +606,7 @@ public class BLLUsuario
             throw new ArgumentException("Ingresá una nueva contraseña y utilizá un enlace válido.");
         }
 
+        await ValidarPasswordConServicio(usuario.PasswordHash);
         _seguridad.ValidarPassword(usuario.PasswordHash);
 
         ValidacionCuenta validacion = new ValidacionCuenta(0, 0, "RecuperacionPassword", _seguridad.GenerarHashToken(token), DateTime.MinValue, DateTime.MinValue, false, null, false);
@@ -662,6 +666,20 @@ public class BLLUsuario
 
         bool correoEnviado = await _emailService.EnviarCorreoPasswordModificada(usuarioBD.Email, usuarioBD.Nombre);
         RegistrarEventoSeguridad(usuarioBD, "CambiarPassword", correoEnviado ? "El usuario modificó su contraseña desde una sesión autenticada." : "El usuario modificó su contraseña, pero no se pudo enviar el correo de confirmación.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia");
+    }
+
+    private async Task ValidarPasswordConServicio(string password)
+    {
+        PasswordEvaluationResponse evaluacion = await _passwordSecurityBLL.Evaluar(password);
+        if (evaluacion.Valida) { return; }
+
+        List<string> faltantes = new();
+        if (!evaluacion.Requisitos.Longitud) faltantes.Add("al menos 8 caracteres");
+        if (!evaluacion.Requisitos.Mayuscula) faltantes.Add("una mayúscula");
+        if (!evaluacion.Requisitos.Minuscula) faltantes.Add("una minúscula");
+        if (!evaluacion.Requisitos.Numero) faltantes.Add("un número");
+        if (!evaluacion.Requisitos.CaracterEspecial) faltantes.Add("un signo");
+        throw new ArgumentException($"La contraseña debe incluir {string.Join(", ", faltantes)}.");
     }
 
     public string ActualizarFotoPerfil(Usuario solicitante, string? fotoPerfil)

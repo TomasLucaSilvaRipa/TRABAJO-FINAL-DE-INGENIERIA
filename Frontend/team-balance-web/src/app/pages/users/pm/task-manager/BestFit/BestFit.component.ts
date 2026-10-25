@@ -9,6 +9,7 @@ import { BestFitService, RecomendacionBestFit } from '../../../../../services/be
   selector: 'app-best-fit',
   imports: [FormsModule, DatePipe],
   templateUrl: './BestFit.component.html',
+  styleUrl: './BestFit.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BestFit {
@@ -108,6 +109,10 @@ export class BestFit {
     const aporte = recomendacion.horasDisponibles - recomendacion.horasComprometidasSemanales - recomendacion.margenHorasSemanales;
     return Math.max(0, Math.round(aporte * 100) / 100);
   }
+
+  colorCompatibilidad(puntaje: number): string { return puntaje >= 80 ? '#39d7b0' : puntaje >= 60 ? '#f2bd4b' : '#ff6b82'; }
+
+  estadoCompatibilidad(puntaje: number): string { return puntaje >= 80 ? 'Alta afinidad' : puntaje >= 60 ? 'Afinidad moderada' : 'Requiere revisión'; }
 
   private esElegibleParaBestFit(tarea: Tarea): boolean {
     if (!tarea.fechaInicio || !tarea.deadline) { return false; }

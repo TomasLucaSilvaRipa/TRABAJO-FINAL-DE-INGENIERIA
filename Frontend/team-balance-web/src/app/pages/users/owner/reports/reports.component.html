@@ -58,6 +58,17 @@
 
   @if (vista() === 'ocupacion' && ocupacion(); as datos) {
     <section class="space-y-4">
+      @if (esPM && !esDueno) {
+        <section class="tb-panel space-y-4 border-cyan-700/70 bg-cyan-950/20">
+          <div><p class="tb-page-kicker">ESCENARIO TEMPORAL</p><h2 class="text-xl font-semibold">Simular impacto de asignación</h2><p class="mt-1 text-sm text-slate-400">La proyección modifica únicamente esta visualización. El relleno conserva el estado real y el borde luminoso representa el estado simulado.</p></div>
+          <div class="grid gap-3 lg:grid-cols-3">
+            <label class="tb-field-label">Tarea<select [ngModel]="idTareaSimulacion()" (ngModelChange)="idTareaSimulacion.set($event); restaurarOcupacionReal()"><option [ngValue]="0">Seleccionar tarea</option>@for (tarea of tareasSimulacion(); track tarea.id) { <option [ngValue]="tarea.id">{{ tarea.titulo }}</option> }</select></label>
+            <label class="tb-field-label">Empleado candidato<select [ngModel]="idEmpleadoSimulacion()" (ngModelChange)="idEmpleadoSimulacion.set($event); restaurarOcupacionReal()"><option [ngValue]="0">Seleccionar empleado</option>@for (empleado of empleadosSimulacion(); track empleado.id) { <option [ngValue]="empleado.id">{{ empleado.nombre }} {{ empleado.apellido }}</option> }</select></label>
+            <label class="tb-field-label">Simulaciones conservadas<select [ngModel]="idEscenarioConservado()" (ngModelChange)="revisarEscenarioConservado($event)"><option [ngValue]="0">Vista real / ninguna</option>@for (escenario of escenariosConservados(); track escenario.id) { <option [ngValue]="escenario.id">{{ escenario.nombreTarea || 'Tarea' }} · {{ escenario.nombreEmpleado || 'Empleado' }}</option> }</select></label>
+          </div>
+          <div class="flex flex-wrap gap-2"><button class="tb-action-button" type="button" (click)="simularEnOcupacion()" [disabled]="cargandoSimulacion()">{{ cargandoSimulacion() ? 'Calculando…' : 'Simular en el gráfico' }}</button>@if (escenarioOcupacion(); as escenario) { @if (escenario.id === 0) { <button class="tb-secondary-button" type="button" (click)="conservarSimulacionOcupacion()" [disabled]="cargandoSimulacion()">Conservar escenario</button> }<button class="tb-secondary-button" type="button" (click)="restaurarOcupacionReal()">Volver a valores reales</button><span class="self-center text-sm text-slate-300">{{ escenario.porcentajeOcupacionActual }}% → <strong>{{ escenario.porcentajeOcupacionProyectado }}%</strong></span> }</div>
+        </section>
+      }
       <div class="grid gap-4 md:grid-cols-4">
         <article [class]="'tb-panel tb-occupancy-card tb-occupancy-card--' + estiloEstadoOcupacion(datos.estadoCargaGeneral)"><p>Ocupación general</p><strong class="text-2xl">{{ datos.porcentajeOcupacionGeneral }}%</strong><span>{{ datos.horasEstimadasActivas }} / {{ datos.horasDisponiblesSemanales }} h</span></article>
         <article class="tb-panel tb-occupancy-card tb-occupancy-card--subutilizada"><p>Subutilizados</p><strong class="text-2xl">{{ datos.cantidadSubutilizados }}</strong><span>Capacidad con margen disponible</span></article>
@@ -67,7 +78,7 @@
 
       @if (mensajeDesvio()) { <p class="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">{{ mensajeDesvio() }}</p> }
 
-      <app-occupancy-landscape [proyectos]="datos.proyectos" [empleados]="datos.empleados" (empleadoSeleccionado)="abrirDetalleOcupacion($event.empleado, $event.proyecto)" />
+      <app-occupancy-landscape [proyectos]="datos.proyectos" [empleados]="datos.empleados" [simulacion]="simulacionVisual()" (empleadoSeleccionado)="abrirDetalleOcupacion($event.empleado, $event.proyecto)" />
 
       <section class="tb-panel overflow-x-auto">
         <div class="mb-4"><p class="tb-page-kicker">SITUACIONES PRIORIZADAS</p><h2 class="text-xl font-semibold">Distribución por empleado</h2><p class="mt-1 text-sm text-slate-500">Seleccioná un empleado para revisar su disponibilidad, tareas, proyectos, causa y acción sugerida.</p></div>
