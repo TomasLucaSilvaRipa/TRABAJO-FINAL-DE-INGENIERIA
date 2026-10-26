@@ -192,7 +192,7 @@ public class BLLUsuario
         string tokenHash = _seguridad.GenerarHashToken(tokenDesafio);
         DesafioAutenticacionDosFactores desafio = _usuarioMPP.ConsumirDesafioAutenticacionDosFactores(tokenHash, false);
         if (!desafio.Valido || desafio.IdUsuario is null) throw new UnauthorizedAccessException("El desafío de verificación venció o ya fue utilizado.");
-        Usuario usuario = _usuarioMPP.ConsultarUsuarioPorId(desafio.IdUsuario.Value) ?? throw new UnauthorizedAccessException("No se encontró la cuenta asociada al desafío.");
+        Usuario usuario = _usuarioMPP.ConsultarUsuarioPorId(new Usuario { ID = desafio.IdUsuario.Value }) ?? throw new UnauthorizedAccessException("No se encontró la cuenta asociada al desafío.");
         if (!ValidarSegundoFactor(usuario, codigo)) throw new UnauthorizedAccessException("El código no es válido, venció o ya fue utilizado.");
         DesafioAutenticacionDosFactores desafioCompletado = _usuarioMPP.ConsumirDesafioAutenticacionDosFactores(tokenHash, true);
         if (!desafioCompletado.Valido) throw new UnauthorizedAccessException("El desafío de verificación ya no está vigente.");
@@ -588,7 +588,7 @@ public class BLLUsuario
 
                 _usuarioMPP.ReemplazarRecuperacionPassword(usuario, validacion);
 
-                bool correoEnviado = await _emailService.EnviarCorreoRecuperoPassword(usuario.Email, usuario.Nombre, token);
+                bool correoEnviado = await _emailService.EnviarCorreoRecuperoPassword(usuario, token);
 
                 if (!correoEnviado){ throw new InvalidOperationException("No fue posible enviar el correo de recuperación."); }
 
@@ -625,7 +625,7 @@ public class BLLUsuario
             throw new InvalidOperationException("No fue posible restablecer la contraseña.");
         }
 
-        bool correoEnviado = await _emailService.EnviarCorreoPasswordModificada(usuarioBD.Email, usuarioBD.Nombre);
+        bool correoEnviado = await _emailService.EnviarCorreoPasswordModificada(usuarioBD);
         RegistrarEventoSeguridad(usuarioBD, "RestablecerPassword", correoEnviado ? "La contraseña fue restablecida mediante un enlace temporal." : "La contraseña fue restablecida, pero no se pudo enviar el correo de confirmación.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia");
     }
 
@@ -664,7 +664,7 @@ public class BLLUsuario
             throw new InvalidOperationException("No fue posible modificar la contraseña.");
         }
 
-        bool correoEnviado = await _emailService.EnviarCorreoPasswordModificada(usuarioBD.Email, usuarioBD.Nombre);
+        bool correoEnviado = await _emailService.EnviarCorreoPasswordModificada(usuarioBD);
         RegistrarEventoSeguridad(usuarioBD, "CambiarPassword", correoEnviado ? "El usuario modificó su contraseña desde una sesión autenticada." : "El usuario modificó su contraseña, pero no se pudo enviar el correo de confirmación.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia");
     }
 

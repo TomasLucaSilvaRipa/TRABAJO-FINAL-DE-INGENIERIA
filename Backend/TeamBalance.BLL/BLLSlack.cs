@@ -20,10 +20,10 @@ public sealed class BLLSlack
         _bitacoraBLL = bitacoraBLL;
     }
 
-    public string ConsultarBalance(string slackUserId, string texto)
+    public string ConsultarBalance(ConsultaSlack consultaSlack)
     {
-        Usuario usuario = ObtenerUsuario(slackUserId);
-        string consulta = (texto ?? string.Empty).Trim();
+        Usuario usuario = ObtenerUsuario(consultaSlack);
+        string consulta = (consultaSlack.Texto ?? string.Empty).Trim();
         string respuesta;
         string accion;
 
@@ -72,27 +72,29 @@ public sealed class BLLSlack
         return _slackMPP.ConsultarUsuariosSinVincular();
     }
 
-    public void VincularUsuario(int idUsuario, string slackUserId, Usuario solicitante)
+    public void VincularUsuario(VinculacionSlack vinculacion, Usuario solicitante)
     {
         ValidarGestionVinculaciones(solicitante);
-        string idNormalizado = (slackUserId ?? string.Empty).Trim().ToUpperInvariant();
+        string idNormalizado = (vinculacion.IdUsuarioSlack ?? string.Empty).Trim().ToUpperInvariant();
         if (!System.Text.RegularExpressions.Regex.IsMatch(idNormalizado, "^[UW][A-Z0-9]{8,}$"))
         {
             throw new ArgumentException("El Member ID de Slack debe comenzar con U o W y contener sólo letras mayúsculas y números.");
         }
 
-        _slackMPP.VincularUsuario(idUsuario, idNormalizado);
-        _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "Slack", idUsuario, "VincularUsuarioSlack", "Se vinculó un usuario de TeamBalance con su Member ID de Slack.", "Exitoso", "Informacion", "Seguridad"));
+        vinculacion.IdUsuarioSlack = idNormalizado;
+        _slackMPP.VincularUsuario(vinculacion);
+        _bitacoraBLL.Add(new Bitacora(solicitante.ID, solicitante.IdAgencia, "Slack", vinculacion.Usuario.ID, "VincularUsuarioSlack", "Se vinculó un usuario de TeamBalance con su Member ID de Slack.", "Exitoso", "Informacion", "Seguridad"));
     }
 
-    private Usuario ObtenerUsuario(string slackUserId)
+    private Usuario ObtenerUsuario(ConsultaSlack consulta)
     {
-        if (string.IsNullOrWhiteSpace(slackUserId))
+        if (string.IsNullOrWhiteSpace(consulta.IdUsuarioSlack))
         {
             throw new UnauthorizedAccessException("Slack no informó el usuario que ejecutó el comando.");
         }
 
-        Usuario? usuario = _slackMPP.ConsultarUsuarioPorSlack(slackUserId.Trim());
+        consulta.IdUsuarioSlack = consulta.IdUsuarioSlack.Trim();
+        Usuario? usuario = _slackMPP.ConsultarUsuarioPorSlack(consulta);
         if (usuario is null)
         {
             throw new UnauthorizedAccessException("Tu usuario de Slack todavía no está asociado a una cuenta de TeamBalance.");

@@ -51,7 +51,7 @@ public sealed class BLLHelpDesk
         consulta.Estado = estado;
         _helpDeskMPP.AgregarMensaje(consulta, usuario, solicitud);
         RegistrarBitacora(usuario, consulta, esSoporte ? "ResponderConsultaSoporte" : "ActualizarConsultaSoporte", esSoporte ? "Soporte respondió una consulta." : "El usuario agregó información a su consulta.");
-        if (esSoporte && !string.IsNullOrWhiteSpace(consulta.EmailSolicitante)) await _emailService.EnviarRespuestaSoporte(consulta.EmailSolicitante, consulta.NombreSolicitante, consulta.Asunto, solicitud.Mensaje.Trim());
+        if (esSoporte && !string.IsNullOrWhiteSpace(consulta.EmailSolicitante)) await _emailService.EnviarRespuestaSoporte(consulta, solicitud);
     }
 
     public void Cerrar(Usuario usuario, ConsultaSoporteResumen consulta) {

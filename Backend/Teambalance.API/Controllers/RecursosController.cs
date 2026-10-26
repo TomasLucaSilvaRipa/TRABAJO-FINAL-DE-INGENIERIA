@@ -163,7 +163,7 @@ public class RecursosController : ControllerBase
     [HttpGet("empleados/{idUsuarioEmpleado:int}/rendimiento")]
     public IActionResult ConsultarRendimientoEmpleado([FromRoute] int idUsuarioEmpleado, [FromQuery] int meses = 6)
     {
-        try { return Ok(_recursosBLL.ConsultarRendimientoEmpleado(idUsuarioEmpleado, meses, ObtenerSolicitante())); }
+        try { return Ok(_recursosBLL.ConsultarRendimientoEmpleado(new ConsultaRendimientoEmpleado { Empleado = new Empleado { ID = idUsuarioEmpleado }, Meses = meses }, ObtenerSolicitante())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }

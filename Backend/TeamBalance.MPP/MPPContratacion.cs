@@ -4,11 +4,9 @@ using TeamBalance.BE.Entidades;
 using TeamBalance.DAL;
 
 namespace TeamBalance.MPP;
-
 public sealed class MPPContratacion
 {
     private readonly Conexion _conexion;
-
     public MPPContratacion(Conexion conexion)
     {
         _conexion = conexion;
@@ -33,16 +31,13 @@ public sealed class MPPContratacion
             new SqlParameter("@ProveedorPagoSeleccionado", request.ProveedorPagoSeleccionado),
             new SqlParameter("@IdPlanComercial", request.IdPlanComercial),
         };
-
         DataTable resultado = _conexion.Leer("dbo.usp_Contratacion_CrearPendiente", parametros);
-
         if (resultado.Rows.Count != 1)
         {
             throw new InvalidOperationException("No fue posible iniciar la contratación.");
         }
 
         DataRow fila = resultado.Rows[0];
-
         ContratacionPendiente contratacion = new ContratacionPendiente(Convert.ToInt32(fila["IdContratacion"]), Convert.ToInt32(fila["IdPlanComercial"]), Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty, Convert.ToString(fila["ReferenciaOperacion"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty);
         return contratacion;
     }
@@ -53,13 +48,13 @@ public sealed class MPPContratacion
         {
             new SqlParameter("@ReferenciaContratacion", contratacionServicio.ReferenciaContratacion),
         };
-
         DataTable resultado = _conexion.Leer("dbo.usp_Contratacion_ConsultarEstado", parametros);
-
-        if (resultado.Rows.Count != 1){ throw new KeyNotFoundException("No existe una contratación con la referencia indicada."); }
+        if (resultado.Rows.Count != 1)
+        {
+            throw new KeyNotFoundException("No existe una contratación con la referencia indicada.");
+        }
 
         DataRow fila = resultado.Rows[0];
-
         EstadoContratacionPersistido estado = new EstadoContratacionPersistido(Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty, Convert.ToString(fila["EstadoContratacion"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty, Convert.ToString(fila["ProveedorPagoSeleccionado"]) ?? string.Empty, fila["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAgencia"]), fila["IdUsuario"] == DBNull.Value ? null : Convert.ToInt32(fila["IdUsuario"]));
         return estado;
     }
@@ -70,16 +65,13 @@ public sealed class MPPContratacion
         {
             new SqlParameter("@ReferenciaContratacion", contratacionServicio.ReferenciaContratacion),
         };
-
         DataTable resultado = _conexion.Leer("dbo.usp_Contratacion_ConsultarParaRegistro", parametros);
-
         if (resultado.Rows.Count != 1)
         {
             throw new KeyNotFoundException("No existe una contratación aprobada disponible para registrar la agencia.");
         }
 
         DataRow fila = resultado.Rows[0];
-
         ContratacionServicio contratacion = new ContratacionServicio();
         contratacion.ID = Convert.ToInt32(fila["ID"]);
         contratacion.IdAgencia = fila["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAgencia"]);
@@ -108,39 +100,14 @@ public sealed class MPPContratacion
             new SqlParameter("@EstadoProveedor", estadoProveedor),
             new SqlParameter("@MensajeRespuesta", mensajeRespuesta),
         };
-
         DataTable resultado = _conexion.Leer("dbo.usp_Contratacion_ActualizarResultadoPago", parametros);
-
         if (resultado.Rows.Count != 1)
         {
             throw new InvalidOperationException("No fue posible actualizar el estado del pago.");
         }
 
         DataRow fila = resultado.Rows[0];
-
         EstadoContratacionPersistido estado = new EstadoContratacionPersistido(Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty, Convert.ToString(fila["EstadoContratacion"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty, Convert.ToString(fila["ProveedorPagoSeleccionado"]) ?? string.Empty, fila["IdAgencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAgencia"]), fila["IdUsuario"] == DBNull.Value ? null : Convert.ToInt32(fila["IdUsuario"]));
         return estado;
     }
-}
-
-public sealed class EstadoContratacionPersistido
-{
-    public EstadoContratacionPersistido(string referenciaContratacion, string estadoContratacion, decimal importe, string moneda, string proveedorPagoSeleccionado, int? idAgencia, int? idUsuario)
-    {
-        ReferenciaContratacion = referenciaContratacion;
-        EstadoContratacion = estadoContratacion;
-        Importe = importe;
-        Moneda = moneda;
-        ProveedorPagoSeleccionado = proveedorPagoSeleccionado;
-        IdAgencia = idAgencia;
-        IdUsuario = idUsuario;
-    }
-
-    public string ReferenciaContratacion { get; set; }
-    public string EstadoContratacion { get; set; }
-    public decimal Importe { get; set; }
-    public string Moneda { get; set; }
-    public string ProveedorPagoSeleccionado { get; set; }
-    public int? IdAgencia { get; set; }
-    public int? IdUsuario { get; set; }
 }

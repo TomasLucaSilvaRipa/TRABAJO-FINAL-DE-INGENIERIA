@@ -34,7 +34,14 @@ public class AuthController : ControllerBase
                 throw new ArgumentException("No fue posible recibir las credenciales de inicio de sesión.");
             }
 
-            EncryptionService.LoginDecryptedData datosLogin = _encryptionService.DesencriptarLogin(request.EncryptedData, request.EncryptedKey, request.Iv);
+            CredencialCifrada credencial = new()
+            {
+                DatosCifrados = request.EncryptedData,
+                ClaveCifrada = request.EncryptedKey,
+                VectorInicializacion = request.Iv,
+                TokenRecaptcha = request.RecaptchaToken
+            };
+            LoginDecryptedData datosLogin = _encryptionService.DesencriptarLogin(credencial);
             Usuario usuario = new Usuario(0, null, new Rol(), string.Empty, string.Empty, datosLogin.Email, datosLogin.Password, string.Empty, DateTime.MinValue, false);
             usuario.RecaptchaToken = request.RecaptchaToken;
 

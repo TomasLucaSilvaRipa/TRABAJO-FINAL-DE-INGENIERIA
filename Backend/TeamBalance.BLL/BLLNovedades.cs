@@ -42,7 +42,7 @@ public sealed class BLLNovedades
         int enviadas = 0;
         foreach (Noticia noticia in _novedadesMPP.PendientesDifusion())
         {
-            foreach ((string email, string nombre) in _novedadesMPP.Destinatarios(noticia)) if (await _emailService.EnviarNewsletter(email, nombre, noticia.Titulo, noticia.Contenido, noticia.Categoria)) enviadas++;
+            foreach (DestinatarioNewsletter destinatario in _novedadesMPP.Destinatarios(noticia)) if (await _emailService.EnviarNewsletter(destinatario, noticia)) enviadas++;
             _novedadesMPP.MarcarDifundida(noticia);
             _bitacoraBLL.Add(new Bitacora(null, null, "Noticia", noticia.ID, "DifundirNewsletter", $"Se procesó la difusión de la novedad '{noticia.Titulo}'.", "Exitoso", "Informacion", "Novedades"));
         }

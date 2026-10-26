@@ -1,5 +1,4 @@
 namespace Teambalance.API.Models;
-
 public class LoginResponse
 {
     public LoginResponse(string accessToken, DateTime expiresAt, UsuarioSesionResponse usuario)
@@ -12,74 +11,4 @@ public class LoginResponse
     public string AccessToken { get; set; }
     public DateTime ExpiresAt { get; set; }
     public UsuarioSesionResponse Usuario { get; set; }
-}
-
-public class UsuarioSesionResponse
-{
-    public UsuarioSesionResponse(int id, int? idAgencia, RolResponse rol, string nombre, string apellido, string email, string? fotoPerfil, List<RolResponse> roles, List<PermisoResponse> permisos)
-    {
-        Id = id;
-        IdAgencia = idAgencia;
-        Rol = rol;
-        Nombre = nombre;
-        Apellido = apellido;
-        Email = email;
-        FotoPerfil = fotoPerfil;
-        Roles = roles;
-        Permisos = permisos;
-    }
-
-    public int Id { get; set; }
-    public int? IdAgencia { get; set; }
-    public RolResponse Rol { get; set; }
-    public string Nombre { get; set; }
-    public string Apellido { get; set; }
-    public string Email { get; set; }
-    public string? FotoPerfil { get; set; }
-    public List<RolResponse> Roles { get; set; }
-    public List<PermisoResponse> Permisos { get; set; }
-}
-
-public class AutorizacionResponse
-{
-    public AutorizacionResponse(UsuarioSesionResponse usuario, List<RolResponse> roles, List<PermisoResponse> permisos)
-    {
-        Usuario = usuario;
-        Roles = roles;
-        Permisos = permisos;
-    }
-
-    public UsuarioSesionResponse Usuario { get; set; }
-    public List<RolResponse> Roles { get; set; }
-    public List<PermisoResponse> Permisos { get; set; }
-}
-
-public class RolResponse
-{
-    public RolResponse(int id, string nombre, string tipoUsuario)
-    {
-        Id = id;
-        Nombre = nombre;
-        TipoUsuario = tipoUsuario;
-    }
-
-    public int Id { get; set; }
-    public string Nombre { get; set; }
-    public string TipoUsuario { get; set; }
-}
-
-public class PermisoResponse
-{
-    public PermisoResponse(int id, string? codigo, string nombre, string? url)
-    {
-        Id = id;
-        Codigo = codigo;
-        Nombre = nombre;
-        Url = url;
-    }
-
-    public int Id { get; set; }
-    public string? Codigo { get; set; }
-    public string Nombre { get; set; }
-    public string? Url { get; set; }
 }

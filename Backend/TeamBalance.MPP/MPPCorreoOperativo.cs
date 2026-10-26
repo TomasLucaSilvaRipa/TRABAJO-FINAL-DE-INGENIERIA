@@ -10,13 +10,13 @@ public class MPPCorreoOperativo
     private readonly Conexion _conexion;
     public MPPCorreoOperativo(Conexion conexion) { _conexion = conexion; }
 
-    public PreferenciaCorreoOperativo ConsultarPreferencia(int idUsuario)
+    public PreferenciaCorreoOperativo ConsultarPreferencia(Usuario usuario)
     {
-        DataTable tabla = _conexion.Leer("dbo.usp_PreferenciaCorreoOperativo_Consultar", new() { new("@IdUsuario", idUsuario) });
+        DataTable tabla = _conexion.Leer("dbo.usp_PreferenciaCorreoOperativo_Consultar", new() { new("@IdUsuario", usuario.ID) });
         DataRow fila = tabla.Rows[0];
         return new PreferenciaCorreoOperativo
         {
-            IdUsuario = idUsuario,
+            IdUsuario = usuario.ID,
             ResumenDiarioActivo = Convert.ToBoolean(fila["ResumenDiarioActivo"]),
             HoraResumenDiario = (TimeSpan)fila["HoraResumenDiario"],
             AlertasDeadlineActivo = Convert.ToBoolean(fila["AlertasDeadlineActivo"]),
@@ -47,9 +47,9 @@ public class MPPCorreoOperativo
         }).ToList();
     }
 
-    public List<TareaResumenCorreo> ConsultarTareas(int idUsuario)
+    public List<TareaResumenCorreo> ConsultarTareas(DestinatarioCorreoOperativo destinatario)
     {
-        DataTable tabla = _conexion.Leer("dbo.usp_CorreoOperativo_ConsultarTareasEmpleado", new() { new("@IdUsuario", idUsuario) });
+        DataTable tabla = _conexion.Leer("dbo.usp_CorreoOperativo_ConsultarTareasEmpleado", new() { new("@IdUsuario", destinatario.IdUsuario) });
         return tabla.Rows.Cast<DataRow>().Select(fila => new TareaResumenCorreo
         {
             IdTarea = Convert.ToInt32(fila["IdTarea"]), Titulo = Convert.ToString(fila["Titulo"]) ?? string.Empty,
@@ -59,9 +59,9 @@ public class MPPCorreoOperativo
         }).ToList();
     }
 
-    public ResumenSemanalCorreo ConsultarResumenSemanal(int idAgencia)
+    public ResumenSemanalCorreo ConsultarResumenSemanal(Agencia agencia)
     {
-        DataRow fila = _conexion.Leer("dbo.usp_CorreoOperativo_ResumenSemanal", new() { new("@IdAgencia", idAgencia) }).Rows[0];
+        DataRow fila = _conexion.Leer("dbo.usp_CorreoOperativo_ResumenSemanal", new() { new("@IdAgencia", agencia.ID) }).Rows[0];
         return new ResumenSemanalCorreo
         {
             ProyectosActivos = Convert.ToInt32(fila["ProyectosActivos"]), TareasActivas = Convert.ToInt32(fila["TareasActivas"]),
@@ -70,23 +70,23 @@ public class MPPCorreoOperativo
         };
     }
 
-    public bool ReservarEnvio(string clave, int idUsuario, int? idAgencia, string tipo)
+    public bool ReservarEnvio(EnvioCorreoOperativo envio)
     {
         DataTable tabla = _conexion.Leer("dbo.usp_CorreoOperativo_ReservarEnvio", new()
         {
-            new("@ClaveEnvio", clave), new("@IdUsuario", idUsuario), new("@IdAgencia", (object?)idAgencia ?? DBNull.Value), new("@Tipo", tipo)
+            new("@ClaveEnvio", envio.Clave), new("@IdUsuario", envio.Destinatario.IdUsuario), new("@IdAgencia", (object?)envio.Destinatario.IdAgencia ?? DBNull.Value), new("@Tipo", envio.Tipo)
         });
         return tabla.Rows.Count == 1 && Convert.ToBoolean(tabla.Rows[0]["Reservado"]);
     }
 
-    public void CompletarEnvio(string clave, bool enviado, string? detalle = null) => _conexion.Escribir("dbo.usp_CorreoOperativo_CompletarEnvio", new()
+    public void CompletarEnvio(EnvioCorreoOperativo envio) => _conexion.Escribir("dbo.usp_CorreoOperativo_CompletarEnvio", new()
     {
-        new("@ClaveEnvio", clave), new("@Enviado", enviado), new("@DetalleError", (object?)detalle ?? DBNull.Value)
+        new("@ClaveEnvio", envio.Clave), new("@Enviado", envio.Enviado), new("@DetalleError", (object?)envio.DetalleError ?? DBNull.Value)
     });
 
-    public void CrearToken(string tokenHash, int idUsuario, int idTarea, string accion, DateTime expiracion) => _conexion.Escribir("dbo.usp_AccionCorreoTarea_Crear", new()
+    public void CrearToken(AccionCorreoTarea accion) => _conexion.Escribir("dbo.usp_AccionCorreoTarea_Crear", new()
     {
-        new("@TokenHash", tokenHash), new("@IdUsuario", idUsuario), new("@IdTarea", idTarea), new("@Accion", accion), new("@FechaExpiracion", expiracion)
+        new("@TokenHash", accion.TokenHash), new("@IdUsuario", accion.IdUsuario), new("@IdTarea", accion.IdTarea), new("@Accion", accion.Accion), new("@FechaExpiracion", accion.FechaExpiracion)
     });
 
     public AccionCorreoTarea? ConsultarAccion(string tokenHash)

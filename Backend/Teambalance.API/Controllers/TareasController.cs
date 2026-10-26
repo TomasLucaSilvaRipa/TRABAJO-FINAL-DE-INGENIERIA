@@ -99,7 +99,7 @@ public class TareasController : ControllerBase
     [HttpGet("{idTarea:int}/asignaciones")]
     public IActionResult ConsultarAsignaciones(int idTarea)
     {
-        try { return Ok(_tareaBLL.ConsultarAsignaciones(idTarea, ValidarSesion())); }
+        try { return Ok(_tareaBLL.ConsultarAsignaciones(new Tarea { ID = idTarea }, ValidarSesion())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }

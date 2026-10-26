@@ -34,7 +34,7 @@ public class BLLAnaliticaOperativa
         ValidarFiltroOcupacion(filtroAplicado);
         List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, filtroAplicado.IdProyecto, filtroAplicado.IdCliente);
         List<Tarea> tareas = contextos.SelectMany(contexto => contexto.Tareas).ToList();
-        List<AsignacionTarea> asignaciones = _asignacionMPP.ConsultarActivas(tareas.Select(tarea => tarea.ID), usuario);
+        List<AsignacionTarea> asignaciones = _asignacionMPP.ConsultarActivas(tareas, usuario);
         List<Empleado> empleados = _analiticaMPP.ConsultarEmpleadosActivos(usuario);
         if (EsPMSinRolDueno(usuario))
         {
@@ -109,7 +109,7 @@ public class BLLAnaliticaOperativa
         // tareas que estén efectivamente asignadas al empleado autenticado.
         List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, null);
         List<Tarea> tareas = contextos.SelectMany(contexto => contexto.Tareas).ToList();
-        List<AsignacionTarea> asignaciones = _asignacionMPP.ConsultarActivas(tareas.Select(tarea => tarea.ID), usuario);
+        List<AsignacionTarea> asignaciones = _asignacionMPP.ConsultarActivas(tareas, usuario);
         List<RegistroHora> registros = contextos.SelectMany(contexto => contexto.Registros).ToList();
         List<AusenciaEmpleado> ausencias = _recursosMPP.ConsultarAusenciasEmpleado(empleado, usuario);
         FiltroOcupacionOperativa filtro = new FiltroOcupacionOperativa();
@@ -146,7 +146,7 @@ public class BLLAnaliticaOperativa
         OcupacionEmpleado empleado = analisis.Empleados.FirstOrDefault(item => item.IdEmpleado == filtro.IdEmpleado.Value) ?? throw new KeyNotFoundException("No se encontró el empleado dentro de los filtros seleccionados.");
         List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, filtro.IdProyecto, filtro.IdCliente);
         List<Tarea> tareas = contextos.SelectMany(contexto => contexto.Tareas).ToList();
-        List<AsignacionTarea> asignaciones = _asignacionMPP.ConsultarActivas(tareas.Select(tarea => tarea.ID), usuario);
+        List<AsignacionTarea> asignaciones = _asignacionMPP.ConsultarActivas(tareas, usuario);
         List<RegistroHora> registros = contextos.SelectMany(contexto => contexto.Registros).ToList();
         Empleado empleadoBase = _analiticaMPP.ConsultarEmpleadosActivos(usuario).First(item => item.ID == empleado.IdEmpleado);
         (DateTime desde, DateTime hasta) = _motorCargaOperativa.ObtenerPeriodo(filtro);
@@ -194,8 +194,8 @@ public class BLLAnaliticaOperativa
         solicitud.CausaPrincipal = detalle.Empleado.CausaPrincipal;
         solicitud.AccionSugerida = detalle.Empleado.AccionSugerida;
         solicitud.ID = _analiticaMPP.RegistrarSolicitudRevision(solicitud);
-        DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(solicitud.IdPMResponsable);
-        bool correoEnviado = destinatario is not null && await _emailService.EnviarCorreoSolicitudRevisionOperativa(destinatario.Email, destinatario.Nombre, detalle.Empleado.Nombre, tarea.NombreProyecto, solicitud.CausaPrincipal, solicitud.AccionSugerida);
+        DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(new PM { ID = solicitud.IdPMResponsable });
+        bool correoEnviado = destinatario is not null && await _emailService.EnviarCorreoSolicitudRevisionOperativa(new SolicitudRevisionCorreo { Destinatario = destinatario, NombreEmpleado = detalle.Empleado.Nombre, NombreProyecto = tarea.NombreProyecto, CausaPrincipal = solicitud.CausaPrincipal, AccionSugerida = solicitud.AccionSugerida });
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "SolicitudRevisionOperativa", solicitud.ID, "SolicitarRevisionOperativa", "Se derivó una revisión operativa del empleado '" + detalle.Empleado.Nombre + "' al PM responsable.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia", "Proyectos"));
     }
 
@@ -203,37 +203,37 @@ public class BLLAnaliticaOperativa
     {
         ValidarPMODueno(usuario);
         if (!EsPMSinRolDueno(usuario)) { throw new UnauthorizedAccessException("Las revisiones pendientes se consultan desde la cuenta del PM responsable."); }
-        int idPM = _analiticaMPP.ConsultarIdPM(usuario);
-        List<RevisionOperativaPendiente> solicitudes = _analiticaMPP.ConsultarSolicitudesPendientes(usuario, idPM)
+        PM pm = new() { ID = _analiticaMPP.ConsultarIdPM(usuario) };
+        List<RevisionOperativaPendiente> solicitudes = _analiticaMPP.ConsultarSolicitudesPendientes(usuario, pm)
             .Select(solicitud => new RevisionOperativaPendiente(solicitud.ID, "Asignacion", null, string.Empty, solicitud.NombreEmpleado, solicitud.NombreProyecto, solicitud.CausaPrincipal, solicitud.AccionSugerida, solicitud.Estado, solicitud.FechaAlta)).ToList();
-        solicitudes.AddRange(_analiticaMPP.ConsultarSolicitudesRevisionConvenienciaPendientes(usuario, idPM)
+        solicitudes.AddRange(_analiticaMPP.ConsultarSolicitudesRevisionConvenienciaPendientes(usuario, pm)
             .Select(solicitud => new RevisionOperativaPendiente(solicitud.ID, "ConvenienciaCliente", solicitud.IdCliente, solicitud.NombreCliente, "Conveniencia del cliente", "Todos los proyectos a cargo", solicitud.CausaPrincipal, solicitud.AccionSugerida, solicitud.Estado, solicitud.FechaAlta)));
-        solicitudes.AddRange(_analiticaMPP.ConsultarSolicitudesRevisionGestionPendientes(usuario, idPM)
+        solicitudes.AddRange(_analiticaMPP.ConsultarSolicitudesRevisionGestionPendientes(usuario, pm)
             .Select(solicitud => new RevisionOperativaPendiente(solicitud.ID, solicitud.Tipo, null, string.Empty, solicitud.TituloTarea ?? solicitud.NombreProyecto, solicitud.NombreProyecto, solicitud.CausaPrincipal, solicitud.AccionSugerida, solicitud.Estado, solicitud.FechaAlta)));
         return solicitudes.OrderByDescending(solicitud => solicitud.FechaAlta).ToList();
     }
 
-    public void MarcarSolicitudRevisionResuelta(Usuario usuario, int idSolicitud, string? tipo)
+    public void MarcarSolicitudRevisionResuelta(Usuario usuario, RevisionOperativaPendiente revision)
     {
         ValidarPMODueno(usuario);
         if (!EsPMSinRolDueno(usuario)) { throw new UnauthorizedAccessException("Sólo el PM responsable puede resolver sus solicitudes de revisión."); }
-        if (idSolicitud <= 0) { throw new ArgumentException("La solicitud de revisión seleccionada no es válida."); }
-        int idPM = _analiticaMPP.ConsultarIdPM(usuario);
-        bool esRevisionConveniencia = string.Equals(tipo, "ConvenienciaCliente", StringComparison.OrdinalIgnoreCase);
-        bool esRevisionGestion = string.Equals(tipo, "ControlHoras", StringComparison.OrdinalIgnoreCase) || string.Equals(tipo, "RiesgoRetraso", StringComparison.OrdinalIgnoreCase);
-        if (!string.IsNullOrWhiteSpace(tipo) && !esRevisionConveniencia && !esRevisionGestion && !string.Equals(tipo, "Asignacion", StringComparison.OrdinalIgnoreCase)) { throw new ArgumentException("El tipo de revisión seleccionado no es válido."); }
+        if (revision.ID <= 0) { throw new ArgumentException("La solicitud de revisión seleccionada no es válida."); }
+        PM pm = new() { ID = _analiticaMPP.ConsultarIdPM(usuario) };
+        bool esRevisionConveniencia = string.Equals(revision.Tipo, "ConvenienciaCliente", StringComparison.OrdinalIgnoreCase);
+        bool esRevisionGestion = string.Equals(revision.Tipo, "ControlHoras", StringComparison.OrdinalIgnoreCase) || string.Equals(revision.Tipo, "RiesgoRetraso", StringComparison.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(revision.Tipo) && !esRevisionConveniencia && !esRevisionGestion && !string.Equals(revision.Tipo, "Asignacion", StringComparison.OrdinalIgnoreCase)) { throw new ArgumentException("El tipo de revisión seleccionado no es válido."); }
         bool actualizada = esRevisionConveniencia
-            ? _analiticaMPP.MarcarSolicitudRevisionConvenienciaResuelta(usuario, idPM, idSolicitud)
+            ? _analiticaMPP.MarcarSolicitudRevisionConvenienciaResuelta(usuario, pm, new SolicitudRevisionConveniencia { ID = revision.ID })
             : esRevisionGestion
-                ? _analiticaMPP.MarcarSolicitudRevisionGestionResuelta(usuario, idPM, idSolicitud)
-                : _analiticaMPP.MarcarSolicitudRevisionResuelta(usuario, idPM, idSolicitud);
+                ? _analiticaMPP.MarcarSolicitudRevisionGestionResuelta(usuario, pm, new SolicitudRevisionGestion { ID = revision.ID })
+                : _analiticaMPP.MarcarSolicitudRevisionResuelta(usuario, pm, new SolicitudRevisionOperativa { ID = revision.ID });
         if (!actualizada)
         {
             throw new KeyNotFoundException("La solicitud no existe, no te corresponde o ya fue resuelta.");
         }
         string entidad = esRevisionConveniencia ? "SolicitudRevisionConveniencia" : esRevisionGestion ? "SolicitudRevisionGestion" : "SolicitudRevisionOperativa";
         string descripcion = esRevisionConveniencia ? "El PM responsable resolvió una revisión de conveniencia de cliente." : esRevisionGestion ? "El PM responsable resolvió una revisión de gestión operativa." : "El PM responsable marcó como resuelta una solicitud de revisión operativa.";
-        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, entidad, idSolicitud, "MarcarSolicitudRevisionResuelta", descripcion, "Exitoso", "Informacion", "Proyectos"));
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, entidad, revision.ID, "MarcarSolicitudRevisionResuelta", descripcion, "Exitoso", "Informacion", "Proyectos"));
     }
 
     public AnalisisDesvioHoras ConsultarDesvioHoras(Usuario usuario, FiltroDesvioHoras? filtro = null)
@@ -292,16 +292,12 @@ public class BLLAnaliticaOperativa
         return resultado;
     }
 
-    public DetalleDesvioHorasTarea ConsultarDetalleDesvioHorasTarea(Usuario usuario, int idProyecto, int idTarea, DateTime? desde, DateTime? hasta)
+    public DetalleDesvioHorasTarea ConsultarDetalleDesvioHorasTarea(Usuario usuario, FiltroDesvioHoras filtro)
     {
         ValidarPMODueno(usuario);
-        FiltroDesvioHoras filtro = new FiltroDesvioHoras();
-        filtro.IdProyecto = idProyecto;
-        filtro.Desde = desde;
-        filtro.Hasta = hasta;
         ValidarFiltroDesvio(filtro);
-        ContextoProyectoAnalitico contexto = ConsultarContextos(usuario, idProyecto).FirstOrDefault() ?? throw new KeyNotFoundException("No existe el proyecto solicitado o no tenés acceso a él.");
-        Tarea tarea = contexto.Tareas.FirstOrDefault(item => item.ID == idTarea && item.Activo) ?? throw new KeyNotFoundException("La tarea seleccionada no pertenece al proyecto.");
+        ContextoProyectoAnalitico contexto = ConsultarContextos(usuario, filtro.IdProyecto).FirstOrDefault() ?? throw new KeyNotFoundException("No existe el proyecto solicitado o no tenés acceso a él.");
+        Tarea tarea = contexto.Tareas.FirstOrDefault(item => item.ID == filtro.IdTarea && item.Activo) ?? throw new KeyNotFoundException("La tarea seleccionada no pertenece al proyecto.");
         List<RegistroHora> registros = contexto.Registros.Where(registro => registro.IdTarea == tarea.ID && registro.Activo && CumplePeriodo(registro, filtro)).OrderByDescending(registro => registro.Fecha).ToList();
         DetalleDesvioHorasTarea detalle = new DetalleDesvioHorasTarea();
         detalle.IdProyecto = contexto.Proyecto.ID;
@@ -332,7 +328,7 @@ public class BLLAnaliticaOperativa
         Tarea? tarea = null;
         if (accion.IdTarea.HasValue)
         {
-            ConsultarDetalleDesvioHorasTarea(usuario, accion.IdProyecto, accion.IdTarea.Value, null, null);
+            ConsultarDetalleDesvioHorasTarea(usuario, new FiltroDesvioHoras { IdProyecto = accion.IdProyecto, IdTarea = accion.IdTarea });
             tarea = contexto.Tareas.FirstOrDefault(item => item.ID == accion.IdTarea.Value);
         }
         SolicitudRevisionGestion solicitud = new SolicitudRevisionGestion
@@ -342,8 +338,8 @@ public class BLLAnaliticaOperativa
             Tipo = "ControlHoras", CausaPrincipal = "Se registró un ajuste para el control de horas.", AccionSugerida = accion.Observacion.Trim()
         };
         solicitud.ID = _analiticaMPP.RegistrarSolicitudRevisionGestion(solicitud);
-        DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(solicitud.IdPMResponsable);
-        bool correoEnviado = destinatario is not null && !string.IsNullOrWhiteSpace(destinatario.Email) && await _emailService.EnviarCorreoSolicitudRevisionGestion(destinatario.Email, destinatario.Nombre, "control de horas", contexto.Proyecto.Nombre, tarea?.Titulo, solicitud.CausaPrincipal, solicitud.AccionSugerida);
+        DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(new PM { ID = solicitud.IdPMResponsable });
+        bool correoEnviado = destinatario is not null && !string.IsNullOrWhiteSpace(destinatario.Email) && await _emailService.EnviarCorreoSolicitudRevisionGestion(new SolicitudRevisionCorreo { Destinatario = destinatario, Tipo = "control de horas", NombreProyecto = contexto.Proyecto.Nombre, TituloTarea = tarea?.Titulo, CausaPrincipal = solicitud.CausaPrincipal, AccionSugerida = solicitud.AccionSugerida });
         string entidad = accion.IdTarea.HasValue ? "Tarea" : "Proyecto";
         int idEntidad = accion.IdTarea ?? accion.IdProyecto;
         string resultado = correoEnviado ? "Exitoso" : "Parcial";
@@ -365,7 +361,7 @@ public class BLLAnaliticaOperativa
         int enviados = 0;
         foreach (DestinatarioDesvioHoras destinatario in destinatarios)
         {
-            if (await _emailService.EnviarCorreoDesvioHoras(destinatario.Email, destinatario.Nombre, proyecto.NombreProyecto, proyecto.HorasEstimadas, proyecto.HorasReales, proyecto.DesvioHoras, proyecto.PorcentajeConsumo, tareas)) { enviados++; }
+            if (await _emailService.EnviarCorreoDesvioHoras(destinatario, proyecto, tareas)) { enviados++; }
         }
         string resultado = enviados == destinatarios.Count ? "Exitoso" : enviados > 0 ? "Parcial" : "Fallido";
         string criticidad = enviados == destinatarios.Count ? "Informacion" : "Advertencia";
@@ -407,12 +403,12 @@ public class BLLAnaliticaOperativa
         return resultado;
     }
 
-    public DetalleConvenienciaOperativa ConsultarDetalleConveniencia(Usuario usuario, int idProyecto, FiltroConvenienciaOperativa? filtro = null)
+    public DetalleConvenienciaOperativa ConsultarDetalleConveniencia(Usuario usuario, FiltroConvenienciaOperativa? filtro = null)
     {
         ValidarDueno(usuario);
-        if (idProyecto <= 0) { throw new ArgumentException("Seleccioná un proyecto para consultar su composición de costo."); }
         FiltroConvenienciaOperativa filtroAplicado = filtro ?? new FiltroConvenienciaOperativa();
-        filtroAplicado.IdProyecto = idProyecto;
+        int idProyecto = filtroAplicado.IdProyecto ?? 0;
+        if (idProyecto <= 0) { throw new ArgumentException("Seleccioná un proyecto para consultar su composición de costo."); }
         ValidarFiltroConveniencia(filtroAplicado);
         ContextoProyectoAnalitico contexto = ConsultarContextos(usuario, idProyecto, filtroAplicado.IdCliente).FirstOrDefault()
             ?? throw new KeyNotFoundException("No existe el proyecto solicitado o no tenés acceso a él.");
@@ -429,7 +425,7 @@ public class BLLAnaliticaOperativa
         {
             Proyecto = proyecto,
             ComposicionCosto = composicion.OrderByDescending(item => item.CostoReal).ThenByDescending(item => item.CostoPlanificado).ToList(),
-            Seguimientos = _analiticaMPP.ConsultarSeguimientosConveniencia(usuario, contexto.Proyecto.IdCliente, contexto.Proyecto.ID)
+            Seguimientos = _analiticaMPP.ConsultarSeguimientosConveniencia(usuario, new Cliente { ID = contexto.Proyecto.IdCliente }, contexto.Proyecto)
         };
     }
 
@@ -446,13 +442,14 @@ public class BLLAnaliticaOperativa
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "SeguimientoConvenienciaOperativa", idSeguimiento, "RegistrarSeguimientoConveniencia", "Se registró un seguimiento de conveniencia operativa.", "Exitoso", "Informacion", "Proyectos"));
     }
 
-    public async Task<string> MarcarClienteRevisionConveniencia(Usuario usuario, int idCliente)
+    public async Task<string> MarcarClienteRevisionConveniencia(Usuario usuario, Cliente cliente)
     {
         ValidarDueno(usuario);
+        int idCliente = cliente.ID;
         if (idCliente <= 0) { throw new ArgumentException("Seleccioná un cliente para marcarlo en revisión."); }
         List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, null, idCliente);
         if (!contextos.Any()) { throw new KeyNotFoundException("El cliente seleccionado no pertenece a tu agencia."); }
-        _analiticaMPP.MarcarClienteRevisionConveniencia(usuario, idCliente);
+        _analiticaMPP.MarcarClienteRevisionConveniencia(usuario, cliente);
         string nombreCliente = contextos[0].Proyecto.NombreCliente ?? string.Empty;
         string causa = "El cliente '" + nombreCliente + "' fue marcado para una revisión de conveniencia operativa.";
         string accion = "Revisar los costos planificados, reales y la composición de los proyectos a cargo.";
@@ -469,8 +466,8 @@ public class BLLAnaliticaOperativa
             (int idSolicitud, bool creada) = _analiticaMPP.RegistrarSolicitudRevisionConveniencia(solicitud);
             if (!creada) { continue; }
             creadas++;
-            DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(grupoPM.Key);
-            if (destinatario is not null && await _emailService.EnviarCorreoRevisionConveniencia(destinatario.Email, destinatario.Nombre, nombreCliente, grupoPM.Select(contexto => contexto.Proyecto.Nombre).Distinct().ToList(), causa, accion)) { correosEnviados++; }
+            DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(new PM { ID = grupoPM.Key });
+            if (destinatario is not null && await _emailService.EnviarCorreoRevisionConveniencia(new RevisionConvenienciaCorreo { Destinatario = destinatario, NombreCliente = nombreCliente, Proyectos = grupoPM.Select(contexto => contexto.Proyecto.Nombre).Distinct().ToList(), CausaPrincipal = causa, AccionSugerida = accion })) { correosEnviados++; }
         }
         string resultado = creadas == 0 ? "Sin cambios" : correosEnviados == creadas ? "Exitoso" : "Parcial";
         string detalle = creadas == 0
@@ -554,8 +551,8 @@ public class BLLAnaliticaOperativa
             AccionSugerida = nuevaSolicitud.Observacion.Trim()
         };
         solicitud.ID = _analiticaMPP.RegistrarSolicitudRevision(solicitud);
-        DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(solicitud.IdPMResponsable);
-        bool correoEnviado = destinatario is not null && await _emailService.EnviarCorreoSolicitudRevisionOperativa(destinatario.Email, destinatario.Nombre, detalle.EmpleadoAsignado, detalle.NombreProyecto, solicitud.CausaPrincipal, solicitud.AccionSugerida);
+        DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(new PM { ID = solicitud.IdPMResponsable });
+        bool correoEnviado = destinatario is not null && await _emailService.EnviarCorreoSolicitudRevisionOperativa(new SolicitudRevisionCorreo { Destinatario = destinatario, NombreEmpleado = detalle.EmpleadoAsignado, NombreProyecto = detalle.NombreProyecto, CausaPrincipal = solicitud.CausaPrincipal, AccionSugerida = solicitud.AccionSugerida });
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "SolicitudRevisionOperativa", solicitud.ID, "SolicitarRevisionSobrecalificacion", $"Se derivó al PM la revisión de una asignación sobrecalificada de '{detalle.EmpleadoAsignado}' en la tarea '{detalle.Titulo}'.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia", "Proyectos"));
     }
 
@@ -579,7 +576,7 @@ public class BLLAnaliticaOperativa
 
     private List<AsignacionTarea> ConsultarAsignacionesActivas(IEnumerable<ContextoProyectoAnalitico> contextos, Usuario usuario)
     {
-        return _asignacionMPP.ConsultarActivas(contextos.SelectMany(contexto => contexto.Tareas).Select(tarea => tarea.ID), usuario);
+        return _asignacionMPP.ConsultarActivas(contextos.SelectMany(contexto => contexto.Tareas), usuario);
     }
 
     private static List<AsignacionTarea> ObtenerDistribucionTarea(Tarea tarea, IEnumerable<AsignacionTarea> asignaciones)
@@ -922,11 +919,4 @@ public class BLLAnaliticaOperativa
         return "Junior";
     }
 
-    private sealed class ContextoProyectoAnalitico
-    {
-        public Proyecto Proyecto { get; set; } = new Proyecto();
-        public List<Tarea> Tareas { get; set; } = new List<Tarea>();
-        public List<RegistroHora> Registros { get; set; } = new List<RegistroHora>();
-        public List<Empleado> Equipo { get; set; } = new List<Empleado>();
-    }
 }

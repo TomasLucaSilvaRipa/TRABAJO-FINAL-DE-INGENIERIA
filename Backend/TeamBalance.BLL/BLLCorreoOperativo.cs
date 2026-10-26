@@ -21,7 +21,7 @@ public class BLLCorreoOperativo
         _correoMPP = correoMPP; _usuarioMPP = usuarioMPP; _rolBLL = rolBLL; _tareaBLL = tareaBLL; _bitacoraBLL = bitacoraBLL; _emailService = emailService;
     }
 
-    public PreferenciaCorreoOperativo ConsultarPreferencia(Usuario usuario) => _correoMPP.ConsultarPreferencia(usuario.ID);
+    public PreferenciaCorreoOperativo ConsultarPreferencia(Usuario usuario) => _correoMPP.ConsultarPreferencia(usuario);
 
     public PreferenciaCorreoOperativo GuardarPreferencia(PreferenciaCorreoOperativo preferencia, Usuario usuario)
     {
@@ -29,7 +29,7 @@ public class BLLCorreoOperativo
         preferencia.IdUsuario = usuario.ID;
         _correoMPP.GuardarPreferencia(preferencia);
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "PreferenciaCorreoOperativo", usuario.ID, "ModificarPreferenciasCorreo", "Se actualizaron las preferencias de correos operativos.", "Exitoso", "Informacion", "Seguridad"));
-        return _correoMPP.ConsultarPreferencia(usuario.ID);
+        return _correoMPP.ConsultarPreferencia(usuario);
     }
 
     public AccionCorreoTarea ConsultarAccion(string token)
@@ -44,7 +44,7 @@ public class BLLCorreoOperativo
         string hash = Hash(token);
         AccionCorreoTarea accion = _correoMPP.ConsultarAccion(hash) ?? throw new ArgumentException("El enlace no existe o ya no está disponible.");
         if (!accion.Disponible || accion.FechaExpiracion < DateTime.Now) throw new ArgumentException("El enlace venció o ya fue utilizado.");
-        Usuario usuario = _usuarioMPP.ConsultarUsuarioPorId(accion.IdUsuario) ?? throw new ArgumentException("La cuenta asociada al enlace ya no está disponible.");
+        Usuario usuario = _usuarioMPP.ConsultarUsuarioPorId(new Usuario { ID = accion.IdUsuario }) ?? throw new ArgumentException("La cuenta asociada al enlace ya no está disponible.");
         _rolBLL.CargarAutorizacion(usuario);
         _tareaBLL.CambiarEstadoPropio(new Tarea { ID = accion.IdTarea, Estado = accion.Accion }, usuario);
         if (!_correoMPP.MarcarAccionUsada(hash)) throw new InvalidOperationException("El estado se actualizó, pero no se pudo cerrar el enlace. Recargá la página antes de volver a intentarlo.");
@@ -77,32 +77,38 @@ public class BLLCorreoOperativo
     private async Task<int> EnviarResumenDiario(DestinatarioCorreoOperativo destinatario, DateTime ahora)
     {
         string clave = $"resumen-diario:{destinatario.IdUsuario}:{ahora:yyyyMMdd}";
-        if (!_correoMPP.ReservarEnvio(clave, destinatario.IdUsuario, destinatario.IdAgencia, "ResumenDiario")) return 0;
+        EnvioCorreoOperativo envio = new() { Clave = clave, Destinatario = destinatario, Tipo = "ResumenDiario" };
+        if (!_correoMPP.ReservarEnvio(envio)) return 0;
         try
         {
-            List<TareaResumenCorreo> tareas = _correoMPP.ConsultarTareas(destinatario.IdUsuario);
-            if (tareas.Count == 0) { _correoMPP.CompletarEnvio(clave, true); return 0; }
+            List<TareaResumenCorreo> tareas = _correoMPP.ConsultarTareas(destinatario);
+            if (tareas.Count == 0) { envio.Enviado = true; _correoMPP.CompletarEnvio(envio); return 0; }
             foreach (TareaResumenCorreo tarea in tareas)
             {
                 tarea.TokenEnProgreso = CrearToken(destinatario.IdUsuario, tarea.IdTarea, "En progreso", ahora.AddHours(36));
                 tarea.TokenFinalizada = CrearToken(destinatario.IdUsuario, tarea.IdTarea, "Finalizada", ahora.AddHours(36));
             }
-            bool enviado = await _emailService.EnviarResumenDiarioTareas(destinatario.Email, destinatario.Nombre, tareas);
-            _correoMPP.CompletarEnvio(clave, enviado, enviado ? null : "El proveedor SMTP no confirmó el envío.");
+            bool enviado = await _emailService.EnviarResumenDiarioTareas(destinatario, tareas);
+            envio.Enviado = enviado;
+            envio.DetalleError = enviado ? null : "El proveedor SMTP no confirmó el envío.";
+            _correoMPP.CompletarEnvio(envio);
             return enviado ? 1 : 0;
         }
-        catch (Exception ex) { _correoMPP.CompletarEnvio(clave, false, ex.Message); return 0; }
+        catch (Exception ex) { envio.Enviado = false; envio.DetalleError = ex.Message; _correoMPP.CompletarEnvio(envio); return 0; }
     }
 
     private async Task<int> EnviarAlertasDeadline(DestinatarioCorreoOperativo destinatario, DateTime ahora)
     {
-        List<TareaResumenCorreo> tareas = _correoMPP.ConsultarTareas(destinatario.IdUsuario)
+        List<TareaResumenCorreo> tareas = _correoMPP.ConsultarTareas(destinatario)
             .Where(tarea => tarea.Deadline.HasValue && tarea.Deadline.Value.Date >= ahora.Date && tarea.Deadline.Value.Date <= ahora.Date.AddDays(2)).ToList();
         if (tareas.Count == 0) return 0;
         string clave = $"alerta-deadline:{destinatario.IdUsuario}:{ahora:yyyyMMdd}";
-        if (!_correoMPP.ReservarEnvio(clave, destinatario.IdUsuario, destinatario.IdAgencia, "AlertaDeadline")) return 0;
-        bool enviado = await _emailService.EnviarAlertaDeadline(destinatario.Email, destinatario.Nombre, tareas);
-        _correoMPP.CompletarEnvio(clave, enviado, enviado ? null : "El proveedor SMTP no confirmó el envío.");
+        EnvioCorreoOperativo envio = new() { Clave = clave, Destinatario = destinatario, Tipo = "AlertaDeadline" };
+        if (!_correoMPP.ReservarEnvio(envio)) return 0;
+        bool enviado = await _emailService.EnviarAlertaDeadline(destinatario, tareas);
+        envio.Enviado = enviado;
+        envio.DetalleError = enviado ? null : "El proveedor SMTP no confirmó el envío.";
+        _correoMPP.CompletarEnvio(envio);
         return enviado ? 1 : 0;
     }
 
@@ -110,21 +116,31 @@ public class BLLCorreoOperativo
     {
         int semana = ISOWeek.GetWeekOfYear(ahora);
         string clave = $"resumen-semanal:{destinatario.IdUsuario}:{ISOWeek.GetYear(ahora)}-{semana:00}";
-        if (!_correoMPP.ReservarEnvio(clave, destinatario.IdUsuario, destinatario.IdAgencia, "ResumenSemanal")) return 0;
+        EnvioCorreoOperativo envio = new() { Clave = clave, Destinatario = destinatario, Tipo = "ResumenSemanal" };
+        if (!_correoMPP.ReservarEnvio(envio)) return 0;
         try
         {
-            ResumenSemanalCorreo resumen = _correoMPP.ConsultarResumenSemanal(destinatario.IdAgencia!.Value);
-            bool enviado = await _emailService.EnviarResumenSemanalAgencia(destinatario.Email, destinatario.Nombre, resumen);
-            _correoMPP.CompletarEnvio(clave, enviado, enviado ? null : "El proveedor SMTP no confirmó el envío.");
+            ResumenSemanalCorreo resumen = _correoMPP.ConsultarResumenSemanal(new Agencia { ID = destinatario.IdAgencia!.Value });
+            bool enviado = await _emailService.EnviarResumenSemanalAgencia(destinatario, resumen);
+            envio.Enviado = enviado;
+            envio.DetalleError = enviado ? null : "El proveedor SMTP no confirmó el envío.";
+            _correoMPP.CompletarEnvio(envio);
             return enviado ? 1 : 0;
         }
-        catch (Exception ex) { _correoMPP.CompletarEnvio(clave, false, ex.Message); return 0; }
+        catch (Exception ex) { envio.Enviado = false; envio.DetalleError = ex.Message; _correoMPP.CompletarEnvio(envio); return 0; }
     }
 
     private string CrearToken(int idUsuario, int idTarea, string accion, DateTime expiracion)
     {
         string token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
-        _correoMPP.CrearToken(Hash(token), idUsuario, idTarea, accion, expiracion);
+        _correoMPP.CrearToken(new AccionCorreoTarea
+        {
+            TokenHash = Hash(token),
+            IdUsuario = idUsuario,
+            IdTarea = idTarea,
+            Accion = accion,
+            FechaExpiracion = expiracion
+        });
         return token;
     }
 

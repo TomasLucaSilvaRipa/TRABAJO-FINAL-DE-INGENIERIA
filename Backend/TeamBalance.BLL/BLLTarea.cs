@@ -153,12 +153,12 @@ public class BLLTarea
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
-    public List<AsignacionTarea> ConsultarAsignaciones(int idTarea, Usuario usuario)
+    public List<AsignacionTarea> ConsultarAsignaciones(Tarea tareaSolicitada, Usuario usuario)
     {
         ValidarGestionTareas(usuario);
         List<Tarea> tareasGestionables = _tareaMPP.ConsultarPorPM(usuario);
-        Tarea? tarea = tareasGestionables.FirstOrDefault(item => item.ID == idTarea && item.Activo);
-        if (idTarea <= 0 || tarea is null)
+        Tarea? tarea = tareasGestionables.FirstOrDefault(item => item.ID == tareaSolicitada.ID && item.Activo);
+        if (tareaSolicitada.ID <= 0 || tarea is null)
         {
             throw new ArgumentException("La tarea no existe o no pertenece a uno de tus proyectos.");
         }
@@ -203,7 +203,7 @@ public class BLLTarea
             throw new ArgumentException("Indicá horas estimadas mayores a cero para distribuir el trabajo entre los empleados.");
         }
 
-        List<Empleado> capacidades = _asignacionMPP.ConsultarCapacidades(porEmpleado.Keys, usuario);
+        List<Empleado> capacidades = _asignacionMPP.ConsultarCapacidades(porEmpleado.Keys.Select(id => new Empleado { ID = id }), usuario);
         if (capacidades.Count != porEmpleado.Count)
         {
             throw new ArgumentException("Uno de los empleados asignados no está activo o no pertenece a la agencia.");

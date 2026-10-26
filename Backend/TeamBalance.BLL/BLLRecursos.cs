@@ -188,12 +188,12 @@ public class BLLRecursos
         return _recursosMPP.ConsultarCalendarioEquipo(consulta, solicitante);
     }
 
-    public List<PuntoRendimientoEmpleado> ConsultarRendimientoEmpleado(int idUsuarioEmpleado, int meses, Usuario solicitante)
+    public List<PuntoRendimientoEmpleado> ConsultarRendimientoEmpleado(ConsultaRendimientoEmpleado consulta, Usuario solicitante)
     {
         ValidarGestorDisponibilidad(solicitante);
-        if (idUsuarioEmpleado <= 0) { throw new ArgumentException("Seleccioná un empleado válido."); }
-        if (meses != 3 && meses != 6 && meses != 12) { throw new ArgumentException("El período debe ser de 3, 6 o 12 meses."); }
-        return _recursosMPP.ConsultarRendimientoEmpleado(idUsuarioEmpleado, meses, solicitante);
+        if (consulta.Empleado.ID <= 0) { throw new ArgumentException("Seleccioná un empleado válido."); }
+        if (consulta.Meses != 3 && consulta.Meses != 6 && consulta.Meses != 12) { throw new ArgumentException("El período debe ser de 3, 6 o 12 meses."); }
+        return _recursosMPP.ConsultarRendimientoEmpleado(consulta, solicitante);
     }
 
     public ResultadoGestionDisponibilidad AprobarAusencia(ResolucionAusenciaEmpleado resolucion, Usuario solicitante)

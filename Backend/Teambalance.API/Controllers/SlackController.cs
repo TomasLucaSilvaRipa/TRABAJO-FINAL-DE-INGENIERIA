@@ -54,7 +54,11 @@ public sealed class SlackController : ControllerBase
     {
         try
         {
-            _slackBLL.VincularUsuario(idUsuario, slackUserId, ObtenerSolicitante());
+            _slackBLL.VincularUsuario(new VinculacionSlack
+            {
+                Usuario = new TeamBalance.BE.Entidades.Usuario { ID = idUsuario },
+                IdUsuarioSlack = slackUserId
+            }, ObtenerSolicitante());
             return NoContent();
         }
         catch (UnauthorizedAccessException ex)
@@ -96,7 +100,11 @@ public sealed class SlackController : ControllerBase
 
         try
         {
-            string respuesta = _slackBLL.ConsultarBalance(formulario["user_id"].ToString(), formulario["text"].ToString());
+            string respuesta = _slackBLL.ConsultarBalance(new ConsultaSlack
+            {
+                IdUsuarioSlack = formulario["user_id"].ToString(),
+                Texto = formulario["text"].ToString()
+            });
             return Ok(new RespuestaSlack("ephemeral", respuesta));
         }
         catch (UnauthorizedAccessException ex)

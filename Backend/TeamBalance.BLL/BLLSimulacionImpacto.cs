@@ -75,11 +75,11 @@ public class BLLSimulacionImpacto
         catch (Exception ex) { throw new Exception(ex.Message, ex); }
     }
 
-    public List<SimulacionImpacto> ConsultarConservadas(int? idTarea, Usuario usuario)
+    public List<SimulacionImpacto> ConsultarConservadas(Tarea? tarea, Usuario usuario)
     {
         ValidarPermiso(usuario);
-        if (idTarea.HasValue && idTarea.Value <= 0) { throw new ArgumentException("La tarea seleccionada no es válida."); }
-        return _simulacionMPP.ConsultarConservadas(idTarea, usuario);
+        if (tarea is not null && tarea.ID <= 0) { throw new ArgumentException("La tarea seleccionada no es válida."); }
+        return _simulacionMPP.ConsultarConservadas(tarea, usuario);
     }
 
     public SimulacionImpacto Conservar(SimulacionImpacto simulacion, Usuario usuario)

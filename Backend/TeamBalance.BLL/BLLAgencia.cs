@@ -214,7 +214,7 @@ public class BLLAgencia
     {
         if (string.IsNullOrWhiteSpace(tokenGestion)) throw new UnauthorizedAccessException("La sesión de validación no es válida o venció.");
         int? idUsuario = _usuarioMPP.ConsultarUsuarioSesionValidacionRegistro(_seguridad.GenerarHashToken(tokenGestion));
-        Usuario? usuario = idUsuario.HasValue ? _usuarioMPP.ConsultarUsuarioPorId(idUsuario.Value) : null;
+        Usuario? usuario = idUsuario.HasValue ? _usuarioMPP.ConsultarUsuarioPorId(new Usuario { ID = idUsuario.Value }) : null;
         if (usuario is null || !string.Equals(usuario.Estado, "PendienteValidacion", StringComparison.OrdinalIgnoreCase)) throw new UnauthorizedAccessException("La sesión de validación no es válida o venció.");
         return usuario;
     }

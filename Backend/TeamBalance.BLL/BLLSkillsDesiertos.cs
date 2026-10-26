@@ -29,8 +29,9 @@ public class BLLSkillsDesiertos
         return OrdenarRanking(resultados);
     }
 
-    public AnalisisCoberturaSkill ConsultarDetalle(int idSkill, FiltroCoberturaSkill filtro, Usuario usuario)
+    public AnalisisCoberturaSkill ConsultarDetalle(FiltroCoberturaSkill filtro, Usuario usuario)
     {
+        int idSkill = filtro.Skill.ID;
         if (idSkill <= 0) { throw new ArgumentException("Seleccioná una skill válida."); }
         AnalisisCoberturaSkill resultado = AnalizarCobertura(filtro, usuario, false).FirstOrDefault(item => item.IdSkill == idSkill) ?? throw new KeyNotFoundException("La skill no pertenece al alcance seleccionado.");
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Skill", idSkill, "Consultar detalle de cobertura", $"Se consultó el detalle de la skill {resultado.NombreSkill}.", "Exitoso", "Información", "Recursos"));

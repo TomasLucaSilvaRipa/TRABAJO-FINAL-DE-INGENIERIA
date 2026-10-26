@@ -28,7 +28,7 @@ namespace TeamBalance.Services
         {
             string receptor = usuario.Email.Trim().ToLowerInvariant();
             string nombre = string.IsNullOrWhiteSpace(usuario.Nombre) ? "Usuario" : usuario.Nombre.Trim();  
-            string? enlace = CrearEnlace("validar-cuenta", "token", token);
+            string? enlace = CrearEnlace(new EnlaceCorreo { Pagina = "validar-cuenta", Parametro = "token", Token = token });
 
             if (string.IsNullOrWhiteSpace(enlace))
             {
@@ -38,16 +38,16 @@ namespace TeamBalance.Services
             string descripcion = $@"
                 <p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p>
                 <p>Tu agencia fue registrada en TeamBalance. Para habilitar el acceso inicial, confirmá tu correo electrónico.</p>
-                {CrearBoton(enlace, "Confirmar mi correo")}
+                {CrearBoton(new BotonCorreo { Enlace = enlace, Texto = "Confirmar mi correo" })}
                 <p>El enlace estará disponible durante 24 horas.</p>
                 <p>Si no realizaste este registro, podés ignorar este correo.</p>";
 
-            return await EnviarMail("Confirmá tu cuenta de TeamBalance", descripcion, receptor);
+            return await EnviarMail(new CorreoElectronico { Asunto = "Confirmá tu cuenta de TeamBalance", ContenidoHtml = descripcion, Receptor = receptor });
         }
 
         public async Task<bool> EnviarCorreoContinuarRegistro(ContratacionServicio contratacionServicio)
         {
-            string? enlace = CrearEnlace("registrar-agencia", "referencia", contratacionServicio.ReferenciaContratacion);
+            string? enlace = CrearEnlace(new EnlaceCorreo { Pagina = "registrar-agencia", Parametro = "referencia", Token = contratacionServicio.ReferenciaContratacion });
 
             if (string.IsNullOrWhiteSpace(enlace))
             {
@@ -58,15 +58,15 @@ namespace TeamBalance.Services
                 <p>Hola {System.Net.WebUtility.HtmlEncode(contratacionServicio.NombreResponsable)},</p>
                 <p>Confirmamos el pago de tu contratación de TeamBalance.</p>
                 <p>Cuando quieras, podés completar el registro inicial de tu agencia desde este enlace:</p>
-                {CrearBoton(enlace, "Completar registro de mi agencia")}
+                {CrearBoton(new BotonCorreo { Enlace = enlace, Texto = "Completar registro de mi agencia" })}
                 <p>Por seguridad, este enlace sólo funciona mientras la contratación no haya sido utilizada para crear la agencia.</p>";
 
-            return await EnviarMail("Completá el registro de tu agencia en TeamBalance", descripcion, contratacionServicio.EmailLaboralResponsable);
+            return await EnviarMail(new CorreoElectronico { Asunto = "Completá el registro de tu agencia en TeamBalance", ContenidoHtml = descripcion, Receptor = contratacionServicio.EmailLaboralResponsable });
         }
 
-        public async Task<bool> EnviarCorreoRecuperoPassword(string receptor, string nombre, string token)
+        public async Task<bool> EnviarCorreoRecuperoPassword(Usuario usuario, string token)
         {
-            string? enlace = CrearEnlace("restablecer-contrasena", "token", token);
+            string? enlace = CrearEnlace(new EnlaceCorreo { Pagina = "restablecer-contrasena", Parametro = "token", Token = token });
 
             if (string.IsNullOrWhiteSpace(enlace))
             {
@@ -74,122 +74,122 @@ namespace TeamBalance.Services
             }
 
             string descripcion = $@"
-                <p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p>
+                <p>Hola {System.Net.WebUtility.HtmlEncode(usuario.Nombre)},</p>
                 <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta de TeamBalance.</p>
-                {CrearBoton(enlace, "Restablecer mi contraseña")}
+                {CrearBoton(new BotonCorreo { Enlace = enlace, Texto = "Restablecer mi contraseña" })}
                 <p>El enlace estará disponible durante 30 minutos y sólo podrá utilizarse una vez.</p>
                 <p>Si no solicitaste este cambio, podés ignorar este correo.</p>";
 
-            return await EnviarMail("Restablecé tu contraseña de TeamBalance", descripcion, receptor);
+            return await EnviarMail(new CorreoElectronico { Asunto = "Restablecé tu contraseña de TeamBalance", ContenidoHtml = descripcion, Receptor = usuario.Email });
         }
 
-        public async Task<bool> EnviarCorreoPasswordModificada(string receptor, string nombre)
+        public async Task<bool> EnviarCorreoPasswordModificada(Usuario usuario)
         {
             string descripcion = $@"
-                <p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p>
+                <p>Hola {System.Net.WebUtility.HtmlEncode(usuario.Nombre)},</p>
                 <p>La contraseña de tu cuenta de TeamBalance fue modificada correctamente.</p>
                 <p>Por seguridad, cerramos las sesiones activas. Volvé a iniciar sesión con tu nueva contraseña.</p>
                 <p>Si no realizaste este cambio, contactanos de inmediato.</p>";
 
-            return await EnviarMail("Tu contraseña de TeamBalance fue modificada", descripcion, receptor);
+            return await EnviarMail(new CorreoElectronico { Asunto = "Tu contraseña de TeamBalance fue modificada", ContenidoHtml = descripcion, Receptor = usuario.Email });
         }
 
-        public async Task<bool> EnviarCorreoContacto(string nombre, string? organizacion, string email, string mensaje)
+        public async Task<bool> EnviarCorreoContacto(ConsultaContactoPublica consulta)
         {
-            string descripcion = $@"<p><strong>Nombre:</strong> {System.Net.WebUtility.HtmlEncode(nombre)}</p><p><strong>Organización:</strong> {System.Net.WebUtility.HtmlEncode(organizacion ?? "-")}</p><p><strong>Email:</strong> {System.Net.WebUtility.HtmlEncode(email)}</p><p><strong>Consulta:</strong></p><p>{System.Net.WebUtility.HtmlEncode(mensaje).Replace(Environment.NewLine, "<br />")}</p>";
-            return await EnviarMail("Nueva consulta desde el sitio público de TeamBalance", descripcion, emisor ?? string.Empty);
+            string descripcion = $@"<p><strong>Nombre:</strong> {System.Net.WebUtility.HtmlEncode(consulta.Nombre)}</p><p><strong>Organización:</strong> {System.Net.WebUtility.HtmlEncode(consulta.Organizacion ?? "-")}</p><p><strong>Email:</strong> {System.Net.WebUtility.HtmlEncode(consulta.Email)}</p><p><strong>Consulta:</strong></p><p>{System.Net.WebUtility.HtmlEncode(consulta.Mensaje).Replace(Environment.NewLine, "<br />")}</p>";
+            return await EnviarMail(new CorreoElectronico { Asunto = "Nueva consulta desde el sitio público de TeamBalance", ContenidoHtml = descripcion, Receptor = emisor ?? string.Empty });
         }
 
-        public async Task<bool> EnviarRespuestaSoporte(string receptor, string nombre, string asunto, string respuesta)
+        public async Task<bool> EnviarRespuestaSoporte(ConsultaSoporteResumen consulta, EnviarMensajeSoporteRequest respuesta)
         {
-            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p><p>El equipo de Soporte respondió tu consulta <strong>{System.Net.WebUtility.HtmlEncode(asunto)}</strong>:</p><p>{System.Net.WebUtility.HtmlEncode(respuesta).Replace(Environment.NewLine, "<br />")}</p><p>Ingresá a TeamBalance para continuar la conversación o cerrar el ticket.</p>";
-            return await EnviarMail("Respondimos tu consulta de TeamBalance", descripcion, receptor);
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(consulta.NombreSolicitante)},</p><p>El equipo de Soporte respondió tu consulta <strong>{System.Net.WebUtility.HtmlEncode(consulta.Asunto)}</strong>:</p><p>{System.Net.WebUtility.HtmlEncode(respuesta.Mensaje).Replace(Environment.NewLine, "<br />")}</p><p>Ingresá a TeamBalance para continuar la conversación o cerrar el ticket.</p>";
+            return await EnviarMail(new CorreoElectronico { Asunto = "Respondimos tu consulta de TeamBalance", ContenidoHtml = descripcion, Receptor = consulta.EmailSolicitante ?? string.Empty });
         }
 
-        public async Task<bool> EnviarNewsletter(string receptor, string nombre, string titulo, string contenido, string categoria)
+        public async Task<bool> EnviarNewsletter(DestinatarioNewsletter destinatario, Noticia noticia)
         {
-            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p><p><strong>{System.Net.WebUtility.HtmlEncode(categoria)}</strong></p><h2>{System.Net.WebUtility.HtmlEncode(titulo)}</h2><p>{System.Net.WebUtility.HtmlEncode(contenido).Replace(Environment.NewLine, "<br />")}</p><p>Podés actualizar tus preferencias de novedades desde tu perfil de TeamBalance.</p>";
-            return await EnviarMail($"TeamBalance · {titulo}", descripcion, receptor);
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(destinatario.Nombre)},</p><p><strong>{System.Net.WebUtility.HtmlEncode(noticia.Categoria)}</strong></p><h2>{System.Net.WebUtility.HtmlEncode(noticia.Titulo)}</h2><p>{System.Net.WebUtility.HtmlEncode(noticia.Contenido).Replace(Environment.NewLine, "<br />")}</p><p>Podés actualizar tus preferencias de novedades desde tu perfil de TeamBalance.</p>";
+            return await EnviarMail(new CorreoElectronico { Asunto = $"TeamBalance · {noticia.Titulo}", ContenidoHtml = descripcion, Receptor = destinatario.Email });
         }
 
-        public async Task<bool> EnviarCorreoDesvioHoras(string receptor, string nombre, string nombreProyecto, decimal horasEstimadas, decimal horasReales, decimal desvioHoras, decimal porcentajeConsumo, List<string> tareasConMayorDesvio)
+        public async Task<bool> EnviarCorreoDesvioHoras(DestinatarioDesvioHoras destinatario, DesvioHorasProyecto proyecto, List<string> tareasConMayorDesvio)
         {
             string tareas = tareasConMayorDesvio.Count == 0
                 ? "No se identificaron tareas con sobreconsumo en los filtros aplicados."
                 : string.Join("<br />", tareasConMayorDesvio.Select(tarea => "• " + System.Net.WebUtility.HtmlEncode(tarea)));
-            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p><p>El PM informó un desvío de horas en el proyecto <strong>{System.Net.WebUtility.HtmlEncode(nombreProyecto)}</strong>.</p><p><strong>Horas estimadas:</strong> {horasEstimadas:N2}<br /><strong>Horas reales:</strong> {horasReales:N2}<br /><strong>Diferencia:</strong> {desvioHoras:N2}<br /><strong>Consumo:</strong> {porcentajeConsumo:N2}%</p><p><strong>Tareas con mayor desvío</strong><br />{tareas}</p><p>Ingresá a TeamBalance para revisar el control operativo completo.</p>";
-            return await EnviarMail("Desvío de horas informado · TeamBalance", descripcion, receptor);
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(destinatario.Nombre)},</p><p>El PM informó un desvío de horas en el proyecto <strong>{System.Net.WebUtility.HtmlEncode(proyecto.NombreProyecto)}</strong>.</p><p><strong>Horas estimadas:</strong> {proyecto.HorasEstimadas:N2}<br /><strong>Horas reales:</strong> {proyecto.HorasReales:N2}<br /><strong>Diferencia:</strong> {proyecto.DesvioHoras:N2}<br /><strong>Consumo:</strong> {proyecto.PorcentajeConsumo:N2}%</p><p><strong>Tareas con mayor desvío</strong><br />{tareas}</p><p>Ingresá a TeamBalance para revisar el control operativo completo.</p>";
+            return await EnviarMail(new CorreoElectronico { Asunto = "Desvío de horas informado · TeamBalance", ContenidoHtml = descripcion, Receptor = destinatario.Email });
         }
 
-        public async Task<bool> EnviarAlertaOperativa(string receptor,string nombre,string proyecto,decimal consumo,decimal avance,string tipo)
+        public async Task<bool> EnviarAlertaOperativa(AlertaOperativaEnvio alerta)
         {
-            string explicacion=tipo=="Desvio70_40"?"El consumo de horas es alto respecto del avance informado.":"El proyecto alcanzó el umbral de consumo configurado por la agencia.";
-            string descripcion=$@"<p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p><p><strong>{System.Net.WebUtility.HtmlEncode(proyecto)}</strong> requiere atención.</p><p>{explicacion}</p><p><strong>Consumo:</strong> {consumo:N1}%<br/><strong>Avance:</strong> {avance:N1}%</p><p>Ingresá a TeamBalance para revisar el control de horas y tomar una acción.</p>";
-            return await EnviarMail("Alerta operativa · TeamBalance",descripcion,receptor);
+            string explicacion=alerta.Tipo=="Desvio70_40"?"El consumo de horas es alto respecto del avance informado.":"El proyecto alcanzó el umbral de consumo configurado por la agencia.";
+            string descripcion=$@"<p>Hola {System.Net.WebUtility.HtmlEncode(alerta.NombreDestinatario)},</p><p><strong>{System.Net.WebUtility.HtmlEncode(alerta.Proyecto)}</strong> requiere atención.</p><p>{explicacion}</p><p><strong>Consumo:</strong> {alerta.Consumo:N1}%<br/><strong>Avance:</strong> {alerta.Avance:N1}%</p><p>Ingresá a TeamBalance para revisar el control de horas y tomar una acción.</p>";
+            return await EnviarMail(new CorreoElectronico { Asunto = "Alerta operativa · TeamBalance", ContenidoHtml = descripcion, Receptor = alerta.Email });
         }
 
-        public async Task<bool> EnviarCorreoSolicitudRevisionOperativa(string receptor, string nombre, string nombreEmpleado, string nombreProyecto, string causaPrincipal, string accionSugerida)
+        public async Task<bool> EnviarCorreoSolicitudRevisionOperativa(SolicitudRevisionCorreo correo)
         {
-            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p><p>Tenés una nueva solicitud de revisión operativa para <strong>{System.Net.WebUtility.HtmlEncode(nombreEmpleado)}</strong> en el proyecto <strong>{System.Net.WebUtility.HtmlEncode(nombreProyecto)}</strong>.</p><p><strong>Causa identificada:</strong><br />{System.Net.WebUtility.HtmlEncode(causaPrincipal)}</p><p><strong>Acción sugerida:</strong><br />{System.Net.WebUtility.HtmlEncode(accionSugerida)}</p><p>Ingresá a TeamBalance para consultar el contexto completo de la revisión pendiente.</p>";
-            return await EnviarMail("Nueva revisión operativa pendiente · TeamBalance", descripcion, receptor);
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(correo.Destinatario.Nombre)},</p><p>Tenés una nueva solicitud de revisión operativa para <strong>{System.Net.WebUtility.HtmlEncode(correo.NombreEmpleado)}</strong> en el proyecto <strong>{System.Net.WebUtility.HtmlEncode(correo.NombreProyecto)}</strong>.</p><p><strong>Causa identificada:</strong><br />{System.Net.WebUtility.HtmlEncode(correo.CausaPrincipal)}</p><p><strong>Acción sugerida:</strong><br />{System.Net.WebUtility.HtmlEncode(correo.AccionSugerida)}</p><p>Ingresá a TeamBalance para consultar el contexto completo de la revisión pendiente.</p>";
+            return await EnviarMail(new CorreoElectronico { Asunto = "Nueva revisión operativa pendiente · TeamBalance", ContenidoHtml = descripcion, Receptor = correo.Destinatario.Email });
         }
 
-        public async Task<bool> EnviarCorreoRevisionConveniencia(string receptor, string nombre, string nombreCliente, List<string> proyectos, string causaPrincipal, string accionSugerida)
+        public async Task<bool> EnviarCorreoRevisionConveniencia(RevisionConvenienciaCorreo correo)
         {
-            string proyectosAfectados = proyectos.Count == 0
+            string proyectosAfectados = correo.Proyectos.Count == 0
                 ? "los proyectos activos del cliente"
-                : string.Join(", ", proyectos.Select(System.Net.WebUtility.HtmlEncode));
-            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p><p>Dirección marcó al cliente <strong>{System.Net.WebUtility.HtmlEncode(nombreCliente)}</strong> para una revisión de conveniencia operativa en los proyectos: <strong>{proyectosAfectados}</strong>.</p><p><strong>Motivo:</strong><br />{System.Net.WebUtility.HtmlEncode(causaPrincipal)}</p><p><strong>Acción solicitada:</strong><br />{System.Net.WebUtility.HtmlEncode(accionSugerida)}</p><p>Ingresá a TeamBalance y resolvé la revisión cuando finalices la gestión.</p>";
-            return await EnviarMail("Revisión de conveniencia pendiente · TeamBalance", descripcion, receptor);
+                : string.Join(", ", correo.Proyectos.Select(System.Net.WebUtility.HtmlEncode));
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(correo.Destinatario.Nombre)},</p><p>Dirección marcó al cliente <strong>{System.Net.WebUtility.HtmlEncode(correo.NombreCliente)}</strong> para una revisión de conveniencia operativa en los proyectos: <strong>{proyectosAfectados}</strong>.</p><p><strong>Motivo:</strong><br />{System.Net.WebUtility.HtmlEncode(correo.CausaPrincipal)}</p><p><strong>Acción solicitada:</strong><br />{System.Net.WebUtility.HtmlEncode(correo.AccionSugerida)}</p><p>Ingresá a TeamBalance y resolvé la revisión cuando finalices la gestión.</p>";
+            return await EnviarMail(new CorreoElectronico { Asunto = "Revisión de conveniencia pendiente · TeamBalance", ContenidoHtml = descripcion, Receptor = correo.Destinatario.Email });
         }
 
-        public async Task<bool> EnviarCorreoSeguimientoRiesgo(string receptor, string nombre, string nombreProyecto, string? tituloTarea, string observacion)
+        public async Task<bool> EnviarCorreoSeguimientoRiesgo(SeguimientoRiesgoCorreo correo)
         {
-            string referencia = string.IsNullOrWhiteSpace(tituloTarea) ? "el proyecto" : "la tarea <strong>" + System.Net.WebUtility.HtmlEncode(tituloTarea) + "</strong> del proyecto";
-            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p><p>Se registró una acción de seguimiento sobre {referencia} <strong>{System.Net.WebUtility.HtmlEncode(nombreProyecto)}</strong>.</p><p><strong>Acción registrada:</strong><br />{System.Net.WebUtility.HtmlEncode(observacion).Replace(Environment.NewLine, "<br />")}</p><p>Ingresá a TeamBalance para revisar el contexto operativo completo.</p>";
-            return await EnviarMail("Seguimiento de riesgo de retraso · TeamBalance", descripcion, receptor);
+            string referencia = string.IsNullOrWhiteSpace(correo.TituloTarea) ? "el proyecto" : "la tarea <strong>" + System.Net.WebUtility.HtmlEncode(correo.TituloTarea) + "</strong> del proyecto";
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(correo.Destinatario.Nombre)},</p><p>Se registró una acción de seguimiento sobre {referencia} <strong>{System.Net.WebUtility.HtmlEncode(correo.Proyecto.Nombre)}</strong>.</p><p><strong>Acción registrada:</strong><br />{System.Net.WebUtility.HtmlEncode(correo.Observacion).Replace(Environment.NewLine, "<br />")}</p><p>Ingresá a TeamBalance para revisar el contexto operativo completo.</p>";
+            return await EnviarMail(new CorreoElectronico { Asunto = "Seguimiento de riesgo de retraso · TeamBalance", ContenidoHtml = descripcion, Receptor = correo.Destinatario.Email });
         }
 
-        public async Task<bool> EnviarCorreoSolicitudRevisionGestion(string receptor, string nombre, string tipo, string nombreProyecto, string? tituloTarea, string causaPrincipal, string accionSugerida)
+        public async Task<bool> EnviarCorreoSolicitudRevisionGestion(SolicitudRevisionCorreo correo)
         {
-            string referencia = string.IsNullOrWhiteSpace(tituloTarea)
-                ? "el proyecto <strong>" + System.Net.WebUtility.HtmlEncode(nombreProyecto) + "</strong>"
-                : "la tarea <strong>" + System.Net.WebUtility.HtmlEncode(tituloTarea) + "</strong> del proyecto <strong>" + System.Net.WebUtility.HtmlEncode(nombreProyecto) + "</strong>";
-            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p><p>Tenés una revisión pendiente de <strong>{System.Net.WebUtility.HtmlEncode(tipo)}</strong> sobre {referencia}.</p><p><strong>Motivo:</strong><br />{System.Net.WebUtility.HtmlEncode(causaPrincipal)}</p><p><strong>Acción registrada:</strong><br />{System.Net.WebUtility.HtmlEncode(accionSugerida).Replace(Environment.NewLine, "<br />")}</p><p>Ingresá a TeamBalance y marcala como resuelta cuando finalices la gestión.</p>";
-            return await EnviarMail("Nueva revisión pendiente · TeamBalance", descripcion, receptor);
+            string referencia = string.IsNullOrWhiteSpace(correo.TituloTarea)
+                ? "el proyecto <strong>" + System.Net.WebUtility.HtmlEncode(correo.NombreProyecto) + "</strong>"
+                : "la tarea <strong>" + System.Net.WebUtility.HtmlEncode(correo.TituloTarea) + "</strong> del proyecto <strong>" + System.Net.WebUtility.HtmlEncode(correo.NombreProyecto) + "</strong>";
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(correo.Destinatario.Nombre)},</p><p>Tenés una revisión pendiente de <strong>{System.Net.WebUtility.HtmlEncode(correo.Tipo)}</strong> sobre {referencia}.</p><p><strong>Motivo:</strong><br />{System.Net.WebUtility.HtmlEncode(correo.CausaPrincipal)}</p><p><strong>Acción registrada:</strong><br />{System.Net.WebUtility.HtmlEncode(correo.AccionSugerida).Replace(Environment.NewLine, "<br />")}</p><p>Ingresá a TeamBalance y marcala como resuelta cuando finalices la gestión.</p>";
+            return await EnviarMail(new CorreoElectronico { Asunto = "Nueva revisión pendiente · TeamBalance", ContenidoHtml = descripcion, Receptor = correo.Destinatario.Email });
         }
 
-        public async Task<bool> EnviarResumenDiarioTareas(string receptor, string nombre, List<TareaResumenCorreo> tareas)
+        public async Task<bool> EnviarResumenDiarioTareas(DestinatarioCorreoOperativo destinatario, List<TareaResumenCorreo> tareas)
         {
             string filas = string.Join(string.Empty, tareas.Select(tarea =>
             {
                 string deadline = tarea.Deadline.HasValue ? tarea.Deadline.Value.ToString("dd/MM/yyyy") : "Sin deadline";
-                string? enlaceProgreso = CrearEnlace("accion-tarea", "token", tarea.TokenEnProgreso ?? string.Empty);
-                string? enlaceFinalizada = CrearEnlace("accion-tarea", "token", tarea.TokenFinalizada ?? string.Empty);
+                string? enlaceProgreso = CrearEnlace(new EnlaceCorreo { Pagina = "accion-tarea", Parametro = "token", Token = tarea.TokenEnProgreso ?? string.Empty });
+                string? enlaceFinalizada = CrearEnlace(new EnlaceCorreo { Pagina = "accion-tarea", Parametro = "token", Token = tarea.TokenFinalizada ?? string.Empty });
                 string acciones = enlaceProgreso is null || enlaceFinalizada is null ? string.Empty :
                     $"<a href='{System.Net.WebUtility.HtmlEncode(enlaceProgreso)}' style='color:#007fa8;font-weight:700;text-decoration:none'>Iniciar</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href='{System.Net.WebUtility.HtmlEncode(enlaceFinalizada)}' style='color:#16815d;font-weight:700;text-decoration:none'>Finalizar</a>";
                 return $@"<tr><td style='padding:13px;border-bottom:1px solid #cfe2e8'><strong>{System.Net.WebUtility.HtmlEncode(tarea.Titulo)}</strong><br><span style='font-size:13px;color:#506b78'>{System.Net.WebUtility.HtmlEncode(tarea.Proyecto)} · {System.Net.WebUtility.HtmlEncode(tarea.Estado)} · {deadline}</span></td><td align='right' style='padding:13px;border-bottom:1px solid #cfe2e8;white-space:nowrap'>{acciones}</td></tr>";
             }));
-            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p><p>Este es tu resumen operativo de hoy. Podés actualizar una tarea sin iniciar sesión; cada enlace vence en 36 horas y funciona una sola vez.</p><table role='presentation' width='100%' cellspacing='0' cellpadding='0' style='border:1px solid #cfe2e8;border-radius:10px'>{filas}</table><p style='font-size:13px;color:#506b78'>Si necesitás editar avance, comentarios o bloqueos, hacelo desde el Kanban de TeamBalance.</p>";
-            return await EnviarMail("Tus tareas activas de hoy · TeamBalance", descripcion, receptor);
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(destinatario.Nombre)},</p><p>Este es tu resumen operativo de hoy. Podés actualizar una tarea sin iniciar sesión; cada enlace vence en 36 horas y funciona una sola vez.</p><table role='presentation' width='100%' cellspacing='0' cellpadding='0' style='border:1px solid #cfe2e8;border-radius:10px'>{filas}</table><p style='font-size:13px;color:#506b78'>Si necesitás editar avance, comentarios o bloqueos, hacelo desde el Kanban de TeamBalance.</p>";
+            return await EnviarMail(new CorreoElectronico { Asunto = "Tus tareas activas de hoy · TeamBalance", ContenidoHtml = descripcion, Receptor = destinatario.Email });
         }
 
-        public async Task<bool> EnviarAlertaDeadline(string receptor, string nombre, List<TareaResumenCorreo> tareas)
+        public async Task<bool> EnviarAlertaDeadline(DestinatarioCorreoOperativo destinatario, List<TareaResumenCorreo> tareas)
         {
             string lista = string.Join("<br>", tareas.Select(tarea => $"• <strong>{System.Net.WebUtility.HtmlEncode(tarea.Titulo)}</strong> · {System.Net.WebUtility.HtmlEncode(tarea.Proyecto)} · {tarea.Deadline:dd/MM/yyyy}"));
-            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p><p>Estas tareas tienen un deadline dentro de las próximas 48 horas:</p><p>{lista}</p><p>Revisá su avance desde tu tablero para anticipar bloqueos.</p>";
-            return await EnviarMail("Tareas próximas a vencer · TeamBalance", descripcion, receptor);
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(destinatario.Nombre)},</p><p>Estas tareas tienen un deadline dentro de las próximas 48 horas:</p><p>{lista}</p><p>Revisá su avance desde tu tablero para anticipar bloqueos.</p>";
+            return await EnviarMail(new CorreoElectronico { Asunto = "Tareas próximas a vencer · TeamBalance", ContenidoHtml = descripcion, Receptor = destinatario.Email });
         }
 
-        public async Task<bool> EnviarResumenSemanalAgencia(string receptor, string nombre, ResumenSemanalCorreo resumen)
+        public async Task<bool> EnviarResumenSemanalAgencia(DestinatarioCorreoOperativo destinatario, ResumenSemanalCorreo resumen)
         {
-            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(nombre)},</p><p>Este es el resumen operativo semanal de tu agencia.</p><table role='presentation' width='100%' cellspacing='0' cellpadding='0'><tr><td style='padding:12px;background:#e2f2f4'><strong>{resumen.ProyectosActivos}</strong><br>proyectos activos</td><td style='padding:12px;background:#eaf6ed'><strong>{resumen.TareasActivas}</strong><br>tareas activas</td></tr><tr><td style='padding:12px;background:#fff1e2'><strong>{resumen.TareasVencidas}</strong><br>tareas vencidas</td><td style='padding:12px;background:#ffe8ec'><strong>{resumen.EmpleadosSobrecargados}</strong><br>personas sobrecargadas</td></tr></table><p><strong>Ocupación planificada promedio:</strong> {resumen.OcupacionPromedio:N1}%</p><p>Ingresá al panel para revisar el detalle y tomar acciones.</p>";
-            return await EnviarMail("Resumen semanal de tu agencia · TeamBalance", descripcion, receptor);
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(destinatario.Nombre)},</p><p>Este es el resumen operativo semanal de tu agencia.</p><table role='presentation' width='100%' cellspacing='0' cellpadding='0'><tr><td style='padding:12px;background:#e2f2f4'><strong>{resumen.ProyectosActivos}</strong><br>proyectos activos</td><td style='padding:12px;background:#eaf6ed'><strong>{resumen.TareasActivas}</strong><br>tareas activas</td></tr><tr><td style='padding:12px;background:#fff1e2'><strong>{resumen.TareasVencidas}</strong><br>tareas vencidas</td><td style='padding:12px;background:#ffe8ec'><strong>{resumen.EmpleadosSobrecargados}</strong><br>personas sobrecargadas</td></tr></table><p><strong>Ocupación planificada promedio:</strong> {resumen.OcupacionPromedio:N1}%</p><p>Ingresá al panel para revisar el detalle y tomar acciones.</p>";
+            return await EnviarMail(new CorreoElectronico { Asunto = "Resumen semanal de tu agencia · TeamBalance", ContenidoHtml = descripcion, Receptor = destinatario.Email });
         }
 
-        private async Task<bool> EnviarMail(string tema, string descripcion, string receptor)
+        private async Task<bool> EnviarMail(CorreoElectronico correo)
         {
-            if (string.IsNullOrWhiteSpace(emisor) || string.IsNullOrWhiteSpace(claveAplicacion) || string.IsNullOrWhiteSpace(receptor))
+            if (string.IsNullOrWhiteSpace(emisor) || string.IsNullOrWhiteSpace(claveAplicacion) || string.IsNullOrWhiteSpace(correo.Receptor))
             {
                 Console.Error.WriteLine("[EmailService] No se pudo enviar el correo: falta configurar emisor, contraseña de aplicación o receptor.");
                 return false;
@@ -207,27 +207,32 @@ namespace TeamBalance.Services
                 using System.Net.Mail.MailMessage mail = new System.Net.Mail.MailMessage
                 {
                     From = new System.Net.Mail.MailAddress(emisor, "TeamBalance"),
-                    Subject = tema,
-                    Body = CrearPlantilla(descripcion),
+                    Subject = correo.Asunto,
+                    Body = CrearPlantilla(correo.ContenidoHtml),
                     IsBodyHtml = true,
                 };
 
-                mail.To.Add(receptor);
+                mail.To.Add(correo.Receptor);
                 await smtpClient.SendMailAsync(mail);
                 try
                 {
-                    string mensaje = Regex.Replace(descripcion, "<[^>]+>", " ");
+                    string mensaje = Regex.Replace(correo.ContenidoHtml, "<[^>]+>", " ");
                     mensaje = System.Net.WebUtility.HtmlDecode(Regex.Replace(mensaje, @"\s+", " ")).Trim();
-                    _notificacionMPP.RegistrarPorEmail(receptor, tema, mensaje.Length > 1200 ? mensaje[..1200] : mensaje);
+                    _notificacionMPP.RegistrarPorEmail(new NotificacionUsuario
+                    {
+                        EmailDestinatario = correo.Receptor,
+                        Titulo = correo.Asunto,
+                        Mensaje = mensaje.Length > 1200 ? mensaje[..1200] : mensaje
+                    });
                 }
                 catch (Exception ex) { Console.Error.WriteLine($"[EmailService] El correo fue enviado, pero no se pudo registrar la notificación: {ex.Message}"); }
 
                 return true;
             }
-            catch (Exception ex){ Console.Error.WriteLine($"[EmailService] Error al enviar correo a {receptor}: {ex.Message}"); return false; }
+            catch (Exception ex){ Console.Error.WriteLine($"[EmailService] Error al enviar correo a {correo.Receptor}: {ex.Message}"); return false; }
         }
 
-        private string? CrearEnlace(string pagina, string parametro, string valor)
+        private string? CrearEnlace(EnlaceCorreo enlace)
         {
             if (string.IsNullOrWhiteSpace(urlPublicaFrontend) ||
                 !Uri.TryCreate(urlPublicaFrontend, UriKind.Absolute, out Uri? urlBase) ||
@@ -236,7 +241,7 @@ namespace TeamBalance.Services
                 return null;
             }
 
-            return $"{urlPublicaFrontend.TrimEnd('/')}/{pagina}?{parametro}={Uri.EscapeDataString(valor)}";
+            return $"{urlPublicaFrontend.TrimEnd('/')}/{enlace.Pagina}?{enlace.Parametro}={Uri.EscapeDataString(enlace.Token)}";
         }
 
         private string CrearPlantilla(string contenido)
@@ -302,9 +307,9 @@ namespace TeamBalance.Services
             return null;
         }
 
-        private static string CrearBoton(string enlace, string texto)
+        private static string CrearBoton(BotonCorreo boton)
         {
-            return $"<p style='margin:24px 0'><a href='{System.Net.WebUtility.HtmlEncode(enlace)}' style='display:inline-block;padding:12px 20px;background:#008db8;border-radius:8px;color:#ffffff;font-weight:700;text-decoration:none'>{System.Net.WebUtility.HtmlEncode(texto)}</a></p>";
+            return $"<p style='margin:24px 0'><a href='{System.Net.WebUtility.HtmlEncode(boton.Enlace)}' style='display:inline-block;padding:12px 20px;background:#008db8;border-radius:8px;color:#ffffff;font-weight:700;text-decoration:none'>{System.Net.WebUtility.HtmlEncode(boton.Texto)}</a></p>";
         }
     }
 }

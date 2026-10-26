@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
 
@@ -9,7 +9,6 @@ namespace Teambalance.API.Controllers
     public class ContratacionController : ControllerBase
     {
         public readonly ContratacionBLL _bll;
-
         public ContratacionController(ContratacionBLL bll)
         {
             _bll = bll;
@@ -21,10 +20,12 @@ namespace Teambalance.API.Controllers
             try
             {
                 ContratacionInicioResponse resultado = await _bll.Contratar(request);
-
                 return Ok(resultado);
             }
-            catch (Exception ex) { return BadRequest(ex.Message); }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpGet("{referencia}/estado")]
@@ -34,26 +35,32 @@ namespace Teambalance.API.Controllers
             {
                 return Ok(_bll.ConsultarEstado(new ContratacionServicio(referencia)));
             }
-            catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
-            catch (Exception ex) { return BadRequest(ex.Message); }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost("{referencia}/verificar-pago")]
         public async Task<IActionResult> VerificarPago(string referencia, [FromBody] VerificarPagoRequest request)
         {
-
             try
             {
                 ContratacionServicio contratacionServicio = new ContratacionServicio(referencia);
                 return Ok(await _bll.VerificarPagoMercadoPago(contratacionServicio, request.PaymentId));
             }
-            catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
-            catch (Exception ex) { return BadRequest(ex.Message); }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
-    }
-
-    public sealed class VerificarPagoRequest
-    {
-        public string PaymentId { get; init; } = string.Empty;
     }
 }

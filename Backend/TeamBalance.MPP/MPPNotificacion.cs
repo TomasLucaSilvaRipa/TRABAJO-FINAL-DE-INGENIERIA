@@ -10,31 +10,31 @@ public class MPPNotificacion
     private readonly Conexion _conexion;
     public MPPNotificacion(Conexion conexion) { _conexion = conexion; }
 
-    public void RegistrarPorEmail(string emailExacto, string titulo, string mensaje)
+    public void RegistrarPorEmail(NotificacionUsuario notificacion)
     {
         List<SqlParameter> parametros = new()
         {
-            new SqlParameter("@EmailExacto", emailExacto.Trim()),
-            new SqlParameter("@Titulo", titulo),
-            new SqlParameter("@Mensaje", mensaje),
+            new SqlParameter("@EmailExacto", notificacion.EmailDestinatario.Trim()),
+            new SqlParameter("@Titulo", notificacion.Titulo),
+            new SqlParameter("@Mensaje", notificacion.Mensaje),
         };
         _conexion.Escribir("dbo.usp_Notificacion_RegistrarPorEmail", parametros);
     }
 
-    public List<NotificacionUsuario> ConsultarPropias(int idUsuario)
+    public List<NotificacionUsuario> ConsultarPropias(Usuario usuario)
     {
-        DataTable tabla = _conexion.Leer("dbo.usp_Notificacion_ConsultarPropias", new List<SqlParameter> { new("@IdUsuario", idUsuario) });
+        DataTable tabla = _conexion.Leer("dbo.usp_Notificacion_ConsultarPropias", new List<SqlParameter> { new("@IdUsuario", usuario.ID) });
         return tabla.Rows.Cast<DataRow>().Select(Crear).ToList();
     }
 
-    public void MarcarLeida(int idUsuario, int idNotificacion)
+    public void MarcarLeida(Usuario usuario, NotificacionUsuario notificacion)
     {
-        _conexion.Escribir("dbo.usp_Notificacion_MarcarLeida", new List<SqlParameter> { new("@IdUsuario", idUsuario), new("@IdNotificacion", idNotificacion) });
+        _conexion.Escribir("dbo.usp_Notificacion_MarcarLeida", new List<SqlParameter> { new("@IdUsuario", usuario.ID), new("@IdNotificacion", notificacion.ID) });
     }
 
-    public void MarcarTodasLeidas(int idUsuario)
+    public void MarcarTodasLeidas(Usuario usuario)
     {
-        _conexion.Escribir("dbo.usp_Notificacion_MarcarTodasLeidas", new List<SqlParameter> { new("@IdUsuario", idUsuario) });
+        _conexion.Escribir("dbo.usp_Notificacion_MarcarTodasLeidas", new List<SqlParameter> { new("@IdUsuario", usuario.ID) });
     }
 
     private static NotificacionUsuario Crear(DataRow fila) => new()

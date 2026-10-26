@@ -31,7 +31,7 @@ public class SkillsDesiertosController : ControllerBase
     [HttpPost("detalle/{idSkill:int}")]
     public IActionResult ConsultarDetalle([FromRoute] int idSkill, [FromBody] FiltroCoberturaSkill filtro)
     {
-        try { return Ok(_skillsBLL.ConsultarDetalle(idSkill, filtro, ObtenerSolicitante())); }
+        try { filtro.Skill = new Skill { ID = idSkill }; return Ok(_skillsBLL.ConsultarDetalle(filtro, ObtenerSolicitante())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }

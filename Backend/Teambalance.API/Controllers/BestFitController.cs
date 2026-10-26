@@ -36,7 +36,7 @@ public class BestFitController : ControllerBase
     [HttpGet("tareas/{idTarea}/recomendaciones")]
     public IActionResult ConsultarRecomendaciones(int idTarea)
     {
-        try { return Ok(_bestFitBLL.ConsultarRecomendaciones(idTarea, ValidarSesion())); }
+        try { return Ok(_bestFitBLL.ConsultarRecomendaciones(new Tarea { ID = idTarea }, ValidarSesion())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }

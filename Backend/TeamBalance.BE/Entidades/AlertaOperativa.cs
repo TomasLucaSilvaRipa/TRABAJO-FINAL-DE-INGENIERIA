@@ -1,3 +1,0 @@
-namespace TeamBalance.BE.Entidades;
-public class AlertaOperativaEnvio { public int ID { get; set; } public int IdProyecto { get; set; } public string Tipo { get; set; }=string.Empty; public string Proyecto { get; set; }=string.Empty; public decimal Consumo { get; set; } public decimal Avance { get; set; } public string NombreDestinatario { get; set; }=string.Empty; public string Email { get; set; }=string.Empty; public string? SlackUserId { get; set; } }
-public class ConfiguracionAlertaAgencia { public int IdAgencia { get; set; } public decimal UmbralConsumoHoras { get; set; }=80; public bool NotificacionInternaActiva { get; set; }=true; public bool EmailActivo { get; set; }=true; public bool SlackActivo { get; set; }=true; }

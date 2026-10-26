@@ -1,5 +1,4 @@
 namespace TeamBalance.BE.Entidades;
-
 public class ArchivoAdjuntoTarea
 {
     public int ID { get; set; }
@@ -14,10 +13,4 @@ public class ArchivoAdjuntoTarea
     public DateTime? FechaArchivado { get; set; }
     public bool Activo { get; set; }
     public bool EsImagen => TipoContenido.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
-}
-
-public class AttachmentStorageSettings
-{
-    public string Directory { get; set; } = "C:\\TeamBalance\\Attachments";
-    public string ArchiveDirectory { get; set; } = "C:\\TeamBalance\\AttachmentsArchive";
 }

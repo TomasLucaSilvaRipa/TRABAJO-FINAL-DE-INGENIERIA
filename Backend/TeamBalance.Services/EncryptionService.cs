@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using TeamBalance.BE.Entidades;
 
 namespace TeamBalance.Services
 {
@@ -20,14 +21,14 @@ namespace TeamBalance.Services
             return _rsa.ExportSubjectPublicKeyInfoPem();
         }
 
-        public LoginDecryptedData DesencriptarLogin( string encryptedDataBase64,string encryptedKeyBase64, string ivBase64)
+        public LoginDecryptedData DesencriptarLogin(CredencialCifrada credencial)
         {
             // 1. Recuperar los bytes enviados por Angular.
-            byte[] encryptedKey = Convert.FromBase64String(encryptedKeyBase64);
+            byte[] encryptedKey = Convert.FromBase64String(credencial.ClaveCifrada);
 
-            byte[] encryptedData = Convert.FromBase64String(encryptedDataBase64);
+            byte[] encryptedData = Convert.FromBase64String(credencial.DatosCifrados);
 
-            byte[] iv = Convert.FromBase64String(ivBase64);
+            byte[] iv = Convert.FromBase64String(credencial.VectorInicializacion);
 
             // 2. Recuperar la clave AES usando la clave privada RSA.
             byte[] aesKey = _rsa.Decrypt( encryptedKey, RSAEncryptionPadding.OaepSHA256);
@@ -75,11 +76,5 @@ namespace TeamBalance.Services
             _rsa.Dispose();
         }
 
-        public class LoginDecryptedData
-        {
-            public string Email { get; set; } = string.Empty;
-
-            public string Password { get; set; } = string.Empty;
-        }
     }
 }

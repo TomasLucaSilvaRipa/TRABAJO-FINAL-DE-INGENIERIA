@@ -62,9 +62,9 @@ public class MPPAnaliticaOperativa
         return Convert.ToInt32(tabla.Rows[0]["ID"]);
     }
 
-    public List<SolicitudRevisionOperativa> ConsultarSolicitudesPendientes(Usuario usuario, int idPM)
+    public List<SolicitudRevisionOperativa> ConsultarSolicitudesPendientes(Usuario usuario, PM pm)
     {
-        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")), new SqlParameter("@IdPMResponsable", idPM) };
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")), new SqlParameter("@IdPMResponsable", pm.ID) };
         DataTable tabla = _conexion.Leer("dbo.usp_SolicitudRevisionOperativa_ConsultarPendientesPM", parametros);
         List<SolicitudRevisionOperativa> solicitudes = new List<SolicitudRevisionOperativa>();
         foreach (DataRow fila in tabla.Rows)
@@ -89,13 +89,13 @@ public class MPPAnaliticaOperativa
         return solicitudes;
     }
 
-    public bool MarcarSolicitudRevisionResuelta(Usuario usuario, int idPM, int idSolicitud)
+    public bool MarcarSolicitudRevisionResuelta(Usuario usuario, PM pm, SolicitudRevisionOperativa solicitud)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@IdSolicitud", idSolicitud),
+            new SqlParameter("@IdSolicitud", solicitud.ID),
             new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")),
-            new SqlParameter("@IdPMResponsable", idPM)
+            new SqlParameter("@IdPMResponsable", pm.ID)
         };
         DataTable tabla = _conexion.Leer("dbo.usp_SolicitudRevisionOperativa_MarcarResuelta", parametros);
         return tabla.Rows.Count == 1 && Convert.ToBoolean(tabla.Rows[0]["Actualizada"]);
@@ -114,12 +114,12 @@ public class MPPAnaliticaOperativa
         return (Convert.ToInt32(tabla.Rows[0]["ID"]), Convert.ToBoolean(tabla.Rows[0]["Creada"]));
     }
 
-    public List<SolicitudRevisionConveniencia> ConsultarSolicitudesRevisionConvenienciaPendientes(Usuario usuario, int idPM)
+    public List<SolicitudRevisionConveniencia> ConsultarSolicitudesRevisionConvenienciaPendientes(Usuario usuario, PM pm)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")),
-            new SqlParameter("@IdPMResponsable", idPM)
+            new SqlParameter("@IdPMResponsable", pm.ID)
         };
         DataTable tabla = _conexion.Leer("dbo.usp_Conveniencia_ConsultarSolicitudesPendientesPM", parametros);
         return tabla.Rows.Cast<DataRow>().Select(fila => new SolicitudRevisionConveniencia
@@ -132,13 +132,13 @@ public class MPPAnaliticaOperativa
         }).ToList();
     }
 
-    public bool MarcarSolicitudRevisionConvenienciaResuelta(Usuario usuario, int idPM, int idSolicitud)
+    public bool MarcarSolicitudRevisionConvenienciaResuelta(Usuario usuario, PM pm, SolicitudRevisionConveniencia solicitud)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@IdSolicitud", idSolicitud),
+            new SqlParameter("@IdSolicitud", solicitud.ID),
             new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")),
-            new SqlParameter("@IdPMResponsable", idPM)
+            new SqlParameter("@IdPMResponsable", pm.ID)
         };
         DataTable tabla = _conexion.Leer("dbo.usp_Conveniencia_MarcarSolicitudRevisionResuelta", parametros);
         return tabla.Rows.Count == 1 && Convert.ToBoolean(tabla.Rows[0]["Actualizada"]);
@@ -164,12 +164,12 @@ public class MPPAnaliticaOperativa
         return Convert.ToInt32(tabla.Rows[0]["ID"]);
     }
 
-    public List<SeguimientoConvenienciaOperativa> ConsultarSeguimientosConveniencia(Usuario usuario, int idCliente, int idProyecto)
+    public List<SeguimientoConvenienciaOperativa> ConsultarSeguimientosConveniencia(Usuario usuario, Cliente cliente, Proyecto proyecto)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")),
-            new SqlParameter("@IdCliente", idCliente), new SqlParameter("@IdProyecto", idProyecto)
+            new SqlParameter("@IdCliente", cliente.ID), new SqlParameter("@IdProyecto", proyecto.ID)
         };
         DataTable tabla = _conexion.Leer("dbo.usp_Conveniencia_ConsultarSeguimientos", parametros);
         return tabla.Rows.Cast<DataRow>().Select(fila => new SeguimientoConvenienciaOperativa
@@ -180,19 +180,19 @@ public class MPPAnaliticaOperativa
         }).ToList();
     }
 
-    public void MarcarClienteRevisionConveniencia(Usuario usuario, int idCliente)
+    public void MarcarClienteRevisionConveniencia(Usuario usuario, Cliente cliente)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")),
-            new SqlParameter("@IdCliente", idCliente), new SqlParameter("@IdUsuario", usuario.ID)
+            new SqlParameter("@IdCliente", cliente.ID), new SqlParameter("@IdUsuario", usuario.ID)
         };
         _conexion.Escribir("dbo.usp_Conveniencia_MarcarClienteRevision", parametros);
     }
 
-    public DestinatarioDesvioHoras? ConsultarDestinatarioPM(int idPM)
+    public DestinatarioDesvioHoras? ConsultarDestinatarioPM(PM pm)
     {
-        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdPMResponsable", idPM) };
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdPMResponsable", pm.ID) };
         DataTable tabla = _conexion.Leer("dbo.usp_Analitica_ConsultarDestinatarioPM", parametros);
         if (tabla.Rows.Count == 0) { return null; }
         DestinatarioDesvioHoras destinatario = new DestinatarioDesvioHoras();
@@ -216,12 +216,12 @@ public class MPPAnaliticaOperativa
         return Convert.ToInt32(tabla.Rows[0]["ID"]);
     }
 
-    public List<SolicitudRevisionGestion> ConsultarSolicitudesRevisionGestionPendientes(Usuario usuario, int idPM)
+    public List<SolicitudRevisionGestion> ConsultarSolicitudesRevisionGestionPendientes(Usuario usuario, PM pm)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
             new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")),
-            new SqlParameter("@IdPMResponsable", idPM)
+            new SqlParameter("@IdPMResponsable", pm.ID)
         };
         DataTable tabla = _conexion.Leer("dbo.usp_SolicitudRevisionGestion_ConsultarPendientesPM", parametros);
         return tabla.Rows.Cast<DataRow>().Select(fila => new SolicitudRevisionGestion
@@ -236,13 +236,13 @@ public class MPPAnaliticaOperativa
         }).ToList();
     }
 
-    public bool MarcarSolicitudRevisionGestionResuelta(Usuario usuario, int idPM, int idSolicitud)
+    public bool MarcarSolicitudRevisionGestionResuelta(Usuario usuario, PM pm, SolicitudRevisionGestion solicitud)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@IdSolicitud", idSolicitud),
+            new SqlParameter("@IdSolicitud", solicitud.ID),
             new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")),
-            new SqlParameter("@IdPMResponsable", idPM)
+            new SqlParameter("@IdPMResponsable", pm.ID)
         };
         DataTable tabla = _conexion.Leer("dbo.usp_SolicitudRevisionGestion_MarcarResuelta", parametros);
         return tabla.Rows.Count == 1 && Convert.ToBoolean(tabla.Rows[0]["Actualizada"]);

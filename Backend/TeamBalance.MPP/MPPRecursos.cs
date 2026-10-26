@@ -320,12 +320,12 @@ public class MPPRecursos
         }).ToList();
     }
 
-    public List<PuntoRendimientoEmpleado> ConsultarRendimientoEmpleado(int idUsuarioEmpleado, int meses, Usuario solicitante)
+    public List<PuntoRendimientoEmpleado> ConsultarRendimientoEmpleado(ConsultaRendimientoEmpleado consulta, Usuario solicitante)
     {
         DataTable tabla = _conexion.Leer("dbo.usp_Empleado_ConsultarRendimiento", new List<SqlParameter>
         {
             new SqlParameter("@IdAgencia", solicitante.IdAgencia), new SqlParameter("@IdUsuarioSolicitante", solicitante.ID),
-            new SqlParameter("@IdUsuarioEmpleado", idUsuarioEmpleado), new SqlParameter("@Meses", meses)
+            new SqlParameter("@IdUsuarioEmpleado", consulta.Empleado.ID), new SqlParameter("@Meses", consulta.Meses)
         });
         return tabla.Rows.Cast<DataRow>().Select(fila => new PuntoRendimientoEmpleado
         {

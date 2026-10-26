@@ -66,7 +66,7 @@ public class AnaliticaOperativaController : ControllerBase
     [HttpPatch("ocupacion/solicitudes-revision/{idSolicitud:int}/resolver")]
     public IActionResult MarcarSolicitudRevisionResuelta(int idSolicitud, [FromQuery] string? tipo)
     {
-        try { _analiticaBLL.MarcarSolicitudRevisionResuelta(ObtenerSolicitante(), idSolicitud, tipo); return Ok("La solicitud quedó marcada como resuelta."); }
+        try { _analiticaBLL.MarcarSolicitudRevisionResuelta(ObtenerSolicitante(), new RevisionOperativaPendiente { ID = idSolicitud, Tipo = tipo ?? string.Empty }); return Ok("La solicitud quedó marcada como resuelta."); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
@@ -85,7 +85,7 @@ public class AnaliticaOperativaController : ControllerBase
     [HttpGet("desvio-horas/detalle-tarea")]
     public IActionResult ConsultarDetalleDesvioHorasTarea([FromQuery] int idProyecto, [FromQuery] int idTarea, [FromQuery] DateTime? desde, [FromQuery] DateTime? hasta)
     {
-        try { return Ok(_analiticaBLL.ConsultarDetalleDesvioHorasTarea(ObtenerSolicitante(), idProyecto, idTarea, desde, hasta)); }
+        try { return Ok(_analiticaBLL.ConsultarDetalleDesvioHorasTarea(ObtenerSolicitante(), new FiltroDesvioHoras { IdProyecto = idProyecto, IdTarea = idTarea, Desde = desde, Hasta = hasta })); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
@@ -124,7 +124,7 @@ public class AnaliticaOperativaController : ControllerBase
     [HttpGet("conveniencia/detalle")]
     public IActionResult ConsultarDetalleConveniencia([FromQuery] int idProyecto, [FromQuery] FiltroConvenienciaOperativa filtro)
     {
-        try { return Ok(_analiticaBLL.ConsultarDetalleConveniencia(ObtenerSolicitante(), idProyecto, filtro)); }
+        try { filtro.IdProyecto = idProyecto; return Ok(_analiticaBLL.ConsultarDetalleConveniencia(ObtenerSolicitante(), filtro)); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
@@ -144,7 +144,7 @@ public class AnaliticaOperativaController : ControllerBase
     [HttpPost("conveniencia/clientes/{idCliente:int}/marcar-revision")]
     public async Task<IActionResult> MarcarClienteRevisionConveniencia(int idCliente)
     {
-        try { return Ok(await _analiticaBLL.MarcarClienteRevisionConveniencia(ObtenerSolicitante(), idCliente)); }
+        try { return Ok(await _analiticaBLL.MarcarClienteRevisionConveniencia(ObtenerSolicitante(), new Cliente { ID = idCliente })); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }

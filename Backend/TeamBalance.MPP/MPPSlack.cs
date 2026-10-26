@@ -14,11 +14,11 @@ public sealed class MPPSlack
         _conexion = conexion;
     }
 
-    public Usuario? ConsultarUsuarioPorSlack(string slackUserId)
+    public Usuario? ConsultarUsuarioPorSlack(ConsultaSlack consulta)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@SlackUserId", slackUserId),
+            new SqlParameter("@SlackUserId", consulta.IdUsuarioSlack),
         };
 
         DataTable tabla = _conexion.Leer("dbo.usp_Slack_ConsultarUsuario", parametros);
@@ -42,12 +42,12 @@ public sealed class MPPSlack
         return usuarios;
     }
 
-    public void VincularUsuario(int idUsuario, string slackUserId)
+    public void VincularUsuario(VinculacionSlack vinculacion)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@IdUsuario", idUsuario),
-            new SqlParameter("@SlackUserId", slackUserId),
+            new SqlParameter("@IdUsuario", vinculacion.Usuario.ID),
+            new SqlParameter("@SlackUserId", vinculacion.IdUsuarioSlack),
         };
 
         _conexion.Escribir("dbo.usp_Slack_VincularUsuario", parametros);

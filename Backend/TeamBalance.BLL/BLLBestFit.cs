@@ -63,15 +63,15 @@ public class BLLBestFit
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
-    public List<RecomendacionBestFit> ConsultarRecomendaciones(int idTarea, Usuario usuario)
+    public List<RecomendacionBestFit> ConsultarRecomendaciones(Tarea tarea, Usuario usuario)
     {
         try
         {
             if (!_rolBLL.TienePermiso(usuario, "UsarBestFit")) { throw new UnauthorizedAccessException("No tenés permiso para consultar recomendaciones de Best Fit."); }
-            if (idTarea <= 0) { throw new ArgumentException("Seleccioná una tarea válida."); }
-            bool perteneceAlPM = _tareaMPP.ConsultarPorPM(usuario).Any(item => item.ID == idTarea && item.Activo);
+            if (tarea.ID <= 0) { throw new ArgumentException("Seleccioná una tarea válida."); }
+            bool perteneceAlPM = _tareaMPP.ConsultarPorPM(usuario).Any(item => item.ID == tarea.ID && item.Activo);
             if (!perteneceAlPM) { throw new UnauthorizedAccessException("La tarea no existe o no pertenece a uno de tus proyectos."); }
-            return _bestFitMPP.ConsultarRecomendaciones(idTarea, usuario);
+            return _bestFitMPP.ConsultarRecomendaciones(tarea, usuario);
         }
         catch (UnauthorizedAccessException) { throw; }
         catch (ArgumentException) { throw; }
@@ -92,7 +92,7 @@ public class BLLBestFit
             idsEmpleado.Add(tarea.IdEmpleadoAsignado.Value);
         }
 
-        return _asignacionMPP.ConsultarCapacidades(idsEmpleado, usuario)
+        return _asignacionMPP.ConsultarCapacidades(idsEmpleado.Select(id => new Empleado { ID = id }), usuario)
             .Sum(empleado => Math.Max(0, empleado.HorasDisponiblesSemanales));
     }
 

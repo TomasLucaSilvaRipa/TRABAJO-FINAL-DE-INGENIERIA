@@ -44,7 +44,7 @@ public class SimulacionesImpactoController : ControllerBase
     [HttpGet("conservadas")]
     public IActionResult ConsultarConservadas([FromQuery] int? idTarea)
     {
-        try { return Ok(_simulacionBLL.ConsultarConservadas(idTarea, ValidarSesion())); }
+        try { return Ok(_simulacionBLL.ConsultarConservadas(idTarea.HasValue ? new Tarea { ID = idTarea.Value } : null, ValidarSesion())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }

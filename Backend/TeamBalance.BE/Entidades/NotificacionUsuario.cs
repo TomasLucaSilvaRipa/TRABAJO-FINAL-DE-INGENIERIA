@@ -8,4 +8,5 @@ public class NotificacionUsuario
     public string Mensaje { get; set; } = string.Empty;
     public DateTime Fecha { get; set; }
     public bool Leida { get; set; }
+    public string EmailDestinatario { get; set; } = string.Empty;
 }

@@ -75,9 +75,9 @@ public class MPPRiesgoRetraso
         return Convert.ToInt32(tabla.Rows[0]["ID"]);
     }
 
-    public DestinatarioDesvioHoras? ConsultarDestinatarioSeguimiento(int idProyecto, int? idTarea)
+    public DestinatarioDesvioHoras? ConsultarDestinatarioSeguimiento(Proyecto proyecto, Tarea? tarea)
     {
-        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdProyecto", idProyecto), new SqlParameter("@IdTarea", (object?)idTarea ?? DBNull.Value) };
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdProyecto", proyecto.ID), new SqlParameter("@IdTarea", (object?)tarea?.ID ?? DBNull.Value) };
         DataTable tabla = _conexion.Leer("dbo.usp_RiesgoRetraso_ConsultarDestinatarioSeguimiento", parametros);
         if (tabla.Rows.Count == 0) { return null; }
         return new DestinatarioDesvioHoras(Convert.ToInt32(tabla.Rows[0]["ID"]), Convert.ToString(tabla.Rows[0]["Nombre"]) ?? string.Empty, Convert.ToString(tabla.Rows[0]["Email"]) ?? string.Empty);

@@ -60,7 +60,9 @@ public class BLLRiesgoRetraso
 
         seguimiento.Observacion = seguimiento.Observacion.Trim();
         string? tituloTarea = seguimiento.IdTarea.HasValue ? _riesgoMPP.ConsultarTareasProyecto(proyecto).First(tarea => tarea.ID == seguimiento.IdTarea.Value).Titulo : null;
-        DestinatarioDesvioHoras? destinatarioResponsable = seguimiento.ComunicarResponsable ? _riesgoMPP.ConsultarDestinatarioSeguimiento(proyecto.ID, seguimiento.IdTarea) : null;
+        DestinatarioDesvioHoras? destinatarioResponsable = seguimiento.ComunicarResponsable
+            ? _riesgoMPP.ConsultarDestinatarioSeguimiento(proyecto, seguimiento.IdTarea.HasValue ? new Tarea { ID = seguimiento.IdTarea.Value } : null)
+            : null;
         if (seguimiento.ComunicarResponsable && (destinatarioResponsable is null || string.IsNullOrWhiteSpace(destinatarioResponsable.Email))) { throw new InvalidOperationException("No se encontró un correo activo para comunicar el seguimiento."); }
         int idSeguimiento = _riesgoMPP.RegistrarSeguimiento(usuario, seguimiento);
         SolicitudRevisionGestion solicitud = new SolicitudRevisionGestion
@@ -70,9 +72,9 @@ public class BLLRiesgoRetraso
             Tipo = "RiesgoRetraso", CausaPrincipal = "Se registró un seguimiento por riesgo de retraso.", AccionSugerida = seguimiento.Observacion
         };
         solicitud.ID = _analiticaMPP.RegistrarSolicitudRevisionGestion(solicitud);
-        DestinatarioDesvioHoras? destinatarioPM = _analiticaMPP.ConsultarDestinatarioPM(solicitud.IdPMResponsable);
-        bool correoPM = destinatarioPM is not null && !string.IsNullOrWhiteSpace(destinatarioPM.Email) && await _emailService.EnviarCorreoSolicitudRevisionGestion(destinatarioPM.Email, destinatarioPM.Nombre, "riesgo de retraso", proyecto.Nombre, tituloTarea, solicitud.CausaPrincipal, solicitud.AccionSugerida);
-        bool correoResponsable = !seguimiento.ComunicarResponsable || (destinatarioResponsable!.IdUsuario == destinatarioPM?.IdUsuario || await _emailService.EnviarCorreoSeguimientoRiesgo(destinatarioResponsable.Email, destinatarioResponsable.Nombre, proyecto.Nombre, tituloTarea, seguimiento.Observacion));
+        DestinatarioDesvioHoras? destinatarioPM = _analiticaMPP.ConsultarDestinatarioPM(new PM { ID = solicitud.IdPMResponsable });
+        bool correoPM = destinatarioPM is not null && !string.IsNullOrWhiteSpace(destinatarioPM.Email) && await _emailService.EnviarCorreoSolicitudRevisionGestion(new SolicitudRevisionCorreo { Destinatario = destinatarioPM, Tipo = "riesgo de retraso", NombreProyecto = proyecto.Nombre, TituloTarea = tituloTarea, CausaPrincipal = solicitud.CausaPrincipal, AccionSugerida = solicitud.AccionSugerida });
+        bool correoResponsable = !seguimiento.ComunicarResponsable || (destinatarioResponsable!.IdUsuario == destinatarioPM?.IdUsuario || await _emailService.EnviarCorreoSeguimientoRiesgo(new SeguimientoRiesgoCorreo { Destinatario = destinatarioResponsable, Proyecto = proyecto, TituloTarea = tituloTarea, Observacion = seguimiento.Observacion }));
         bool correosEnviados = correoPM && correoResponsable;
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "SeguimientoRiesgoRetraso", idSeguimiento, "RegistrarSeguimientoRiesgo", "Se registró un seguimiento y una revisión pendiente para el PM del proyecto '" + proyecto.Nombre + "'.", correosEnviados ? "Exitoso" : "Parcial", correosEnviados ? "Informacion" : "Advertencia", "Proyectos"));
         return correoPM

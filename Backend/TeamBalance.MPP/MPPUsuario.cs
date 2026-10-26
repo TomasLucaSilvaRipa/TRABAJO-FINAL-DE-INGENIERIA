@@ -60,9 +60,9 @@ public class MPPUsuario
         return CargarFotoPerfil(CrearUsuario(resultado.Rows[0]));
     }
 
-    public Usuario? ConsultarUsuarioPorId(int idUsuario)
+    public Usuario? ConsultarUsuarioPorId(Usuario usuarioBuscado)
     {
-        DataTable resultado = _conexion.Leer("dbo.usp_Usuario_ConsultarPorId", new List<SqlParameter>() { new SqlParameter("@IdUsuario", idUsuario) });
+        DataTable resultado = _conexion.Leer("dbo.usp_Usuario_ConsultarPorId", new List<SqlParameter>() { new SqlParameter("@IdUsuario", usuarioBuscado.ID) });
         return resultado.Rows.Count == 1 ? CargarFotoPerfil(CrearUsuario(resultado.Rows[0])) : null;
     }
 

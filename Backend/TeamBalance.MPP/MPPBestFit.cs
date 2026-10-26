@@ -47,11 +47,11 @@ public class MPPBestFit
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
-    public List<RecomendacionBestFit> ConsultarRecomendaciones(int idTarea, Usuario usuario)
+    public List<RecomendacionBestFit> ConsultarRecomendaciones(Tarea tarea, Usuario usuario)
     {
         try
         {
-            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdTarea", idTarea), new SqlParameter("@IdUsuario", usuario.ID) };
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdTarea", tarea.ID), new SqlParameter("@IdUsuario", usuario.ID) };
             DataTable tabla = _conexion.Leer("dbo.usp_BestFit_ConsultarRecomendaciones", parametros);
             List<RecomendacionBestFit> recomendaciones = new List<RecomendacionBestFit>();
             foreach (DataRow fila in tabla.Rows)

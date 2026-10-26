@@ -35,9 +35,9 @@ public class MPPAsignacionTarea
             Convert.ToBoolean(fila["Activa"]))).ToList();
     }
 
-    public List<AsignacionTarea> ConsultarActivas(IEnumerable<int> idsTarea, Usuario usuario)
+    public List<AsignacionTarea> ConsultarActivas(IEnumerable<Tarea> tareas, Usuario usuario)
     {
-        List<int> ids = idsTarea.Distinct().Where(id => id > 0).ToList();
+        List<int> ids = tareas.Select(tarea => tarea.ID).Distinct().Where(id => id > 0).ToList();
         if (ids.Count == 0) return new List<AsignacionTarea>();
 
         DataTable tabla = _conexion.Leer("dbo.usp_AsignacionTarea_ConsultarActivas", new List<SqlParameter>
@@ -57,9 +57,9 @@ public class MPPAsignacionTarea
     /// seleccionados. La asignación de horas se resuelve en la BLL; este método
     /// sólo recupera el dato persistido necesario para calcularla.
     /// </summary>
-    public List<Empleado> ConsultarCapacidades(IEnumerable<int> idsEmpleado, Usuario usuario)
+    public List<Empleado> ConsultarCapacidades(IEnumerable<Empleado> empleados, Usuario usuario)
     {
-        List<int> ids = idsEmpleado.Distinct().Where(id => id > 0).ToList();
+        List<int> ids = empleados.Select(empleado => empleado.ID).Distinct().Where(id => id > 0).ToList();
         if (ids.Count == 0) return new List<Empleado>();
 
         DataTable tabla = _conexion.Leer("dbo.usp_AsignacionTarea_ConsultarCapacidades", new List<SqlParameter>

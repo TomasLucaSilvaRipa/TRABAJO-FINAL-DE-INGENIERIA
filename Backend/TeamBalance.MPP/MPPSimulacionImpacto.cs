@@ -57,14 +57,14 @@ public class MPPSimulacionImpacto
         catch (Exception ex) { throw new Exception(ex.Message, ex); }
     }
 
-    public List<SimulacionImpacto> ConsultarConservadas(int? idTarea, Usuario usuario)
+    public List<SimulacionImpacto> ConsultarConservadas(Tarea? tarea, Usuario usuario)
     {
         try
         {
             List<SqlParameter> parametros = new List<SqlParameter>()
             {
                 new SqlParameter("@IdUsuario", usuario.ID),
-                new SqlParameter("@IdTarea", (object?)idTarea ?? DBNull.Value)
+                new SqlParameter("@IdTarea", (object?)tarea?.ID ?? DBNull.Value)
             };
             DataTable tabla = _conexion.Leer("dbo.usp_SimulacionImpacto_ConsultarConservadas", parametros);
             return tabla.Rows.Cast<DataRow>().Select(CrearConservada).ToList();
