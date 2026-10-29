@@ -111,7 +111,6 @@ public sealed class BLLSlack
 
     private void ValidarGestionVinculaciones(Usuario solicitante)
     {
-        _rolBLL.CargarAutorizacion(solicitante);
         bool esSoporte = solicitante.Roles.Any(rol => string.Equals(rol.TipoUsuario, "Soporte", StringComparison.OrdinalIgnoreCase));
         if (!esSoporte || !_rolBLL.TienePermiso(solicitante, "GestionarOperadores"))
         {

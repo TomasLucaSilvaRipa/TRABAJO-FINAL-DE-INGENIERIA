@@ -187,6 +187,136 @@ namespace TeamBalance.Services
             return await EnviarMail(new CorreoElectronico { Asunto = "Resumen semanal de tu agencia · TeamBalance", ContenidoHtml = descripcion, Receptor = destinatario.Email });
         }
 
+        public async Task<bool> EnviarInformeBitacora(DestinatarioDesvioHoras destinatario, FiltroBitacora filtro, List<Bitacora> eventos)
+        {
+            string periodo = filtro.Desde.HasValue || filtro.Hasta.HasValue
+                ? $"{(filtro.Desde.HasValue ? filtro.Desde.Value.ToString("dd/MM/yyyy") : "inicio")} — {(filtro.Hasta.HasValue ? filtro.Hasta.Value.ToString("dd/MM/yyyy") : "actualidad")}"
+                : "Todos los registros disponibles";
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(destinatario.Nombre)},</p><p>Soporte TeamBalance generó un informe de revisión de actividad y accesos para tu agencia.</p><p><strong>Período:</strong> {System.Net.WebUtility.HtmlEncode(periodo)}<br /><strong>Eventos incluidos:</strong> {eventos.Count}</p><p>El informe completo se encuentra adjunto en formato PDF.</p>";
+            string nombreAdjunto = $"TeamBalance-bitacora-agencia-{filtro.IdAgencia}-{DateTime.Now:yyyyMMdd-HHmm}.pdf";
+
+            return await EnviarMail(new CorreoElectronico
+            {
+                Asunto = "Informe de actividad y accesos · TeamBalance",
+                ContenidoHtml = descripcion,
+                Receptor = destinatario.Email,
+                NombreAdjunto = nombreAdjunto,
+                TipoContenidoAdjunto = "application/pdf",
+                ContenidoAdjunto = GenerarPdfInformeBitacora(filtro, eventos)
+            });
+        }
+
+        private static byte[] GenerarPdfInformeBitacora(FiltroBitacora filtro, List<Bitacora> eventos)
+        {
+            List<string> lineas = new List<string>
+            {
+                "TEAMBALANCE - INFORME DE ACTIVIDAD Y ACCESOS",
+                $"Generado: {DateTime.Now:dd/MM/yyyy HH:mm}",
+                $"Agencia: {filtro.IdAgencia}",
+                $"Periodo: {(filtro.Desde.HasValue ? filtro.Desde.Value.ToString("dd/MM/yyyy") : "inicio")} - {(filtro.Hasta.HasValue ? filtro.Hasta.Value.ToString("dd/MM/yyyy") : "actualidad")}",
+                $"Eventos incluidos: {eventos.Count}",
+                $"Filtros: {DescribirFiltros(filtro)}",
+                string.Empty
+            };
+
+            foreach (Bitacora evento in eventos.OrderByDescending(item => item.FechaHora))
+            {
+                string referencia = string.IsNullOrWhiteSpace(evento.Entidad)
+                    ? "Sin referencia"
+                    : evento.IdEntidad.HasValue ? $"{evento.Entidad} #{evento.IdEntidad}" : evento.Entidad;
+                AgregarLineaAjustada(lineas, $"{evento.FechaHora:dd/MM/yyyy HH:mm} | Usuario {evento.IdUsuario?.ToString() ?? "-"} | {referencia} | {evento.Accion}", 112);
+                AgregarLineaAjustada(lineas, $"Modulo: {evento.Modulo ?? "-"} | Resultado: {evento.Resultado ?? "-"} | Criticidad: {evento.Criticidad ?? "-"} | IP: {evento.DireccionIP ?? "-"}", 112);
+                AgregarLineaAjustada(lineas, $"Detalle: {evento.Mensaje}", 112);
+                lineas.Add(string.Empty);
+            }
+
+            const int lineasPorPagina = 48;
+            List<List<string>> paginas = lineas
+                .Select((linea, indice) => new { linea, indice })
+                .GroupBy(item => item.indice / lineasPorPagina)
+                .Select(grupo => grupo.Select(item => item.linea).ToList())
+                .ToList();
+            if (paginas.Count == 0) { paginas.Add(new List<string> { "Sin eventos para mostrar." }); }
+
+            Encoding encoding = Encoding.Latin1;
+            Dictionary<int, string> objetos = new Dictionary<int, string>();
+            objetos[1] = "<< /Type /Catalog /Pages 2 0 R >>";
+            objetos[3] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
+            List<int> paginasIds = new List<int>();
+
+            for (int indice = 0; indice < paginas.Count; indice++)
+            {
+                int contenidoId = 4 + indice * 2;
+                int paginaId = contenidoId + 1;
+                paginasIds.Add(paginaId);
+                StringBuilder contenido = new StringBuilder("BT\n/F1 9 Tf\n45 800 Td\n12 TL\n");
+                foreach (string linea in paginas[indice])
+                {
+                    contenido.Append('(').Append(EscaparTextoPdf(linea)).Append(") Tj\nT*\n");
+                }
+                contenido.Append($"T*\n(Pagina {indice + 1} de {paginas.Count}) Tj\nET\n");
+                string flujo = contenido.ToString();
+                objetos[contenidoId] = $"<< /Length {encoding.GetByteCount(flujo)} >>\nstream\n{flujo}endstream";
+                objetos[paginaId] = $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents {contenidoId} 0 R >>";
+            }
+
+            objetos[2] = $"<< /Type /Pages /Kids [{string.Join(" ", paginasIds.Select(id => $"{id} 0 R"))}] /Count {paginasIds.Count} >>";
+            int cantidadObjetos = objetos.Keys.Max();
+            StringBuilder pdf = new StringBuilder("%PDF-1.4\n%âãÏÓ\n");
+            int[] offsets = new int[cantidadObjetos + 1];
+            for (int id = 1; id <= cantidadObjetos; id++)
+            {
+                offsets[id] = encoding.GetByteCount(pdf.ToString());
+                pdf.Append(id).Append(" 0 obj\n").Append(objetos[id]).Append("\nendobj\n");
+            }
+
+            int inicioXref = encoding.GetByteCount(pdf.ToString());
+            pdf.Append("xref\n0 ").Append(cantidadObjetos + 1).Append("\n");
+            pdf.Append("0000000000 65535 f \n");
+            for (int id = 1; id <= cantidadObjetos; id++)
+            {
+                pdf.Append(offsets[id].ToString("D10")).Append(" 00000 n \n");
+            }
+            pdf.Append("trailer\n<< /Size ").Append(cantidadObjetos + 1).Append(" /Root 1 0 R >>\nstartxref\n").Append(inicioXref).Append("\n%%EOF");
+            return encoding.GetBytes(pdf.ToString());
+        }
+
+        private static string DescribirFiltros(FiltroBitacora filtro)
+        {
+            List<string> filtros = new List<string>();
+            if (filtro.IdUsuario.HasValue) filtros.Add($"usuario {filtro.IdUsuario}");
+            if (!string.IsNullOrWhiteSpace(filtro.Entidad)) filtros.Add($"entidad {filtro.Entidad}");
+            if (!string.IsNullOrWhiteSpace(filtro.Accion)) filtros.Add($"accion {filtro.Accion}");
+            if (filtro.Modulo.HasValue) filtros.Add($"modulo {filtro.Modulo}");
+            if (filtro.Resultado.HasValue) filtros.Add($"resultado {filtro.Resultado}");
+            if (filtro.Criticidad.HasValue) filtros.Add($"criticidad {filtro.Criticidad}");
+            return filtros.Count == 0 ? "sin filtros adicionales" : string.Join(", ", filtros);
+        }
+
+        private static void AgregarLineaAjustada(List<string> destino, string texto, int maximo)
+        {
+            string restante = texto.Replace('\r', ' ').Replace('\n', ' ').Trim();
+            while (restante.Length > maximo)
+            {
+                int corte = restante.LastIndexOf(' ', maximo);
+                if (corte <= 0) corte = maximo;
+                destino.Add(restante[..corte].Trim());
+                restante = restante[corte..].Trim();
+            }
+            destino.Add(restante);
+        }
+
+        private static string EscaparTextoPdf(string texto)
+        {
+            return texto
+                .Replace('–', '-')
+                .Replace('—', '-')
+                .Replace('•', '-')
+                .Replace("\\", "\\\\")
+                .Replace("(", "\\(")
+                .Replace(")", "\\)");
+        }
+
         private async Task<bool> EnviarMail(CorreoElectronico correo)
         {
             if (string.IsNullOrWhiteSpace(emisor) || string.IsNullOrWhiteSpace(claveAplicacion) || string.IsNullOrWhiteSpace(correo.Receptor))
@@ -213,6 +343,14 @@ namespace TeamBalance.Services
                 };
 
                 mail.To.Add(correo.Receptor);
+                if (correo.ContenidoAdjunto is { Length: > 0 } && !string.IsNullOrWhiteSpace(correo.NombreAdjunto))
+                {
+                    System.IO.MemoryStream contenidoAdjunto = new System.IO.MemoryStream(correo.ContenidoAdjunto, writable: false);
+                    mail.Attachments.Add(new System.Net.Mail.Attachment(
+                        contenidoAdjunto,
+                        correo.NombreAdjunto,
+                        string.IsNullOrWhiteSpace(correo.TipoContenidoAdjunto) ? "application/octet-stream" : correo.TipoContenidoAdjunto));
+                }
                 await smtpClient.SendMailAsync(mail);
                 try
                 {

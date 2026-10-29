@@ -107,12 +107,20 @@ public class MPPUsuario
             new SqlParameter("@IdUsuario", sesion.IdUsuario),
             new SqlParameter("@TokenHash", sesion.TokenHash),
             new SqlParameter("@FechaExpiracion", sesion.FechaExpiracion),
+            new SqlParameter("@VersionAutorizacion", sesion.VersionAutorizacion),
         };
 
         if (!_conexion.Escribir("dbo.usp_SesionUsuario_Registrar", parametros))
         {
             throw new InvalidOperationException("No fue posible registrar la sesión del usuario.");
         }
+    }
+
+    public long ConsultarVersionAutorizacion(Usuario usuario)
+    {
+        DataTable resultado = _conexion.Leer("dbo.usp_Usuario_ConsultarVersionAutorizacion", new List<SqlParameter>() { new SqlParameter("@IdUsuario", usuario.ID) });
+        if (resultado.Rows.Count != 1) throw new UnauthorizedAccessException("El usuario ya no está activo.");
+        return Convert.ToInt64(resultado.Rows[0]["VersionAutorizacion"]);
     }
 
     public bool SesionVigente(string tokenHash)
@@ -423,7 +431,7 @@ public class MPPUsuario
         return usuario;
     }
 
-    private Usuario CargarFotoPerfil(Usuario usuario)
+    public Usuario CargarFotoPerfil(Usuario usuario)
     {
         List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdUsuario", usuario.ID) };
         DataTable resultado = _conexion.Leer("dbo.usp_Usuario_ConsultarFotoPerfil", parametros);

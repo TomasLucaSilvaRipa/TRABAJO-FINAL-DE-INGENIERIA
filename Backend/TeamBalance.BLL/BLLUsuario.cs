@@ -209,13 +209,17 @@ public class BLLUsuario
 
     private InicioSesionResultado CrearInicioSesion(Usuario usuario, bool mantenerSesion)
     {
+        long versionAutorizacion = _usuarioMPP.ConsultarVersionAutorizacion(usuario);
         _rolBLL.CargarAutorizacion(usuario);
+        if (usuario.Roles.Count == 0) throw new UnauthorizedAccessException("Tu cuenta no tiene un rol activo asignado.");
 
-        string accessToken = _seguridad.GenerarTokenSeguro();
         DateTime fechaExpiracion = mantenerSesion ? DateTime.Now.AddDays(DuracionSesionRecordadaDias) : DateTime.Now.AddHours(DuracionSesionNormalHoras);
 
         DateTime fechaInicio = DateTime.Now;
-        SesionUsuario sesion = new SesionUsuario(0, usuario.ID, _seguridad.GenerarHashToken(accessToken), fechaInicio, fechaInicio, fechaExpiracion, null, true, null);
+        SesionUsuario sesion = new SesionUsuario(0, usuario.ID, string.Empty, fechaInicio, fechaInicio, fechaExpiracion, null, true, null);
+        sesion.VersionAutorizacion = versionAutorizacion;
+        string accessToken = _fieldEncryptionService.GenerarTokenSesion(usuario, sesion);
+        sesion.TokenHash = _seguridad.GenerarHashToken(accessToken);
 
         _usuarioMPP.RegistrarSesion(sesion);
 
@@ -247,7 +251,7 @@ public class BLLUsuario
 
     public bool SesionVigente(string accessToken)
     {
-        return !string.IsNullOrWhiteSpace(accessToken) && _usuarioMPP.SesionVigente(_seguridad.GenerarHashToken(accessToken));
+        return ConsultarUsuarioSesion(accessToken) is not null;
     }
 
     public Usuario? ConsultarUsuarioSesion(string accessToken)
@@ -257,14 +261,14 @@ public class BLLUsuario
             return null;
         }
 
-        SesionUsuario sesion = new SesionUsuario(0, 0, _seguridad.GenerarHashToken(accessToken), DateTime.MinValue, null, DateTime.MinValue, null, false, null);
+        Usuario? usuario = _fieldEncryptionService.ConsultarUsuarioToken(accessToken);
+        return usuario is not null && _usuarioMPP.SesionVigente(_seguridad.GenerarHashToken(accessToken)) ? usuario : null;
+    }
 
-        Usuario? usuario = _usuarioMPP.ConsultarUsuarioPorSesion(sesion);
-        if (usuario is not null)
-        {
-            _rolBLL.CargarAutorizacion(usuario);
-        }
-        return usuario;
+    public Usuario? ConsultarAutorizacionSesion(string accessToken)
+    {
+        Usuario? usuario = ConsultarUsuarioSesion(accessToken);
+        return usuario is null ? null : _usuarioMPP.CargarFotoPerfil(usuario);
     }
 
     public void CerrarSesion(string accessToken)

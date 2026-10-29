@@ -1,15 +1,20 @@
 using TeamBalance.BE.Entidades;
 using TeamBalance.MPP;
+using TeamBalance.Services;
 
 namespace TeamBalance.BLL;
 
 public class BLLBitacora
 {
     private readonly MPPBitacora _bitacoraMPP;
+    private readonly MPPAnaliticaOperativa _analiticaMPP;
+    private readonly EmailService _emailService;
 
-    public BLLBitacora(MPPBitacora bitacoraMPP)
+    public BLLBitacora(MPPBitacora bitacoraMPP, MPPAnaliticaOperativa analiticaMPP, EmailService emailService)
     {
         _bitacoraMPP = bitacoraMPP;
+        _analiticaMPP = analiticaMPP;
+        _emailService = emailService;
     }
 
     public bool Add(Bitacora bitacora)
@@ -55,6 +60,69 @@ public class BLLBitacora
         catch (Exception ex)
         {
             throw new Exception("Error al filtrar la bitácora: " + ex.Message, ex);
+        }
+    }
+
+    public async Task<int> GenerarYEnviarInforme(FiltroBitacora filtro, Usuario solicitante)
+    {
+        ValidarConsultaBitacora(solicitante);
+        if (!filtro.IdAgencia.HasValue || filtro.IdAgencia.Value <= 0)
+        {
+            throw new ArgumentException("Seleccioná una agencia para generar y enviar el informe.");
+        }
+
+        List<Bitacora> eventos = FiltrarBitacora(filtro);
+        if (eventos.Count == 0)
+        {
+            throw new InvalidOperationException("No existen eventos para generar el informe con los filtros seleccionados.");
+        }
+
+        Usuario agenciaConsultada = new Usuario { IdAgencia = filtro.IdAgencia };
+        List<DestinatarioDesvioHoras> destinatarios = _analiticaMPP.ConsultarDuenosAgencia(agenciaConsultada)
+            .Where(destinatario => !string.IsNullOrWhiteSpace(destinatario.Email))
+            .ToList();
+        if (destinatarios.Count == 0)
+        {
+            throw new InvalidOperationException("La agencia seleccionada no posee un Dueño activo con correo registrado.");
+        }
+
+        int enviados = 0;
+        foreach (DestinatarioDesvioHoras destinatario in destinatarios)
+        {
+            if (await _emailService.EnviarInformeBitacora(destinatario, filtro, eventos))
+            {
+                enviados++;
+            }
+        }
+
+        string resultado = enviados == destinatarios.Count ? "Exitoso" : enviados > 0 ? "Parcial" : "Error";
+        string criticidad = enviados == destinatarios.Count ? "Informacion" : "Advertencia";
+        Add(new Bitacora(
+            solicitante.ID,
+            filtro.IdAgencia,
+            "Bitacora",
+            null,
+            "GenerarInformeBitacora",
+            $"Se generó un informe con {eventos.Count} evento(s) y se envió a {enviados} de {destinatarios.Count} Dueño(s).",
+            resultado,
+            criticidad,
+            "Seguridad"));
+
+        if (enviados == 0)
+        {
+            throw new InvalidOperationException("El informe fue generado, pero no pudo enviarse a los Dueños de la agencia.");
+        }
+
+        return enviados;
+    }
+
+    private static void ValidarConsultaBitacora(Usuario solicitante)
+    {
+        bool esSoporte = solicitante.Roles.Any(rol => string.Equals(rol.TipoUsuario, "Soporte", StringComparison.OrdinalIgnoreCase));
+        bool tienePermiso = solicitante.Permisos.Any(permiso => string.Equals(permiso.Codigo, "ConsultarBitacora", StringComparison.OrdinalIgnoreCase));
+        if (!esSoporte || !tienePermiso)
+        {
+            throw new UnauthorizedAccessException("No tenés permiso para generar informes de la bitácora.");
         }
     }
 }

@@ -9,10 +9,12 @@ namespace Teambalance.API.Controllers;
 public class BitacoraController : ControllerBase
 {
     private readonly BLLBitacora _bllBitacora;
+    private readonly BLLUsuario _usuarioBLL;
 
-    public BitacoraController(BLLBitacora bllBitacora)
+    public BitacoraController(BLLBitacora bllBitacora, BLLUsuario usuarioBLL)
     {
         _bllBitacora = bllBitacora;
+        _usuarioBLL = usuarioBLL;
     }
 
     [HttpGet]
@@ -37,5 +39,26 @@ public class BitacoraController : ControllerBase
         }
         catch (ArgumentException ex){return BadRequest(ex.Message);}
         catch (Exception){return StatusCode(500,"No fue posible consultar la bitácora.");}
+    }
+
+    [HttpPost("informe")]
+    public async Task<IActionResult> GenerarInforme([FromBody] FiltroBitacora filtro)
+    {
+        try
+        {
+            await _bllBitacora.GenerarYEnviarInforme(filtro, ObtenerSolicitante());
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible generar y enviar el informe de bitácora."); }
+    }
+
+    private Usuario ObtenerSolicitante()
+    {
+        string? authorization = Request.Headers.Authorization;
+        string accessToken = !string.IsNullOrWhiteSpace(authorization) && authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? authorization[7..].Trim() : string.Empty;
+        return _usuarioBLL.ConsultarUsuarioSesion(accessToken) ?? throw new UnauthorizedAccessException("Tu sesión ya no es válida. Volvé a iniciar sesión.");
     }
 }

@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using System.IO.Compression;
 using TeamBalance.BE.Entidades;
 
 namespace TeamBalance.Services;
@@ -10,6 +12,8 @@ namespace TeamBalance.Services;
 /// </summary>
 public sealed class FieldEncryptionService
 {
+    private const string SessionTokenPrefix = "TBS1.";
+    private const string SessionTokenPurpose = "TeamBalance:SesionUsuario:v1";
     private const string VersionPrefix = "ENC:v1";
     private const int NonceLength = 12;
     private const int TagLength = 16;
@@ -106,6 +110,68 @@ public sealed class FieldEncryptionService
     public string DescifrarSecretoAutenticacionDosFactores(string secretoCifrado)
     {
         return Descifrar(secretoCifrado, "TeamBalance:AutenticacionDosFactores:Totp:v1");
+    }
+
+    public string GenerarTokenSesion(Usuario usuario, SesionUsuario sesion)
+    {
+        var autorizacion = new
+        {
+            Version = 1,
+            Expira = new DateTimeOffset(sesion.FechaExpiracion.ToUniversalTime()).ToUnixTimeSeconds(),
+            usuario.ID, usuario.IdAgencia, usuario.Nombre, usuario.Apellido, usuario.Email,
+            usuario.Estado, usuario.FechaAlta,
+            Roles = usuario.Roles.Select(rol => new { rol.ID, rol.Nombre, rol.TipoUsuario }).ToArray(),
+            Permisos = usuario.Permisos.Select(permiso => new { permiso.ID, permiso.Codigo, permiso.Nombre, permiso.Url }).ToArray()
+        };
+        byte[] contenido = JsonSerializer.SerializeToUtf8Bytes(autorizacion);
+        using MemoryStream comprimido = new();
+        using (BrotliStream compresor = new(comprimido, CompressionLevel.Fastest, leaveOpen: true))
+        {
+            compresor.Write(contenido);
+        }
+        string token = SessionTokenPrefix + Cifrar(Convert.ToBase64String(comprimido.ToArray()), SessionTokenPurpose);
+        if (token.Length > 16000) throw new InvalidOperationException("La autorización excede el tamaño permitido para una sesión.");
+        return token;
+    }
+
+    public Usuario? ConsultarUsuarioToken(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token) || token.Length > 16000 || !token.StartsWith(SessionTokenPrefix, StringComparison.Ordinal)) return null;
+        try
+        {
+            string protegido = token[SessionTokenPrefix.Length..];
+            string[] partes = protegido.Split(':');
+            if (partes.Length != 5 || partes.Skip(2).Any(parte => !string.Equals(Convert.ToBase64String(Convert.FromBase64String(parte)), parte, StringComparison.Ordinal))) return null;
+            byte[] comprimido = Convert.FromBase64String(Descifrar(protegido, SessionTokenPurpose));
+            using MemoryStream origen = new(comprimido);
+            using BrotliStream descompresor = new(origen, CompressionMode.Decompress);
+            using MemoryStream contenido = new();
+            byte[] bloque = new byte[4096];
+            int leidos;
+            while ((leidos = descompresor.Read(bloque)) > 0)
+            {
+                if (contenido.Length + leidos > 131072) return null;
+                contenido.Write(bloque, 0, leidos);
+            }
+            using JsonDocument documento = JsonDocument.Parse(contenido.ToArray());
+            JsonElement datos = documento.RootElement;
+            if (datos.GetProperty("Version").GetInt32() != 1 || datos.GetProperty("Expira").GetInt64() <= DateTimeOffset.UtcNow.ToUnixTimeSeconds()) return null;
+            List<Rol> roles = datos.GetProperty("Roles").Deserialize<List<Rol>>() ?? new();
+            List<Permiso> permisos = datos.GetProperty("Permisos").Deserialize<List<Permiso>>() ?? new();
+            int id = datos.GetProperty("ID").GetInt32();
+            if (id <= 0 || roles.Count == 0) return null;
+            Usuario usuario = new(id, datos.GetProperty("IdAgencia").ValueKind == JsonValueKind.Null ? null : datos.GetProperty("IdAgencia").GetInt32(), roles[0],
+                datos.GetProperty("Nombre").GetString() ?? string.Empty, datos.GetProperty("Apellido").GetString() ?? string.Empty,
+                datos.GetProperty("Email").GetString() ?? string.Empty, string.Empty, datos.GetProperty("Estado").GetString() ?? string.Empty,
+                datos.GetProperty("FechaAlta").GetDateTime(), true);
+            usuario.Roles = roles;
+            usuario.Permisos = permisos;
+            return usuario;
+        }
+        catch (Exception ex) when (ex is CryptographicException or FormatException or JsonException or InvalidOperationException or KeyNotFoundException or ArgumentException or InvalidDataException or IOException or OverflowException)
+        {
+            return null;
+        }
     }
 
     private string Cifrar(string valor, string contexto)

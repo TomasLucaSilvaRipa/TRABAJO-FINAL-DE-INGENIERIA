@@ -10,6 +10,10 @@ export class AgencyService {
   private readonly http = inject(HttpClient);
   private readonly url = '/api/agencias';
   consultarActual(): Observable<Agencia> { return this.http.get<Agencia>(`${this.url}/actual`); }
-  modificarActual(agencia: Partial<Agencia>): Observable<Agencia> { return this.http.put<Agencia>(`${this.url}/actual`, agencia); }
-  consultarSuscripcion(): Observable<Suscripcion | null> { return this.http.get<Suscripcion | null>(`${this.url}/suscripcion`); }
+  modificarActual(agencia: Partial<Agencia>): Observable<Agencia> {
+    return this.http.put<Agencia>(`${this.url}/actual`, agencia);
+  }
+  consultarSuscripcion(): Observable<Suscripcion | null> {
+    return this.http.get<Suscripcion | null>(`${this.url}/suscripcion`);
+  }
 }

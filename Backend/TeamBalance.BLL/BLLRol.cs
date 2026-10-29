@@ -26,7 +26,6 @@ public class BLLRol
     public void CargarAutorizacion(Usuario usuario)
     {
         usuario.Roles = _rolMPP.ConsultarRolesUsuario(usuario);
-        usuario.Permisos = _rolMPP.ConsultarPermisosUsuario(usuario);
         if (usuario.Roles.Count > 0)
         {
             usuario.Rol = usuario.Roles[0];
@@ -35,6 +34,7 @@ public class BLLRol
         {
             rol.Permisos = _rolMPP.ConsultarPermisosRol(rol);
         }
+        usuario.Permisos = usuario.Roles.SelectMany(rol => rol.Permisos).DistinctBy(permiso => permiso.ID).ToList();
     }
 
     public List<Rol> ConsultarRolesActivos()

@@ -133,7 +133,7 @@ public class AuthController : ControllerBase
     [HttpGet("autorizacion")]
     public IActionResult ConsultarAutorizacion()
     {
-        Usuario? usuario = _usuarioBLL.ConsultarUsuarioSesion(ObtenerAccessToken() ?? string.Empty);
+        Usuario? usuario = _usuarioBLL.ConsultarAutorizacionSesion(ObtenerAccessToken() ?? string.Empty);
         if (usuario is null)
         {
             return Unauthorized();

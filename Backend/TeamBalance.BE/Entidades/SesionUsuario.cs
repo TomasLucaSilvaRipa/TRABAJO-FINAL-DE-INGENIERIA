@@ -28,6 +28,8 @@ public partial class SesionUsuario
 
     public string TokenHash { get; set; } = null!;
 
+    public long VersionAutorizacion { get; set; }
+
     public DateTime FechaInicio { get; set; }
 
     public DateTime? FechaUltimaActividad { get; set; }
