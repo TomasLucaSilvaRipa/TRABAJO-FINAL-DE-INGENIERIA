@@ -47,6 +47,13 @@ public class BLLBitacora
         return _bitacoraMPP.LeerBitacora(filtro);
     }
 
+    public List<Bitacora> LeerPagina(FiltroBitacora filtro, int cantidad, DateTime? antesFechaHora, int? antesId)
+    {
+        if (filtro.Desde.HasValue && filtro.Hasta.HasValue && filtro.Desde.Value > filtro.Hasta.Value)
+            throw new ArgumentException("La fecha desde no puede ser posterior a la fecha hasta.");
+        return _bitacoraMPP.LeerPagina(filtro, cantidad, antesFechaHora, antesId);
+    }
+
     public List<Bitacora> FiltrarBitacora(FiltroBitacora filtro)
     {
         try

@@ -6,10 +6,9 @@ namespace TeamBalance.BLL;
 public class BLLNotificacion
 {
     private readonly MPPNotificacion _notificacionMPP;
-    private readonly BLLRol _rolBLL;
     private readonly BLLBitacora _bitacoraBLL;
 
-    public BLLNotificacion(MPPNotificacion notificacionMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL) { _notificacionMPP = notificacionMPP; _rolBLL = rolBLL; _bitacoraBLL = bitacoraBLL; }
+    public BLLNotificacion(MPPNotificacion notificacionMPP, BLLBitacora bitacoraBLL) { _notificacionMPP = notificacionMPP; _bitacoraBLL = bitacoraBLL; }
 
     public List<NotificacionUsuario> ConsultarPropias(Usuario solicitante)
     {
@@ -33,7 +32,10 @@ public class BLLNotificacion
 
     private void ValidarAcceso(Usuario solicitante)
     {
-        if (solicitante.ID <= 0 || !_rolBLL.TienePermiso(solicitante, "ConsultarNotificaciones"))
-            throw new UnauthorizedAccessException("No tenés permiso para consultar notificaciones.");
+        // Cada usuario autenticado accede únicamente a sus propias notificaciones.
+        // No depende de un permiso configurable porque también se usa para validar
+        // el acceso de la agencia inmediatamente después de iniciar sesión.
+        if (solicitante.ID <= 0)
+            throw new UnauthorizedAccessException("Tu sesión ya no es válida.");
     }
 }

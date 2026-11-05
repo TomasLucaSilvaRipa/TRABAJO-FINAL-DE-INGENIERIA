@@ -12,18 +12,22 @@ interface AccesoDashboard { permiso: string; titulo?: string; tituloClave?: stri
 export class EcommerceComponent {
   readonly authService = inject(AuthService); private readonly projectsService = inject(ProjectsService); private readonly skillsService = inject(SkillsDesiertosService);
   readonly localization = inject(LocalizationService);
+  tipoBrechaTraducido(tipo: string): string {
+    const claves: Record<string, string> = { 'Skill desierto': 'desert', 'Cobertura insuficiente': 'insufficient', 'Skill saturado': 'saturated' };
+    return claves[tipo] ? this.localization.traducir(`private.dashboard.gap.${claves[tipo]}`) : tipo;
+  }
   readonly proyectos = signal<Proyecto[]>([]); readonly proyectosAbiertos = signal(true); readonly cargandoProyectos = signal(false);
   readonly skillsCriticas = signal<AnalisisCoberturaSkill[]>([]); readonly cargandoSkills = signal(false);
   readonly usuario: UsuarioSesion | null = this.authService.usuarioActual();
   readonly accesos: AccesoDashboard[] = [
-    { permiso: 'GestionarUsuarios', titulo: 'Gestionar empleados', descripcion: 'Usuarios, roles y perfiles laborales.', ruta: '/dashboard/empleados', accion: 'Abrir' },
-    { permiso: 'GestionarTareas', titulo: 'Planificar tareas', descripcion: 'Priorizá y asigná el trabajo.', ruta: '/dashboard/tareas', accion: 'Planificar', ocultarDueno: true },
-    { permiso: 'UsarBestFit', titulo: 'Best Fit', descripcion: 'Compará alternativas de asignación.', ruta: '/dashboard/best-fit', accion: 'Analizar' },
-    { permiso: 'AnalizarSkills', titulo: 'Cobertura de skills', descripcion: 'Detectá brechas operativas y prioridades.', ruta: '/dashboard/skills-desiertos', accion: 'Revisar' },
-    { permiso: 'RegistrarHoras', titulo: 'Registrar horas', descripcion: 'Actualizá tu dedicación semanal.', ruta: '/dashboard/registrar-horas', accion: 'Registrar' },
-    { permiso: 'GestionarDisponibilidad', titulo: 'Disponibilidad', descripcion: 'Mantené visible tu capacidad.', ruta: '/dashboard/disponibilidad', accion: 'Actualizar' },
-    { permiso: 'GestionarRoles', titulo: 'Gestionar roles', descripcion: 'Definí accesos de la agencia.', ruta: '/dashboard/roles', accion: 'Gestionar' },
-    { permiso: 'ConsultarBitacora', titulo: 'Bitácora', descripcion: 'Actividad y controles de seguridad.', ruta: '/dashboard/bitacora', accion: 'Revisar' },
+    { permiso: 'GestionarUsuarios', tituloClave: 'static.manageEmployees', descripcionClave: 'static.usersRolesProfiles', ruta: '/dashboard/empleados', accionClave: 'static.open' },
+    { permiso: 'GestionarTareas', tituloClave: 'static.planTasks', descripcionClave: 'static.prioritizeWork', ruta: '/dashboard/tareas', accionClave: 'static.plan', ocultarDueno: true },
+    { permiso: 'UsarBestFit', titulo: 'Best Fit', descripcionClave: 'private.dashboard.comparaAlternativasDeAsignacion', ruta: '/dashboard/best-fit', accionClave: 'private.dashboard.analizar' },
+    { permiso: 'AnalizarSkills', tituloClave: 'private.dashboard.coverage', descripcionClave: 'private.dashboard.detectaBrechasOperativasYPrioridades', ruta: '/dashboard/skills-desiertos', accionClave: 'static.review' },
+    { permiso: 'RegistrarHoras', tituloClave: 'private.dashboard.logHours', descripcionClave: 'private.dashboard.actualizaTuDedicacionSemanal', ruta: '/dashboard/registrar-horas', accionClave: 'private.dashboard.registrar' },
+    { permiso: 'GestionarDisponibilidad', tituloClave: 'static.availability', descripcionClave: 'static.keepCapacityVisible', ruta: '/dashboard/disponibilidad', accionClave: 'static.update' },
+    { permiso: 'GestionarRoles', tituloClave: 'static.manageRoles', descripcionClave: 'static.defineAgencyAccess', ruta: '/dashboard/roles', accionClave: 'static.manage' },
+    { permiso: 'ConsultarBitacora', tituloClave: 'menu.logs', descripcionClave: 'private.dashboard.actividadYControlesDeSeguridad', ruta: '/dashboard/bitacora', accionClave: 'static.review' },
   ];
   constructor() { if (this.puedeVer('GestionarProyectos')) { this.cargarProyectos(); } if (this.puedeVer('AnalizarSkills')) { this.cargarSkillsCriticas(); } }
   puedeVer(permiso: string): boolean { return this.authService.tienePermiso(permiso); }

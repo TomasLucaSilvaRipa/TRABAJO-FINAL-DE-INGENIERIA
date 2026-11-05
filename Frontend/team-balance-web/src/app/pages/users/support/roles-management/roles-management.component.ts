@@ -5,7 +5,7 @@ import { Permiso, Rol, RolesService, TipoUsuarioRol } from '../../../../services
 import { AuthService } from '../../../../services/auth.service';
 import { LocalizationService } from '../../../../services/localization.service';
 
-@Component({ selector: 'app-rol-management', imports: [ReactiveFormsModule], templateUrl: './roles-management.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
+@Component({ selector: 'app-rol-management', imports: [ReactiveFormsModule], templateUrl: './roles-management.component.html', styleUrl: './roles-management.component.css', changeDetection: ChangeDetectionStrategy.OnPush })
 export class RolManagement {
   private readonly formBuilder = inject(FormBuilder);
   private readonly rolesService = inject(RolesService);

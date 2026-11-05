@@ -63,6 +63,11 @@ export interface FiltroBitacora {
   modulo?: ModuloBitacora | null;
 }
 
+export interface PaginaBitacora {
+  items: Bitacora[];
+  hasMore: boolean;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -92,6 +97,15 @@ export class LogService {
       this.logApiUrl,
       { params }
     );
+  }
+
+  logsPagina(filtros: FiltroBitacora = {}, tamano = 50, cursor?: { fechaHora: string; id: number }): Observable<PaginaBitacora> {
+    let params = new HttpParams().set('tamano', String(tamano));
+    Object.entries(filtros).forEach(([clave, valor]) => {
+      if (valor !== null && valor !== undefined && valor !== '') params = params.set(clave, String(valor));
+    });
+    if (cursor) params = params.set('antesFechaHora', cursor.fechaHora).set('antesId', String(cursor.id));
+    return this.http.get<PaginaBitacora>(`${this.logApiUrl}/pagina`, { params });
   }
 
   generarInforme(filtros: FiltroBitacora): Observable<void> {

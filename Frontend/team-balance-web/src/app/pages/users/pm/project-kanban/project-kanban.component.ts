@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, ViewChild } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -6,9 +6,12 @@ import { EstadoTarea, Tarea, TasksService } from '../../../../services/tasks.ser
 import { Proyecto, ProjectsService } from '../../../../services/projects.service';
 import { LocalizationService } from '../../../../services/localization.service';
 import { AuthService } from '../../../../services/auth.service';
+import { KanbanPaletteService } from '../../../../services/kanban-palette.service';
 
 @Component({ selector: 'app-project-kanban', imports: [CommonModule, DatePipe, FormsModule, RouterLink], templateUrl: './project-kanban.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
 export class ProjectKanbanComponent {
+  @ViewChild('tablero') private tablero?: ElementRef<HTMLElement>;
+  readonly paleta = inject(KanbanPaletteService);
   private readonly tasksService = inject(TasksService);
   private readonly projectsService = inject(ProjectsService);
   private readonly authService = inject(AuthService);
@@ -26,7 +29,15 @@ export class ProjectKanbanComponent {
     this.cargarTareas();
   }
 
-  columnas(): string[] { return this.estados().length ? this.estados().map(estado => estado.nombre) : ['Pendiente', 'En progreso', 'Bloqueada', 'Finalizada']; }
+  columnas(): string[] {
+    const nombres = this.estados().length ? this.estados().map(estado => estado.nombre) : ['Pendiente', 'En progreso', 'Finalizada', 'Bloqueada'];
+    const tipo = (nombre: string) => nombre.trim().toLocaleLowerCase();
+    return [
+      ...nombres.filter(nombre => tipo(nombre) !== 'finalizada' && tipo(nombre) !== 'bloqueada'),
+      ...nombres.filter(nombre => tipo(nombre) === 'finalizada'),
+      ...nombres.filter(nombre => tipo(nombre) === 'bloqueada'),
+    ];
+  }
 
   cargarTareas(): void {
     this.error.set('');
@@ -40,4 +51,8 @@ export class ProjectKanbanComponent {
 
   porEstado(estado: string): Tarea[] { return this.tareas().filter((tarea: Tarea) => (tarea.estado || 'Pendiente').toLowerCase() === estado.toLowerCase()); }
   estadoTraducido(estado: string): string { return this.localization.traducirEstado(estado); }
+  moverTablero(direccion: -1 | 1): void {
+    const elemento = this.tablero?.nativeElement;
+    if (elemento) elemento.scrollBy({ left: direccion * Math.max(elemento.clientWidth * .75, 280), behavior: 'smooth' });
+  }
 }

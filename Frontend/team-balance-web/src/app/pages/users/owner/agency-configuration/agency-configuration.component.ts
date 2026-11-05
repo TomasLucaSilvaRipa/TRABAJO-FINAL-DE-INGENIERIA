@@ -9,6 +9,7 @@ import { ConfiguracionAlertaAgencia, EstadoTarea, TasksService } from '../../../
   selector: 'app-agency-configuration',
   imports: [DatePipe, ReactiveFormsModule],
   templateUrl: './agency-configuration.component.html',
+  styleUrl: './agency-configuration.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AgencyConfiguration {

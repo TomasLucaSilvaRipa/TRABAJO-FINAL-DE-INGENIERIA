@@ -16,6 +16,12 @@ IF COL_LENGTH(N'dbo.Bitacora', N'ModuloCodigo') IS NULL
     ALTER TABLE dbo.Bitacora ADD ModuloCodigo INT NULL;
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID(N'dbo.Bitacora') AND name = N'IX_Bitacora_FechaHora_ID')
+    CREATE NONCLUSTERED INDEX IX_Bitacora_FechaHora_ID
+        ON dbo.Bitacora(FechaHora DESC, ID DESC)
+        INCLUDE (IdAgencia, IdUsuario, ResultadoCodigo, CriticidadCodigo, ModuloCodigo);
+GO
+
 UPDATE dbo.Bitacora
 SET ResultadoCodigo = CASE
         WHEN Resultado = N'Pendiente' THEN 1
@@ -144,6 +150,53 @@ BEGIN
       AND (@ResultadoCodigo IS NULL OR ResultadoCodigo = @ResultadoCodigo)
       AND (@CriticidadCodigo IS NULL OR CriticidadCodigo = @CriticidadCodigo)
       AND (@ModuloCodigo IS NULL OR ModuloCodigo = @ModuloCodigo)
+    ORDER BY FechaHora DESC, ID DESC;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Bitacora_ConsultarPaginado
+    @IdAgencia INT = NULL,
+    @Desde DATETIME2(0) = NULL,
+    @Hasta DATETIME2(0) = NULL,
+    @IdUsuario INT = NULL,
+    @Entidad NVARCHAR(100) = NULL,
+    @Accion NVARCHAR(100) = NULL,
+    @ResultadoCodigo INT = NULL,
+    @CriticidadCodigo INT = NULL,
+    @ModuloCodigo INT = NULL,
+    @Cantidad INT = 51,
+    @AntesFechaHora DATETIME2(7) = NULL,
+    @AntesId INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF @Cantidad < 2 OR @Cantidad > 101 THROW 50001, 'La cantidad solicitada para la bitácora no es válida.', 1;
+
+    SELECT TOP (@Cantidad)
+        ID,
+        IdUsuario,
+        IdAgencia,
+        Entidad,
+        IdEntidad,
+        Accion,
+        Mensaje,
+        ResultadoCodigo,
+        CriticidadCodigo,
+        ModuloCodigo,
+        Modulo,
+        FechaHora,
+        DireccionIP
+    FROM dbo.Bitacora
+    WHERE (@IdAgencia IS NULL OR IdAgencia = @IdAgencia)
+      AND (@Desde IS NULL OR FechaHora >= @Desde)
+      AND (@Hasta IS NULL OR FechaHora <= @Hasta)
+      AND (@IdUsuario IS NULL OR IdUsuario = @IdUsuario)
+      AND (NULLIF(@Entidad, N'') IS NULL OR Entidad = @Entidad)
+      AND (NULLIF(@Accion, N'') IS NULL OR Accion = @Accion)
+      AND (@ResultadoCodigo IS NULL OR ResultadoCodigo = @ResultadoCodigo)
+      AND (@CriticidadCodigo IS NULL OR CriticidadCodigo = @CriticidadCodigo)
+      AND (@ModuloCodigo IS NULL OR ModuloCodigo = @ModuloCodigo)
+      AND (@AntesFechaHora IS NULL OR @AntesId IS NULL OR FechaHora < @AntesFechaHora OR (FechaHora = @AntesFechaHora AND ID < @AntesId))
     ORDER BY FechaHora DESC, ID DESC;
 END;
 GO

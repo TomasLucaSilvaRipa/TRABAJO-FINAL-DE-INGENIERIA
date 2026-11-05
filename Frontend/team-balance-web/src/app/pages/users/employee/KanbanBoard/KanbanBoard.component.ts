@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ArchivoAdjuntoTarea, EstadoTarea, Tarea, TasksService } from '../../../../services/tasks.service';
 import { forkJoin, map } from 'rxjs';
 import { LocalizationService } from '../../../../services/localization.service';
 import { FocusTimerService } from '../../../../services/focus-timer.service';
+import { KanbanPaletteService } from '../../../../services/kanban-palette.service';
 
 interface ChecklistItem {
   texto: string;
@@ -25,10 +26,24 @@ interface ComentarioTarea {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class KanbanBoard {
+  @ViewChild('tablero') private tablero?: ElementRef<HTMLElement>;
+  readonly paleta = inject(KanbanPaletteService);
+  moverTablero(direccion: -1 | 1): void {
+    const elemento = this.tablero?.nativeElement;
+    if (elemento) elemento.scrollBy({ left: direccion * Math.max(elemento.clientWidth * .75, 280), behavior: 'smooth' });
+  }
   private readonly tasksService = inject(TasksService);
   private readonly router = inject(Router);
   private readonly foco = inject(FocusTimerService);
   readonly localization = inject(LocalizationService);
+  estadoTraducido(estado: string): string {
+    const claves: Record<string, string> = { Pendiente: 'pending', 'En progreso': 'progress', Bloqueada: 'blocked', Finalizada: 'completed' };
+    return claves[estado] ? this.localization.traducir(`private.employeeKanban.state.${claves[estado]}`) : estado;
+  }
+  prioridadTraducida(prioridad?: string | null): string {
+    const claves: Record<string, string> = { Alta: 'high', Media: 'medium', Baja: 'low' };
+    return prioridad && claves[prioridad] ? this.localization.traducir(`private.employeeKanban.priority.${claves[prioridad]}`) : (prioridad || this.localization.traducir('static.undefined'));
+  }
   readonly tareasPropias = signal<Tarea[]>([]);
   readonly tareasTablero = signal<Tarea[]>([]);
   readonly cargando = signal(true);
@@ -55,7 +70,15 @@ export class KanbanBoard {
     this.cargarTableroPersonal();
   }
 
-  columnas(): string[] { return this.estados().length ? this.estados().map(estado => estado.nombre) : ['Pendiente', 'En progreso', 'Bloqueada', 'Finalizada']; }
+  columnas(): string[] {
+    const nombres = this.estados().length ? this.estados().map(estado => estado.nombre) : ['Pendiente', 'En progreso', 'Finalizada', 'Bloqueada'];
+    const tipo = (nombre: string) => nombre.trim().toLocaleLowerCase();
+    return [
+      ...nombres.filter(nombre => tipo(nombre) !== 'finalizada' && tipo(nombre) !== 'bloqueada'),
+      ...nombres.filter(nombre => tipo(nombre) === 'finalizada'),
+      ...nombres.filter(nombre => tipo(nombre) === 'bloqueada'),
+    ];
+  }
 
   tareasPorEstado(estado: string): Tarea[] {
     return this.tareasMostradas()
@@ -108,7 +131,7 @@ export class KanbanBoard {
         this.vistaProyecto.set(true);
         this.cerrarTarea();
       },
-      error: error => this.error.set(this.obtenerMensajeError(error, 'No se pudo cargar el tablero general del proyecto.')),
+      error: error => this.error.set(this.obtenerMensajeError(error, this.localization.traducir('private.employeeKanban.loadProjectError'))),
     });
   }
 
@@ -140,7 +163,7 @@ export class KanbanBoard {
   agregarChecklist(): void {
     const texto = this.nuevoItem().trim();
     if (!texto) {
-      this.error.set('Escribí una subactividad antes de agregarla.');
+      this.error.set(this.localization.traducir('private.employeeKanban.emptySubtask'));
       return;
     }
     this.checklist.update(items => [...items, { texto, completada: false }]);
@@ -185,9 +208,9 @@ export class KanbanBoard {
   {
     const tarea = this.tareaSeleccionada(); const input = evento.target as HTMLInputElement; if (!tarea || !this.esPropia(tarea)) return;
     const seleccionados = Array.from(input.files ?? []); input.value = ''; if (!seleccionados.length) return;
-    if (seleccionados.some(archivo => archivo.size > 25 * 1024 * 1024)) { this.error.set('Cada archivo debe pesar como máximo 25 MB.'); return; }
+    if (seleccionados.some(archivo => archivo.size > 25 * 1024 * 1024)) { this.error.set(this.localization.traducir('private.employeeKanban.fileSizeError')); return; }
     this.subiendoAdjunto.set(true); const preparados: File[] = []; for (const archivo of seleccionados) preparados.push(await this.optimizarImagen(archivo));
-    forkJoin(preparados.map(archivo => this.tasksService.subirAdjunto(tarea.id, archivo))).subscribe({ next: () => { this.subiendoAdjunto.set(false); this.cargarAdjuntos(tarea.id); }, error: error => { this.subiendoAdjunto.set(false); this.error.set(this.obtenerMensajeError(error, 'No se pudieron cargar los adjuntos.')); } });
+    forkJoin(preparados.map(archivo => this.tasksService.subirAdjunto(tarea.id, archivo))).subscribe({ next: () => { this.subiendoAdjunto.set(false); this.cargarAdjuntos(tarea.id); }, error: error => { this.subiendoAdjunto.set(false); this.error.set(this.obtenerMensajeError(error, this.localization.traducir('private.employeeKanban.uploadError'))); } });
   }
   private cargarAdjuntos(idTarea: number): void
   {
@@ -211,7 +234,7 @@ export class KanbanBoard {
     const estado = this.estadoSeleccionado();
     const motivo = this.motivoBloqueo().trim();
     if (estado === 'Bloqueada' && !motivo) {
-      this.error.set('Indicá el motivo del bloqueo para avisar al responsable del proyecto.');
+      this.error.set(this.localization.traducir('private.employeeKanban.blockReasonError'));
       return;
     }
     this.actualizarAvance(tarea, estado, this.checklist(), motivo, true);
@@ -234,7 +257,7 @@ export class KanbanBoard {
       },
       error: error => {
         this.guardando.set(false);
-        this.error.set(this.obtenerMensajeError(error, 'No se pudo guardar el comentario.'));
+        this.error.set(this.obtenerMensajeError(error, this.localization.traducir('private.employeeKanban.commentError')));
       },
     });
   }
@@ -252,7 +275,7 @@ export class KanbanBoard {
         this.cargando.set(false);
       },
       error: error => {
-        this.error.set(this.obtenerMensajeError(error, 'No se pudo cargar el tablero personal.'));
+        this.error.set(this.obtenerMensajeError(error, this.localization.traducir('private.employeeKanban.loadError')));
         this.cargando.set(false);
       },
     });
@@ -269,7 +292,7 @@ export class KanbanBoard {
   private actualizarAvance(tarea: Tarea, estado: string, checklist: ChecklistItem[], motivoBloqueo: string, cerrar = false): void {
     if (estado === 'Bloqueada' && !motivoBloqueo) {
       this.abrirTarea(tarea, estado);
-      this.error.set('Indicá el motivo del bloqueo para continuar.');
+      this.error.set(this.localization.traducir('private.employeeKanban.blockContinueError'));
       return;
     }
     const porcentajeAvance = checklist.length ? Math.round((checklist.filter(item => item.completada).length / checklist.length) * 100) : tarea.porcentajeAvance;
@@ -288,7 +311,7 @@ export class KanbanBoard {
       },
       error: error => {
         this.guardando.set(false);
-        this.error.set(this.obtenerMensajeError(error, 'No se pudo actualizar el avance de la tarea.'));
+        this.error.set(this.obtenerMensajeError(error, this.localization.traducir('private.employeeKanban.progressError')));
       },
     });
   }

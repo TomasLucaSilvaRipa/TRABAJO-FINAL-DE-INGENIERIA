@@ -1,4 +1,4 @@
-<section class="tb-workspace space-y-6">
+<section class="tb-workspace tb-operational-page tb-newsletter-page space-y-6">
   <header><p class="tb-page-kicker">{{ auth.esSoporte() ? t('news.backoffice') : t('news.kicker') }}</p><h1 class="tb-page-title">{{ auth.esSoporte() ? t('news.managementTitle') : t('news.preferencesTitle') }}</h1><p class="tb-page-description">{{ auth.esSoporte() ? t('news.managementDescription') : t('news.preferencesDescription') }}</p></header>
   @if (mensaje()) { <p class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300">{{ mensaje() }}</p> } @if (error()) { <p class="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">{{ error() }}</p> }
   @if (cargando()) { <section class="tb-panel">{{ t('common.loading') }}</section> } @else if (auth.esSoporte()) {

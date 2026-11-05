@@ -8,10 +8,10 @@
   }"
   (mouseenter)="onSidebarMouseEnter()"
   (mouseleave)="sidebarService.setHovered(false)">
-  <div class="flex py-7" [class.justify-center]="!((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async))">
-    <a routerLink="/dashboard" (click)="closeMobile()">
+  <div class="sidebar-brand-row" [class.sidebar-brand-row--compact]="!((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async))">
+    <a class="sidebar-brand" routerLink="/dashboard" (click)="closeMobile()" [attr.aria-label]="'TeamBalance – ' + localization.traducir('menu.dashboard')">
       @if ((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async)) {
-        <img src="/brand/teambalance-logo-header-contrast.png" alt="TeamBalance" class="h-14 w-44 object-contain" />
+        <img src="/brand/teambalance-logo-header.png" alt="TeamBalance" class="sidebar-brand__logo" />
       } @else {
         <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500 text-lg font-black text-[#062c45]">TB</span>
       }
@@ -37,9 +37,9 @@
     </ul>
   </nav>
   <div class="border-t border-white/15 py-4">
-    <button type="button" class="team-balance-review-button" (click)="openOpinion()" [attr.aria-label]="'Dejar mi opinión'">
+    <button type="button" class="team-balance-review-button" (click)="openOpinion()" [attr.aria-label]="localization.traducir('menu.review.open')">
       <span aria-hidden="true">★</span>
-      @if ((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async)) { <span>Dejar mi opinión</span> }
+      @if ((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async)) { <span>{{ localization.traducir('menu.review.open') }}</span> }
     </button>
   </div>
 </aside>
@@ -47,16 +47,16 @@
 @if (opinionOpen()) {
   <div class="tb-dialog-backdrop" role="presentation" (click)="closeOpinion()">
     <section class="tb-dialog tb-review-dialog" role="dialog" aria-modal="true" aria-labelledby="review-form-title" (click)="$event.stopPropagation()">
-      <button class="tb-dialog__close" type="button" aria-label="Cerrar" (click)="closeOpinion()">×</button>
-      <p class="tb-eyebrow">TU EXPERIENCIA</p>
-      <h2 id="review-form-title">Dejá tu opinión sobre TeamBalance</h2>
-      <p>Tu comentario se guardará en TeamBalance y aparecerá en la sección pública de opiniones.</p>
+      <button class="tb-dialog__close" type="button" [attr.aria-label]="localization.traducir('menu.review.close')" (click)="closeOpinion()">×</button>
+      <p class="tb-eyebrow">{{ localization.traducir('menu.review.eyebrow') }}</p>
+      <h2 id="review-form-title">{{ localization.traducir('menu.review.title') }}</h2>
+      <p>{{ localization.traducir('menu.review.description') }}</p>
       <form class="mt-5 space-y-4" [formGroup]="opinionForm" (ngSubmit)="saveOpinion()">
-        <fieldset><legend class="text-sm font-semibold">¿Cómo calificarías tu experiencia?</legend><div class="mt-2 flex gap-1">@for (star of stars; track star) { <button type="button" class="tb-rating-star" [class.tb-rating-star--selected]="star <= (opinionForm.controls.rating.value ?? 0)" [attr.aria-label]="star + ' estrellas'" (click)="selectRating(star)">★</button> }</div></fieldset>
-        <label class="tb-field-label">Título<input type="text" formControlName="title" maxlength="100" placeholder="Ej.: Más claridad para planificar" /></label>
-        <label class="tb-field-label">Tu opinión<textarea rows="4" formControlName="description" maxlength="1000" placeholder="Contanos cómo fue tu experiencia usando TeamBalance."></textarea></label>
+        <fieldset><legend class="text-sm font-semibold">{{ localization.traducir('menu.review.rating') }}</legend><div class="mt-2 flex gap-1">@for (star of stars; track star) { <button type="button" class="tb-rating-star" [class.tb-rating-star--selected]="star <= (opinionForm.controls.rating.value ?? 0)" [attr.aria-label]="star + ' ' + localization.traducir('menu.review.stars')" (click)="selectRating(star)">★</button> }</div></fieldset>
+        <label class="tb-field-label">{{ localization.traducir('menu.review.subject') }}<input type="text" formControlName="title" maxlength="100" [placeholder]="localization.traducir('menu.review.subjectPlaceholder')" /></label>
+        <label class="tb-field-label">{{ localization.traducir('menu.review.comment') }}<textarea rows="4" formControlName="description" maxlength="1000" [placeholder]="localization.traducir('menu.review.commentPlaceholder')"></textarea></label>
         @if (opinionError()) { <p class="tb-review-form-error">{{ opinionError() }}</p> }
-        <div class="flex gap-3"><button class="tb-button tb-button--primary" type="submit" [disabled]="savingOpinion()">{{ savingOpinion() ? 'Publicando…' : 'Publicar opinión' }}</button><button class="tb-button tb-button--secondary" type="button" (click)="closeOpinion()">Cerrar</button></div>
+        <div class="flex gap-3"><button class="tb-button tb-button--primary" type="submit" [disabled]="savingOpinion()">{{ localization.traducir(savingOpinion() ? 'menu.review.publishing' : 'menu.review.publish') }}</button><button class="tb-button tb-button--secondary" type="button" (click)="closeOpinion()">{{ localization.traducir('menu.review.close') }}</button></div>
       </form>
     </section>
   </div>

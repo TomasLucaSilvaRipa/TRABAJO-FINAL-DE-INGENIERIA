@@ -101,7 +101,7 @@ export class Reports {
   protected seguimientoConveniencia: NuevoSeguimientoConvenienciaOperativa = { idCliente: 0, idProyecto: null, observacion: '', accionSugerida: '' };
   protected seguimientoRiesgo: NuevoSeguimientoRiesgoRetraso = { idProyecto: 0, idTarea: null, observacion: '', comunicarResponsable: true };
   protected configuracionReporte: ConfiguracionReporteEjecutivo = {
-    titulo: 'Reporte ejecutivo de gestión', filtro: { alcanceGeneral: true }, incluirOcupacionOperativa: true,
+    titulo: this.localization.traducir('reports.defaultTitle'), filtro: { alcanceGeneral: true }, incluirOcupacionOperativa: true,
     incluirRiesgoRetraso: true, incluirDesvioHoras: true, incluirEficienciaPerfiles: true,
     incluirConvenienciaOperativa: true, incluirTodasLasSecciones: true,
   };
@@ -205,9 +205,31 @@ export class Reports {
   }
 
   protected textoBalanceHoras(horasRestantes: number, horasExcedidas: number): string {
-    if (horasRestantes > 0) { return `${horasRestantes} h restantes`; }
-    if (horasExcedidas > 0) { return `${horasExcedidas} h excedidas`; }
-    return 'Sin diferencia';
+    if (horasRestantes > 0) { return `${horasRestantes} ${this.localization.traducir('reports.hoursRemaining')}`; }
+    if (horasExcedidas > 0) { return `${horasExcedidas} ${this.localization.traducir('reports.hoursExceeded')}`; }
+    return this.localization.traducir('reports.noDifference');
+  }
+
+  protected traducirCausaOcupacion(causa: string): string {
+    const patrones: Array<[RegExp, string]> = [
+      [/^La tarea '(.+)' genera una sobrecarga en al menos un día laborable del período\.$/, 'reports.overloadCause'],
+      [/^La tarea '(.+)' concentra la mayor carga planificada del período\.$/, 'reports.mainTaskCause'],
+    ];
+    for (const [patron, clave] of patrones) {
+      const tarea = causa.match(patron)?.[1];
+      if (tarea) return this.localization.traducir(clave).replace('{task}', tarea);
+    }
+    return causa === 'No tiene tareas planificables asignadas dentro del período seleccionado.'
+      ? this.localization.traducir('reports.noPlannedTasks') : causa;
+  }
+
+  protected traducirAccionOcupacion(accion: string): string {
+    const claves: Record<string, string> = {
+      'Revisar la distribución de tareas o evaluar un recurso alternativo.': 'reports.reviewWorkload',
+      'Evaluar la asignación de trabajo compatible con su disponibilidad.': 'reports.assignCompatible',
+      'Mantener seguimiento de la carga vigente.': 'reports.keepMonitoring',
+    };
+    return claves[accion] ? this.localization.traducir(claves[accion]) : accion;
   }
 
   protected abrirDetalleOcupacion(empleado: OcupacionEmpleado, proyecto?: OcupacionProyecto): void {

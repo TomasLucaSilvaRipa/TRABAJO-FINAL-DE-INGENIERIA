@@ -10,7 +10,7 @@ import { EmployeePerformanceHistoryComponent } from '../../../../shared/componen
 import { EmployeeSkillsMatrixComponent } from '../../../../shared/components/analytics/employee-skills-matrix/employee-skills-matrix.component';
 import { PasswordEvaluation, PasswordSecurityService } from '../../../../services/security/password-security.service';
 
-@Component({ selector: 'app-employee-management', imports: [ReactiveFormsModule, EmployeePerformanceHistoryComponent, EmployeeSkillsMatrixComponent], templateUrl: './employee-management.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
+@Component({ selector: 'app-employee-management', imports: [ReactiveFormsModule, EmployeePerformanceHistoryComponent, EmployeeSkillsMatrixComponent], templateUrl: './employee-management.component.html', styleUrl: './employee-management.component.css', changeDetection: ChangeDetectionStrategy.OnPush })
 export class EmployeeManagement {
   private readonly formBuilder = inject(FormBuilder); private readonly usuariosService = inject(UsuariosService); private readonly rolesService = inject(RolesService); private readonly recursosService = inject(ResourcesService); private readonly authService = inject(AuthService); private readonly passwordSecurityService = inject(PasswordSecurityService);
   readonly localization = inject(LocalizationService);
@@ -104,17 +104,24 @@ export class EmployeeManagement {
 
   nombreSkill(idSkill: number): string { return this.skills().find(skill => skill.id === idSkill)?.nombre ?? `Skill #${idSkill}`; }
 
+  etiquetaNivel(nivel: string): string {
+    const canonico = this.normalizarNivelSkill(nivel);
+    const clave = canonico === 'Básico' ? 'basic' : canonico === 'Avanzado' ? 'advanced' : 'medium';
+    return this.localization.traducir(`private.employees.level.${clave}`);
+  }
+
+  esCuentaPropia(usuario: UsuarioGestion): boolean { return usuario.id === this.authService.usuarioActual()?.id; }
   esDueno(): boolean { return this.authService.usuarioActual()?.roles.some(rol => rol.tipoUsuario === 'Dueno') ?? false; }
 
   exportarFicha(): void {
     const usuario = this.usuarioFicha(); const ficha = this.fichaConsultada();
     if (!usuario || !ficha) { return; }
     const ventana = window.open('', '_blank', 'popup');
-    if (!ventana) { this.error.set('El navegador bloqueó la ventana de exportación. Habilitá las ventanas emergentes e intentá nuevamente.'); return; }
+    if (!ventana) { this.error.set(this.localization.traducir('private.employees.exportPopupBlocked')); return; }
     this.exportandoFicha.set(true); this.error.set('');
     this.recursosService.registrarExportacionFichaEmpleado(usuario.id).subscribe({
       next: () => { this.exportandoFicha.set(false); this.abrirImpresionLegajo(ventana, usuario, ficha); },
-      error: respuesta => { ventana.close(); this.exportandoFicha.set(false); this.error.set(this.obtenerMensajeError(respuesta, 'No fue posible preparar la exportación del legajo.')); }
+      error: respuesta => { ventana.close(); this.exportandoFicha.set(false); this.error.set(this.obtenerMensajeError(respuesta, this.localization.traducir('private.employees.exportError'))); }
     });
   }
 
@@ -138,6 +145,7 @@ export class EmployeeManagement {
   registrarSkill(): void { if (this.skillForm.invalid) { this.error.set('Completá el nombre y el área de la skill.'); return; } const datos = this.skillForm.getRawValue(); this.recursosService.registrarSkill({ nombre: datos.nombre ?? '', idAreaSkill: datos.idAreaSkill }).subscribe({ next: () => { this.skillForm.reset(); this.recursosService.consultarSkills().subscribe(skills => this.skills.set(skills)); }, error: (respuesta: unknown) => this.error.set(this.obtenerMensajeError(respuesta, 'No se pudo registrar la skill.')) }); }
   cambiarEstadoSkill(skill: Skill): void { this.recursosService.cambiarEstadoSkill({ ...skill, activo: !skill.activo }).subscribe({ next: () => this.recursosService.consultarSkills().subscribe(skills => this.skills.set(skills)), error: () => this.error.set('No se pudo actualizar la skill.') }); }
   cambiarEstado(usuario: UsuarioGestion): void {
+    if (usuario.activo && this.esCuentaPropia(usuario)) { return; }
     if (usuario.activo && !window.confirm(`¿Confirmás la baja lógica de ${usuario.nombre} ${usuario.apellido}? Si tiene tareas activas, primero deberás reasignarlas.`)) { return; }
     this.usuariosService.cambiarEstado({ ...usuario, activo: !usuario.activo }).subscribe({ next: () => this.cargar(), error: (respuesta: unknown) => this.error.set(this.obtenerMensajeError(respuesta, 'No fue posible actualizar el estado.')) });
   }
@@ -150,10 +158,13 @@ export class EmployeeManagement {
   private crearFichaEmpleado(): FichaEmpleado { const datos = this.form.getRawValue(); return { empleadoSkills: this.skillsSeleccionadas().map(idSkill => ({ idSkill, nivel: this.nivelSkill(idSkill), activo: true })), disponibilidadBase: { horaInicio: datos.horaInicio ?? '09:00', horaFin: datos.horaFin ?? '18:00', horasSemanales: Number(datos.horasDisponiblesSemanales ?? 40), observacion: datos.observacionDisponibilidad ?? '', activo: true } }; }
   private normalizarNivelSkill(nivel?: string): string { const valor = (nivel ?? '').trim().toLocaleLowerCase(); if (valor === 'básico' || valor === 'basico' || valor === 'bajo' || valor === 'junior') { return 'Básico'; } if (valor === 'avanzado' || valor === 'alto' || valor === 'experto') { return 'Avanzado'; } return 'Medio'; }
   private abrirImpresionLegajo(ventana: Window, usuario: UsuarioGestion, ficha: FichaEmpleado): void {
-    const disponibilidad = ficha.disponibilidadBase; const skills = ficha.empleadoSkills.map(skill => `${this.nombreSkill(skill.idSkill)}${skill.nivel ? ` (${skill.nivel})` : ''}`).join(', ') || 'Sin skills registradas';
-    const costo = this.esDueno() ? `<p><strong>Costo por hora:</strong> ${usuario.empleado?.costoHora ?? 0}</p>` : '';
+    const disponibilidad = ficha.disponibilidadBase;
+    const tr = (clave: string) => this.localization.traducir(clave);
+    const skills = ficha.empleadoSkills.map(skill => `${this.nombreSkill(skill.idSkill)}${skill.nivel ? ` (${this.etiquetaNivel(skill.nivel)})` : ''}`).join(', ') || tr('static.noRegisteredSkills');
     const textoSeguro = (texto: string) => texto.replace(/[&<>"']/g, caracter => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[caracter] ?? caracter);
-    ventana.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Legajo - ${textoSeguro(usuario.nombre)} ${textoSeguro(usuario.apellido)}</title><style>body{font-family:Arial,sans-serif;color:#102a43;margin:42px;line-height:1.5}h1{color:#087e9d;margin-bottom:4px}.muted{color:#526b7a}section{margin-top:24px;padding:18px;border:1px solid #cbd5e1;border-radius:12px}p{margin:7px 0}@media print{body{margin:24px}}</style></head><body><h1>Legajo de empleado</h1><p class="muted">Generado el ${new Date().toLocaleString('es-AR')}</p><section><h2>${textoSeguro(usuario.nombre)} ${textoSeguro(usuario.apellido)}</h2><p><strong>Email:</strong> ${textoSeguro(usuario.email)}</p><p><strong>Roles:</strong> ${textoSeguro(this.rolesTexto(usuario))}</p><p><strong>Estado de cuenta:</strong> ${usuario.activo ? 'Activo' : 'Inactivo'}</p><p><strong>Seniority:</strong> ${textoSeguro(usuario.empleado?.seniority ?? 'Sin definir')}</p><p><strong>Estado laboral:</strong> ${textoSeguro(usuario.empleado?.estadoLaboral ?? 'Sin definir')}</p>${costo}</section><section><h2>Skills y disponibilidad</h2><p><strong>Skills:</strong> ${textoSeguro(skills)}</p><p><strong>Horario base:</strong> ${textoSeguro(disponibilidad?.horaInicio ?? 'Sin definir')} a ${textoSeguro(disponibilidad?.horaFin ?? 'Sin definir')}</p><p><strong>Disponibilidad semanal:</strong> ${disponibilidad?.horasSemanales ?? usuario.empleado?.horasDisponiblesSemanales ?? 0} h</p><p><strong>Observación:</strong> ${textoSeguro(disponibilidad?.observacion || 'Sin observaciones')}</p></section></body></html>`);
+    const costo = this.esDueno() ? `<p><strong>${textoSeguro(tr('employees.hourCost'))}:</strong> ${Number(usuario.empleado?.costoHora ?? 0)}</p>` : '';
+    const fecha = new Intl.DateTimeFormat(this.localization.culture(), { dateStyle: 'short', timeStyle: 'short' }).format(new Date());
+    ventana.document.write(`<!doctype html><html lang="${textoSeguro(this.localization.language())}"><head><meta charset="utf-8"><title>${textoSeguro(tr('private.employees.print.fileTitle'))} - ${textoSeguro(usuario.nombre)} ${textoSeguro(usuario.apellido)}</title><style>body{font-family:Arial,sans-serif;color:#102a43;margin:42px;line-height:1.5}h1{color:#087e9d;margin-bottom:4px}.muted{color:#526b7a}section{margin-top:24px;padding:18px;border:1px solid #cbd5e1;border-radius:12px}p{margin:7px 0}@media print{body{margin:24px}}</style></head><body><h1>${textoSeguro(tr('private.employees.print.title'))}</h1><p class="muted">${textoSeguro(tr('private.employees.print.generated'))} ${textoSeguro(fecha)}</p><section><h2>${textoSeguro(usuario.nombre)} ${textoSeguro(usuario.apellido)}</h2><p><strong>Email:</strong> ${textoSeguro(usuario.email)}</p><p><strong>${textoSeguro(tr('employees.roles'))}:</strong> ${textoSeguro(this.rolesTexto(usuario))}</p><p><strong>${textoSeguro(tr('private.employees.print.accountStatus'))}:</strong> ${textoSeguro(tr(usuario.activo ? 'common.active' : 'common.inactive'))}</p><p><strong>${textoSeguro(tr('employees.seniority'))}:</strong> ${textoSeguro(usuario.empleado?.seniority ?? tr('static.undefined'))}</p><p><strong>${textoSeguro(tr('private.employees.print.workStatus'))}:</strong> ${textoSeguro(this.localization.traducirTextoEstatico(usuario.empleado?.estadoLaboral ?? tr('static.undefined')))}</p>${costo}</section><section><h2>${textoSeguro(tr('private.employees.print.skillsAvailability'))}</h2><p><strong>${textoSeguro(tr('employees.skills'))}:</strong> ${textoSeguro(skills)}</p><p><strong>${textoSeguro(tr('static.baseSchedule'))}:</strong> ${textoSeguro(disponibilidad?.horaInicio ?? tr('static.undefined'))} ${textoSeguro(tr('private.employees.print.timeSeparator'))} ${textoSeguro(disponibilidad?.horaFin ?? tr('static.undefined'))}</p><p><strong>${textoSeguro(tr('private.employees.print.weeklyAvailability'))}:</strong> ${disponibilidad?.horasSemanales ?? usuario.empleado?.horasDisponiblesSemanales ?? 0} h</p><p><strong>${textoSeguro(tr('static.observation'))}:</strong> ${textoSeguro(disponibilidad?.observacion || tr('static.noObservations'))}</p></section></body></html>`);
     ventana.document.close(); ventana.focus(); ventana.print();
   }
   private obtenerMensajeError(respuesta: unknown, mensajePredeterminado: string): string { const errorHttp = respuesta as { error?: unknown }; if (typeof errorHttp.error === 'string' && errorHttp.error.trim()) { return errorHttp.error; } if (typeof errorHttp.error === 'object' && errorHttp.error !== null) { const errorApi = errorHttp.error as { message?: unknown; title?: unknown; errors?: Record<string, string[]> }; if (errorApi.errors) { const errores = Object.values(errorApi.errors).flat(); if (errores.length > 0) { return errores.join(' '); } } if (typeof errorApi.message === 'string') { return errorApi.message; } if (typeof errorApi.title === 'string') { return errorApi.title; } } return mensajePredeterminado; }

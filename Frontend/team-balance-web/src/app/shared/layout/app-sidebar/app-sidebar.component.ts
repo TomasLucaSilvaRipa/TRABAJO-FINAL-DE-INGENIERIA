@@ -102,7 +102,7 @@ export class AppSidebarComponent {
   saveOpinion(): void {
     if (this.opinionForm.invalid) {
       this.opinionForm.markAllAsTouched();
-      this.opinionError.set('Elegí una puntuación y escribí tu opinión.');
+      this.opinionError.set(this.localization.traducir('menu.review.validationError'));
       return;
     }
 
@@ -110,7 +110,7 @@ export class AppSidebarComponent {
     this.savingOpinion.set(true);
     this.reviewsService.guardar(data.rating ?? 0, data.title?.trim() ?? '', data.description?.trim() ?? '').subscribe({
       next: () => { this.savingOpinion.set(false); this.closeOpinion(); },
-      error: () => { this.savingOpinion.set(false); this.opinionError.set('No pudimos guardar tu opinión. Intentá nuevamente.'); }
+      error: () => { this.savingOpinion.set(false); this.opinionError.set(this.localization.traducir('menu.review.saveError')); }
     });
   }
 }

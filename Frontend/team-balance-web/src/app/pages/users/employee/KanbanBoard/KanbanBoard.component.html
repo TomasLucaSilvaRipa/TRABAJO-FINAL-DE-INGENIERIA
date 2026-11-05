@@ -1,11 +1,11 @@
-<section class="tb-workspace space-y-6">
+<section class="tb-workspace tb-kanban-page space-y-6">
   <header class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <p class="tb-page-kicker">MI OPERACIÓN</p>
-      <h1 class="tb-page-title">{{vistaProyecto() ? 'Tablero general del proyecto' : localization.traducir('kanban.title')}}</h1>
-      <p class="tb-page-description">{{vistaProyecto() ? ('Mostrando todas las tareas activas del proyecto #' + proyectoGeneral() + '. Sólo podés modificar las que te asignaron.') : localization.traducir('kanban.subtitle')}}</p>
+      <p class="tb-page-kicker">{{ localization.traducir('private.employeeKanban.miOperacion') }}</p>
+      <h1 class="tb-page-title">{{vistaProyecto() ? localization.traducir('private.employeeKanban.projectBoard') : localization.traducir('kanban.title')}}</h1>
+      <p class="tb-page-description">{{vistaProyecto() ? localization.traducir('private.employeeKanban.projectBoardHint').replace('{project}', '' + proyectoGeneral()) : localization.traducir('kanban.subtitle')}}</p>
     </div>
-    @if (vistaProyecto()) { <button class="tb-button tb-button--secondary" type="button" (click)="volverAMiTablero()">Volver a mi tablero</button> }
+    @if (vistaProyecto()) { <button class="tb-button tb-button--secondary" type="button" (click)="volverAMiTablero()">{{ localization.traducir('private.employeeKanban.volverAMiTablero') }}</button> }
   </header>
 
   @if (error()) { <p class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{error()}}</p> }
@@ -13,26 +13,30 @@
   @if (cargando()) {
     <p class="text-sm text-slate-500">{{localization.traducir('kanban.loading')}}</p>
   } @else {
-    <div class="grid gap-4 xl:grid-cols-4">
+    <div class="tb-kanban-navigation">
+    <button class="tb-kanban-navigation__arrow" type="button" [attr.aria-label]="localization.traducir('private.employeeKanban.previousColumns')" (click)="moverTablero(-1)"><span aria-hidden="true">‹</span></button>
+    <div #tablero class="tb-kanban-board" role="region" aria-label="Tablero Kanban" tabindex="0">
       @for (estado of columnas(); track estado) {
-        <section class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/60" (dragover)="$event.preventDefault()" (drop)="soltarEnEstado(estado)">
-          <div class="flex items-center justify-between"><h2 class="font-semibold text-slate-900 dark:text-white">{{estado}}</h2><span class="tb-status-badge">{{tareasPorEstado(estado).length}}</span></div>
+        <section class="tb-kanban-column" [style.--kanban-accent]="paleta.color(estado)" (dragover)="$event.preventDefault()" (drop)="soltarEnEstado(estado)">
+          <div class="tb-kanban-column__heading"><h2>{{estadoTraducido(estado)}}</h2><span class="tb-status-badge">{{tareasPorEstado(estado).length}}</span></div>
           <div class="mt-4 space-y-3">
             @for (tarea of tareasPorEstado(estado); track tarea.id) {
-              <article [draggable]="esPropia(tarea)" (dragstart)="iniciarArrastre(tarea)" (click)="abrirTarea(tarea)" class="cursor-pointer rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-500 dark:border-slate-700 dark:bg-slate-800" [class.cursor-grab]="esPropia(tarea)">
+              <article [draggable]="esPropia(tarea)" (dragstart)="iniciarArrastre(tarea)" (click)="abrirTarea(tarea)" class="tb-kanban-task cursor-pointer" [class.cursor-grab]="esPropia(tarea)">
                 <div class="flex items-start justify-between gap-2"><h3 class="font-semibold text-slate-900 dark:text-white">{{tarea.titulo}}</h3><span class="tb-status-badge">{{tarea.porcentajeAvance}}%</span></div>
                 <p class="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">{{tarea.descripcion || localization.traducir('kanban.noDescription')}}</p>
                 <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"><span class="block h-full rounded-full bg-gradient-to-r from-lime-400 via-lime-400 to-cyan-300" [style.width.%]="tarea.porcentajeAvance"></span></div>
                 <p class="mt-3 text-xs text-slate-500">{{tarea.deadline ? (localization.traducir('kanban.due') + ' ' + (tarea.deadline | date:'dd/MM/yyyy')) : localization.traducir('kanban.noDue')}}</p>
-                @if (tarea.prioridad) { <p class="mt-1 text-xs text-cyan-600 dark:text-cyan-300">Prioridad {{tarea.prioridad}}</p> }
-                @if (!esPropia(tarea)) { <p class="mt-2 text-xs text-slate-500">Sólo lectura</p> }
+                @if (tarea.prioridad) { <p class="mt-1 text-xs text-cyan-600 dark:text-cyan-300">{{localization.traducir('private.employeeKanban.prioridad')}} {{prioridadTraducida(tarea.prioridad)}}</p> }
+                @if (!esPropia(tarea)) { <p class="mt-2 text-xs text-slate-500">{{ localization.traducir('private.employeeKanban.soloLectura') }}</p> }
               </article>
             } @empty {
-              <div class="rounded-xl border border-dashed border-slate-300 bg-white/60 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400">{{localization.traducir('kanban.empty')}}</div>
+              <div class="tb-kanban-empty">{{localization.traducir('kanban.empty')}}</div>
             }
           </div>
         </section>
       }
+    </div>
+    <button class="tb-kanban-navigation__arrow" type="button" [attr.aria-label]="localization.traducir('private.employeeKanban.nextColumns')" (click)="moverTablero(1)"><span aria-hidden="true">›</span></button>
     </div>
   }
 </section>
@@ -41,24 +45,24 @@
   <div class="tb-kanban-backdrop fixed inset-0 z-50 bg-slate-950/45" [class.tb-kanban-backdrop--open]="panelAbierto()" (click)="cerrarTarea()"></div>
   <aside class="tb-kanban-drawer fixed bottom-3 right-3 top-[5rem] z-[60] flex w-full max-w-[calc(100vw-1.5rem)] flex-col overflow-y-auto border border-slate-700 bg-slate-950 p-5 shadow-2xl sm:w-[32rem]" [class.tb-kanban-drawer--open]="panelAbierto()" (click)="$event.stopPropagation()">
     <div class="flex items-start justify-between gap-4">
-      <div><p class="tb-page-kicker">DETALLE DE TAREA</p><h2 class="text-xl font-bold text-white">{{tarea.titulo}}</h2><p class="mt-1 text-sm text-slate-300">{{tarea.descripcion || 'Sin descripción.'}}</p></div>
-      <button class="tb-icon-button" type="button" aria-label="Cerrar" (click)="cerrarTarea()">×</button>
+      <div><p class="tb-page-kicker">{{ localization.traducir('private.employeeKanban.detalleDeTarea') }}</p><h2 class="text-xl font-bold text-white">{{tarea.titulo}}</h2><p class="mt-1 text-sm text-slate-300">{{tarea.descripcion || localization.traducir('kanban.noDescription')}}</p></div>
+      <button class="tb-icon-button" type="button" [attr.aria-label]="localization.traducir('common.close')" (click)="cerrarTarea()">×</button>
     </div>
     @if (error()) { <p class="mt-4 rounded-lg bg-red-950/70 p-3 text-sm text-red-200">{{error()}}</p> }
 
     <div class="mt-5 rounded-xl border border-slate-700 bg-slate-900 p-4">
-      <div class="flex items-center justify-between text-sm"><span class="font-semibold text-white">Avance de la tarea</span><span class="text-cyan-300">{{porcentajeChecklist()}}%</span></div>
+      <div class="flex items-center justify-between text-sm"><span class="font-semibold text-white">{{ localization.traducir('private.employeeKanban.avanceDeLaTarea') }}</span><span class="text-cyan-300">{{porcentajeChecklist()}}%</span></div>
       <div class="mt-2 h-3 overflow-hidden rounded-full bg-slate-700"><span class="block h-full rounded-full bg-gradient-to-r from-lime-400 via-lime-400 to-cyan-300 transition-all duration-300" [style.width.%]="porcentajeChecklist()"></span></div>
-      <div class="mt-3 grid grid-cols-2 gap-3 text-xs text-slate-300"><span>Prioridad: {{tarea.prioridad || 'Sin definir'}}</span><span>Deadline: {{tarea.deadline ? (tarea.deadline | date:'dd/MM/yyyy') : 'Sin fecha'}}</span><span>Dependencia: {{tarea.idTareaPredecesora ? 'Sí' : 'No'}}</span><span>Horas estimadas: {{tarea.horasEstimadas}} h</span></div>
+      <div class="mt-3 grid grid-cols-2 gap-3 text-xs text-slate-300"><span>{{localization.traducir('private.employeeKanban.prioridad')}} {{prioridadTraducida(tarea.prioridad)}}</span><span>{{localization.traducir('private.employeeKanban.deadline')}} {{tarea.deadline ? localization.formatearFecha(tarea.deadline) : localization.traducir('kanban.noDue')}}</span><span>{{localization.traducir('private.employeeKanban.dependencia')}} {{localization.traducir(tarea.idTareaPredecesora ? 'common.yes' : 'common.no')}}</span><span>{{localization.traducir('common.hoursEstimated')}}: {{tarea.horasEstimadas}} h</span></div>
     </div>
 
     @if (obtenerAdjuntos(tarea).length) {
       <section class="mt-5 rounded-xl border border-slate-700 bg-slate-900 p-4">
-        <div><h3 class="font-semibold text-white">Referencias visuales adjuntas</h3><p class="mt-1 text-xs text-slate-400">Aclaraciones del cliente o del responsable para realizar la tarea.</p></div>
+        <div><h3 class="font-semibold text-white">{{ localization.traducir('private.employeeKanban.referenciasVisualesAdjuntas') }}</h3><p class="mt-1 text-xs text-slate-400">{{ localization.traducir('private.employeeKanban.aclaracionesDelClienteODelResponsableParaRealizarLa') }}</p></div>
         <div class="mt-3 grid grid-cols-2 gap-3">
           @for (adjunto of obtenerAdjuntos(tarea); track adjunto) {
             <a [href]="adjunto" target="_blank" rel="noopener noreferrer" class="overflow-hidden rounded-lg border border-slate-700 transition hover:border-cyan-400">
-              <img [src]="adjunto" alt="Referencia adjunta de la tarea" class="h-28 w-full object-cover" />
+              <img [src]="adjunto" [alt]="localization.traducir('private.employeeKanban.attachmentAlt')" class="h-28 w-full object-cover" />
             </a>
           }
         </div>
@@ -66,33 +70,33 @@
     }
 
     @if (adjuntosReales().length) {
-      <section class="mt-5 rounded-xl border border-slate-700 bg-slate-900 p-4"><div><h3 class="font-semibold text-white">Archivos adjuntos</h3><p class="mt-1 text-xs text-slate-400">Material almacenado de forma segura en TeamBalance.</p></div><div class="mt-3 grid grid-cols-2 gap-3">@for(item of adjuntosReales(); track item.archivo.id){<button type="button" class="overflow-hidden rounded-lg border border-slate-700 text-left transition hover:border-cyan-400" (click)="descargarAdjunto(item)">@if(item.archivo.esImagen){<img [src]="item.url" [alt]="item.archivo.nombreOriginal" class="h-28 w-full object-cover" />}@else{<div class="flex h-28 items-center justify-center bg-slate-800 text-3xl">↧</div>}<span class="block truncate p-2 text-xs text-slate-200">{{item.archivo.nombreOriginal}}</span></button>}</div></section>
+      <section class="mt-5 rounded-xl border border-slate-700 bg-slate-900 p-4"><div><h3 class="font-semibold text-white">{{ localization.traducir('private.employeeKanban.attachments') }}</h3><p class="mt-1 text-xs text-slate-400">{{ localization.traducir('private.employeeKanban.attachmentHint') }}</p></div><div class="mt-3 grid grid-cols-2 gap-3">@for(item of adjuntosReales(); track item.archivo.id){<button type="button" class="overflow-hidden rounded-lg border border-slate-700 text-left transition hover:border-cyan-400" (click)="descargarAdjunto(item)">@if(item.archivo.esImagen){<img [src]="item.url" [alt]="item.archivo.nombreOriginal" class="h-28 w-full object-cover" />}@else{<div class="flex h-28 items-center justify-center bg-slate-800 text-3xl">↧</div>}<span class="block truncate p-2 text-xs text-slate-200">{{item.archivo.nombreOriginal}}</span></button>}</div></section>
     }
-    @if (esPropia(tarea)) { <label class="tb-secondary-button mt-3 inline-flex cursor-pointer">{{subiendoAdjunto() ? 'Cargando archivos…' : 'Adjuntar archivo'}}<input class="sr-only" type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" [disabled]="subiendoAdjunto()" (change)="adjuntarArchivos($event)" /></label> }
+    @if (esPropia(tarea)) { <label class="tb-secondary-button mt-3 inline-flex cursor-pointer">{{localization.traducir(subiendoAdjunto() ? 'private.employeeKanban.uploading' : 'private.employeeKanban.attachFile')}}<input class="sr-only" type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" [disabled]="subiendoAdjunto()" (change)="adjuntarArchivos($event)" /></label> }
 
     @if (esPropia(tarea)) {
       <section class="mt-5 space-y-4">
-        <label class="tb-field-label">Estado<select [ngModel]="estadoSeleccionado()" (ngModelChange)="estadoSeleccionado.set($event)">@for (estado of columnas(); track estado) { <option [value]="estado">{{estado}}</option> }</select></label>
-        @if (estadoSeleccionado() === 'Bloqueada') { <label class="tb-field-label">Motivo del bloqueo<textarea rows="2" [ngModel]="motivoBloqueo()" (ngModelChange)="motivoBloqueo.set($event)" placeholder="Explicá qué impide continuar."></textarea></label> }
+        <label class="tb-field-label">{{localization.traducir('common.status')}}<select [ngModel]="estadoSeleccionado()" (ngModelChange)="estadoSeleccionado.set($event)">@for (estado of columnas(); track estado) { <option [value]="estado">{{estadoTraducido(estado)}}</option> }</select></label>
+        @if (estadoSeleccionado() === 'Bloqueada') { <label class="tb-field-label">{{ localization.traducir('private.employeeKanban.motivoDelBloqueo') }}<textarea rows="2" [ngModel]="motivoBloqueo()" (ngModelChange)="motivoBloqueo.set($event)" [placeholder]="localization.traducir('private.employeeKanban.explicaQueImpideContinuar')"></textarea></label> }
 
         <div class="rounded-xl border border-slate-700 p-4">
-          <div class="flex items-center justify-between gap-3"><h3 class="font-semibold text-white">Checklist de subactividades</h3><span class="text-xs text-slate-400">El avance se recalcula al marcarla.</span></div>
-          <div class="mt-3 flex gap-2"><input class="min-w-0 flex-1" [ngModel]="nuevoItem()" (ngModelChange)="nuevoItem.set($event)" (keyup.enter)="agregarChecklist()" placeholder="Nueva subactividad" /><button class="tb-button tb-button--secondary" type="button" (click)="agregarChecklist()">Agregar</button></div>
-          <div class="mt-3 space-y-2">@for (item of checklist(); track item.texto + $index) { <div class="flex items-center gap-2 rounded-lg bg-slate-900 p-2"><input type="checkbox" [checked]="item.completada" (change)="alternarChecklist($index)" /><span class="min-w-0 flex-1 text-sm" [class.line-through]="item.completada">{{item.texto}}</span><button class="text-xs text-red-300" type="button" (click)="eliminarChecklist($index)">Quitar</button></div> } @empty { <p class="text-sm text-slate-400">Todavía no agregaste subactividades.</p> }</div>
+          <div class="flex items-center justify-between gap-3"><h3 class="font-semibold text-white">{{ localization.traducir('private.employeeKanban.checklistDeSubactividades') }}</h3><span class="text-xs text-slate-400">{{ localization.traducir('private.employeeKanban.elAvanceSeRecalculaAlMarcarla') }}</span></div>
+          <div class="mt-3 flex gap-2"><input class="min-w-0 flex-1" [ngModel]="nuevoItem()" (ngModelChange)="nuevoItem.set($event)" (keyup.enter)="agregarChecklist()" [placeholder]="localization.traducir('private.employeeKanban.nuevaSubactividad')" /><button class="tb-button tb-button--secondary" type="button" (click)="agregarChecklist()">{{localization.traducir('legacy.add')}}</button></div>
+          <div class="mt-3 space-y-2">@for (item of checklist(); track item.texto + $index) { <div class="flex items-center gap-2 rounded-lg bg-slate-900 p-2"><input type="checkbox" [checked]="item.completada" (change)="alternarChecklist($index)" /><span class="min-w-0 flex-1 text-sm" [class.line-through]="item.completada">{{item.texto}}</span><button class="text-xs text-red-300" type="button" (click)="eliminarChecklist($index)">{{localization.traducir('legacy.remove')}}</button></div> } @empty { <p class="text-sm text-slate-400">{{ localization.traducir('private.employeeKanban.todaviaNoAgregasteSubactividades') }}</p> }</div>
         </div>
 
-        <button class="tb-action-button w-full" type="button" [disabled]="guardando()" (click)="guardarAvance()">{{guardando() ? 'Guardando…' : 'Guardar avance y estado'}}</button>
-        <button class="tb-button tb-button--secondary w-full" type="button" (click)="iniciarFoco(tarea)">Iniciar modo foco</button>
-        <button class="tb-button tb-button--secondary w-full" type="button" (click)="abrirTableroProyecto(tarea)">Ver tablero general de este proyecto</button>
+        <button class="tb-action-button w-full" type="button" [disabled]="guardando()" (click)="guardarAvance()">{{localization.traducir(guardando() ? 'private.employeeKanban.saving' : 'private.employeeKanban.saveProgress')}}</button>
+        <button class="tb-button tb-button--secondary w-full" type="button" (click)="iniciarFoco(tarea)">{{ localization.traducir('private.employeeKanban.iniciarModoFoco') }}</button>
+        <button class="tb-button tb-button--secondary w-full" type="button" (click)="abrirTableroProyecto(tarea)">{{ localization.traducir('private.employeeKanban.verTableroGeneralDeEsteProyecto') }}</button>
       </section>
     } @else {
-      <section class="mt-5 rounded-xl border border-cyan-700/50 bg-cyan-950/30 p-4 text-sm text-cyan-100">Esta tarea corresponde a otro integrante. Podés consultar su estado, avance y checklist, pero no modificarla.</section>
+      <section class="mt-5 rounded-xl border border-cyan-700/50 bg-cyan-950/30 p-4 text-sm text-cyan-100">{{ localization.traducir('private.employeeKanban.estaTareaCorrespondeAOtroIntegrantePodesConsultarSu') }}</section>
     }
 
     <section class="mt-5 border-t border-slate-700 pt-5">
-      <h3 class="font-semibold text-white">Comentarios operativos</h3>
-      <div class="mt-3 max-h-48 space-y-2 overflow-y-auto">@for (comentario of comentarios(); track comentario.fecha + $index) { <article class="rounded-lg bg-slate-900 p-3 text-sm"><div class="flex justify-between gap-3"><strong>{{comentario.autor || 'Usuario'}}</strong><span class="text-xs text-slate-400">{{comentario.fecha | date:'dd/MM HH:mm'}}</span></div><p class="mt-1 text-slate-200">{{comentario.texto}}</p></article> } @empty { <p class="text-sm text-slate-400">No hay comentarios todavía.</p> }</div>
-      @if (esPropia(tarea)) { <div class="mt-3 flex gap-2"><textarea class="min-w-0 flex-1" rows="2" [ngModel]="nuevoComentario()" (ngModelChange)="nuevoComentario.set($event)" placeholder="Registrá un comentario operativo."></textarea><button class="tb-button tb-button--secondary self-end" type="button" [disabled]="guardando()" (click)="guardarComentario()">Publicar</button></div> }
+      <h3 class="font-semibold text-white">{{ localization.traducir('private.employeeKanban.comentariosOperativos') }}</h3>
+      <div class="mt-3 max-h-48 space-y-2 overflow-y-auto">@for (comentario of comentarios(); track comentario.fecha + $index) { <article class="rounded-lg bg-slate-900 p-3 text-sm"><div class="flex justify-between gap-3"><strong>{{comentario.autor === 'Yo' ? localization.traducir('private.employeeKanban.me') : (comentario.autor || localization.traducir('employees.user'))}}</strong><span class="text-xs text-slate-400">{{comentario.fecha | date:'dd/MM HH:mm'}}</span></div><p class="mt-1 text-slate-200">{{comentario.texto}}</p></article> } @empty { <p class="text-sm text-slate-400">{{ localization.traducir('private.employeeKanban.noHayComentariosTodavia') }}</p> }</div>
+      @if (esPropia(tarea)) { <div class="mt-3 flex gap-2"><textarea class="min-w-0 flex-1" rows="2" [ngModel]="nuevoComentario()" (ngModelChange)="nuevoComentario.set($event)" [placeholder]="localization.traducir('private.employeeKanban.registraUnComentarioOperativo')"></textarea><button class="tb-button tb-button--secondary self-end" type="button" [disabled]="guardando()" (click)="guardarComentario()">{{ localization.traducir('private.employeeKanban.publicar') }}</button></div> }
     </section>
   </aside>
 }

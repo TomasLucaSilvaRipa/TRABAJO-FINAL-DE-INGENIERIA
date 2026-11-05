@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Skill } from '../../../../services/resources.service';
 import { PlantillaTarea, TaskTemplatesService } from '../../../../services/task-templates.service';
 import { Tarea, TareaOpciones, TasksService } from '../../../../services/tasks.service';
+import { LocalizationService } from '../../../../services/localization.service';
 
 interface ChecklistItem {
   texto: string;
@@ -18,6 +19,7 @@ export class TaskTemplatesComponent {
   private readonly service = inject(TaskTemplatesService);
   private readonly tasksService = inject(TasksService);
   private readonly fb = inject(FormBuilder);
+  readonly localization = inject(LocalizationService);
 
   readonly plantillas = signal<PlantillaTarea[]>([]);
   readonly tareasBase = signal<Tarea[]>([]);
@@ -52,7 +54,7 @@ export class TaskTemplatesComponent {
   cargar(): void {
     this.service.consultar().subscribe({
       next: (plantillas: PlantillaTarea[]) => this.plantillas.set(plantillas),
-      error: (respuesta) => this.error.set(this.obtenerError(respuesta, 'No se pudieron cargar las plantillas.')),
+      error: (respuesta) => this.error.set(this.obtenerError(respuesta, this.localization.traducir('taskTemplates.text51'))),
     });
     this.service.consultarTareasBase().subscribe({ next: (tareas: Tarea[]) => this.tareasBase.set(tareas) });
     this.tasksService.opciones().subscribe({ next: (opciones: TareaOpciones) => this.skills.set(opciones.skills.filter((skill: Skill) => skill.activo)) });
@@ -96,20 +98,20 @@ export class TaskTemplatesComponent {
         this.mostrarDesdeTarea.set(false);
         this.mostrarFormulario.set(true);
       },
-      error: (respuesta) => this.error.set(this.obtenerError(respuesta, 'No se pudo usar la tarea como base.')),
+      error: (respuesta) => this.error.set(this.obtenerError(respuesta, this.localization.traducir('taskTemplates.text52'))),
     });
   }
 
   guardar(): void {
     if (this.form.invalid) {
-      this.error.set('Completá nombre, título sugerido, horas estimadas, skill y seniority requeridos.');
+      this.error.set(this.localization.traducir('taskTemplates.text53'));
       return;
     }
 
     const valores = this.form.getRawValue();
     const urls = this.urls(valores.archivosAdjuntosJson);
     if (urls.length > 5 || urls.some((url: string) => !this.esUrl(url))) {
-      this.error.set('Indicá hasta cinco URLs de archivos modelo válidas.');
+      this.error.set(this.localization.traducir('taskTemplates.text54'));
       return;
     }
 
@@ -134,10 +136,10 @@ export class TaskTemplatesComponent {
     this.service.guardar(plantilla).subscribe({
       next: () => {
         this.mostrarFormulario.set(false);
-        this.mensaje.set(esNueva ? 'Plantilla de tarea creada correctamente.' : 'Plantilla modificada correctamente.');
+        this.mensaje.set(esNueva ? this.localization.traducir('taskTemplates.text55') : this.localization.traducir('taskTemplates.text56'));
         this.cargar();
       },
-      error: (respuesta) => this.error.set(this.obtenerError(respuesta, 'No se pudo guardar la plantilla.')),
+      error: (respuesta) => this.error.set(this.obtenerError(respuesta, this.localization.traducir('taskTemplates.text57'))),
     });
   }
 
@@ -150,17 +152,17 @@ export class TaskTemplatesComponent {
   confirmarBaja(): void {
     const plantilla = this.mostrarBaja();
     if (!plantilla || this.bajaForm.invalid) {
-      this.error.set('Ingresá el motivo de la baja.');
+      this.error.set(this.localization.traducir('taskTemplates.text58'));
       return;
     }
 
     this.service.darBaja({ ...plantilla, motivoBaja: this.bajaForm.controls.motivoBaja.value || '' }).subscribe({
       next: () => {
         this.mostrarBaja.set(null);
-        this.mensaje.set('Plantilla dada de baja correctamente. Ya no estará disponible al crear tareas nuevas.');
+        this.mensaje.set(this.localization.traducir('taskTemplates.text59'));
         this.cargar();
       },
-      error: (respuesta) => this.error.set(this.obtenerError(respuesta, 'No se pudo dar de baja la plantilla.')),
+      error: (respuesta) => this.error.set(this.obtenerError(respuesta, this.localization.traducir('taskTemplates.text60'))),
     });
   }
 
@@ -173,6 +175,12 @@ export class TaskTemplatesComponent {
 
   quitarChecklist(indice: number): void {
     this.checklist.update((items: ChecklistItem[]) => items.filter((_, posicion: number) => posicion !== indice));
+  }
+
+  traducirNivel(valor: string | null | undefined): string {
+    const claves: Record<string, string> = { baja: 'low', media: 'medium', alta: 'high', semisenior: 'seniorityMiddle' };
+    const clave = claves[(valor ?? '').trim().toLowerCase()];
+    return clave ? this.localization.traducir(`taskTemplates.${clave}`) : (valor || this.localization.traducir('taskTemplates.text40'));
   }
 
   private urls(valor?: string | null): string[] {

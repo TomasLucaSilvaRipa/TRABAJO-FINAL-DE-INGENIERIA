@@ -46,9 +46,10 @@
       </aside>
       <div>
         @if (idiomaSeleccionado(); as idioma) {
-          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><label class="tb-field-label grow">{{ localization.traducir('languages.search') }}<input [ngModel]="busqueda()" (ngModelChange)="busqueda.set($event)" /></label><button type="button" class="tb-button tb-button--primary" [disabled]="guardando()" (click)="guardar()">{{ guardando() ? localization.traducir('languages.saving') : localization.traducir('languages.save') }}</button></div>
+          <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><label class="tb-field-label grow">{{ localization.traducir('languages.search') }}<input [ngModel]="busquedaIngresada()" (ngModelChange)="actualizarBusqueda($event)" /></label><button type="button" class="tb-button tb-button--primary" [disabled]="guardando()" (click)="guardar()">{{ guardando() ? localization.traducir('languages.saving') : localization.traducir('languages.save') }}</button></div>
           <p class="tb-muted-text mb-4">{{ localization.traducir('languages.translationsHint') }} {{ catalogoCompleto().length }} {{ localization.traducir('languages.total') }}.</p>
-          <div class="max-h-[68vh] space-y-2 overflow-y-auto pr-2">
+          @if (cargandoTraducciones()) { <p class="tb-muted-text rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-4">{{ localization.traducir('languages.loadingTranslations') }}</p> }
+          @else { <div class="max-h-[68vh] space-y-2 overflow-y-auto pr-2">
             @for (area of areasAgrupadas(); track area.id) {
               <section class="overflow-hidden rounded-xl border border-white/10 bg-slate-950/15">
                 <button type="button" class="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/5" [attr.aria-expanded]="areaAbierta(area.id)" (click)="alternarArea(area.id)">
@@ -63,8 +64,15 @@
                         </button>
                         <div class="grid transition-[grid-template-rows] duration-300 ease-in-out" [style.grid-template-rows]="seccionAbierta(seccion.id) ? '1fr' : '0fr'">
                           <div class="min-h-0 overflow-hidden"><div class="space-y-2 border-t border-white/5 p-2">
-                            @for (item of seccion.entradas; track item[0]) {
-                              <article class="rounded-lg border border-white/10 bg-slate-950/25 p-3"><code class="text-xs text-cyan-300">{{ item[0] }}</code><div class="mt-2 grid gap-3 md:grid-cols-2"><div><span class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ localization.traducir('languages.source') }}</span><p class="mt-1 text-sm text-slate-200">{{ item[1] }}</p></div><label class="tb-field-label text-xs">{{ localization.traducir('languages.translation') }}<input [ngModel]="idioma.traducciones[item[0]] || ''" (ngModelChange)="actualizarTraduccion(item[0], $event)" /></label></div></article>
+                            @for (item of entradasVisibles(seccion.id, seccion.entradas); track item[0]) {
+                              <article class="rounded-lg border border-white/10 bg-slate-950/25 p-3"><code class="text-xs text-cyan-300">{{ item[0] }}</code><div class="mt-2 grid gap-3 md:grid-cols-2"><div><span class="text-xs font-semibold uppercase tracking-wide text-slate-400">{{ localization.traducir('languages.source') }}</span><p class="mt-1 text-sm text-slate-200">{{ item[1] }}</p></div><label class="tb-field-label text-xs">{{ localization.traducir('languages.translation') }}<input [ngModel]="localization.traduccionEditable(idioma.traducciones, item[0], idioma.codigo)" (ngModelChange)="actualizarTraduccion(item[0], $event)" /></label></div></article>
+                            }
+                            @if (seccion.entradas.length > tamanoPaginaTraducciones) {
+                              <nav class="flex items-center justify-center gap-3 py-2" [attr.aria-label]="localization.traducir('languages.pagination')">
+                                <button type="button" class="grid h-8 w-8 place-items-center rounded-full border border-white/15 text-lg text-slate-200 transition hover:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-40" [disabled]="paginaActualSeccion(seccion.id) === 0" (click)="cambiarPaginaSeccion(seccion.id, -1, seccion.entradas)" [attr.aria-label]="localization.traducir('languages.previousPage')">‹</button>
+                                <span class="text-xs text-slate-400">{{ localization.traducir('languages.page') }} {{ paginaActualSeccion(seccion.id) + 1 }} {{ localization.traducir('languages.of') }} {{ cantidadPaginasSeccion(seccion.entradas) }}</span>
+                                <button type="button" class="grid h-8 w-8 place-items-center rounded-full border border-white/15 text-lg text-slate-200 transition hover:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-40" [disabled]="paginaActualSeccion(seccion.id) >= cantidadPaginasSeccion(seccion.entradas) - 1" (click)="cambiarPaginaSeccion(seccion.id, 1, seccion.entradas)" [attr.aria-label]="localization.traducir('languages.nextPage')">›</button>
+                              </nav>
                             }
                           </div></div>
                         </div>
@@ -74,7 +82,7 @@
                 </div>
               </section>
             } @empty { <div class="tb-empty-state"><p>{{ localization.traducir('languages.empty') }}</p></div> }
-          </div>
+          </div> }
         } @else { <div class="tb-empty-state"><p>{{ localization.traducir('languages.select') }}</p></div> }
       </div>
     </div>

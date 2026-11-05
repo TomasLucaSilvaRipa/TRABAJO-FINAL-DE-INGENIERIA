@@ -1,8 +1,11 @@
-<section class="tb-page-hero tb-page-hero--navy">
+<section class="tb-page-hero tb-page-hero--navy tb-plans-hero">
   <div class="tb-container tb-page-hero__content">
     <p class="tb-eyebrow">{{ localization.traducir('plans.eyebrow') }}</p>
     <h1>{{ localization.traducir('plans.title') }}</h1>
     <p>{{ localization.traducir('plans.subtitle') }}</p>
+    <span class="tb-plans-hero__mark" aria-hidden="true">
+      <svg viewBox="0 0 120 120" fill="none"><path d="m20 42 40-22 40 22-40 22-40-22Z"/><path d="m20 60 40 22 40-22M20 78l40 22 40-22M60 64v18"/></svg>
+    </span>
   </div>
 </section>
 
@@ -21,7 +24,7 @@
       <div class="tb-pricing-grid tb-pricing-grid--three">
         @for (plan of plans(); track plan.id) {
           <article class="tb-price-card" [class.tb-price-card--featured]="plan.nombre.toLowerCase() === 'business'" [class.tb-price-card--selected]="planSeleccionado(plan.id)">
-            <button class="tb-plan-selector" type="button" [class.tb-plan-selector--selected]="planSeleccionado(plan.id)" [attr.aria-label]="localization.traducir('plans.comparison.select') + ' ' + plan.nombre" (click)="togglePlanSelection(plan.id)">{{planSeleccionado(plan.id) ? '✓' : ''}}</button>
+            <button class="tb-plan-selector" type="button" [class.tb-plan-selector--selected]="planSeleccionado(plan.id)" [attr.aria-pressed]="planSeleccionado(plan.id)" [attr.aria-label]="localization.traducir('plans.comparison.select') + ' ' + plan.nombre" (click)="togglePlanSelection(plan.id)">{{planSeleccionado(plan.id) ? '✓' : ''}}</button>
             <button class="tb-plan-questions" type="button" [attr.aria-label]="localization.traducir('plans.questions.open') + ' ' + plan.nombre" (click)="abrirConsultas(plan)">⋯</button>
             <p class="tb-price-card__tag">{{ plan.nombre }}</p>
             <h2>{{ description(plan) }}</h2>
@@ -37,7 +40,7 @@
       </div>
 
       <div class="tb-comparison-action"><div>
-        <p class="tb-comparison-selection">{{ localization.traducir('plans.comparison.selected') }} {{ selectedPlanIds().length }}/4. {{ localization.traducir('plans.comparison.selectionHelp') }}</p><button class="tb-button tb-button--secondary" type="button" (click)="toggleComparison()">
+        <p class="tb-comparison-selection">{{ localization.traducir('plans.comparison.selected') }} <span class="tb-comparison-count">{{ selectedPlanIds().length }}/4.</span> {{ localization.traducir('plans.comparison.selectionHelp') }}</p><button class="tb-button tb-button--secondary" type="button" (click)="toggleComparison()">
           {{ localization.traducir(comparisonVisible() ? 'plans.hideComparison' : 'plans.compare') }}
         </button></div></div>
       @if (comparisonError()) { <p class="tb-comparison-error" role="alert">{{ comparisonError() }}</p> }
@@ -63,12 +66,12 @@
       <p class="tb-eyebrow">{{ planConsultado()!.nombre }}</p><h2>{{ localization.traducir('plans.questions.title') }}</h2><p>{{ localization.traducir('plans.questions.description') }}</p>
       <form class="mt-5 grid gap-3" [formGroup]="consultaForm" (ngSubmit)="guardarConsulta()"><label>{{ localization.traducir('plans.questions.name') }}<input formControlName="nombre" /></label><label>{{ localization.traducir('plans.questions.email') }}<input type="email" formControlName="email" /></label><label>{{ localization.traducir('plans.questions.question') }}<textarea rows="3" formControlName="consulta"></textarea></label><button class="tb-button tb-button--primary" type="submit" [disabled]="guardandoConsulta()">{{ guardandoConsulta() ? localization.traducir('plans.questions.saving') : localization.traducir('plans.questions.send') }}</button></form>
       @if (consultaError()) { <p class="tb-review-form-error">{{ consultaError() }}</p> }
-      <div class="mt-6 border-t border-slate-200 pt-4 dark:border-slate-700"><h3>{{ localization.traducir('plans.questions.previous') }}</h3>@if(cargandoConsultas()){<p>{{ localization.traducir('common.loading') }}</p>}@else if(!consultas().length){<p class="tb-muted-text">{{ localization.traducir('plans.questions.empty') }}</p>}@else{@for(consulta of consultas();track consulta.id){<article class="tb-plan-question"><div><strong>{{consulta.nombre}}</strong><time>{{ localization.formatearFecha(consulta.fechaAlta) }}</time></div><p>{{consulta.consulta}}</p>@if(consulta.respuesta){<aside class="tb-plan-question__answer"><p class="tb-plan-question__answer-title">{{ localization.traducir('plans.questions.answer') }} · {{ consulta.nombreRespondedor || localization.traducir('plans.questions.team') }}@if(consulta.fechaRespuesta){<span> · {{ localization.formatearFecha(consulta.fechaRespuesta) }}</span>}</p><p>{{consulta.respuesta}}</p></aside>}</article>}}</div>
+      <div class="tb-plan-questions-history mt-6 border-t border-slate-200 pt-4 dark:border-slate-700"><h3>{{ localization.traducir('plans.questions.previous') }}</h3>@if(cargandoConsultas()){<p>{{ localization.traducir('common.loading') }}</p>}@else if(!consultas().length){<p class="tb-muted-text">{{ localization.traducir('plans.questions.empty') }}</p>}@else{@for(consulta of consultas();track consulta.id){<article class="tb-plan-question"><div><strong>{{consulta.nombre}}</strong><time>{{ localization.formatearFecha(consulta.fechaAlta) }}</time></div><p>{{consulta.consulta}}</p>@if(consulta.respuesta){<aside class="tb-plan-question__answer"><p class="tb-plan-question__answer-title">{{ localization.traducir('plans.questions.answer') }} · {{ consulta.nombreRespondedor || localization.traducir('plans.questions.team') }}@if(consulta.fechaRespuesta){<span> · {{ localization.formatearFecha(consulta.fechaRespuesta) }}</span>}</p><p>{{consulta.respuesta}}</p></aside>}</article>}}</div>
     </section>
   </div>
 }
 
-<section class="tb-section tb-section--soft">
+<section class="tb-section tb-section--soft tb-plans-onboarding">
   <div class="tb-container">
     <div class="tb-implementation">
       <div>

@@ -37,21 +37,13 @@
   </div>
 </section>
 
-<section class="tb-section tb-section--soft">
-  <div class="tb-container">
-    <div class="tb-cta tb-cta--survey">
-      <div><p class="tb-eyebrow">{{ content().surveyKicker }}</p><h2 class="tb-title">{{ content().surveyTitle }}</h2><p class="tb-lead">{{ content().surveyText }}</p></div>
-      <div class="tb-cta__actions"><a routerLink="/encuestas" class="tb-button tb-button--primary">{{ content().surveyAction }}</a></div>
+<section class="tb-section tb-overview-section">
+  <div class="tb-container tb-overview-layout">
+    <div class="tb-overview-heading">
+      <p class="tb-eyebrow">{{ content().overviewEyebrow }}</p>
+      <h2 class="tb-title">{{ content().overviewTitle }}</h2>
+      <p class="tb-lead">{{ content().overviewLead }}</p>
     </div>
-  </div>
-</section>
-
-<section class="tb-section">
-  <div class="tb-container">
-    <p class="tb-eyebrow">{{ content().overviewEyebrow }}</p>
-    <h2 class="tb-title">{{ content().overviewTitle }}</h2>
-    <p class="tb-lead">{{ content().overviewLead }}</p>
-
     <div class="tb-card-grid">
       <article class="tb-card tb-card--feature">
         <span class="tb-card__icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3M3 21h18"/></svg></span>
@@ -69,65 +61,73 @@
         <p class="tb-card__text">{{ content().cards[2].text }}</p>
       </article>
     </div>
-  </div>
-</section>
-
-<section class="tb-section tb-section--soft">
-  <div class="tb-container">
-    <div class="tb-stats">
-      @for (stat of content().stats; track stat.value) {
-        <div><p class="tb-stat__value">{{ stat.value }}</p><p class="tb-stat__label">{{ stat.label }}</p></div>
-      }
+    <div class="tb-overview-support">
+      <div class="tb-stats">
+        @for (stat of content().stats; track stat.value) {
+          <div><p class="tb-stat__value">{{ stat.value }}</p><p class="tb-stat__label">{{ stat.label }}</p></div>
+        }
+      </div>
+      <div class="tb-survey-invite">
+        <p class="tb-eyebrow">{{ content().surveyKicker }}</p>
+        <h2>{{ content().surveyTitle }}</h2>
+        <p class="tb-survey-invite__text">{{ content().surveyText }}</p>
+        <a routerLink="/encuestas" class="tb-button tb-button--primary">{{ content().surveyAction }}</a>
+      </div>
     </div>
   </div>
 </section>
 
 <section class="tb-section tb-reviews-section" aria-labelledby="reviews-title">
-  <div class="tb-container">
-    <div class="tb-reviews-heading">
-      <p class="tb-eyebrow">{{ content().reviewsEyebrow }}</p>
-      <h2 class="tb-title" id="reviews-title">{{ content().reviewsTitle }}</h2>
-      <p class="tb-lead">{{ content().reviewsLead }}</p>
+  <div class="tb-container tb-reviews-layout">
+    <div class="tb-reviews-copy">
+      <div class="tb-reviews-heading">
+        <p class="tb-eyebrow">{{ content().reviewsEyebrow }}</p>
+        <h2 class="tb-title" id="reviews-title">{{ content().reviewsTitle }}</h2>
+        <p class="tb-lead">{{ content().reviewsLead }}</p>
+      </div>
+      <div class="tb-reviews-action">
+        <div>
+          <h3>{{ content().reviewPromptTitle }}</h3>
+          <p>{{ content().reviewPromptText }}</p>
+        </div>
+        <button class="tb-button tb-button--secondary" type="button" (click)="openReviewNotice()">{{ content().leaveReview }}</button>
+      </div>
     </div>
 
-    <div class="tb-reviews-list">
-      @for (review of reviews(); track review.name) {
-        <article class="tb-review-card">
-          <div class="tb-review-stars" [attr.aria-label]="review.rating + ' ' + content().stars">
-            @for (star of stars; track star) {
-              <span [class.tb-review-stars__star--filled]="star <= review.rating" aria-hidden="true">★</span>
+    <div class="tb-reviews-viewport" aria-label="{{ content().reviewsEyebrow }}">
+      <div class="tb-reviews-track">
+        @for (copy of [0, 1]; track copy) {
+          <div class="tb-reviews-list" [attr.aria-hidden]="copy === 1 ? 'true' : null">
+            @for (review of reviews(); track review.name) {
+              <article class="tb-review-card">
+                <div class="tb-review-stars" [attr.aria-label]="review.rating + ' ' + content().stars">
+                  @for (star of stars; track star) {
+                    <span [class.tb-review-stars__star--filled]="star <= review.rating" aria-hidden="true">★</span>
+                  }
+                </div>
+                <h3>{{ review.title }}</h3>
+                <p class="tb-review-card__description">{{ review.description }}</p>
+                <div class="tb-review-card__author">
+                  <p>{{ review.name }}</p>
+                  <span>{{ review.role }}</span>
+                  <time>{{ review.date }}</time>
+                </div>
+              </article>
             }
           </div>
-          <h3>{{ review.title }}</h3>
-          <p class="tb-review-card__description">{{ review.description }}</p>
-          <div class="tb-review-card__author">
-            <p>{{ review.name }}</p>
-            <span>{{ review.role }}</span>
-            <time>{{ review.date }}</time>
-          </div>
-        </article>
-      }
-    </div>
-
-    <div class="tb-reviews-action">
-      <div>
-        <h3>{{ content().reviewPromptTitle }}</h3>
-        <p>{{ content().reviewPromptText }}</p>
+        }
       </div>
-      <button class="tb-button tb-button--secondary" type="button" (click)="openReviewNotice()">{{ content().leaveReview }}</button>
     </div>
-  </div>
-</section>
-
-<section class="tb-section">
-  <div class="tb-container">
-    <div class="tb-cta">
-      <div>
+    <div class="tb-plans-bridge">
+      <span class="tb-plans-bridge__symbol" aria-hidden="true">
+        <svg viewBox="0 0 40 40" fill="none"><path d="M8 28V17l12-7 12 7v11l-12 7-12-7Z"/><path d="m8 17 12 7 12-7M20 24v11M14 13.5l12 7M20 4v4M33 7l-3 3M7 7l3 3"/></svg>
+      </span>
+      <div class="tb-plans-bridge__copy">
         <p class="tb-eyebrow">{{ content().ctaEyebrow }}</p>
-        <h2 class="tb-title">{{ content().ctaTitle }}</h2>
-        <p class="tb-lead">{{ content().ctaLead }}</p>
+        <h2>{{ content().ctaTitle }}</h2>
+        <p class="tb-plans-bridge__lead">{{ content().ctaLead }}</p>
       </div>
-      <div class="tb-cta__actions"><a routerLink="/plans" class="tb-button tb-button--light">{{ content().discoverPlans }}</a></div>
+      <a routerLink="/plans" class="tb-button tb-button--light">{{ content().discoverPlans }}<span aria-hidden="true">↗</span></a>
     </div>
   </div>
 </section>

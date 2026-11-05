@@ -2,7 +2,7 @@
   <section class="tb-risk-observatory">
     <header class="tb-risk-observatory__header">
       <div><p class="tb-page-kicker">RADAR TEMPORAL</p><h2>Panorama de riesgo de retraso</h2><p>La demora posible resume la proyección vigente de cada proyecto. Seleccioná uno para explorar su horizonte operativo.</p></div>
-      <span class="tb-risk-observatory__signal">{{ riesgos.length }} proyectos analizados</span>
+      <span class="tb-risk-observatory__signal">{{ riesgos.length }} {{ localization.traducir(riesgos.length === 1 ? 'reports.projectAnalyzed' : 'reports.projectsAnalyzed') }}</span>
     </header>
     <div #overviewChart class="tb-risk-observatory__overview-chart" data-localization-ignore></div>
     <footer class="tb-risk-observatory__legend"><span><i class="tb-risk-observatory__dot tb-risk-observatory__dot--low"></i>Riesgo bajo</span><span><i class="tb-risk-observatory__dot tb-risk-observatory__dot--medium"></i>Riesgo medio</span><span><i class="tb-risk-observatory__dot tb-risk-observatory__dot--high"></i>Riesgo alto</span><span>La barra representa días de demora posible.</span></footer>
@@ -10,8 +10,8 @@
 } @else {
   <section class="tb-risk-observatory tb-risk-observatory--detail">
     <header class="tb-risk-observatory__header">
-      <div><p class="tb-page-kicker">OBSERVATORIO DE PROYECTO</p><h2>{{ proyecto.nombreProyecto }}</h2><p>{{ proyecto.nombreCliente }} · PM responsable: {{ proyecto.nombrePM }}</p></div>
-      <div class="tb-risk-observatory__actions"><span class="tb-risk-observatory__risk" [style.--risk-color]="colorRiesgo(proyecto.nivelRiesgo)">Riesgo {{ proyecto.nivelRiesgo }}</span><button type="button" class="tb-secondary-button" (click)="volverAlPanorama()">← Volver al panorama</button></div>
+      <div><p class="tb-page-kicker">OBSERVATORIO DE PROYECTO</p><h2>{{ proyecto.nombreProyecto }}</h2><p>{{ proyecto.nombreCliente }} · {{ localization.traducir('reports.pmResponsible') }} {{ proyecto.nombrePM }}</p></div>
+      <div class="tb-risk-observatory__actions"><span class="tb-risk-observatory__risk" [style.--risk-color]="colorRiesgo(proyecto.nivelRiesgo)">{{ localization.traducir('reports.risk') }} {{ localization.traducirEstado(proyecto.nivelRiesgo) }}</span><button type="button" class="tb-secondary-button" (click)="volverAlPanorama()">← Volver al panorama</button></div>
     </header>
 
     @if (proyecto.fechaEstimadaFinalizacion) {

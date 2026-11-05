@@ -1,6 +1,51 @@
-<section class="tb-workspace space-y-6">
-  <header class="max-w-3xl"><p class="tb-page-kicker">{{ t('faq.kicker') }}</p><h1 class="tb-page-title">{{ t('faq.title') }}</h1><p class="tb-page-description">{{ t('faq.description') }}</p></header>
-  <section class="tb-panel"><div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><label class="block w-full lg:max-w-xl"><span class="text-sm font-bold">{{ t('faq.searchLabel') }}</span><input class="tb-input mt-2 w-full" type="search" [placeholder]="t('faq.searchPlaceholder')" [value]="busqueda()" (input)="actualizarBusqueda($event)" /></label><p class="text-sm text-slate-500">{{ preguntasFiltradas().length }} {{ preguntasFiltradas().length === 1 ? t('faq.answerFound') : t('faq.answersFound') }}</p></div><div class="mt-5 flex flex-wrap gap-2">@for (categoria of categorias(); track categoria) { <button type="button" class="rounded-full border px-4 py-2 text-sm font-bold" [class.border-cyan-500]="categoriaActiva() === categoria" [class.bg-cyan-500]="categoriaActiva() === categoria" [class.text-white]="categoriaActiva() === categoria" (click)="seleccionarCategoria(categoria)">{{ etiquetaCategoria(categoria) }}</button> }</div></section>
-  <section class="space-y-3">@for (item of preguntasFiltradas(); track item.id) { <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"><button class="flex w-full items-center justify-between gap-5 p-5 text-left" type="button" (click)="alternarPregunta(item.id)"><span><span class="block text-xs font-bold uppercase tracking-[0.14em] text-cyan-600">{{ etiquetaCategoria(item.categoria) }}</span><span class="mt-1 block font-bold">{{ pregunta(item) }}</span></span><span>{{ abierta() === item.id ? '−' : '+' }}</span></button>@if (abierta() === item.id) { <div class="border-t px-5 py-4 text-sm leading-6">{{ respuesta(item) }}</div> }</article> } @empty { <div class="tb-empty-state"><p class="font-bold">{{ t('faq.emptyTitle') }}</p></div> }</section>
-  <section class="tb-panel"><p class="tb-page-kicker">{{ t('faq.needHelpKicker') }}</p><h2 class="mt-1 text-xl font-bold">{{ t('faq.needHelpTitle') }}</h2><p class="mt-2 text-sm">{{ t('faq.needHelpDescription') }}</p><a routerLink="/dashboard/soporte" class="tb-action-button mt-5 inline-flex">{{ t('faq.openSupport') }}</a></section>
+<section class="faq-page">
+  <div class="faq-page__inner">
+    <header class="faq-intro">
+      <div class="faq-intro__copy">
+        <p class="faq-eyebrow">{{ t('faq.kicker') }}</p>
+        <h1>{{ t('faq.title') }}</h1>
+        <p>{{ t('faq.description') }}</p>
+      </div>
+      <div class="faq-intro__mark" aria-hidden="true">?</div>
+    </header>
+
+    <section class="faq-finder" [attr.aria-label]="t('faq.searchLabel')">
+      <div class="faq-finder__top">
+        <label class="faq-search">
+          <span>{{ t('faq.searchLabel') }}</span>
+          <span class="faq-search__field">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"><circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <input type="search" [placeholder]="t('faq.searchPlaceholder')" [value]="busqueda()" (input)="actualizarBusqueda($event)" />
+          </span>
+        </label>
+        <p class="faq-count" role="status">{{ preguntasFiltradas().length }} {{ preguntasFiltradas().length === 1 ? t('faq.answerFound') : t('faq.answersFound') }}</p>
+      </div>
+      <div class="faq-categories" role="group" [attr.aria-label]="t('faq.filterLabel')">
+        @for (categoria of categorias(); track categoria) {
+          <button type="button" class="faq-category" [class.faq-category--active]="categoriaActiva() === categoria" [attr.aria-pressed]="categoriaActiva() === categoria" (click)="seleccionarCategoria(categoria)">{{ etiquetaCategoria(categoria) }}</button>
+        }
+      </div>
+    </section>
+
+    <section class="faq-list" [attr.aria-label]="t('faq.listLabel')">
+      @for (item of preguntasFiltradas(); track item.id) {
+        <article class="faq-item" [class.faq-item--open]="abierta() === item.id">
+          <h2>
+            <button class="faq-question" type="button" [attr.aria-expanded]="abierta() === item.id" [attr.aria-controls]="'faq-answer-' + item.id" (click)="alternarPregunta(item.id)">
+              <span class="faq-question__text"><span class="faq-question__category">{{ etiquetaCategoria(item.categoria) }}</span><span class="faq-question__title">{{ pregunta(item) }}</span></span>
+              <span class="faq-question__icon" aria-hidden="true">{{ abierta() === item.id ? '−' : '+' }}</span>
+            </button>
+          </h2>
+          @if (abierta() === item.id) { <div class="faq-answer" [id]="'faq-answer-' + item.id">{{ respuesta(item) }}</div> }
+        </article>
+      } @empty {
+        <div class="faq-empty"><p>{{ t('faq.emptyTitle') }}</p><span>{{ t('faq.emptyText') }}</span></div>
+      }
+    </section>
+
+    <section class="faq-support">
+      <div><p class="faq-eyebrow">{{ t('faq.needHelpKicker') }}</p><h2>{{ t('faq.needHelpTitle') }}</h2><p>{{ t('faq.needHelpDescription') }}</p></div>
+      <a routerLink="/dashboard/soporte" class="faq-support__link">{{ t('faq.openSupport') }} <span aria-hidden="true">↗</span></a>
+    </section>
+  </div>
 </section>

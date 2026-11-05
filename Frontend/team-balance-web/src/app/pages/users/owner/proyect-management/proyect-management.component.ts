@@ -7,6 +7,7 @@ import { LocalizationService } from '../../../../services/localization.service';
   selector: 'app-proyect-management',
   imports: [ReactiveFormsModule],
   templateUrl: './proyect-management.component.html',
+  styleUrl: './proyect-management.component.css',
 })
 export class ProyectManagement {
   private readonly service = inject(ProjectsService);

@@ -24,5 +24,6 @@ public class Idioma
     public string Codigo { get; set; } = string.Empty;
     public string Nombre { get; set; } = string.Empty;
     public bool Activo { get; set; } = true;
+    public bool TieneTraducciones { get; set; }
     public Dictionary<string, string> Traducciones { get; set; } = new(StringComparer.Ordinal);
 }

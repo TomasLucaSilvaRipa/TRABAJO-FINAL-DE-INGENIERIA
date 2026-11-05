@@ -158,7 +158,7 @@
         }
 
         @if (reviewingCommercialData()) {
-          <div class="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950" role="alert">
+          <div class="tb-checkout-review rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950" role="alert">
             <strong>{{ localization.traducir('checkout.reviewTitle') }}</strong>
             <p class="mt-1">{{ localization.traducir('checkout.reviewText') }}</p>
             <div class="mt-4 flex flex-wrap gap-3"><button class="tb-button tb-button--primary" type="button" [disabled]="paymentIntegrationPending()" (click)="confirmPayment()">{{ localization.traducir('checkout.confirmPayment') }}</button><button class="tb-button" type="button" [disabled]="paymentIntegrationPending()" (click)="editCommercialData()">{{ localization.traducir('checkout.editData') }}</button></div>

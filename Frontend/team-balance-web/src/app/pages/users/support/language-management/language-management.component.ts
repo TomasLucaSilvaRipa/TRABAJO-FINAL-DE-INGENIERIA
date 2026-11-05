@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { IdiomaPlataforma, LocalizationService } from '../../../../services/localization.service';
 import { IdiomasService } from '../../../../services/idiomas.service';
@@ -24,7 +24,7 @@ const areasTraducciones: AreaTraduccionesDefinicion[] = [
     { id: 'panel', etiqueta: 'languages.section.privateDashboard', prefijos: ['dashboard', 'dashboardSearch', 'private.dashboard'] },
     { id: 'proyectos', etiqueta: 'languages.section.privateProjects', prefijos: ['projects', 'private.projects'] },
     { id: 'kanban', etiqueta: 'languages.section.privateKanban', prefijos: ['kanban', 'private.projectKanban', 'private.employeeKanban'] },
-    { id: 'tareas', etiqueta: 'languages.section.privateTasks', prefijos: ['tasks'] },
+    { id: 'tareas', etiqueta: 'languages.section.privateTasks', prefijos: ['tasks', 'taskTemplates'] },
     { id: 'mis-tareas', etiqueta: 'languages.section.privateMyTasks', prefijos: ['myTasks'] },
     { id: 'horas', etiqueta: 'languages.section.privateHours', prefijos: ['hours', 'private.hours'] },
     { id: 'empleados', etiqueta: 'languages.section.privateEmployees', prefijos: ['employees', 'private.employees'] },
@@ -64,17 +64,24 @@ const areasTraducciones: AreaTraduccionesDefinicion[] = [
   imports: [CommonModule, FormsModule],
   templateUrl: './language-management.component.html',
 })
-export class LanguageManagementComponent {
+export class LanguageManagementComponent implements OnDestroy {
   readonly localization = inject(LocalizationService);
   private readonly idiomasService = inject(IdiomasService);
   readonly idiomas = signal<IdiomaPlataforma[]>([]);
   readonly idiomaSeleccionadoId = signal<number | null>(null);
   readonly mostrarInactivos = signal(false);
   readonly busqueda = signal('');
+  readonly busquedaIngresada = signal('');
+  readonly paginaSeccion = signal<Record<string, number>>({});
+  readonly tamanoPaginaTraducciones = 50;
+  private temporizadorBusqueda?: ReturnType<typeof setTimeout>;
   readonly codigoFormulario = signal('');
   readonly nombreFormulario = signal('');
   readonly procesandoDatos = signal(false);
   readonly guardando = signal(false);
+  readonly cargandoTraducciones = signal(false);
+  private readonly traduccionesCargadas = new Set<number>();
+  private readonly traduccionesEnCarga = new Set<number>();
   readonly eliminando = signal(false);
   readonly reactivando = signal(false);
   readonly idiomaPendienteBaja = signal<IdiomaPlataforma | null>(null);
@@ -101,20 +108,32 @@ export class LanguageManagementComponent {
     const traducciones = this.idiomaSeleccionado()?.traducciones ?? {};
     return this.catalogoCompleto().filter(([clave, texto]) => !termino || clave.toLocaleLowerCase().includes(termino) || texto.toLocaleLowerCase().includes(termino) || (traducciones[clave] ?? '').toLocaleLowerCase().includes(termino));
   });
-  readonly areasAgrupadas = computed(() => areasTraducciones.map((area) => ({
-    ...area,
-    secciones: area.secciones.map((seccion) => ({
-      ...seccion,
-      entradas: this.claves().filter(([clave]) => seccion.claves?.includes(clave) || seccion.prefijos?.some((prefijo) => clave === prefijo || clave.startsWith(`${prefijo}.`))),
-    })).filter((seccion) => seccion.entradas.length > 0),
-  })).map((area) => ({ ...area, cantidad: area.secciones.reduce((total, seccion) => total + seccion.entradas.length, 0) })).filter((area) => area.cantidad > 0));
+  readonly areasAgrupadas = computed(() => {
+    const porSeccion = new Map<string, [string, string][]>();
+    for (const area of areasTraducciones) for (const seccion of area.secciones) porSeccion.set(seccion.id, []);
+    for (const entrada of this.claves()) {
+      for (const area of areasTraducciones) for (const seccion of area.secciones) {
+        const [clave] = entrada;
+        if (seccion.claves?.includes(clave) || seccion.prefijos?.some((prefijo) => clave === prefijo || clave.startsWith(`${prefijo}.`))) porSeccion.get(seccion.id)?.push(entrada);
+      }
+    }
+    return areasTraducciones.map((area) => ({
+      ...area,
+      secciones: area.secciones.map((seccion) => ({ ...seccion, entradas: porSeccion.get(seccion.id) ?? [] }))
+        .filter((seccion) => seccion.entradas.length > 0),
+    })).map((area) => ({ ...area, cantidad: area.secciones.reduce((total, seccion) => total + seccion.entradas.length, 0) })).filter((area) => area.cantidad > 0);
+  });
 
   constructor() { this.cargar(); }
 
   cargar(): void {
     this.idiomasService.consultarGestion().subscribe({
       next: (idiomas) => {
-        this.idiomas.set(idiomas);
+        const idiomasConCache = idiomas.map((idioma) => {
+          const traduccionesPrevias = this.idiomas().find((actual) => actual.id === idioma.id)?.traducciones;
+          return { ...idioma, traducciones: this.traduccionesCargadas.has(idioma.id) ? traduccionesPrevias ?? idioma.traducciones : idioma.traducciones };
+        });
+        this.idiomas.set(idiomasConCache);
         const seleccionado = idiomas.find((idioma) => idioma.id === this.idiomaSeleccionadoId());
         if (seleccionado) this.seleccionarIdioma(seleccionado.id);
         else if (this.idiomaSeleccionadoId() !== null) this.seleccionarIdioma(this.idiomasVisibles()[0]?.id ?? null);
@@ -130,15 +149,41 @@ export class LanguageManagementComponent {
     this.codigoFormulario.set('');
     this.nombreFormulario.set('');
     this.busqueda.set('');
+    this.busquedaIngresada.set('');
+    this.paginaSeccion.set({});
     this.error.set('');
     this.mensaje.set('');
   }
 
   seleccionarIdioma(id: number | null): void {
     this.idiomaSeleccionadoId.set(id);
+    this.cargandoTraducciones.set(false);
     const idioma = this.idiomas().find((item) => item.id === id);
     this.codigoFormulario.set(idioma?.codigo ?? '');
     this.nombreFormulario.set(idioma?.nombre ?? '');
+    this.error.set('');
+    if (!idioma || this.traduccionesCargadas.has(idioma.id)) return;
+    if (this.traduccionesEnCarga.has(idioma.id)) { this.cargandoTraducciones.set(true); return; }
+    this.traduccionesEnCarga.add(idioma.id);
+    this.cargandoTraducciones.set(true);
+    this.idiomasService.consultarTraduccionesGestion(idioma.id).subscribe({
+      next: (traducciones) => {
+        this.traduccionesEnCarga.delete(idioma.id);
+        this.traduccionesCargadas.add(idioma.id);
+        this.idiomas.update((actuales) => actuales.map((item) => item.id === idioma.id
+          ? { ...item, traducciones: traducciones ?? {}, tieneTraducciones: Object.keys(traducciones ?? {}).length > 0 }
+          : item));
+        this.localization.actualizarTraduccionesRemotas(idioma.codigo, traducciones ?? {});
+        if (this.idiomaSeleccionadoId() === idioma.id) this.cargandoTraducciones.set(false);
+      },
+      error: () => {
+        this.traduccionesEnCarga.delete(idioma.id);
+        if (this.idiomaSeleccionadoId() === idioma.id) {
+          this.cargandoTraducciones.set(false);
+          this.error.set(this.localization.traducir('languages.loadError'));
+        }
+      },
+    });
   }
 
   cambiarVisibilidadInactivos(mostrar: boolean): void {
@@ -149,8 +194,25 @@ export class LanguageManagementComponent {
 
   alternarArea(id: string): void { this.alternarConjunto(this.areasAbiertas, id); }
   alternarSeccion(id: string): void { this.alternarConjunto(this.seccionesAbiertas, id); }
+  actualizarBusqueda(valor: string): void {
+    this.busquedaIngresada.set(valor);
+    if (this.temporizadorBusqueda) clearTimeout(this.temporizadorBusqueda);
+    this.temporizadorBusqueda = setTimeout(() => { this.busqueda.set(valor); this.paginaSeccion.set({}); }, 180);
+  }
+  entradasVisibles(idSeccion: string, entradas: [string, string][]): [string, string][] {
+    const inicio = this.paginaActualSeccion(idSeccion) * this.tamanoPaginaTraducciones;
+    return entradas.slice(inicio, inicio + this.tamanoPaginaTraducciones);
+  }
+  paginaActualSeccion(idSeccion: string): number { return this.paginaSeccion()[idSeccion] ?? 0; }
+  cantidadPaginasSeccion(entradas: [string, string][]): number { return Math.max(1, Math.ceil(entradas.length / this.tamanoPaginaTraducciones)); }
+  cambiarPaginaSeccion(idSeccion: string, direccion: -1 | 1, entradas: [string, string][]): void {
+    const paginas = this.cantidadPaginasSeccion(entradas);
+    this.paginaSeccion.update(actual => ({ ...actual, [idSeccion]: Math.min(paginas - 1, Math.max(0, (actual[idSeccion] ?? 0) + direccion)) }));
+  }
   areaAbierta(id: string): boolean { return !!this.busqueda().trim() || this.areasAbiertas().has(id); }
   seccionAbierta(id: string): boolean { return !!this.busqueda().trim() || this.seccionesAbiertas().has(id); }
+
+  ngOnDestroy(): void { if (this.temporizadorBusqueda) clearTimeout(this.temporizadorBusqueda); }
 
   guardarDatosIdioma(): void {
     if (this.modoAlta()) this.crear();
@@ -191,14 +253,23 @@ export class LanguageManagementComponent {
   actualizarTraduccion(clave: string, valor: string): void {
     const id = this.idiomaSeleccionadoId();
     if (!id) return;
-    this.idiomas.update((idiomas) => idiomas.map((idioma) => idioma.id === id ? { ...idioma, traducciones: { ...idioma.traducciones, [clave]: valor } } : idioma));
+    this.idiomas.update((idiomas) => idiomas.map((idioma) => idioma.id === id ? { ...idioma, tieneTraducciones: true, traducciones: { ...idioma.traducciones, [clave]: valor } } : idioma));
   }
 
   guardar(): void {
     const idioma = this.idiomaSeleccionado(); if (!idioma) return;
     this.error.set(''); this.mensaje.set(''); this.guardando.set(true);
-    this.idiomasService.guardar(idioma).subscribe({
-      next: () => { this.guardando.set(false); this.mensaje.set(this.localization.traducir('languages.saved')); this.localization.cargarIdiomas(); },
+    const idiomaCompleto = { ...idioma, traducciones: this.localization.completarTraduccionesFrancesas(idioma.traducciones, idioma.codigo) };
+    this.idiomasService.guardar(idiomaCompleto).subscribe({
+      next: () => {
+        this.guardando.set(false);
+        const traducciones = idiomaCompleto.traducciones;
+        this.traduccionesCargadas.add(idioma.id);
+        this.idiomas.update((actuales) => actuales.map((item) => item.id === idioma.id ? { ...item, tieneTraducciones: Object.keys(traducciones).length > 0, traducciones } : item));
+        this.localization.actualizarTraduccionesRemotas(idioma.codigo, traducciones);
+        this.mensaje.set(this.localization.traducir('languages.saved'));
+        this.localization.cargarIdiomas();
+      },
       error: (respuesta) => { this.guardando.set(false); this.error.set(typeof respuesta.error === 'string' ? respuesta.error : this.localization.traducir('languages.saveError')); },
     });
   }
@@ -265,9 +336,15 @@ export class LanguageManagementComponent {
   private inicializarIdiomasBase(idiomas: IdiomaPlataforma[]): void {
     for (const codigo of ['es', 'en'] as const) {
       const idioma = idiomas.find((item) => item.codigo === codigo);
-      if (!idioma || Object.keys(idioma.traducciones).length) continue;
-      this.idiomasService.guardar({ ...idioma, traducciones: this.localization.catalogoBase(codigo) }).subscribe({
-        next: () => this.localization.cargarIdiomas(),
+      if (!idioma || idioma.tieneTraducciones !== false) continue;
+      const traducciones = this.localization.catalogoBase(codigo);
+      this.idiomasService.guardar({ ...idioma, traducciones }).subscribe({
+        next: () => {
+          this.traduccionesCargadas.add(idioma.id);
+          this.idiomas.update((actuales) => actuales.map((item) => item.id === idioma.id ? { ...item, tieneTraducciones: true, traducciones } : item));
+          this.localization.actualizarTraduccionesRemotas(codigo, traducciones);
+          this.localization.cargarIdiomas();
+        },
       });
     }
   }

@@ -2,7 +2,7 @@
   <header class="tb-hours-chart__header">
     <div><p class="tb-page-kicker">{{ proyecto ? localization.traducir('static.hourControlProject') : localization.traducir('static.hourControl') }}</p><h2>{{ proyecto ? proyecto.nombreProyecto : localization.traducir('static.hoursComparison') }}</h2><p>{{ proyecto ? localization.traducir('static.selectTaskActions') : localization.traducir('static.selectProjectTasks') }}</p></div>
     <div class="tb-hours-chart__header-actions">
-      <span class="tb-hours-chart__status" [style.--status-color]="colorConsumo(consumoVisible())"><b>{{ consumoVisible() }}%</b>{{ estadoVisible() }}</span>
+      <span class="tb-hours-chart__status" [style.--status-color]="colorConsumo(consumoVisible())"><b>{{ consumoVisible() }}%</b>{{ localization.traducirEstado(estadoVisible()) }}</span>
       <span class="tb-hours-chart__scope"><b>{{ cantidadElementos() }}</b>{{ proyecto ? localization.traducir('static.associatedTasks') : localization.traducir('static.projects') }}</span>
       @if (proyecto) { <button class="tb-secondary-button" type="button" (click)="volverAProyectos()">{{localization.traducir('static.backProjects')}}</button> }
     </div>

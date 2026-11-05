@@ -1,1 +1,34 @@
-<section class="tb-performance"><div class="tb-performance__head"><div><p>RENDIMIENTO</p><h3>Evolución histórica</h3><span>Indicadores inmutables calculados desde tareas, horas y asignaciones registradas.</span></div><div class="tb-performance__ranges">@for(rango of [3,6,12];track rango){<button type="button" [class.is-active]="meses() === rango" (click)="cambiarMeses(rango)">{{rango}} m</button>}</div></div>@if(error()){<p class="tb-performance__error">{{error()}}</p>}@else if(!cargando() && puntos().length === 0){<div class="tb-performance__empty"><strong>Aún no hay historia suficiente</strong><span>La evolución aparecerá cuando existan tareas finalizadas o reasignaciones en el período.</span></div>}@else{<div class="tb-performance__summary"><div><span>Cumplimiento promedio</span><strong>{{promedioCumplimiento()}}%</strong></div><div><span>Desvío promedio</span><strong [class.is-alert]="promedioDesvio() > 0">{{promedioDesvio()}}%</strong></div><div><span>Tareas finalizadas</span><strong>{{totalTareas()}}</strong></div><div><span>Reasignaciones</span><strong>{{totalReasignaciones()}}</strong></div></div><div class="tb-performance__metric"><button type="button" [class.is-active]="metrica() === 'cumplimiento'" (click)="cambiarMetrica('cumplimiento')">Cumplimiento de plazos</button><button type="button" [class.is-active]="metrica() === 'desvio'" (click)="cambiarMetrica('desvio')">Desvío de horas</button></div><div #chart class="tb-performance__chart" [class.is-loading]="cargando()"></div>}</section>
+<section class="tb-performance">
+  <div class="tb-performance__head">
+    <div>
+      <p>{{ localization.traducir('private.employees.performance.kicker') }}</p>
+      <h3>{{ localization.traducir('private.employees.performance.title') }}</h3>
+      <span>{{ localization.traducir('private.employees.performance.description') }}</span>
+    </div>
+    <div class="tb-performance__ranges">
+      @for (rango of [3, 6, 12]; track rango) {
+        <button type="button" [class.is-active]="meses() === rango" (click)="cambiarMeses(rango)">{{ rango }} {{ localization.traducir('private.employees.performance.months') }}</button>
+      }
+    </div>
+  </div>
+  @if (error()) {
+    <p class="tb-performance__error">{{ error() }}</p>
+  } @else if (!cargando() && puntos().length === 0) {
+    <div class="tb-performance__empty">
+      <strong>{{ localization.traducir('private.employees.performance.emptyTitle') }}</strong>
+      <span>{{ localization.traducir('private.employees.performance.emptyText') }}</span>
+    </div>
+  } @else {
+    <div class="tb-performance__summary">
+      <div><span>{{ localization.traducir('private.employees.performance.averageCompliance') }}</span><strong>{{ promedioCumplimiento() }}%</strong></div>
+      <div><span>{{ localization.traducir('private.employees.performance.averageDeviation') }}</span><strong [class.is-alert]="promedioDesvio() > 0">{{ promedioDesvio() }}%</strong></div>
+      <div><span>{{ localization.traducir('private.employees.performance.completedTasks') }}</span><strong>{{ totalTareas() }}</strong></div>
+      <div><span>{{ localization.traducir('private.employees.performance.reassignments') }}</span><strong>{{ totalReasignaciones() }}</strong></div>
+    </div>
+    <div class="tb-performance__metric">
+      <button type="button" [class.is-active]="metrica() === 'cumplimiento'" (click)="cambiarMetrica('cumplimiento')">{{ localization.traducir('private.employees.performance.deadlineCompliance') }}</button>
+      <button type="button" [class.is-active]="metrica() === 'desvio'" (click)="cambiarMetrica('desvio')">{{ localization.traducir('private.employees.performance.hourDeviation') }}</button>
+    </div>
+    <div #chart class="tb-performance__chart" [class.is-loading]="cargando()"></div>
+  }
+</section>

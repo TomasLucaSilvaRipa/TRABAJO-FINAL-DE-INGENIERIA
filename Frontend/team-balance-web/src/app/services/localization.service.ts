@@ -11,6 +11,24 @@ type TranslationDictionary = Record<string, string>;
 const publicPageTranslations = publicPageTranslationsData as Record<string, TranslationDictionary>;
 const privatePageTranslations = privatePageTranslationsData as Record<string, TranslationDictionary>;
 
+const frenchSidebarReviewTranslations: TranslationDictionary = {
+  'menu.review.open': 'Donner mon avis',
+  'menu.review.close': 'Fermer',
+  'menu.review.eyebrow': 'VOTRE EXPÉRIENCE',
+  'menu.review.title': 'Donnez votre avis sur TeamBalance',
+  'menu.review.description': 'Votre commentaire sera enregistré dans TeamBalance et apparaîtra dans la section publique des avis.',
+  'menu.review.rating': 'Comment évalueriez-vous votre expérience ?',
+  'menu.review.stars': 'étoiles',
+  'menu.review.subject': 'Titre',
+  'menu.review.subjectPlaceholder': 'Ex. : Une planification plus claire',
+  'menu.review.comment': 'Votre avis',
+  'menu.review.commentPlaceholder': 'Racontez-nous votre expérience avec TeamBalance.',
+  'menu.review.publishing': 'Publication…',
+  'menu.review.publish': 'Publier mon avis',
+  'menu.review.validationError': 'Choisissez une note et rédigez votre avis.',
+  'menu.review.saveError': 'Impossible d’enregistrer votre avis. Veuillez réessayer.',
+};
+
 // Literal UI left in older feature templates. Keeping these in the regular
 // catalog means custom languages receive the same list in Languages too.
 const legacyStaticTranslations: Record<'es' | 'en', TranslationDictionary> = {
@@ -57,6 +75,7 @@ export interface IdiomaPlataforma {
   codigo: string;
   nombre: string;
   activo: boolean;
+  tieneTraducciones?: boolean;
   traducciones: TranslationDictionary;
 }
 
@@ -66,7 +85,7 @@ const managementTranslations: Record<'es' | 'en', TranslationDictionary> = {
     'languages.description': 'Creá idiomas y completá sus textos de interfaz. Las claves sin traducir se muestran en inglés.',
     'languages.newLanguage': 'Nuevo idioma', 'languages.editLanguage': 'Modificar idioma', 'languages.createHint': 'Ingresá el código ISO y el nombre con el que se mostrará.', 'languages.editHint': 'Modificá los datos del idioma seleccionado.', 'languages.code': 'Código ISO', 'languages.codeHint': 'Ej.: fr o pt-BR', 'languages.name': 'Nombre del idioma',
     'languages.create': 'Crear idioma', 'languages.modify': 'Modificar idioma', 'languages.modified': 'Idioma modificado correctamente.', 'languages.select': 'Seleccionar idioma', 'languages.search': 'Buscar texto o clave',
-    'languages.translations': 'Traducciones', 'languages.translationsHint': 'Podés guardar aunque queden campos vacíos.', 'languages.source': 'Texto base en inglés',
+    'languages.translations': 'Traducciones', 'languages.translationsHint': 'Podés guardar aunque queden campos vacíos.', 'languages.loadingTranslations': 'Cargando las traducciones de este idioma…', 'languages.source': 'Texto base en inglés',
     'languages.translation': 'Traducción', 'languages.active': 'Disponible para usuarios', 'languages.save': 'Guardar idioma',
     'languages.saving': 'Guardando…', 'languages.created': 'Idioma creado. Ya podés completar sus traducciones.', 'languages.saved': 'Idioma guardado correctamente.',
     'languages.loadError': 'No pudimos cargar los idiomas.', 'languages.saveError': 'No pudimos guardar el idioma.', 'languages.empty': 'No hay claves que coincidan con la búsqueda.',
@@ -96,7 +115,7 @@ const managementTranslations: Record<'es' | 'en', TranslationDictionary> = {
     'languages.description': 'Create languages and complete their interface texts. Missing keys are shown in English.',
     'languages.newLanguage': 'New language', 'languages.editLanguage': 'Edit language', 'languages.createHint': 'Enter the ISO code and the name that will be displayed.', 'languages.editHint': 'Edit the selected language details.', 'languages.code': 'ISO code', 'languages.codeHint': 'E.g.: fr or pt-BR', 'languages.name': 'Language name',
     'languages.create': 'Create language', 'languages.modify': 'Edit language', 'languages.modified': 'Language updated successfully.', 'languages.select': 'Select language', 'languages.search': 'Search text or key',
-    'languages.translations': 'Translations', 'languages.translationsHint': 'You can save with empty fields.', 'languages.source': 'English source text',
+    'languages.translations': 'Translations', 'languages.translationsHint': 'You can save with empty fields.', 'languages.loadingTranslations': 'Loading this language’s translations…', 'languages.source': 'English source text',
     'languages.translation': 'Translation', 'languages.active': 'Available to users', 'languages.save': 'Save language',
     'languages.saving': 'Saving…', 'languages.created': 'Language created. You can now complete its translations.', 'languages.saved': 'Language saved successfully.',
     'languages.loadError': 'We could not load languages.', 'languages.saveError': 'We could not save the language.', 'languages.empty': 'No keys match your search.',
@@ -130,6 +149,8 @@ export class LocalizationService {
 
   private readonly http = inject(HttpClient);
   private readonly idiomasRemotos = signal<IdiomaPlataforma[]>([]);
+  private readonly traduccionesRemotasCache = new Map<string, TranslationDictionary>();
+  private readonly traduccionesEnCarga = new Set<string>();
 
   private readonly translations: Record<string, TranslationDictionary> = {
 
@@ -299,6 +320,7 @@ export class LocalizationService {
       'menu.calendar': 'Calendario',
       'menu.logs': 'Bitácora',
       'menu.help': 'Ayuda',
+      'menu.review.open': 'Dejar mi opinión', 'menu.review.close': 'Cerrar', 'menu.review.eyebrow': 'TU EXPERIENCIA', 'menu.review.title': 'Dejá tu opinión sobre TeamBalance', 'menu.review.description': 'Tu comentario se guardará en TeamBalance y aparecerá en la sección pública de opiniones.', 'menu.review.rating': '¿Cómo calificarías tu experiencia?', 'menu.review.stars': 'estrellas', 'menu.review.subject': 'Título', 'menu.review.subjectPlaceholder': 'Ej.: Más claridad para planificar', 'menu.review.comment': 'Tu opinión', 'menu.review.commentPlaceholder': 'Contanos cómo fue tu experiencia usando TeamBalance.', 'menu.review.publishing': 'Publicando…', 'menu.review.publish': 'Publicar opinión', 'menu.review.validationError': 'Elegí una puntuación y escribí tu opinión.', 'menu.review.saveError': 'No pudimos guardar tu opinión. Intentá nuevamente.',
       'menu.support': 'Soporte',
       'menu.newsletter': 'Novedades por email',
       'menu.supportInbox': 'Bandeja de soporte',
@@ -873,6 +895,7 @@ export class LocalizationService {
       'menu.calendar': 'Calendar',
       'menu.logs': 'Activity log',
       'menu.help': 'Help',
+      'menu.review.open': 'Leave a review', 'menu.review.close': 'Close', 'menu.review.eyebrow': 'YOUR EXPERIENCE', 'menu.review.title': 'Share your TeamBalance experience', 'menu.review.description': 'Your review will be saved in TeamBalance and shown in the public reviews section.', 'menu.review.rating': 'How would you rate your experience?', 'menu.review.stars': 'stars', 'menu.review.subject': 'Title', 'menu.review.subjectPlaceholder': 'E.g. Clearer planning', 'menu.review.comment': 'Your review', 'menu.review.commentPlaceholder': 'Tell us about your experience using TeamBalance.', 'menu.review.publishing': 'Publishing…', 'menu.review.publish': 'Publish review', 'menu.review.validationError': 'Choose a rating and write your review.', 'menu.review.saveError': 'We could not save your review. Please try again.',
       'menu.support': 'Support',
       'menu.newsletter': 'Email updates',
       'menu.supportInbox': 'Support inbox',
@@ -1283,6 +1306,7 @@ export class LocalizationService {
   };
 
   private readonly staticContentKeys = new Set([
+    ...Object.keys(managementTranslations.es),
     ...Object.keys(legacyStaticTranslations.es),
     ...Object.keys(privatePageTranslations['es']),
   ]);
@@ -1302,15 +1326,46 @@ export class LocalizationService {
   cargarIdiomas(): void {
     this.http.get<IdiomaPlataforma[]>('/api/idiomas/activos').subscribe({
       next: (idiomas) => {
-        this.idiomasRemotos.set(idiomas ?? []);
+        const idiomasConCache = (idiomas ?? []).map((idioma) => ({
+          ...idioma,
+          traducciones: this.traduccionesRemotasCache.get(idioma.codigo) ?? {},
+        }));
+        this.idiomasRemotos.set(idiomasConCache);
         if (!this.idiomasDisponibles().some((idioma) => idioma.codigo === this.language())) this.cambiarIdioma('en');
+        else this.cargarTraduccionesRemotas(this.language());
       },
       error: () => this.idiomasRemotos.set([]),
     });
   }
 
+  /** Loads only the selected language dictionary; metadata calls stay small. */
+  private cargarTraduccionesRemotas(codigo: string): void {
+    if (this.traduccionesRemotasCache.has(codigo) || this.traduccionesEnCarga.has(codigo)) return;
+    const idioma = this.idiomasRemotos().find((item) => item.codigo === codigo && item.activo);
+    if (!idioma) return;
+    this.traduccionesEnCarga.add(codigo);
+    this.http.get<TranslationDictionary>(`/api/idiomas/activos/${encodeURIComponent(codigo)}/traducciones`).subscribe({
+      next: (traducciones) => {
+        const diccionario = traducciones ?? {};
+        this.traduccionesRemotasCache.set(codigo, diccionario);
+        this.idiomasRemotos.update((actuales) => actuales.map((item) => item.codigo === codigo ? { ...item, traducciones: diccionario } : item));
+        this.traduccionesEnCarga.delete(codigo);
+      },
+      error: () => this.traduccionesEnCarga.delete(codigo),
+    });
+  }
+
+  /** Refreshes a dictionary after it is edited in Language Management. */
+  actualizarTraduccionesRemotas(codigo: string, traducciones: TranslationDictionary): void {
+    this.traduccionesRemotasCache.set(codigo, traducciones);
+    this.idiomasRemotos.update((actuales) => actuales.map((item) => item.codigo === codigo ? { ...item, traducciones } : item));
+  }
+
   catalogoEnIngles(): TranslationDictionary { return { ...this.translations['en'], ...managementTranslations.en, ...legacyStaticTranslations.en, ...publicPageTranslations['en'], ...privatePageTranslations['es'], ...this.nonEmptyTranslations(privatePageTranslations['en']) }; }
   catalogoBase(language: 'es' | 'en'): TranslationDictionary { return { ...this.translations[language], ...managementTranslations[language], ...legacyStaticTranslations[language], ...publicPageTranslations[language], ...privatePageTranslations['es'], ...privatePageTranslations[language] }; }
+  traduccionFrancesBase(key: string, language: string): string { return language === 'fr' ? frenchSidebarReviewTranslations[key] || privatePageTranslations['fr']?.[key] || '' : ''; }
+  traduccionEditable(traducciones: TranslationDictionary, key: string, language: string): string { return Object.prototype.hasOwnProperty.call(traducciones, key) ? traducciones[key] : this.traduccionFrancesBase(key, language); }
+  completarTraduccionesFrancesas(traducciones: TranslationDictionary, language: string): TranslationDictionary { return language === 'fr' ? { ...privatePageTranslations['fr'], ...frenchSidebarReviewTranslations, ...traducciones } : traducciones; }
 
   cambiarIdioma(language: LanguageCode): void {
     this.language.set(language);
@@ -1318,11 +1373,12 @@ export class LocalizationService {
     this.culture.set(culture);
     localStorage.setItem('language', language);
     localStorage.setItem('culture', culture);
+    this.cargarTraduccionesRemotas(language);
   }
 
   traducir(key: string, language: LanguageCode = this.language(), fallback?: string): string {
     const remoto = this.idiomasRemotos().find((idioma) => idioma.codigo === language)?.traducciones?.[key];
-    return remoto || this.translations[language]?.[key] || managementTranslations[language as 'es' | 'en']?.[key] || legacyStaticTranslations[language as 'es' | 'en']?.[key] || publicPageTranslations[language]?.[key] || privatePageTranslations[language]?.[key]
+    return remoto || this.traduccionFrancesBase(key, language) || this.translations[language]?.[key] || managementTranslations[language as 'es' | 'en']?.[key] || legacyStaticTranslations[language as 'es' | 'en']?.[key] || publicPageTranslations[language]?.[key] || privatePageTranslations[language]?.[key]
       || this.translations['en'][key] || managementTranslations.en[key] || legacyStaticTranslations.en[key] || publicPageTranslations['en']?.[key] || privatePageTranslations['en'][key] || privatePageTranslations['es'][key] || fallback || key;
   }
 
@@ -1355,6 +1411,8 @@ export class LocalizationService {
     const value = texto.trim();
     if (!value) return null;
     const catalogs: TranslationDictionary[] = [
+      managementTranslations.es,
+      managementTranslations.en,
       legacyStaticTranslations.es,
       legacyStaticTranslations.en,
       privatePageTranslations['es'],

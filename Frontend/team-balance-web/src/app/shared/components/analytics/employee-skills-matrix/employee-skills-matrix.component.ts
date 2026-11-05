@@ -3,6 +3,7 @@ import { catchError, forkJoin, map, of } from 'rxjs';
 import * as echarts from 'echarts';
 import { FichaEmpleado, ResourcesService, Skill } from '../../../../services/resources.service';
 import { UsuarioGestion } from '../../../../services/usuarios.service';
+import { LocalizationService } from '../../../../services/localization.service';
 
 interface FilaMatriz {
   usuario: UsuarioGestion;
@@ -18,9 +19,11 @@ interface FilaMatriz {
 })
 export class EmployeeSkillsMatrixComponent implements OnChanges, AfterViewInit, OnDestroy {
   private readonly resources = inject(ResourcesService);
+  readonly localization = inject(LocalizationService);
   @Input({ required: true }) usuarios: UsuarioGestion[] = [];
   @Input({ required: true }) skills: Skill[] = [];
   @ViewChild('radar') private readonly radarElement?: ElementRef<HTMLDivElement>;
+  @ViewChild('matrixScroll') private readonly matrixScroll?: ElementRef<HTMLDivElement>;
 
   readonly filas = signal<FilaMatriz[]>([]);
   readonly cargando = signal(false);
@@ -68,12 +71,28 @@ export class EmployeeSkillsMatrixComponent implements OnChanges, AfterViewInit, 
 
   ngOnDestroy(): void { this.resizeObserver?.disconnect(); this.radar?.dispose(); }
 
+  moverTabla(direccion: -1 | 1): void {
+    const tabla = this.matrixScroll?.nativeElement;
+    if (tabla) {
+      tabla.scrollBy({ left: direccion * Math.max(tabla.clientWidth * .75, 280), behavior: 'smooth' });
+    }
+  }
+
   nivel(fila: FilaMatriz, idSkill: number): string {
     const valor = fila.ficha.empleadoSkills.find(item => item.idSkill === idSkill && item.activo !== false)?.nivel;
     return this.normalizarNivel(valor, '');
   }
 
   claseNivel(nivel: string): string { return nivel ? `is-${nivel.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}` : 'is-empty'; }
+
+  etiquetaNivel(nivel: string): string {
+    const clave = nivel === 'Básico' ? 'basic' : nivel === 'Avanzado' ? 'advanced' : 'medium';
+    return this.localization.traducir(`private.employees.level.${clave}`);
+  }
+
+  private mensajeTraducido(clave: string, valores: Record<string, string | number> = {}): string {
+    return this.localization.traducir(`private.employees.matrix.${clave}`).replace(/\{(\w+)\}/g, (_, nombre: string) => String(valores[nombre] ?? ''));
+  }
 
   seleccionarEmpleado(idUsuario: number): void {
     this.empleadoSeleccionado.set(this.empleadoSeleccionado() === idUsuario ? null : idUsuario);
@@ -85,16 +104,16 @@ export class EmployeeSkillsMatrixComponent implements OnChanges, AfterViewInit, 
     if (this.guardando()) { return; }
     const skills = fila.ficha.empleadoSkills.filter(item => item.idSkill !== idSkill);
     if (nivel) { skills.push({ idSkill, nivel, activo: true }); }
-    if (!skills.length) { this.error.set('Cada empleado debe conservar al menos una skill registrada.'); return; }
+    if (!skills.length) { this.error.set(this.mensajeTraducido('requiresSkill')); return; }
     const actualizada: FichaEmpleado = { ...fila.ficha, id: fila.usuario.id, empleadoSkills: skills };
     this.guardando.set(clave); this.error.set(''); this.mensaje.set('');
     this.resources.guardarFichaEmpleado(actualizada).subscribe({
       next: () => {
         this.filas.update(filas => filas.map(item => item.usuario.id === fila.usuario.id ? { ...item, ficha: actualizada } : item));
-        this.guardando.set(''); this.mensaje.set(`Se actualizó ${this.nombreSkill(idSkill)} para ${fila.usuario.nombre}.`);
+        this.guardando.set(''); this.mensaje.set(this.mensajeTraducido('updated', { skill: this.nombreSkill(idSkill), employee: fila.usuario.nombre }));
         this.dibujarRadar();
       },
-      error: respuesta => { this.guardando.set(''); this.error.set(this.mensajeError(respuesta, 'No se pudo actualizar el nivel de la skill.')); }
+      error: respuesta => { this.guardando.set(''); this.error.set(this.mensajeError(respuesta, this.mensajeTraducido('updateError'))); }
     });
   }
 
@@ -111,7 +130,7 @@ export class EmployeeSkillsMatrixComponent implements OnChanges, AfterViewInit, 
       const filas = resultados.filter((resultado): resultado is FilaMatriz => resultado !== null);
       this.filas.set(filas); this.cargando.set(false);
       const omitidos = empleados.length - filas.length;
-      if (omitidos) { this.error.set(`No se pudieron cargar ${omitidos} ficha(s) de empleado.`); }
+      if (omitidos) { this.error.set(this.mensajeTraducido('loadError', { count: omitidos })); }
       this.normalizarNivelesHeredados(filas);
       if (!this.empleadoSeleccionado() && filas.length) { this.empleadoSeleccionado.set(filas[0].usuario.id); }
       queueMicrotask(() => this.dibujarRadar());
@@ -132,7 +151,7 @@ export class EmployeeSkillsMatrixComponent implements OnChanges, AfterViewInit, 
       const actualizadas = resultados.filter((item): item is { id: number; ficha: FichaEmpleado } => item !== null);
       if (actualizadas.length) {
         this.filas.update(filasActuales => filasActuales.map(fila => actualizadas.find(item => item.id === fila.usuario.id)?.ficha ? { ...fila, ficha: actualizadas.find(item => item.id === fila.usuario.id)!.ficha } : fila));
-        this.mensaje.set(`Se asignó nivel Medio a ${actualizadas.length} ficha(s) heredada(s) que tenían skills sin nivel.`);
+        this.mensaje.set(this.mensajeTraducido('inheritedUpdated', { count: actualizadas.length }));
         this.dibujarRadar();
       }
     });

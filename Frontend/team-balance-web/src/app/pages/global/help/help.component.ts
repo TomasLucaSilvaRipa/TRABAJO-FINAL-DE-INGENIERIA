@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 import { CategoriaPreguntaFrecuente, FaqsService, PreguntaFrecuente } from '../../../services/faqs.service';
 import { LocalizationService } from '../../../services/localization.service';
 
-@Component({ selector: 'app-help', imports: [RouterLink], templateUrl: './help.component.html', changeDetection: ChangeDetectionStrategy.OnPush })
+@Component({ selector: 'app-help', imports: [RouterLink], templateUrl: './help.component.html', styleUrl: './help.component.css', changeDetection: ChangeDetectionStrategy.OnPush })
 export class HelpComponent {
   readonly localization = inject(LocalizationService);
   private readonly faqsService = inject(FaqsService);

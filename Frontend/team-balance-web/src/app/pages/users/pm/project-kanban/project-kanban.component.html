@@ -1,4 +1,4 @@
-<section class="tb-workspace space-y-6">
+<section class="tb-workspace tb-kanban-page space-y-6">
   <header class="flex flex-wrap items-end justify-between gap-3">
     <div>
       <p class="tb-page-kicker">{{ localization.traducir('static.projectManagement') }}</p>
@@ -11,7 +11,7 @@
       }}</a>
     }
   </header>
-  <section class="tb-panel">
+  <section class="tb-panel tb-kanban-filter">
     <label class="block max-w-xl text-sm font-semibold"
       >{{ localization.traducir('static.viewProject')
       }}<select
@@ -34,16 +34,19 @@
   @if (error()) {
     <p class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ error() }}</p>
   }
-  <div class="grid gap-4 xl:grid-cols-4">
+  <div class="tb-kanban-navigation">
+  <button class="tb-kanban-navigation__arrow" type="button" aria-label="Ver columnas anteriores" (click)="moverTablero(-1)"><span aria-hidden="true">‹</span></button>
+  <div #tablero class="tb-kanban-board" role="region" aria-label="Tablero Kanban" tabindex="0">
     @for (estado of columnas(); track estado) {
-      <section class="tb-panel">
-        <div class="flex justify-between">
+      <section class="tb-kanban-column" [style.--kanban-accent]="paleta.color(estado)">
+        <div class="tb-kanban-column__heading">
           <h2>{{ estadoTraducido(estado) }}</h2>
           <span class="tb-count-chip">{{ porEstado(estado).length }}</span>
+          @if (esDueno && paleta.esPersonalizado(estado)) { <label class="tb-kanban-color" title="Elegir color de esta columna"><span class="sr-only">Elegir color de {{ estadoTraducido(estado) }}</span><input type="color" [value]="paleta.color(estado)" (input)="paleta.guardar(estado, $any($event.target).value)" /></label> }
         </div>
         <div class="mt-4 space-y-3">
           @for (tarea of porEstado(estado); track tarea.id) {
-            <article class="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+            <article class="tb-kanban-task">
               <h3 class="font-semibold">{{ tarea.titulo }}</h3>
               <p class="mt-2 text-sm text-slate-500">
                 {{ tarea.descripcion || localization.traducir('kanban.noDescription') }}
@@ -67,12 +70,14 @@
               }
             </article>
           } @empty {
-            <p class="rounded-xl border border-dashed p-5 text-center text-sm text-slate-500">
+            <p class="tb-kanban-empty">
               {{ localization.traducir('static.noTasksStage') }}
             </p>
           }
         </div>
       </section>
     }
+  </div>
+  <button class="tb-kanban-navigation__arrow" type="button" aria-label="Ver columnas siguientes" (click)="moverTablero(1)"><span aria-hidden="true">›</span></button>
   </div>
 </section>

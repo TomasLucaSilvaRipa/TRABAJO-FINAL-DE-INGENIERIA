@@ -15,11 +15,26 @@ public class IdiomasController : ControllerBase
     [HttpGet("activos")]
     public IActionResult ConsultarActivos() => Ok(_idiomaBLL.ConsultarActivos());
 
+    [HttpGet("activos/{codigo}/traducciones")]
+    public IActionResult ConsultarTraduccionesActivas(string codigo)
+    {
+        try { return Ok(_idiomaBLL.ConsultarTraduccionesActivas(codigo)); }
+        catch (ArgumentException ex) { return NotFound(ex.Message); }
+    }
+
     [HttpGet("gestion")]
     public IActionResult ConsultarGestion()
     {
         try { return Ok(_idiomaBLL.ConsultarGestion(ObtenerSolicitante())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+    }
+
+    [HttpGet("gestion/{idIdioma:int}/traducciones")]
+    public IActionResult ConsultarTraduccionesGestion(int idIdioma)
+    {
+        try { return Ok(_idiomaBLL.ConsultarTraduccionesGestion(idIdioma, ObtenerSolicitante())); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return NotFound(ex.Message); }
     }
 
     [HttpPost]

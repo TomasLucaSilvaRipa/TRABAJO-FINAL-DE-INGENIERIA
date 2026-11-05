@@ -46,6 +46,28 @@ public class MPPBitacora
         return CrearLista(tabla);
     }
 
+    public List<Bitacora> LeerPagina(FiltroBitacora filtro, int cantidad, DateTime? antesFechaHora, int? antesId)
+    {
+        List<SqlParameter> parametros = new List<SqlParameter>()
+        {
+            new SqlParameter("@IdAgencia", (object?)filtro.IdAgencia ?? DBNull.Value),
+            new SqlParameter("@Desde", (object?)filtro.Desde ?? DBNull.Value),
+            new SqlParameter("@Hasta", (object?)filtro.Hasta ?? DBNull.Value),
+            new SqlParameter("@IdUsuario", (object?)filtro.IdUsuario ?? DBNull.Value),
+            new SqlParameter("@Entidad", (object?)filtro.Entidad ?? DBNull.Value),
+            new SqlParameter("@Accion", (object?)filtro.Accion ?? DBNull.Value),
+            new SqlParameter("@ResultadoCodigo", filtro.Resultado.HasValue ? (object)(int)filtro.Resultado.Value : DBNull.Value),
+            new SqlParameter("@CriticidadCodigo", filtro.Criticidad.HasValue ? (object)(int)filtro.Criticidad.Value : DBNull.Value),
+            new SqlParameter("@ModuloCodigo", filtro.Modulo.HasValue ? (object)(int)filtro.Modulo.Value : DBNull.Value),
+            new SqlParameter("@Cantidad", cantidad),
+            new SqlParameter("@AntesFechaHora", (object?)antesFechaHora ?? DBNull.Value),
+            new SqlParameter("@AntesId", (object?)antesId ?? DBNull.Value),
+        };
+
+        DataTable tabla = _conexion.Leer("dbo.usp_Bitacora_ConsultarPaginado", parametros);
+        return CrearLista(tabla);
+    }
+
     public List<Bitacora> Filtrar(FiltroBitacora filtro)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()

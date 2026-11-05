@@ -25,14 +25,26 @@ CREATE OR ALTER PROCEDURE dbo.usp_Idioma_ConsultarActivos
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT ID, Codigo, Nombre, TraduccionesJson, Activo FROM dbo.Idioma WHERE Activo = 1 ORDER BY Nombre;
+    SELECT ID, Codigo, Nombre, N'{}' AS TraduccionesJson, Activo,
+           CAST(CASE WHEN DATALENGTH(TraduccionesJson) > DATALENGTH(N'{}') THEN 1 ELSE 0 END AS BIT) AS TieneTraducciones
+    FROM dbo.Idioma WHERE Activo = 1 ORDER BY Nombre;
 END;
 GO
 CREATE OR ALTER PROCEDURE dbo.usp_Idioma_ConsultarGestion
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT ID, Codigo, Nombre, TraduccionesJson, Activo FROM dbo.Idioma ORDER BY Activo DESC, Nombre;
+    SELECT ID, Codigo, Nombre, N'{}' AS TraduccionesJson, Activo,
+           CAST(CASE WHEN DATALENGTH(TraduccionesJson) > DATALENGTH(N'{}') THEN 1 ELSE 0 END AS BIT) AS TieneTraducciones
+    FROM dbo.Idioma ORDER BY Activo DESC, Nombre;
+END;
+GO
+CREATE OR ALTER PROCEDURE dbo.usp_Idioma_ConsultarTraduccionesActivas
+    @Codigo NVARCHAR(16)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT TraduccionesJson FROM dbo.Idioma WHERE Codigo = @Codigo AND Activo = 1;
 END;
 GO
 CREATE OR ALTER PROCEDURE dbo.usp_Idioma_ConsultarPorId

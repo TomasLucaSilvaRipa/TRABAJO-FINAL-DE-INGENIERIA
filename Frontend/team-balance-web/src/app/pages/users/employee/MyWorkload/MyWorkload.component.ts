@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { AnaliticaOperativaService, OcupacionEmpleado } from '../../../../services/analitica-operativa.service';
+import { LocalizationService } from '../../../../services/localization.service';
 
 @Component({
   selector: 'app-my-workload',
@@ -10,6 +11,23 @@ import { AnaliticaOperativaService, OcupacionEmpleado } from '../../../../servic
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MyWorkload {
+  readonly localization = inject(LocalizationService);
+  estadoTraducido(estado: string): string {
+    const claves: Record<string, string> = { Subutilizado: 'underutilized', Balanceado: 'balanced', Sobrecargado: 'overloaded', 'Crítico': 'critical' };
+    return claves[estado] ? this.localization.traducir(`private.workload.state.${claves[estado]}`) : this.localization.traducirEstado(estado);
+  }
+  traducirCausa(texto: string): string {
+    if (texto === 'No tenés tareas planificables asignadas durante esta semana.') return this.localization.traducir('private.workload.noTasks');
+    const sobrecarga = texto.match(/^La tarea '(.*)' concentra una sobrecarga en al menos un día hábil\.$/);
+    const principal = texto.match(/^La tarea '(.*)' concentra la mayor parte de tu carga semanal\.$/);
+    const coincidencia = sobrecarga || principal;
+    return coincidencia ? this.localization.traducir(sobrecarga ? 'private.workload.dailyOverload' : 'private.workload.mainTask').replace('{task}', coincidencia[1]) : texto;
+  }
+  traducirAccion(texto: string): string {
+    if (texto === 'Revisá tus prioridades con tu responsable si necesitás redistribuir trabajo.') return this.localization.traducir('private.workload.reviewPriorities');
+    if (texto === 'Tu carga se actualiza al cambiar tus tareas, disponibilidad o ausencias.') return this.localization.traducir('private.workload.updates');
+    return texto;
+  }
   private readonly analiticaService = inject(AnaliticaOperativaService);
 
   readonly carga = signal<OcupacionEmpleado | null>(null);

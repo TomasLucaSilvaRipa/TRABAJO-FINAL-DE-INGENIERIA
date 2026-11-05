@@ -14,6 +14,13 @@ public class MPPIdioma
     public List<Idioma> ConsultarActivos() => Consultar("dbo.usp_Idioma_ConsultarActivos");
     public List<Idioma> ConsultarGestion() => Consultar("dbo.usp_Idioma_ConsultarGestion");
 
+    public Dictionary<string, string>? ConsultarTraduccionesActivas(string codigo)
+    {
+        List<SqlParameter> parametros = new() { new SqlParameter("@Codigo", codigo) };
+        DataTable tabla = _conexion.Leer("dbo.usp_Idioma_ConsultarTraduccionesActivas", parametros);
+        return tabla.Rows.Count == 0 ? null : LeerTraducciones(Convert.ToString(tabla.Rows[0]["TraduccionesJson"]) ?? "{}");
+    }
+
     public Idioma? ConsultarPorId(Idioma idioma)
     {
         List<SqlParameter> parametros = new List<SqlParameter>
@@ -65,9 +72,18 @@ public class MPPIdioma
     private static Idioma Crear(DataRow fila)
     {
         string json = Convert.ToString(fila["TraduccionesJson"]) ?? "{}";
-        Dictionary<string, string>? traducciones;
-        try { traducciones = JsonSerializer.Deserialize<Dictionary<string, string>>(json); }
-        catch (JsonException) { traducciones = new Dictionary<string, string>(); }
-        return new Idioma(Convert.ToInt32(fila["ID"]), Convert.ToString(fila["Codigo"]) ?? string.Empty, Convert.ToString(fila["Nombre"]) ?? string.Empty, Convert.ToBoolean(fila["Activo"]), traducciones ?? new Dictionary<string, string>());
+        Dictionary<string, string> traducciones = LeerTraducciones(json);
+        return new Idioma(Convert.ToInt32(fila["ID"]), Convert.ToString(fila["Codigo"]) ?? string.Empty, Convert.ToString(fila["Nombre"]) ?? string.Empty, Convert.ToBoolean(fila["Activo"]), traducciones)
+        {
+            TieneTraducciones = fila.Table.Columns.Contains("TieneTraducciones")
+                ? Convert.ToBoolean(fila["TieneTraducciones"])
+                : traducciones.Count > 0,
+        };
+    }
+
+    private static Dictionary<string, string> LeerTraducciones(string json)
+    {
+        try { return JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new Dictionary<string, string>(StringComparer.Ordinal); }
+        catch (JsonException) { return new Dictionary<string, string>(StringComparer.Ordinal); }
     }
 }

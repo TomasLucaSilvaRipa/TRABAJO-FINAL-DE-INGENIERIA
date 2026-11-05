@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { EMPTY, finalize, switchMap } from 'rxjs';
@@ -11,7 +10,7 @@ import QRCode from 'qrcode';
 
 @Component({
   selector: 'app-change-password',
-  imports: [DatePipe, PageBreadcrumbComponent, ReactiveFormsModule, RouterLink],
+  imports: [PageBreadcrumbComponent, ReactiveFormsModule, RouterLink],
   templateUrl: './change-password.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -46,10 +45,16 @@ export class ChangePasswordComponent {
     repetirPassword: ['', Validators.required],
   });
 
+  private mensajeError(error: unknown, clave: string): string {
+    const mensajeServidor = (error as { error?: unknown } | null)?.error;
+    if (this.localization.language() === 'es' && typeof mensajeServidor === 'string') return mensajeServidor;
+    return this.localization.traducir(clave);
+  }
+
   constructor() { this.consultarDosFactores(); this.consultarTelegram(); }
 
   consultarDosFactores(): void {
-    this.authService.consultarDosFactores().subscribe({ next: estado => this.estadoDosFactores.set(estado), error: () => this.errorTotp.set('No fue posible consultar el estado de Google Authenticator.') });
+    this.authService.consultarDosFactores().subscribe({ next: estado => this.estadoDosFactores.set(estado), error: error => this.errorTotp.set(this.mensajeError(error, 'private.security.error.consultTotp')) });
   }
 
   async activarTotp(): Promise<void> {
@@ -58,19 +63,19 @@ export class ChangePasswordComponent {
       next: async preparacion => {
         this.preparacionTotp.set(preparacion);
         try { this.qrTotp.set(await QRCode.toDataURL(preparacion.uriOtpAuth, { width: 232, margin: 1, errorCorrectionLevel: 'M' })); }
-        catch { this.errorTotp.set('No fue posible generar el código QR. Usá la clave manual para configurar la aplicación.'); }
+        catch { this.errorTotp.set(this.localization.traducir('private.security.error.qrGeneration')); }
       },
-      error: error => this.errorTotp.set(typeof error.error === 'string' ? error.error : 'No fue posible preparar Google Authenticator.'),
+      error: error => this.errorTotp.set(this.mensajeError(error, 'private.security.error.prepareTotp')),
     });
   }
 
   confirmarTotp(): void {
     const codigo = this.codigoTotp().replace(/\s/g, '');
-    if (!/^\d{6}$/.test(codigo)) { this.errorTotp.set('Ingresá el código de seis dígitos de la aplicación.'); return; }
+    if (!/^\d{6}$/.test(codigo)) { this.errorTotp.set(this.localization.traducir('private.security.error.enterSixDigitCode')); return; }
     this.procesandoTotp.set(true); this.errorTotp.set('');
     this.authService.confirmarTotp(codigo).pipe(finalize(() => this.procesandoTotp.set(false))).subscribe({
       next: respuesta => { this.codigosRecuperacion.set(respuesta.codigosRecuperacion); this.preparacionTotp.set(null); this.qrTotp.set(''); this.codigoTotp.set(''); this.consultarDosFactores(); },
-      error: error => this.errorTotp.set(typeof error.error === 'string' ? error.error : 'No fue posible confirmar Google Authenticator.'),
+      error: error => this.errorTotp.set(this.mensajeError(error, 'private.security.error.confirmTotp')),
     });
   }
 
@@ -78,51 +83,51 @@ export class ChangePasswordComponent {
 
   desactivarTotp(): void {
     const codigo = this.codigoDesactivacionTotp().replace(/\s/g, '');
-    if (!codigo) { this.errorTotp.set('Ingresá un código de Authenticator o un código de recuperación.'); return; }
+    if (!codigo) { this.errorTotp.set(this.localization.traducir('private.security.error.enterAuthenticatorOrRecovery')); return; }
     this.procesandoTotp.set(true); this.errorTotp.set('');
     this.authService.desactivarTotp(codigo).pipe(finalize(() => this.procesandoTotp.set(false))).subscribe({
       next: () => { this.mostrandoDesactivacionTotp.set(false); this.codigoDesactivacionTotp.set(''); this.consultarDosFactores(); },
-      error: error => this.errorTotp.set(typeof error.error === 'string' ? error.error : 'No fue posible desactivar Google Authenticator.'),
+      error: error => this.errorTotp.set(this.mensajeError(error, 'private.security.error.disableTotp')),
     });
   }
 
   consultarTelegram(): void {
-    this.authService.consultarTelegram().subscribe({ next: estado => this.estadoTelegram.set(estado), error: () => this.errorTelegram.set('No fue posible consultar el estado de Telegram.') });
+    this.authService.consultarTelegram().subscribe({ next: estado => this.estadoTelegram.set(estado), error: error => this.errorTelegram.set(this.mensajeError(error, 'private.security.error.consultTelegram')) });
   }
 
   vincularTelegram(): void {
     this.procesandoTelegram.set(true); this.errorTelegram.set(''); this.codigoTelegram.set('');
     this.authService.prepararVinculacionTelegram().pipe(finalize(() => this.procesandoTelegram.set(false))).subscribe({
       next: preparacion => { this.preparacionTelegram.set(preparacion); window.open(preparacion.enlaceProfundo, '_blank', 'noopener'); this.consultarTelegram(); },
-      error: error => this.errorTelegram.set(typeof error.error === 'string' ? error.error : 'No fue posible iniciar la vinculación con Telegram.'),
+      error: error => this.errorTelegram.set(this.mensajeError(error, 'private.security.error.linkTelegram')),
     });
   }
 
   confirmarTelegram(): void {
     const codigo = this.codigoTelegram().replace(/\s/g, '');
-    if (!/^\d{6}$/.test(codigo)) { this.errorTelegram.set('Ingresá el código de seis dígitos enviado por Telegram.'); return; }
+    if (!/^\d{6}$/.test(codigo)) { this.errorTelegram.set(this.localization.traducir('private.security.error.enterTelegramCode')); return; }
     this.procesandoTelegram.set(true); this.errorTelegram.set('');
     this.authService.confirmarVinculacionTelegram(codigo).pipe(finalize(() => this.procesandoTelegram.set(false))).subscribe({
       next: () => { this.preparacionTelegram.set(null); this.codigoTelegram.set(''); this.consultarTelegram(); },
-      error: error => this.errorTelegram.set(typeof error.error === 'string' ? error.error : 'No fue posible confirmar el código de Telegram.'),
+      error: error => this.errorTelegram.set(this.mensajeError(error, 'private.security.error.confirmTelegram')),
     });
   }
 
   reenviarTelegram(): void {
     this.procesandoTelegram.set(true); this.errorTelegram.set('');
-    this.authService.reenviarCodigoTelegram().pipe(finalize(() => this.procesandoTelegram.set(false))).subscribe({ next: () => undefined, error: error => this.errorTelegram.set(typeof error.error === 'string' ? error.error : 'No fue posible reenviar el código.') });
+    this.authService.reenviarCodigoTelegram().pipe(finalize(() => this.procesandoTelegram.set(false))).subscribe({ next: () => undefined, error: error => this.errorTelegram.set(this.mensajeError(error, 'private.security.error.resendTelegram')) });
   }
 
   solicitarDesvinculacionTelegram(): void {
     this.procesandoTelegram.set(true); this.errorTelegram.set('');
-    this.authService.prepararDesvinculacionTelegram().pipe(finalize(() => this.procesandoTelegram.set(false))).subscribe({ next: () => { this.esperandoDesvinculacionTelegram.set(true); this.codigoTelegram.set(''); }, error: error => this.errorTelegram.set(typeof error.error === 'string' ? error.error : 'No fue posible solicitar la desvinculación.') });
+    this.authService.prepararDesvinculacionTelegram().pipe(finalize(() => this.procesandoTelegram.set(false))).subscribe({ next: () => { this.esperandoDesvinculacionTelegram.set(true); this.codigoTelegram.set(''); }, error: error => this.errorTelegram.set(this.mensajeError(error, 'private.security.error.prepareUnlinkTelegram')) });
   }
 
   confirmarDesvinculacionTelegram(): void {
     const codigo = this.codigoTelegram().replace(/\s/g, '');
-    if (!/^\d{6}$/.test(codigo)) { this.errorTelegram.set('Ingresá el código de seis dígitos enviado por Telegram.'); return; }
+    if (!/^\d{6}$/.test(codigo)) { this.errorTelegram.set(this.localization.traducir('private.security.error.enterTelegramCode')); return; }
     this.procesandoTelegram.set(true); this.errorTelegram.set('');
-    this.authService.confirmarDesvinculacionTelegram(codigo).pipe(finalize(() => this.procesandoTelegram.set(false))).subscribe({ next: () => { this.esperandoDesvinculacionTelegram.set(false); this.codigoTelegram.set(''); this.consultarTelegram(); }, error: error => this.errorTelegram.set(typeof error.error === 'string' ? error.error : 'No fue posible desvincular Telegram.') });
+    this.authService.confirmarDesvinculacionTelegram(codigo).pipe(finalize(() => this.procesandoTelegram.set(false))).subscribe({ next: () => { this.esperandoDesvinculacionTelegram.set(false); this.codigoTelegram.set(''); this.consultarTelegram(); }, error: error => this.errorTelegram.set(this.mensajeError(error, 'private.security.error.unlinkTelegram')) });
   }
 
   onSubmit(): void {
@@ -134,7 +139,7 @@ export class ChangePasswordComponent {
 
     if (this.changePasswordForm.invalid || form.password !== form.repetirPassword)
     {
-      this.requestError.set('La nueva contraseña debe tener al menos 8 caracteres y ambas contraseñas deben coincidir.');
+      this.requestError.set(this.localization.traducir('security.mismatch'));
       return;
     }
 
@@ -152,21 +157,21 @@ export class ChangePasswordComponent {
         finalize(() => this.submitting.set(false)),
       )
       .subscribe({
-        next: (respuesta) => {
+        next: () => {
           this.authService.logOut();
-          this.responseMessage.set(respuesta.mensaje);
+          this.responseMessage.set(this.localization.traducir('security.changed'));
         },
-        error: (error) => this.requestError.set(typeof error.error === 'string' ? error.error : 'No fue posible modificar la contraseña. Intentá nuevamente.'),
+        error: (error) => this.requestError.set(this.mensajeError(error, 'security.error')),
       });
   }
 
   private mensajePoliticaPassword(evaluacion: PasswordEvaluation): string {
     const faltantes: string[] = [];
-    if (!evaluacion.requisitos.longitud) faltantes.push('al menos 8 caracteres');
-    if (!evaluacion.requisitos.mayuscula) faltantes.push('una mayúscula');
-    if (!evaluacion.requisitos.minuscula) faltantes.push('una minúscula');
-    if (!evaluacion.requisitos.numero) faltantes.push('un número');
-    if (!evaluacion.requisitos.caracterEspecial) faltantes.push('un signo');
-    return `La nueva contraseña debe incluir ${faltantes.join(', ')}.`;
+    if (!evaluacion.requisitos.longitud) faltantes.push(this.localization.traducir('private.security.password.minimumLength'));
+    if (!evaluacion.requisitos.mayuscula) faltantes.push(this.localization.traducir('private.security.password.uppercase'));
+    if (!evaluacion.requisitos.minuscula) faltantes.push(this.localization.traducir('private.security.password.lowercase'));
+    if (!evaluacion.requisitos.numero) faltantes.push(this.localization.traducir('private.security.password.number'));
+    if (!evaluacion.requisitos.caracterEspecial) faltantes.push(this.localization.traducir('private.security.password.specialCharacter'));
+    return this.localization.traducir('private.security.password.requirements').replace('{requirements}', faltantes.join(', '));
   }
 }

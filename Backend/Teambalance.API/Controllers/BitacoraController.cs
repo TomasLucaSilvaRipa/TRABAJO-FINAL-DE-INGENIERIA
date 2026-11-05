@@ -41,6 +41,25 @@ public class BitacoraController : ControllerBase
         catch (Exception){return StatusCode(500,"No fue posible consultar la bitácora.");}
     }
 
+    [HttpGet("pagina")]
+    public IActionResult LeerPagina(
+        [FromQuery] FiltroBitacora filtro,
+        [FromQuery] int tamano = 50,
+        [FromQuery] DateTime? antesFechaHora = null,
+        [FromQuery] int? antesId = null)
+    {
+        try
+        {
+            tamano = Math.Clamp(tamano, 1, 100);
+            List<Bitacora> eventos = _bllBitacora.LeerPagina(filtro, tamano + 1, antesFechaHora, antesId);
+            bool hasMore = eventos.Count > tamano;
+            if (hasMore) eventos.RemoveAt(eventos.Count - 1);
+            return Ok(new { items = eventos, hasMore });
+        }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible consultar la bitácora."); }
+    }
+
     [HttpPost("informe")]
     public async Task<IActionResult> GenerarInforme([FromBody] FiltroBitacora filtro)
     {
