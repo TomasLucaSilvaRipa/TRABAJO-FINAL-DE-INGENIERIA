@@ -24,6 +24,7 @@ export class PaymentResultComponent {
   readonly errorMessage = signal('');
   readonly resultado = signal<EstadoContratacionResponse | null>(null);
   readonly resultadoSuscripcion = signal<ResultadoGestionSuscripcion | null>(null);
+  readonly esGestionSuscripcion = signal(false);
 
   constructor() {
     this.route.queryParamMap.subscribe((params) => {
@@ -39,6 +40,7 @@ export class PaymentResultComponent {
       }
 
       if (referencia.startsWith('ren-')) {
+        this.esGestionSuscripcion.set(true);
         if (params.get('renovacion') === 'mercadopago') {
           this.suscripcionService.verificarRenovacionMercadoPago(referencia).subscribe({
             next: resultado => { this.resultadoSuscripcion.set(resultado); this.loading.set(false); },
@@ -65,6 +67,7 @@ export class PaymentResultComponent {
       }
 
       if (referencia.startsWith('sus-') || referencia.startsWith('cred-')) {
+        this.esGestionSuscripcion.set(true);
         if (!paymentId) {
           this.loading.set(false);
           this.errorMessage.set('La actualización quedó pendiente de confirmación de Mercado Pago. Volvé a la suscripción para consultar el estado.');

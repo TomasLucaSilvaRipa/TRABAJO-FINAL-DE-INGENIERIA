@@ -94,6 +94,18 @@ namespace TeamBalance.Services
             return await EnviarMail(new CorreoElectronico { Asunto = "Tu contraseña de TeamBalance fue modificada", ContenidoHtml = descripcion, Receptor = usuario.Email });
         }
 
+        public async Task<bool> EnviarCorreoActualizacionSuscripcion(Usuario usuario, PlanComercial plan)
+        {
+            string descripcion = $@"
+                <p>Hola {System.Net.WebUtility.HtmlEncode(usuario.Nombre)},</p>
+                <p>La suscripción de tu agencia fue actualizada correctamente.</p>
+                <p><strong>Modalidad vigente:</strong> {System.Net.WebUtility.HtmlEncode(plan.Nombre)}<br />
+                <strong>Importe vigente:</strong> {plan.PrecioVigente:N2} {System.Net.WebUtility.HtmlEncode(plan.Moneda)}</p>
+                <p>Podés consultar el detalle desde la sección Suscripción de TeamBalance.</p>";
+
+            return await EnviarMail(new CorreoElectronico { Asunto = "Tu suscripción de TeamBalance fue actualizada", ContenidoHtml = descripcion, Receptor = usuario.Email });
+        }
+
         public async Task<bool> EnviarCorreoContacto(ConsultaContactoPublica consulta)
         {
             string descripcion = $@"<p><strong>Nombre:</strong> {System.Net.WebUtility.HtmlEncode(consulta.Nombre)}</p><p><strong>Organización:</strong> {System.Net.WebUtility.HtmlEncode(consulta.Organizacion ?? "-")}</p><p><strong>Email:</strong> {System.Net.WebUtility.HtmlEncode(consulta.Email)}</p><p><strong>Consulta:</strong></p><p>{System.Net.WebUtility.HtmlEncode(consulta.Mensaje).Replace(Environment.NewLine, "<br />")}</p>";

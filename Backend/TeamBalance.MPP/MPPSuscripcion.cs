@@ -45,6 +45,17 @@ public sealed class MPPSuscripcion
         return new OperacionSuscripcionPendiente(Convert.ToInt32(fila["IdOperacion"]), Convert.ToInt32(fila["IdSuscripcion"]), Convert.ToInt32(fila["IdPlanNuevo"]), Convert.ToString(fila["ReferenciaInterna"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty, Convert.ToString(fila["Proveedor"]) ?? string.Empty);
     }
 
+    public OperacionSuscripcionPendiente CrearSolicitudCambioPlanConCredito(CambioPlanSuscripcionRequest solicitud)
+    {
+        DataTable tabla = _conexion.Leer("dbo.usp_CuentaCorriente_CrearSolicitudActualizacionConCredito", new List<SqlParameter>
+        {
+            new SqlParameter("@IdSuscripcion", solicitud.IdSuscripcion), new SqlParameter("@IdPlanNuevo", solicitud.IdPlanComercial), new SqlParameter("@ReferenciaInterna", solicitud.ReferenciaInterna), new SqlParameter("@Proveedor", solicitud.Proveedor), new SqlParameter("@ImportePago", solicitud.ImportePago), new SqlParameter("@MonedaPago", solicitud.MonedaPago), new SqlParameter("@CreditoAplicado", solicitud.CreditoAplicado)
+        });
+        if (tabla.Rows.Count != 1) throw new InvalidOperationException("No fue posible preparar la actualización con saldo a favor.");
+        DataRow fila = tabla.Rows[0];
+        return new OperacionSuscripcionPendiente(Convert.ToInt32(fila["IdOperacion"]), Convert.ToInt32(fila["IdSuscripcion"]), Convert.ToInt32(fila["IdPlanNuevo"]), Convert.ToString(fila["ReferenciaInterna"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty, Convert.ToString(fila["Proveedor"]) ?? string.Empty);
+    }
+
     public OperacionSuscripcionPendiente ConsultarOperacionPendiente(OperacionSuscripcionPendiente operacion)
     {
         DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_ConsultarOperacionPendiente", new List<SqlParameter>() { new SqlParameter("@ReferenciaInterna", operacion.ReferenciaInterna) });

@@ -36,7 +36,7 @@ export class Subscription {
   readonly mostrandoAutorizacion = signal(false);
   readonly cargandoFormularioMp = signal(false);
   readonly configuracionRenovacion = signal<ConfiguracionRenovacionAutomatica | null>(null);
-  readonly cambioForm = this.formBuilder.nonNullable.group({ idPlanComercial: [0, [Validators.min(1)] ], proveedor: ['MercadoPago', [Validators.required]] });
+  readonly cambioForm = this.formBuilder.nonNullable.group({ idPlanComercial: [0, [Validators.min(1)] ], proveedor: ['MercadoPago', [Validators.required]], usarSaldoAFavor: [false] });
   readonly renovacionMercadoPagoForm = this.formBuilder.nonNullable.group({ payerEmail: ['', [Validators.required, Validators.email]] });
   readonly bajaForm = this.formBuilder.nonNullable.group({ motivo: ['', [Validators.required, Validators.maxLength(1000)]] });
   readonly cancelacionServicioForm = this.formBuilder.nonNullable.group({ motivo: ['', [Validators.required, Validators.maxLength(1000)]] });
@@ -50,14 +50,16 @@ export class Subscription {
   }
 
   abrirActualizacion(): void { this.mostrandoActualizacion.set(true); this.mensaje.set(''); }
-  cerrarActualizacion(): void { this.mostrandoActualizacion.set(false); this.cambioForm.reset({ idPlanComercial: 0, proveedor: 'MercadoPago' }); }
+  cerrarActualizacion(): void { this.mostrandoActualizacion.set(false); this.cambioForm.reset({ idPlanComercial: 0, proveedor: 'MercadoPago', usarSaldoAFavor: false }); }
   alternarHistorial(): void { this.mostrandoHistorial.update(valor => !valor); }
 
   actualizar(): void {
     this.cambioForm.markAllAsTouched(); if (this.cambioForm.invalid) return;
     this.procesando.set(true); this.error.set(''); this.mensaje.set('');
     const cambio = this.cambioForm.getRawValue();
-    this.suscripcionService.solicitarActualizacion(cambio.idPlanComercial, cambio.proveedor).pipe(finalize(() => this.procesando.set(false))).subscribe({ next: respuesta => window.location.assign(respuesta.urlPago), error: error => this.error.set(error?.error?.message ?? error?.error ?? 'No se pudo solicitar la actualización al proveedor.') });
+    const plan = this.planReactivacionSeleccionado();
+    const usarSaldoAFavor = cambio.usarSaldoAFavor && !!plan && this.creditoDisponible(plan) > 0;
+    this.suscripcionService.solicitarActualizacion(cambio.idPlanComercial, cambio.proveedor, usarSaldoAFavor).pipe(finalize(() => this.procesando.set(false))).subscribe({ next: respuesta => { if (respuesta.urlPago) { window.location.assign(respuesta.urlPago); return; } this.mensaje.set('Suscripción actualizada con saldo a favor.'); this.cerrarActualizacion(); this.recargar(); }, error: error => this.error.set(error?.error?.message ?? error?.error ?? 'No se pudo solicitar la actualización al proveedor.') });
   }
 
   cancelarRenovacion(): void {
@@ -76,12 +78,12 @@ export class Subscription {
   }
 
   abrirReactivacionConCredito(): void {
-    this.cambioForm.reset({ idPlanComercial: 0, proveedor: 'MercadoPago' });
+    this.cambioForm.reset({ idPlanComercial: 0, proveedor: 'MercadoPago', usarSaldoAFavor: false });
     this.regularizandoConCredito.set(true);
   }
 
   cancelarReactivacionConCredito(): void {
-    this.cambioForm.reset({ idPlanComercial: 0, proveedor: 'MercadoPago' });
+    this.cambioForm.reset({ idPlanComercial: 0, proveedor: 'MercadoPago', usarSaldoAFavor: false });
     this.regularizandoConCredito.set(false);
   }
 
@@ -102,6 +104,16 @@ export class Subscription {
   }
 
   planReactivacionSeleccionado(): PlanComercial | undefined { return this.planes().find(plan => plan.id === this.cambioForm.controls.idPlanComercial.value); }
+
+  creditoActualizacionAplicable(): number {
+    const plan = this.planReactivacionSeleccionado();
+    return plan && this.cambioForm.controls.usarSaldoAFavor.value ? Math.min(this.creditoDisponible(plan), plan.precioVigente) : 0;
+  }
+
+  requierePagoActualizacion(): boolean {
+    const plan = this.planReactivacionSeleccionado();
+    return !plan || this.creditoActualizacionAplicable() < plan.precioVigente;
+  }
 
   creditoDisponible(plan: PlanComercial): number {
     return this.documentos().filter(documento => documento.tipo === 'NotaCredito' && documento.estado === 'Disponible' && documento.moneda === plan.moneda).reduce((total, documento) => total + documento.saldoPendiente, 0);

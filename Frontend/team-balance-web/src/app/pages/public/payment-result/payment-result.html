@@ -1,8 +1,12 @@
 <section class="tb-page-hero tb-page-hero--navy">
   <div class="tb-container tb-page-hero__content">
-    <p class="tb-eyebrow">Contratación TeamBalance</p>
+    <p class="tb-eyebrow">{{ esGestionSuscripcion() ? 'Suscripción TeamBalance' : 'Contratación TeamBalance' }}</p>
     <h1>Estamos verificando tu pago.</h1>
-    <p>Confirmamos el resultado de la operación antes de habilitar el registro de tu agencia.</p>
+    <p>
+      {{ esGestionSuscripcion()
+        ? 'Confirmamos el resultado de la operación antes de actualizar tu suscripción.'
+        : 'Confirmamos el resultado de la operación antes de habilitar el registro de tu agencia.' }}
+    </p>
   </div>
 </section>
 
@@ -11,15 +15,17 @@
     @if (loading()) {
       <div class="tb-card">
         <p class="tb-eyebrow">Pago en proceso</p>
-        <h2>Validando la información de Mercado Pago.</h2>
+        <h2>Validando la información del proveedor de pago.</h2>
         <p>Esto puede demorar unos segundos. No cierres esta ventana.</p>
       </div>
     } @else if (errorMessage()) {
       <div class="tb-card">
         <p class="tb-eyebrow">No pudimos continuar</p>
-        <h2>Necesitamos revisar tu contratación.</h2>
+        <h2>{{ esGestionSuscripcion() ? 'Necesitamos revisar la actualización.' : 'Necesitamos revisar tu contratación.' }}</h2>
         <p>{{ errorMessage() }}</p>
-        <a class="tb-button tb-button--primary" routerLink="/plans">Ver planes</a>
+        <a class="tb-button tb-button--primary" [routerLink]="esGestionSuscripcion() ? '/dashboard/suscripcion' : '/plans'">
+          {{ esGestionSuscripcion() ? 'Volver a la suscripción' : 'Ver planes' }}
+        </a>
       </div>
     } @else if (resultadoSuscripcion(); as suscripcion) {
       <div class="tb-card">

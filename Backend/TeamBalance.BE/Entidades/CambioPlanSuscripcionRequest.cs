@@ -9,4 +9,5 @@ public sealed class CambioPlanSuscripcionRequest
     public decimal ImportePago { get; set; }
     public string MonedaPago { get; set; } = string.Empty;
     public decimal CreditoAplicado { get; set; }
+    public bool UsarSaldoAFavor { get; set; }
 }

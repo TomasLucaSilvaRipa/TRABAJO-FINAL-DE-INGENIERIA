@@ -80,7 +80,7 @@ public sealed class SuscripcionesController : ControllerBase
         catch (KeyNotFoundException ex) { return NotFound(new RespuestaErrorSuscripcion("SUBSCRIPTION_OPERATION_NOT_FOUND", ex.Message)); }
         catch (ArgumentException ex) { return BadRequest(new RespuestaErrorSuscripcion("SUBSCRIPTION_VALIDATION", ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(new RespuestaErrorSuscripcion("SUBSCRIPTION_OPERATION_REJECTED", ex.Message)); }
-        catch (Exception) { return StatusCode(502, "No fue posible verificar la operación con el proveedor de pago."); }
+        catch (Exception ex) { Console.Error.WriteLine("[Suscripciones] Error al verificar pago: " + ex); return StatusCode(502, "No fue posible verificar la operación con el proveedor de pago."); }
     }
 
     [HttpPost("cancelar-renovacion")]

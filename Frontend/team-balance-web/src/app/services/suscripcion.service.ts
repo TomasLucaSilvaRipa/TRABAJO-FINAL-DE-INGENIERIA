@@ -20,7 +20,7 @@ export class SuscripcionService {
   consultarHistorial(): Observable<OperacionSuscripcion[]> { return this.http.get<OperacionSuscripcion[]>(`${this.url}/historial`); }
   consultarCuentaCorriente(): Observable<DocumentoComercial[]> { return this.http.get<DocumentoComercial[]>(`${this.url}/cuenta-corriente`); }
   consultarConfiguracionRenovacion(): Observable<ConfiguracionRenovacionAutomatica> { return this.http.get<ConfiguracionRenovacionAutomatica>(`${this.url}/renovacion-automatica/configuracion`); }
-  solicitarActualizacion(idPlanComercial: number, proveedor: string): Observable<InicioActualizacionSuscripcion> { return this.http.post<InicioActualizacionSuscripcion>(`${this.url}/actualizar`, { idPlanComercial, proveedor }); }
+  solicitarActualizacion(idPlanComercial: number, proveedor: string, usarSaldoAFavor = false): Observable<InicioActualizacionSuscripcion> { return this.http.post<InicioActualizacionSuscripcion>(`${this.url}/actualizar`, { idPlanComercial, proveedor, usarSaldoAFavor }); }
   verificarActualizacion(referenciaOperacion: string, paymentId: string): Observable<ResultadoGestionSuscripcion> { return this.http.post<ResultadoGestionSuscripcion>(`${this.url}/operaciones/${encodeURIComponent(referenciaOperacion)}/verificar-pago`, { paymentId }); }
   cancelarRenovacion(motivo: string): Observable<ResultadoGestionSuscripcion> { return this.http.post<ResultadoGestionSuscripcion>(`${this.url}/cancelar-renovacion`, { motivo }); }
   cancelarServicio(documento: DocumentoComercial): Observable<DocumentoComercial> { return this.http.post<DocumentoComercial>(`${this.url}/cancelar-servicio`, documento); }

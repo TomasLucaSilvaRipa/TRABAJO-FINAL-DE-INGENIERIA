@@ -13,8 +13,10 @@ public sealed class BLLSuscripcion
     private readonly MercadoPagoService _mercadoPagoService;
     private readonly StripeService _stripeService;
     private readonly MPPCuentaCorriente _cuentaCorrienteMPP;
+    private readonly MPPUsuario _usuarioMPP;
+    private readonly EmailService _emailService;
 
-    public BLLSuscripcion(MPPSuscripcion suscripcionMPP, MPPPlanComercial planMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL, MercadoPagoService mercadoPagoService, StripeService stripeService, MPPCuentaCorriente cuentaCorrienteMPP)
+    public BLLSuscripcion(MPPSuscripcion suscripcionMPP, MPPPlanComercial planMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL, MercadoPagoService mercadoPagoService, StripeService stripeService, MPPCuentaCorriente cuentaCorrienteMPP, MPPUsuario usuarioMPP, EmailService emailService)
     {
         _suscripcionMPP = suscripcionMPP;
         _planMPP = planMPP;
@@ -23,6 +25,8 @@ public sealed class BLLSuscripcion
         _mercadoPagoService = mercadoPagoService;
         _stripeService = stripeService;
         _cuentaCorrienteMPP = cuentaCorrienteMPP;
+        _usuarioMPP = usuarioMPP;
+        _emailService = emailService;
     }
 
     public Suscripcion ConsultarSuscripcion(Usuario solicitante)
@@ -56,12 +60,51 @@ public sealed class BLLSuscripcion
 
         solicitud.IdSuscripcion = suscripcion.ID;
         solicitud.ReferenciaInterna = $"sus-{Guid.NewGuid():N}";
-        if (!string.Equals(solicitud.Proveedor, "MercadoPago", StringComparison.Ordinal) && !string.Equals(solicitud.Proveedor, "Stripe", StringComparison.Ordinal)) throw new ArgumentException("Seleccioná Mercado Pago o Stripe como proveedor de pago.");
-        OperacionSuscripcionPendiente operacion = _suscripcionMPP.CrearSolicitudCambioPlan(solicitud);
+        if (solicitud.UsarSaldoAFavor)
+        {
+            if (!suscripcion.Activo) throw new InvalidOperationException("Para reactivar el servicio usá la opción de regularización con saldo a favor.");
+            decimal disponible = _cuentaCorrienteMPP.Consultar(solicitante)
+                .Where(documento => string.Equals(documento.Tipo, "NotaCredito", StringComparison.OrdinalIgnoreCase) && string.Equals(documento.Estado, "Disponible", StringComparison.OrdinalIgnoreCase) && string.Equals(documento.Moneda, plan.Moneda, StringComparison.OrdinalIgnoreCase))
+                .Sum(documento => documento.SaldoPendiente);
+            solicitud.CreditoAplicado = Math.Min(disponible, plan.PrecioVigente);
+            if (solicitud.CreditoAplicado <= 0) throw new InvalidOperationException("No hay saldo a favor disponible para esta modalidad.");
+            decimal diferencia = plan.PrecioVigente - solicitud.CreditoAplicado;
+            if (diferencia == 0)
+            {
+                solicitud.Proveedor = "SaldoAFavor";
+                solicitud.ImportePago = 0;
+                solicitud.MonedaPago = plan.Moneda;
+                OperacionSuscripcionPendiente cubierta = _suscripcionMPP.CrearSolicitudCambioPlanConCredito(solicitud);
+                cubierta.ReferenciaProveedor = cubierta.ReferenciaInterna;
+                cubierta.EstadoProveedor = "approved";
+                cubierta.DetalleProveedor = "Actualización cubierta con saldo a favor de la agencia.";
+                _suscripcionMPP.AplicarResultadoCambioPlan(cubierta);
+                await NotificarActualizacionSuscripcion(solicitante, plan);
+                RegistrarBitacora(solicitante, suscripcion, "ActualizarSuscripcionConSaldoAFavor", $"Se actualizó la modalidad a {plan.Nombre} aplicando saldo a favor.");
+                return new InicioActualizacionSuscripcion(string.Empty, cubierta.ReferenciaInterna, 0, plan.Moneda, DateTime.Now);
+            }
+            if (string.Equals(solicitud.Proveedor, "Stripe", StringComparison.Ordinal))
+            {
+                solicitud.ImportePago = diferencia;
+                solicitud.MonedaPago = plan.Moneda;
+            }
+            else if (string.Equals(solicitud.Proveedor, "MercadoPago", StringComparison.Ordinal))
+            {
+                CobroMercadoPago cobro = _mercadoPagoService.ObtenerCobroPlan(plan);
+                solicitud.ImportePago = Math.Round(cobro.Importe * diferencia / plan.PrecioVigente, 2, MidpointRounding.AwayFromZero);
+                solicitud.MonedaPago = cobro.Moneda;
+                if (solicitud.ImportePago <= 0) throw new InvalidOperationException("La diferencia es demasiado pequeña para cobrarla con Mercado Pago.");
+            }
+            else throw new ArgumentException("Seleccioná Mercado Pago o Stripe para pagar la diferencia.");
+        }
+        else if (!string.Equals(solicitud.Proveedor, "MercadoPago", StringComparison.Ordinal) && !string.Equals(solicitud.Proveedor, "Stripe", StringComparison.Ordinal)) throw new ArgumentException("Seleccioná Mercado Pago o Stripe como proveedor de pago.");
+        OperacionSuscripcionPendiente operacion = solicitud.UsarSaldoAFavor
+            ? _suscripcionMPP.CrearSolicitudCambioPlanConCredito(solicitud)
+            : _suscripcionMPP.CrearSolicitudCambioPlan(solicitud);
 
         string urlPago = string.Equals(solicitud.Proveedor, "Stripe", StringComparison.Ordinal)
             ? await _stripeService.CrearPago(operacion, plan)
-            : await _mercadoPagoService.CrearPago(new MercadoPagoPreferenceRequest($"TeamBalance · cambio a {plan.Nombre}", operacion.Importe, operacion.Moneda, operacion.ReferenciaInterna, plan.Nombre));
+            : await _mercadoPagoService.CrearPago(new MercadoPagoPreferenceRequest($"TeamBalance · cambio a {plan.Nombre}", operacion.Importe, operacion.Moneda, operacion.ReferenciaInterna, plan.Nombre, solicitud.UsarSaldoAFavor));
 
         RegistrarBitacora(solicitante, suscripcion, "SolicitarActualizacionSuscripcion", $"Se solicitó la actualización de suscripción a la modalidad {plan.Nombre}.");
         return new InicioActualizacionSuscripcion(urlPago, solicitud.ReferenciaInterna, operacion.Importe, operacion.Moneda, DateTime.Now);
@@ -131,7 +174,7 @@ public sealed class BLLSuscripcion
         {
             MercadoPagoPayment pago = await _mercadoPagoService.ConsultarPago(solicitud.PaymentId);
             if (!string.Equals(pago.ExternalReference, operacion.ReferenciaInterna, StringComparison.Ordinal)) throw new InvalidOperationException("La referencia devuelta por Mercado Pago no corresponde a la actualización solicitada.");
-            bool requiereImporteExacto = string.Equals(operacion.TipoOperacion, "Regularización con crédito parcial", StringComparison.OrdinalIgnoreCase);
+            bool requiereImporteExacto = string.Equals(operacion.TipoOperacion, "Regularización con crédito parcial", StringComparison.OrdinalIgnoreCase) || string.Equals(operacion.TipoOperacion, "Actualización con crédito parcial", StringComparison.OrdinalIgnoreCase);
             bool importeConvertidoPorProveedor = pago.TransactionAmount != operacion.Importe || !string.Equals(pago.CurrencyId, operacion.Moneda, StringComparison.OrdinalIgnoreCase);
             PlanComercial plan = _planMPP.ConsultarPlan(new PlanComercial(operacion.IdPlanNuevo));
             if (importeConvertidoPorProveedor && (requiereImporteExacto || !_mercadoPagoService.EsCobroPruebaEsperado(pago, plan.Nombre))) throw new InvalidOperationException($"El pago recibido fue {pago.TransactionAmount:0.##} {pago.CurrencyId}; no coincide con el importe a regularizar.");
@@ -149,8 +192,32 @@ public sealed class BLLSuscripcion
             : rechazada
                 ? "El proveedor rechazó la actualización de suscripción."
                 : "La actualización quedó pendiente de confirmación del proveedor.";
+        if (aprobada)
+        {
+            PlanComercial planActualizado = _planMPP.ConsultarPlan(new PlanComercial(suscripcion.IdPlanComercial));
+            await NotificarActualizacionSuscripcion(solicitante, planActualizado);
+        }
         RegistrarBitacora(solicitante, suscripcion, "VerificarActualizacionSuscripcion", mensaje);
         return new ResultadoGestionSuscripcion(mensaje, suscripcion.Estado, suscripcion);
+    }
+
+    private async Task NotificarActualizacionSuscripcion(Usuario solicitante, PlanComercial plan)
+    {
+        try
+        {
+            Usuario destinatario = _usuarioMPP.ConsultarUsuarioPorId(new Usuario { ID = solicitante.ID }) ?? solicitante;
+            bool enviado = await _emailService.EnviarCorreoActualizacionSuscripcion(destinatario, plan);
+            if (!enviado)
+            {
+                Console.Error.WriteLine($"No se pudo enviar el correo de actualización de suscripción al usuario {solicitante.ID}.");
+            }
+        }
+        catch (Exception ex)
+        {
+            // El proveedor ya confirmó el pago y el cambio de plan ya fue aplicado.
+            // Un fallo de correo no debe transformar una operación aprobada en un error 502.
+            Console.Error.WriteLine($"No se pudo enviar el correo de actualización de suscripción al usuario {solicitante.ID}: {ex.Message}");
+        }
     }
 
     public async Task<ResultadoGestionSuscripcion> CancelarRenovacion(Usuario solicitante, CancelacionRenovacionRequest solicitud)

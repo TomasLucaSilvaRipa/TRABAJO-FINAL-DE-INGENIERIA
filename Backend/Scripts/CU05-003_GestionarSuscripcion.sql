@@ -1,4 +1,4 @@
-/*
+﻿/*
   CU05-003 - Gestionar suscripción de agencia
   Ejecutar sobre TeamBalance después de ConfiguracionAgencia.sql.
   No persiste tarjetas, tokens ni otros datos sensibles de pago.

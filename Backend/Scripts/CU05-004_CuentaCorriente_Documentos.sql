@@ -1,4 +1,4 @@
-/*
+﻿/*
   CU05-004 - Cuenta corriente y documentos comerciales internos.
   No integra facturación fiscal ni ejecuta reintegros en Mercado Pago.
   Registra los comprobantes funcionales de TeamBalance y el crédito utilizable
@@ -198,12 +198,12 @@ BEGIN
         VALUES(@IdAgencia, @IdSuscripcion, N'Factura', N'PENDIENTE', N'Actualización de suscripción TeamBalance', @Importe, 0, @Moneda, N'Pagada', SYSDATETIME());
         SET @IdDocumento = CONVERT(INT, SCOPE_IDENTITY());
         UPDATE dbo.DocumentoComercial SET Numero = CONCAT(N'FC-', RIGHT(CONCAT(N'00000000', CONVERT(NVARCHAR(20), @IdDocumento)), 8)) WHERE ID = @IdDocumento;
-        IF @TipoOperacion = N'Regularización con crédito parcial'
+        IF @TipoOperacion IN (N'Regularización con crédito parcial', N'Actualización con crédito parcial', N'Actualización con crédito completo')
         BEGIN
             DECLARE @CreditoAAplicar DECIMAL(18,2), @CreditoDisponible DECIMAL(18,2);
             SELECT @CreditoDisponible = COALESCE(SUM(SaldoPendiente), 0) FROM dbo.DocumentoComercial WITH (UPDLOCK, HOLDLOCK) WHERE IdAgencia = @IdAgencia AND Tipo = N'NotaCredito' AND Estado = N'Disponible' AND Moneda = @Moneda;
             SET @CreditoAAplicar = @CreditoOperacion;
-            IF @CreditoAAplicar <= 0 OR @CreditoAAplicar >= @Importe OR @CreditoDisponible < @CreditoAAplicar THROW 53108, 'El saldo a favor cambió antes de confirmar el pago. La nota de crédito no fue aplicada.', 1;
+            IF @CreditoAAplicar <= 0 OR @CreditoAAplicar > @Importe OR @CreditoDisponible < @CreditoAAplicar OR (@CreditoAAplicar = @Importe AND @TipoOperacion <> N'Actualización con crédito completo') THROW 53108, 'El saldo a favor cambió antes de confirmar el pago. La nota de crédito no fue aplicada.', 1;
             WHILE @CreditoAAplicar > 0
             BEGIN
                 DECLARE @IdNotaCredito INT, @SaldoNotaCredito DECIMAL(18,2), @ImporteAplicado DECIMAL(18,2);
@@ -213,7 +213,8 @@ BEGIN
                 INSERT INTO dbo.MovimientoCuentaCorriente(IdAgencia, IdDocumentoComercial, Tipo, Importe, Moneda, Concepto) VALUES(@IdAgencia, @IdNotaCredito, N'Aplicacion nota credito', @ImporteAplicado, @Moneda, CONCAT(N'Credito aplicado a factura FC-', RIGHT(CONCAT(N'00000000', CONVERT(NVARCHAR(20), @IdDocumento)), 8)));
                 SET @CreditoAAplicar = @CreditoAAplicar - @ImporteAplicado;
             END;
-            INSERT INTO dbo.MovimientoCuentaCorriente(IdAgencia, IdDocumentoComercial, Tipo, Importe, Moneda, Concepto) VALUES(@IdAgencia, @IdDocumento, CONCAT(N'Cobro ', @ProveedorOperacion), @ImporteOperacion, @MonedaOperacion, CONCAT(N'Pago de diferencia ', @ReferenciaProveedor));
+            IF @ImporteOperacion > 0
+                INSERT INTO dbo.MovimientoCuentaCorriente(IdAgencia, IdDocumentoComercial, Tipo, Importe, Moneda, Concepto) VALUES(@IdAgencia, @IdDocumento, CONCAT(N'Cobro ', @ProveedorOperacion), @ImporteOperacion, @MonedaOperacion, CONCAT(N'Pago de diferencia ', @ReferenciaProveedor));
         END
         ELSE
             INSERT INTO dbo.MovimientoCuentaCorriente(IdAgencia, IdDocumentoComercial, Tipo, Importe, Moneda, Concepto) VALUES(@IdAgencia, @IdDocumento, N'Cobro con tarjeta', @Importe, @Moneda, CONCAT(N'Pago de actualización ', @ReferenciaProveedor));
@@ -357,5 +358,60 @@ BEGIN
     VALUES(@IdSuscripcion, @IdPlanAnterior, @IdPlanNuevo, CASE WHEN @Activo = 1 THEN N'Actualización de modalidad' ELSE N'Regularización con tarjeta' END, @ReferenciaInterna, @Proveedor, @Importe, @Moneda, N'Pendiente', N'Solicitud enviada al proveedor externo.');
 
     SELECT CONVERT(INT, SCOPE_IDENTITY()) AS IdOperacion, @IdSuscripcion AS IdSuscripcion, @IdPlanNuevo AS IdPlanNuevo, @ReferenciaInterna AS ReferenciaInterna, @Importe AS Importe, @Moneda AS Moneda, @Proveedor AS Proveedor;
+END;
+GO
+
+/* Reserva la operación de actualización; el crédito se consume solo al aprobarse. */
+CREATE OR ALTER PROCEDURE dbo.usp_CuentaCorriente_CrearSolicitudActualizacionConCredito
+    @IdSuscripcion INT,
+    @IdPlanNuevo INT,
+    @ReferenciaInterna NVARCHAR(120),
+    @Proveedor NVARCHAR(100),
+    @ImportePago DECIMAL(18,2),
+    @MonedaPago NVARCHAR(20),
+    @CreditoAplicado DECIMAL(18,2)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @IdAgencia INT, @IdPlanAnterior INT, @Activo BIT, @ImportePlan DECIMAL(18,2), @MonedaPlan NVARCHAR(20), @CreditoDisponible DECIMAL(18,2);
+    SELECT @IdAgencia = IdAgencia, @IdPlanAnterior = IdPlanComercial, @Activo = Activo FROM dbo.Suscripcion WHERE ID = @IdSuscripcion;
+    IF @IdAgencia IS NULL OR @Activo <> 1 THROW 53111, 'La suscripción debe estar activa para actualizarse con saldo a favor.', 1;
+    IF @IdPlanAnterior = @IdPlanNuevo THROW 53002, 'La modalidad seleccionada ya es la contratada.', 1;
+
+    SELECT @ImportePlan = PrecioVigente, @MonedaPlan = Moneda FROM dbo.PlanComercial
+    WHERE ID = @IdPlanNuevo AND Activo = 1 AND (FechaVigenciaHasta IS NULL OR FechaVigenciaHasta >= SYSDATETIME());
+    IF @ImportePlan IS NULL THROW 53003, 'La modalidad seleccionada no se encuentra disponible.', 1;
+
+    SELECT @CreditoDisponible = COALESCE(SUM(SaldoPendiente), 0) FROM dbo.DocumentoComercial
+    WHERE IdAgencia = @IdAgencia AND Tipo = N'NotaCredito' AND Estado = N'Disponible' AND Moneda = @MonedaPlan;
+    IF @CreditoAplicado <= 0 OR @CreditoAplicado <> CASE WHEN @CreditoDisponible >= @ImportePlan THEN @ImportePlan ELSE @CreditoDisponible END
+        THROW 53108, 'El saldo a favor disponible cambió. Actualizá la pantalla e intentá nuevamente.', 1;
+
+    IF @CreditoAplicado = @ImportePlan
+    BEGIN
+        IF @Proveedor <> N'SaldoAFavor' OR @ImportePago <> 0 OR @MonedaPago <> @MonedaPlan
+            THROW 53112, 'El pago cubierto por saldo a favor no requiere proveedor externo.', 1;
+    END
+    ELSE
+    BEGIN
+        IF @Proveedor NOT IN (N'MercadoPago', N'Stripe') OR @ImportePago <= 0
+            THROW 53113, 'Seleccioná un proveedor válido para pagar la diferencia.', 1;
+        IF @Proveedor = N'Stripe' AND (@MonedaPago <> @MonedaPlan OR @ImportePago <> @ImportePlan - @CreditoAplicado)
+            THROW 53114, 'El importe de Stripe no coincide con la diferencia.', 1;
+        IF @Proveedor = N'MercadoPago' AND @MonedaPago <> N'ARS'
+            THROW 53115, 'La moneda de Mercado Pago debe ser ARS.', 1;
+    END;
+
+    INSERT INTO dbo.OperacionSuscripcion(IdSuscripcion, IdPlanAnterior, IdPlanNuevo, TipoOperacion, ReferenciaInterna, Proveedor, Importe, Moneda, Estado, Detalle, CreditoAplicado)
+    VALUES(@IdSuscripcion, @IdPlanAnterior, @IdPlanNuevo,
+        CASE WHEN @CreditoAplicado = @ImportePlan THEN N'Actualización con crédito completo' ELSE N'Actualización con crédito parcial' END,
+        @ReferenciaInterna, @Proveedor, @ImportePago, @MonedaPago, N'Pendiente',
+        CASE WHEN @CreditoAplicado = @ImportePlan THEN N'Actualización cubierta con saldo a favor.' ELSE N'Solicitud enviada al proveedor para pagar la diferencia.' END,
+        @CreditoAplicado);
+
+    SELECT CONVERT(INT, SCOPE_IDENTITY()) AS IdOperacion, @IdSuscripcion AS IdSuscripcion, @IdPlanNuevo AS IdPlanNuevo,
+        @ReferenciaInterna AS ReferenciaInterna, @ImportePago AS Importe, @MonedaPago AS Moneda, @Proveedor AS Proveedor;
 END;
 GO
