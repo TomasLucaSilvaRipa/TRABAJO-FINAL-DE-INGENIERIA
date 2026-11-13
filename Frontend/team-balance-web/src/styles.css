@@ -44,6 +44,13 @@
 .team-balance-app-sidebar .sidebar-brand__logo { display: block; width: 9.25rem; height: 3.8rem; object-fit: contain; }
 .team-balance-app-sidebar .sidebar-brand-row--compact .sidebar-brand { min-width: 3.4rem; min-height: 3.4rem; padding: .25rem; }
 .team-balance-app-sidebar .sidebar-brand:focus-visible { outline: 3px solid #5fe3df; outline-offset: 3px; }
+.team-balance-app-sidebar .sidebar-navigation { min-height: 0; scrollbar-width: thin; scrollbar-color: #387185 transparent; }
+.team-balance-app-sidebar .sidebar-navigation::-webkit-scrollbar { width: 6px; }
+.team-balance-app-sidebar .sidebar-navigation::-webkit-scrollbar-track { background: transparent; }
+.team-balance-app-sidebar .sidebar-navigation::-webkit-scrollbar-thumb { border-radius: 999px; background: #387185; }
+.team-balance-app-sidebar .sidebar-navigation::-webkit-scrollbar-thumb:hover { background: #5bb5ba; }
+.team-balance-app-sidebar .sidebar-navigation--compact { scrollbar-width: none; }
+.team-balance-app-sidebar .sidebar-navigation--compact::-webkit-scrollbar { display: none; }
 .dark .team-balance-app-sidebar .sidebar-brand { background: #fff9e9; border-color: rgba(195, 235, 222, .55); }
 
 .team-balance-app-sidebar .menu-item {
@@ -147,11 +154,11 @@
 .tb-kanban-page .tb-kanban-filter p { color: #516c70; }
 .tb-kanban-page .tb-kanban-navigation { display: flex; min-width: 0; align-items: stretch; }
 .tb-kanban-page .tb-kanban-navigation__arrow { position: sticky; top: calc(50vh - 1.75rem); z-index: 2; display: grid; flex: 0 0 2.4rem; align-self: flex-start; width: 2.4rem; height: 3.5rem; place-items: center; border: 1px solid #bfd6d1; border-radius: .8rem; background: #e7f1eb; color: #13556c; font-size: 2rem; line-height: 1; transition: background-color .18s ease, transform .18s ease; }
-.tb-kanban-page .tb-kanban-navigation__arrow:first-child { margin-right: -2.4rem; transform: translateX(-1.9rem); }
-.tb-kanban-page .tb-kanban-navigation__arrow:last-child { margin-left: -2.4rem; transform: translateX(1.9rem); }
+.tb-kanban-page .tb-kanban-navigation__arrow:first-child { margin-right: -2.4rem; transform: translateX(-2.5rem); }
+.tb-kanban-page .tb-kanban-navigation__arrow:last-child { margin-left: -2.4rem; transform: translateX(2.5rem); }
 .tb-kanban-page .tb-kanban-navigation__arrow:hover { background: #d4e9e3; }
-.tb-kanban-page .tb-kanban-navigation__arrow:first-child:hover { transform: translateX(-1.9rem) scale(1.04); }
-.tb-kanban-page .tb-kanban-navigation__arrow:last-child:hover { transform: translateX(1.9rem) scale(1.04); }
+.tb-kanban-page .tb-kanban-navigation__arrow:first-child:hover { transform: translateX(-2.5rem) scale(1.04); }
+.tb-kanban-page .tb-kanban-navigation__arrow:last-child:hover { transform: translateX(2.5rem) scale(1.04); }
 .tb-kanban-page .tb-kanban-navigation__arrow:focus-visible { outline: 2px solid #008fa5; outline-offset: 2px; }
 .tb-kanban-page .tb-kanban-board { display: flex; flex: 1 1 auto; min-width: 0; align-items: stretch; gap: 1rem; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: x proximity; padding: .35rem .15rem .6rem; scrollbar-width: none; }
 .tb-kanban-page .tb-kanban-board::-webkit-scrollbar { display: none; }
@@ -787,6 +794,9 @@
 .tb-task-pages .tb-dialog { background: #faf9ef; color: #123b4c; border: 1px solid #a9d2ca; }
 .tb-task-pages .tb-dialog .border-slate-700 { border-color: #bed7d1; }
 .tb-task-pages .tb-dialog .text-slate-400 { color: #526e78; }
+.tb-task-pages .tb-template-picker-backdrop { padding: 5.5rem 1rem 1rem; }
+.tb-task-pages .tb-template-picker { display: flex; flex-direction: column; max-height: min(38rem, calc(100dvh - 6.5rem)); overflow: hidden; }
+.tb-template-picker__list { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: .35rem; }
 .dark .tb-task-pages { --task-surface: #123645; --task-ink: #eaf7f5; --task-muted: #bad4d5; --task-line: #355e64; background: linear-gradient(135deg, #092737, #123b46 65%, #10332f); }
 .dark .tb-task-pages .tb-template-item, .dark .tb-task-pages .tb-data-row { background: #10303e; border-color: #3a6268; }
 .dark .tb-task-pages .tb-template-meta { background: #193f48; color: #c7e1df; }

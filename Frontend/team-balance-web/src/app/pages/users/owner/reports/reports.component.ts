@@ -88,6 +88,7 @@ export class Reports {
   protected readonly cargando = signal(false);
   protected readonly error = signal('');
   protected readonly reporte = signal<ReporteEjecutivo | null>(null);
+  protected readonly editandoReporte = signal(true);
   protected readonly generandoReporte = signal(false);
   protected readonly procesandoDesvio = signal(false);
   protected readonly mensajeDesvio = signal('');
@@ -464,8 +465,12 @@ export class Reports {
 
   protected generarReporte(): void {
     this.generandoReporte.set(true); this.error.set('');
-    this.configuracionReporte.filtro.idProyecto = this.filtro.idProyecto;
-    this.reporteService.previsualizar(this.configuracionReporte).subscribe({ next: reporte => { this.reporte.set(reporte); this.generandoReporte.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo generar el reporte ejecutivo.'); this.generandoReporte.set(false); } });
+    this.reporteService.previsualizar(this.configuracionReporte).subscribe({ next: reporte => { this.reporte.set(reporte); this.editandoReporte.set(false); this.generandoReporte.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo generar el reporte ejecutivo.'); this.generandoReporte.set(false); } });
+  }
+
+  protected editarConfiguracionReporte(): void {
+    this.editandoReporte.set(true);
+    requestAnimationFrame(() => document.getElementById('configuracion-reporte')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   }
 
   protected imprimirReporte(): void { window.print(); }

@@ -148,5 +148,15 @@ export class SkillsDesiertosComponent {
 
   private limpiarMensajes(): void { this.error.set(''); this.mensaje.set(''); }
   private fechaIso(dias: number): string { const fecha = new Date(); fecha.setDate(fecha.getDate() + dias); return fecha.toISOString().slice(0, 10); }
-  private obtenerMensajeError(respuesta: any, predeterminado: string): string { return typeof respuesta?.error === 'string' ? respuesta.error : predeterminado; }
+  private obtenerMensajeError(respuesta: any, predeterminado: string): string {
+    const detalle = respuesta?.error;
+    if (typeof detalle === 'string' && detalle.trim()) { return detalle; }
+    if (detalle?.errors && typeof detalle.errors === 'object') {
+      const errores = Object.values(detalle.errors)
+        .flatMap(valor => Array.isArray(valor) ? valor : [valor])
+        .filter((valor): valor is string => typeof valor === 'string' && !!valor.trim());
+      if (errores.length) { return errores.join(' '); }
+    }
+    return typeof detalle?.detail === 'string' && detalle.detail.trim() ? detalle.detail : predeterminado;
+  }
 }

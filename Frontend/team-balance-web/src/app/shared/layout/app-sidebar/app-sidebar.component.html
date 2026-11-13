@@ -17,7 +17,7 @@
       }
     </a>
   </div>
-  <nav class="flex-1 overflow-y-auto py-4" [attr.aria-label]="localization.traducir('menu.dashboard')">
+  <nav class="sidebar-navigation flex-1 overflow-y-auto py-4" [class.sidebar-navigation--compact]="!((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async))" [attr.aria-label]="localization.traducir('menu.dashboard')">
     <p class="mb-3 px-3 text-xs font-bold uppercase tracking-[0.18em] text-[#8ec7d6]">
       @if ((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async)) { {{ localization.traducir('menu.dashboard') }} }
     </p>

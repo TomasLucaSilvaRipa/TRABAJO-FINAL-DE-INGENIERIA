@@ -77,8 +77,14 @@ export class SkillsDesiertosService {
   private readonly url = '/api/skills-desiertos';
 
   resumen(): Observable<AnalisisCoberturaSkill[]> { return this.http.get<AnalisisCoberturaSkill[]>(`${this.url}/resumen`); }
-  analizar(filtro: FiltroCoberturaSkill): Observable<AnalisisCoberturaSkill[]> { return this.http.post<AnalisisCoberturaSkill[]>(`${this.url}/analizar`, filtro); }
-  detalle(idSkill: number, filtro: FiltroCoberturaSkill): Observable<AnalisisCoberturaSkill> { return this.http.post<AnalisisCoberturaSkill>(`${this.url}/detalle/${idSkill}`, filtro); }
+  // El modelo actual de la API valida Skill.Nombre incluso en consultas generales.
+  // El análisis no utiliza ese valor; se envía para satisfacer dicha validación.
+  private filtroParaApi(filtro: FiltroCoberturaSkill): FiltroCoberturaSkill & { skill: { nombre: string } } {
+    return { ...filtro, skill: { nombre: 'Cobertura de skills' } };
+  }
+
+  analizar(filtro: FiltroCoberturaSkill): Observable<AnalisisCoberturaSkill[]> { return this.http.post<AnalisisCoberturaSkill[]>(`${this.url}/analizar`, this.filtroParaApi(filtro)); }
+  detalle(idSkill: number, filtro: FiltroCoberturaSkill): Observable<AnalisisCoberturaSkill> { return this.http.post<AnalisisCoberturaSkill>(`${this.url}/detalle/${idSkill}`, this.filtroParaApi(filtro)); }
   registrarRecomendacion(recomendacion: RecomendacionSkill): Observable<boolean> { return this.http.post<boolean>(`${this.url}/recomendaciones`, recomendacion); }
   sugerirEmpleados(consulta: ConsultaSugerenciasSkill): Observable<SugerenciaEmpleadoSkill[]> { return this.http.post<SugerenciaEmpleadoSkill[]>(`${this.url}/sugerencias`, consulta); }
 }
