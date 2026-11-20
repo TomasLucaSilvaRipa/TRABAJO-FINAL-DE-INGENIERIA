@@ -12,6 +12,7 @@ public sealed class InicioActualizacionSuscripcion
 
     public string UrlPago { get; set; }
     public string ReferenciaOperacion { get; set; }
+    public string? PreapprovalId { get; init; }
     public decimal Importe { get; set; }
     public string Moneda { get; set; }
     public DateTime FechaAplicacion { get; set; }

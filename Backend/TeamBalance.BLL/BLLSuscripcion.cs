@@ -1,10 +1,11 @@
+using Microsoft.Extensions.Logging;
 using TeamBalance.BE.Entidades;
 using TeamBalance.MPP;
 using TeamBalance.Services;
 
 namespace TeamBalance.BLL;
 
-public sealed class BLLSuscripcion
+public sealed partial class BLLSuscripcion
 {
     private readonly MPPSuscripcion _suscripcionMPP;
     private readonly MPPPlanComercial _planMPP;
@@ -16,7 +17,9 @@ public sealed class BLLSuscripcion
     private readonly MPPUsuario _usuarioMPP;
     private readonly EmailService _emailService;
 
-    public BLLSuscripcion(MPPSuscripcion suscripcionMPP, MPPPlanComercial planMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL, MercadoPagoService mercadoPagoService, StripeService stripeService, MPPCuentaCorriente cuentaCorrienteMPP, MPPUsuario usuarioMPP, EmailService emailService)
+    private readonly ILogger<BLLSuscripcion> _logger;
+
+    public BLLSuscripcion(MPPSuscripcion suscripcionMPP, MPPPlanComercial planMPP, BLLRol rolBLL, BLLBitacora bitacoraBLL, MercadoPagoService mercadoPagoService, StripeService stripeService, MPPCuentaCorriente cuentaCorrienteMPP, MPPUsuario usuarioMPP, EmailService emailService, ILogger<BLLSuscripcion> logger)
     {
         _suscripcionMPP = suscripcionMPP;
         _planMPP = planMPP;
@@ -27,6 +30,7 @@ public sealed class BLLSuscripcion
         _cuentaCorrienteMPP = cuentaCorrienteMPP;
         _usuarioMPP = usuarioMPP;
         _emailService = emailService;
+        _logger = logger;
     }
 
     public Suscripcion ConsultarSuscripcion(Usuario solicitante)
@@ -49,65 +53,7 @@ public sealed class BLLSuscripcion
 
     public async Task<InicioActualizacionSuscripcion> SolicitarActualizacion(Usuario solicitante, CambioPlanSuscripcionRequest solicitud)
     {
-        ValidarDueño(solicitante);
-        if (solicitud.IdPlanComercial <= 0) throw new ArgumentException("Seleccioná una modalidad válida.");
-
-        Suscripcion suscripcion = _suscripcionMPP.ConsultarActual(solicitante) ?? throw new KeyNotFoundException("La agencia no tiene una suscripción registrada.");
-        if (suscripcion.Activo && suscripcion.IdPlanComercial == solicitud.IdPlanComercial) throw new ArgumentException("La modalidad seleccionada ya es la contratada.");
-
-        PlanComercial plan = _planMPP.ConsultarPlan(new PlanComercial(solicitud.IdPlanComercial));
-        if (!plan.Activo || (plan.FechaVigenciaHasta.HasValue && plan.FechaVigenciaHasta.Value < DateTime.Now)) throw new ArgumentException("La modalidad seleccionada no está disponible.");
-
-        solicitud.IdSuscripcion = suscripcion.ID;
-        solicitud.ReferenciaInterna = $"sus-{Guid.NewGuid():N}";
-        if (solicitud.UsarSaldoAFavor)
-        {
-            if (!suscripcion.Activo) throw new InvalidOperationException("Para reactivar el servicio usá la opción de regularización con saldo a favor.");
-            decimal disponible = _cuentaCorrienteMPP.Consultar(solicitante)
-                .Where(documento => string.Equals(documento.Tipo, "NotaCredito", StringComparison.OrdinalIgnoreCase) && string.Equals(documento.Estado, "Disponible", StringComparison.OrdinalIgnoreCase) && string.Equals(documento.Moneda, plan.Moneda, StringComparison.OrdinalIgnoreCase))
-                .Sum(documento => documento.SaldoPendiente);
-            solicitud.CreditoAplicado = Math.Min(disponible, plan.PrecioVigente);
-            if (solicitud.CreditoAplicado <= 0) throw new InvalidOperationException("No hay saldo a favor disponible para esta modalidad.");
-            decimal diferencia = plan.PrecioVigente - solicitud.CreditoAplicado;
-            if (diferencia == 0)
-            {
-                solicitud.Proveedor = "SaldoAFavor";
-                solicitud.ImportePago = 0;
-                solicitud.MonedaPago = plan.Moneda;
-                OperacionSuscripcionPendiente cubierta = _suscripcionMPP.CrearSolicitudCambioPlanConCredito(solicitud);
-                cubierta.ReferenciaProveedor = cubierta.ReferenciaInterna;
-                cubierta.EstadoProveedor = "approved";
-                cubierta.DetalleProveedor = "Actualización cubierta con saldo a favor de la agencia.";
-                _suscripcionMPP.AplicarResultadoCambioPlan(cubierta);
-                await NotificarActualizacionSuscripcion(solicitante, plan);
-                RegistrarBitacora(solicitante, suscripcion, "ActualizarSuscripcionConSaldoAFavor", $"Se actualizó la modalidad a {plan.Nombre} aplicando saldo a favor.");
-                return new InicioActualizacionSuscripcion(string.Empty, cubierta.ReferenciaInterna, 0, plan.Moneda, DateTime.Now);
-            }
-            if (string.Equals(solicitud.Proveedor, "Stripe", StringComparison.Ordinal))
-            {
-                solicitud.ImportePago = diferencia;
-                solicitud.MonedaPago = plan.Moneda;
-            }
-            else if (string.Equals(solicitud.Proveedor, "MercadoPago", StringComparison.Ordinal))
-            {
-                CobroMercadoPago cobro = _mercadoPagoService.ObtenerCobroPlan(plan);
-                solicitud.ImportePago = Math.Round(cobro.Importe * diferencia / plan.PrecioVigente, 2, MidpointRounding.AwayFromZero);
-                solicitud.MonedaPago = cobro.Moneda;
-                if (solicitud.ImportePago <= 0) throw new InvalidOperationException("La diferencia es demasiado pequeña para cobrarla con Mercado Pago.");
-            }
-            else throw new ArgumentException("Seleccioná Mercado Pago o Stripe para pagar la diferencia.");
-        }
-        else if (!string.Equals(solicitud.Proveedor, "MercadoPago", StringComparison.Ordinal) && !string.Equals(solicitud.Proveedor, "Stripe", StringComparison.Ordinal)) throw new ArgumentException("Seleccioná Mercado Pago o Stripe como proveedor de pago.");
-        OperacionSuscripcionPendiente operacion = solicitud.UsarSaldoAFavor
-            ? _suscripcionMPP.CrearSolicitudCambioPlanConCredito(solicitud)
-            : _suscripcionMPP.CrearSolicitudCambioPlan(solicitud);
-
-        string urlPago = string.Equals(solicitud.Proveedor, "Stripe", StringComparison.Ordinal)
-            ? await _stripeService.CrearPago(operacion, plan)
-            : await _mercadoPagoService.CrearPago(new MercadoPagoPreferenceRequest($"TeamBalance · cambio a {plan.Nombre}", operacion.Importe, operacion.Moneda, operacion.ReferenciaInterna, plan.Nombre, solicitud.UsarSaldoAFavor));
-
-        RegistrarBitacora(solicitante, suscripcion, "SolicitarActualizacionSuscripcion", $"Se solicitó la actualización de suscripción a la modalidad {plan.Nombre}.");
-        return new InicioActualizacionSuscripcion(urlPago, solicitud.ReferenciaInterna, operacion.Importe, operacion.Moneda, DateTime.Now);
+        return await SolicitarDistribucion(solicitante, solicitud);
     }
 
     public async Task<InicioActualizacionSuscripcion> SolicitarReactivacionConCreditoParcial(Usuario solicitante, CambioPlanSuscripcionRequest solicitud)
@@ -159,8 +105,15 @@ public sealed class BLLSuscripcion
         ValidarDueño(solicitante);
         if (string.IsNullOrWhiteSpace(solicitud.ReferenciaOperacion) || string.IsNullOrWhiteSpace(solicitud.PaymentId)) throw new ArgumentException("No recibimos la referencia de la operación de actualización.");
 
+        OperacionSuscripcionPendiente? distribuida = _suscripcionMPP.ConsultarDistribucion(solicitante, solicitud.ReferenciaOperacion);
+        if (distribuida is not null) return await VerificarParte(solicitante, distribuida, solicitud);
+
         OperacionSuscripcionPendiente operacion = new OperacionSuscripcionPendiente(solicitud.ReferenciaOperacion);
         operacion = _suscripcionMPP.ConsultarOperacionPendiente(operacion);
+        if (operacion.IdAgencia != solicitante.IdAgencia) throw new UnauthorizedAccessException("La operación no pertenece a tu agencia.");
+        if (operacion.Estado == "Aprobada")
+            return new ResultadoGestionSuscripcion("Suscripción actualizada correctamente.", "Aprobada", ConsultarSuscripcion(solicitante)) { PagoConfirmado = true };
+
         if (string.Equals(operacion.Proveedor, "Stripe", StringComparison.Ordinal))
         {
             (string id, string estado, string referencia, decimal importe, string moneda, string referenciaRenovacion) = await _stripeService.ConsultarPago(solicitud.PaymentId);
@@ -198,7 +151,7 @@ public sealed class BLLSuscripcion
             await NotificarActualizacionSuscripcion(solicitante, planActualizado);
         }
         RegistrarBitacora(solicitante, suscripcion, "VerificarActualizacionSuscripcion", mensaje);
-        return new ResultadoGestionSuscripcion(mensaje, suscripcion.Estado, suscripcion);
+        return new ResultadoGestionSuscripcion(mensaje, operacion.EstadoProveedor, suscripcion) { PagoConfirmado = aprobada };
     }
 
     private async Task NotificarActualizacionSuscripcion(Usuario solicitante, PlanComercial plan)
@@ -309,33 +262,31 @@ public sealed class BLLSuscripcion
             throw new InvalidOperationException("Mercado Pago no devolvió el checkout para autorizar la renovación automática.");
 
         CobroMercadoPago cobro = _mercadoPagoService.ObtenerCobroPlan(plan);
-        return new InicioActualizacionSuscripcion(preapproval.InitPoint, referencia, cobro.Importe, cobro.Moneda, actual.FechaVencimiento);
+        return new InicioActualizacionSuscripcion(preapproval.InitPoint, referencia, cobro.Importe, cobro.Moneda, actual.FechaVencimiento)
+        {
+            PreapprovalId = preapproval.Id,
+        };
     }
 
     public async Task<ResultadoGestionSuscripcion> VerificarRenovacionAutomaticaMercadoPago(Usuario solicitante, VerificarPagoSuscripcionRequest solicitud)
     {
         ValidarDueño(solicitante);
-        if (string.IsNullOrWhiteSpace(solicitud.ReferenciaOperacion))
-            throw new ArgumentException("No se informó la referencia de la renovación automática.");
+        MercadoPagoPreapproval preapproval = string.IsNullOrWhiteSpace(solicitud.PaymentId)
+            ? await _mercadoPagoService.ConsultarRenovacionAutomatica(solicitud.ReferenciaOperacion)
+            : await _mercadoPagoService.ConsultarRenovacionPorId(solicitud.PaymentId);
 
-        string[] segmentos = solicitud.ReferenciaOperacion.Split('-', StringSplitOptions.RemoveEmptyEntries);
-        if (segmentos.Length < 3 || !string.Equals(segmentos[0], "ren", StringComparison.Ordinal) || !int.TryParse(segmentos[1], out int idSuscripcion))
+        string[] segmentos = preapproval.ExternalReference.Split('-');
+        if (segmentos.Length != 3 || segmentos[0] != "ren" || !int.TryParse(segmentos[1], out int idSuscripcion) ||
+            !Guid.TryParseExact(segmentos[2], "N", out _) ||
+            (!string.IsNullOrWhiteSpace(solicitud.ReferenciaOperacion) && solicitud.ReferenciaOperacion != preapproval.ExternalReference))
             throw new ArgumentException("La referencia de renovación automática no es válida.");
 
-        Suscripcion actual = _suscripcionMPP.ConsultarActual(solicitante) ?? throw new KeyNotFoundException("La agencia no tiene una suscripción registrada.");
+        Suscripcion actual = ConsultarSuscripcion(solicitante);
         if (actual.ID != idSuscripcion) throw new UnauthorizedAccessException("La renovación no pertenece a la suscripción de tu agencia.");
-
-        MercadoPagoPreapproval preapproval = await _mercadoPagoService.ConsultarRenovacionAutomatica(solicitud.ReferenciaOperacion);
         if (!preapproval.Status.Equals("authorized", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Mercado Pago todavía no confirmó la autorización de la renovación automática.");
 
-        actual.ReferenciaRenovacionProveedor = preapproval.Id;
-        actual.EstadoRenovacionProveedor = preapproval.Status;
-        actual.ProveedorRenovacion = "MercadoPago";
-        _suscripcionMPP.RegistrarRenovacionProveedor(actual);
-        Suscripcion resultado = _suscripcionMPP.ConsultarActual(solicitante) ?? throw new InvalidOperationException("No fue posible actualizar la suscripción.");
-        RegistrarBitacora(solicitante, resultado, "AutorizarRenovacionAutomatica", "Se autorizó una renovación automática mediante Mercado Pago.");
-        return new ResultadoGestionSuscripcion("Renovación automática autorizada correctamente. Mercado Pago realizará los cobros recurrentes según su calendario.", resultado.Estado, resultado);
+        return RegistrarRenovacionConfirmada(solicitante, actual, "MercadoPago", preapproval.Id, preapproval.Status);
     }
 
     public async Task<int> SincronizarCobrosRecurrentes()
@@ -394,14 +345,37 @@ public sealed class BLLSuscripcion
         if (!referencia.StartsWith("ren-", StringComparison.Ordinal) || !int.TryParse(referencia.AsSpan(4), out int idSuscripcion)) throw new InvalidOperationException("La sesión de Stripe no corresponde a una renovación automática.");
         if (!string.Equals(estado, "approved", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(referenciaRenovacion)) throw new InvalidOperationException("Stripe todavía no confirmó la autorización de la renovación automática.");
 
-        Suscripcion suscripcion = new Suscripcion();
-        suscripcion.ID = idSuscripcion;
-        suscripcion.ReferenciaRenovacionProveedor = referenciaRenovacion;
-        suscripcion.EstadoRenovacionProveedor = "active";
-        suscripcion.ProveedorRenovacion = "Stripe";
-        _suscripcionMPP.RegistrarRenovacionProveedor(suscripcion);
-        RegistrarBitacora(solicitante, suscripcion, "AutorizarRenovacionAutomatica", "Se autorizó una renovación automática mediante Stripe.");
-        return new ResultadoGestionSuscripcion("Renovación automática autorizada correctamente. Stripe realizará los cobros según el calendario del plan.", "Activa");
+        Suscripcion actual = ConsultarSuscripcion(solicitante);
+        if (actual.ID != idSuscripcion) throw new UnauthorizedAccessException("La renovación no pertenece a la suscripción de tu agencia.");
+        return RegistrarRenovacionConfirmada(solicitante, actual, "Stripe", referenciaRenovacion, "active");
+    }
+
+    private ResultadoGestionSuscripcion RegistrarRenovacionConfirmada(Usuario usuario, Suscripcion actual, string proveedor, string referencia, string estado)
+    {
+        if (!actual.Activo) throw new InvalidOperationException("La suscripción debe estar activa para confirmar la renovación.");
+        if (!string.IsNullOrWhiteSpace(actual.ReferenciaRenovacionProveedor))
+        {
+            if (actual.ReferenciaRenovacionProveedor != referencia || actual.ProveedorRenovacion != proveedor)
+                throw new InvalidOperationException("La suscripción ya tiene otra autorización recurrente configurada.");
+            string mensaje = actual.RenovacionAutomatica ? "La renovación automática ya está autorizada." : "La autorización existe y la renovación está desactivada.";
+            return new ResultadoGestionSuscripcion(mensaje, actual.Estado, actual);
+        }
+
+        actual.ReferenciaRenovacionProveedor = referencia;
+        actual.EstadoRenovacionProveedor = estado;
+        actual.ProveedorRenovacion = proveedor;
+        _suscripcionMPP.RegistrarRenovacionProveedor(actual);
+        actual.RenovacionAutomatica = true;
+        try
+        {
+            RegistrarBitacora(usuario, actual, "AutorizarRenovacionAutomatica", $"Se autorizó una renovación automática mediante {proveedor}.");
+        }
+        catch (Exception ex)
+        {
+            // La autorización ya quedó registrada; repetir el checkout no arregla la bitácora.
+            _logger.LogError(ex, "No se pudo registrar en bitácora la renovación confirmada de la suscripción {IdSuscripcion}.", actual.ID);
+        }
+        return new ResultadoGestionSuscripcion("Renovación automática autorizada correctamente.", actual.Estado, actual);
     }
 
     private void ValidarDueño(Usuario solicitante)

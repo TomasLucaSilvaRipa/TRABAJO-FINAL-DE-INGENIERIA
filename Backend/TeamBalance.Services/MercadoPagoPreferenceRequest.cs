@@ -19,6 +19,8 @@ public sealed class MercadoPagoPreferenceRequest
         UsarImporteExacto = usarImporteExacto;
     }
 
+    public string MedioPago { get; init; } = string.Empty;
+    public string? ClaveIdempotencia { get; init; }
     public string Titulo { get; }
     public decimal Importe { get; }
     public string Moneda { get; }

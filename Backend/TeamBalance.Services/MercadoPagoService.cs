@@ -41,6 +41,14 @@ namespace TeamBalance.Services
             items.Add(item);
             preference.Add("items", items);
             preference.Add("external_reference", pago.ReferenciaExterna);
+            if (!string.IsNullOrEmpty(pago.MedioPago))
+            {
+                string[] tipos = { "credit_card", "debit_card", "ticket", "atm", "bank_transfer", "prepaid_card" };
+                preference["payment_methods"] = new
+                {
+                    excluded_payment_types = tipos.Where(tipo => tipo != pago.MedioPago).Select(tipo => new { id = tipo }).ToArray(),
+                };
+            }
             string? publicBaseUrl = _configuration["Frontend:PublicBaseUrl"];
             if (!string.IsNullOrWhiteSpace(publicBaseUrl))
             {
@@ -62,6 +70,7 @@ namespace TeamBalance.Services
 
             using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "https://api.mercadopago.com/checkout/preferences");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            if (!string.IsNullOrWhiteSpace(pago.ClaveIdempotencia)) request.Headers.TryAddWithoutValidation("X-Idempotency-Key", pago.ClaveIdempotencia);
             request.Content = JsonContent.Create(preference);
             using HttpResponseMessage response = await _httpClient.SendAsync(request);
             if (!response.IsSuccessStatusCode)
@@ -112,7 +121,7 @@ namespace TeamBalance.Services
                 throw new InvalidOperationException("Frontend:PublicBaseUrl debe ser una URL pública con HTTPS para autorizar renovaciones automáticas.");
             (decimal importe, string moneda) = ObtenerCobroPrueba(renovacion.NombrePlan);
             MercadoPagoAutoRecurringRequest autoRecurring = new MercadoPagoAutoRecurringRequest(1, "months", importe, moneda);
-            string backUrl = publicBaseUrl.TrimEnd('/') + "/pago/resultado?external_reference=" + Uri.EscapeDataString(renovacion.ReferenciaExterna) + "&renovacion=mercadopago";
+            string backUrl = publicBaseUrl.TrimEnd('/') + "/pago/resultado?referencia_renovacion=" + Uri.EscapeDataString(renovacion.ReferenciaExterna) + "&renovacion=mercadopago";
             MercadoPagoPreapprovalRequest body = new MercadoPagoPreapprovalRequest($"TeamBalance · renovación {renovacion.NombrePlan}", renovacion.ReferenciaExterna, renovacion.PayerEmail, backUrl, "pending", autoRecurring);
             using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "https://api.mercadopago.com/preapproval");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
@@ -129,6 +138,19 @@ namespace TeamBalance.Services
             if (resultado is null || string.IsNullOrWhiteSpace(resultado.Id) || string.IsNullOrWhiteSpace(resultado.Status) || string.IsNullOrWhiteSpace(resultado.InitPoint))
                 throw new InvalidOperationException("Mercado Pago no devolvió el enlace para autorizar la renovación.");
             return new MercadoPagoPreapproval(resultado.Id, resultado.Status, resultado.InitPoint, renovacion.ReferenciaExterna);
+        }
+
+        public async Task<MercadoPagoPreapproval> ConsultarRenovacionPorId(string id)
+        {
+            using var request = CrearSolicitudAutenticada(HttpMethod.Get,
+                $"https://api.mercadopago.com/preapproval/{Uri.EscapeDataString(id)}");
+            using HttpResponseMessage response = await _httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException("Mercado Pago no pudo consultar la autorización de renovación.");
+            var resultado = await response.Content.ReadFromJsonAsync<MercadoPagoPreapprovalResponse>();
+            if (resultado?.Id != id || string.IsNullOrWhiteSpace(resultado.ExternalReference) || string.IsNullOrWhiteSpace(resultado.Status))
+                throw new InvalidOperationException("Mercado Pago no devolvió los datos de la autorización.");
+            return new MercadoPagoPreapproval(id, resultado.Status, resultado.InitPoint ?? string.Empty, resultado.ExternalReference);
         }
 
         public async Task<MercadoPagoPreapproval> ConsultarRenovacionAutomatica(string referenciaExterna)
@@ -200,13 +222,64 @@ namespace TeamBalance.Services
         }
 
         private bool CobroPruebaHabilitado() => bool.TryParse(_configuration["MercadoPago:CobroPrueba:Habilitado"], out bool habilitado) && habilitado;
+        public async Task<long?> BuscarPagoActivo(PagoSuscripcion parte)
+        {
+            string referencia = Uri.EscapeDataString(parte.ReferenciaInterna);
+            using var solicitud = CrearSolicitudAutenticada(HttpMethod.Get,
+                $"https://api.mercadopago.com/v1/payments/search?external_reference={referencia}&sort=date_created&criteria=desc");
+            using HttpResponseMessage respuesta = await _httpClient.SendAsync(solicitud);
+            respuesta.EnsureSuccessStatusCode();
+            var busqueda = await respuesta.Content.ReadFromJsonAsync<BusquedaPagos>()
+                ?? throw new InvalidOperationException("Mercado Pago no devolvió el estado del pago pendiente.");
+
+            return busqueda.Results
+                .Where(pago => pago.Id > 0 && pago.ExternalReference == parte.ReferenciaInterna &&
+                    pago.TransactionAmount == parte.Importe && string.Equals(pago.CurrencyId, parte.Moneda, StringComparison.OrdinalIgnoreCase) &&
+                    pago.Status is "approved" or "pending" or "in_process" or "authorized" or "in_mediation")
+                .OrderByDescending(pago => pago.Status == "approved")
+                .Select(pago => (long?)pago.Id)
+                .FirstOrDefault();
+        }
+
+        public async Task HabilitarOtrosMedios(string urlPago)
+        {
+            if (!Uri.TryCreate(urlPago, UriKind.Absolute, out Uri? url))
+                throw new InvalidOperationException("Mercado Pago devolvió un enlace de pago inválido.");
+            string? identificador = url.Query.TrimStart('?').Split('&')
+                .FirstOrDefault(parametro => parametro.StartsWith("pref_id=", StringComparison.Ordinal))?["pref_id=".Length..];
+            if (string.IsNullOrWhiteSpace(identificador))
+                throw new InvalidOperationException("No encontramos la preferencia de Mercado Pago para habilitar otros medios.");
+
+            using var solicitud = CrearSolicitudAutenticada(HttpMethod.Put,
+                $"https://api.mercadopago.com/checkout/preferences/{Uri.EscapeDataString(Uri.UnescapeDataString(identificador))}");
+            solicitud.Content = JsonContent.Create(new
+            {
+                payment_methods = new { excluded_payment_types = Array.Empty<object>(), excluded_payment_methods = Array.Empty<object>() },
+            });
+            using HttpResponseMessage respuesta = await _httpClient.SendAsync(solicitud);
+            respuesta.EnsureSuccessStatusCode();
+        }
+
+        private sealed class BusquedaPagos
+        {
+            public required List<MercadoPagoPaymentResponse> Results { get; init; }
+        }
+
+        private HttpRequestMessage CrearSolicitudAutenticada(HttpMethod metodo, string url)
+        {
+            string? token = _configuration["MercadoPago:AccessToken"];
+            if (string.IsNullOrWhiteSpace(token))
+                throw new InvalidOperationException("No se configuró el Access Token de Mercado Pago.");
+            var solicitud = new HttpRequestMessage(metodo, url);
+            solicitud.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            return solicitud;
+        }
+
         public async Task<MercadoPagoPayment> ConsultarPago(string paymentId)
         {
-            string? accessToken = _configuration["MercadoPago:AccessToken"];
-            if (string.IsNullOrWhiteSpace(accessToken))
-                throw new Exception("No se configuró el Access Token de Mercado Pago.");
-            using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, $"https://api.mercadopago.com/v1/payments/{paymentId}");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            if (!long.TryParse(paymentId, out long id) || id <= 0)
+                throw new ArgumentException("Mercado Pago no informó un identificador de pago válido.");
+            using var request = CrearSolicitudAutenticada(HttpMethod.Get, $"https://api.mercadopago.com/v1/payments/{id}");
             using HttpResponseMessage response = await _httpClient.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {

@@ -5,7 +5,7 @@ using TeamBalance.DAL;
 
 namespace TeamBalance.MPP;
 
-public sealed class MPPSuscripcion
+public sealed partial class MPPSuscripcion
 {
     private readonly Conexion _conexion;
 
@@ -61,7 +61,12 @@ public sealed class MPPSuscripcion
         DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_ConsultarOperacionPendiente", new List<SqlParameter>() { new SqlParameter("@ReferenciaInterna", operacion.ReferenciaInterna) });
         if (tabla.Rows.Count != 1) throw new KeyNotFoundException("No existe una actualización de suscripción pendiente con la referencia indicada.");
         DataRow fila = tabla.Rows[0];
-        return new OperacionSuscripcionPendiente(Convert.ToInt32(fila["IdOperacion"]), Convert.ToInt32(fila["IdSuscripcion"]), Convert.ToInt32(fila["IdPlanNuevo"]), Convert.ToString(fila["ReferenciaInterna"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty, Convert.ToString(fila["Proveedor"]) ?? string.Empty, Convert.ToString(fila["TipoOperacion"]) ?? string.Empty);
+        return new OperacionSuscripcionPendiente(Convert.ToInt32(fila["IdOperacion"]), Convert.ToInt32(fila["IdSuscripcion"]), Convert.ToInt32(fila["IdPlanNuevo"]), Convert.ToString(fila["ReferenciaInterna"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty, Convert.ToString(fila["Proveedor"]) ?? string.Empty, Convert.ToString(fila["TipoOperacion"]) ?? string.Empty)
+        {
+            IdAgencia = Convert.ToInt32(fila["IdAgencia"]),
+            Estado = Convert.ToString(fila["Estado"]) ?? string.Empty,
+            ReferenciaProveedor = Convert.ToString(fila["ReferenciaProveedor"]) ?? string.Empty,
+        };
     }
 
     public Suscripcion AplicarResultadoCambioPlan(OperacionSuscripcionPendiente operacion)

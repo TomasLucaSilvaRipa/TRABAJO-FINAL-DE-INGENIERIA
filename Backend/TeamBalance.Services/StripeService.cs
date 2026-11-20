@@ -30,6 +30,11 @@ public sealed class StripeService
         return await CrearCheckoutPago($"TeamBalance - cambio a {plan.Nombre}", operacion.Importe, operacion.Moneda, operacion.ReferenciaInterna, plan.Nombre);
     }
 
+    public Task<string> CrearPago(PagoSuscripcion pago, PlanComercial plan)
+    {
+        return CrearCheckoutPago($"TeamBalance - {plan.Nombre}", pago.Importe, pago.Moneda, pago.ReferenciaInterna, plan.Nombre, $"{pago.ReferenciaInterna}-{pago.Intento}");
+    }
+
     public async Task<string> CrearRenovacionAutomatica(Suscripcion suscripcion, PlanComercial plan)
     {
         string referencia = $"ren-{suscripcion.ID}";
@@ -148,10 +153,11 @@ public sealed class StripeService
         return CryptographicOperations.FixedTimeEquals(firmaCalculada, firmaRecibida);
     }
 
-    private async Task<string> CrearCheckoutPago(string titulo, decimal importe, string moneda, string referencia, string? codigoPlan)
+    private async Task<string> CrearCheckoutPago(string titulo, decimal importe, string moneda, string referencia, string? codigoPlan, string? idempotencyKey = null)
     {
         Dictionary<string, string> datos = CrearDatosRetorno(referencia);
         datos["mode"] = "payment";
+        datos["adaptive_pricing[enabled]"] = "false";
         datos["client_reference_id"] = referencia;
         datos["metadata[tipo]"] = referencia.StartsWith("sus-", StringComparison.Ordinal) ? "ActualizacionSuscripcion" : "Contratacion";
         datos["metadata[referencia]"] = referencia;
@@ -162,12 +168,12 @@ public sealed class StripeService
         datos["line_items[0][price_data][unit_amount]"] = ConvertirAUnidadMenor(importe, moneda).ToString(CultureInfo.InvariantCulture);
         datos["line_items[0][quantity]"] = "1";
 
-        return await CrearSesion(datos);
+        return await CrearSesion(datos, idempotencyKey);
     }
 
-    private async Task<string> CrearSesion(Dictionary<string, string> datos)
+    private async Task<string> CrearSesion(Dictionary<string, string> datos, string? idempotencyKey = null)
     {
-        using HttpResponseMessage respuesta = await Enviar(HttpMethod.Post, "https://api.stripe.com/v1/checkout/sessions", datos);
+        using HttpResponseMessage respuesta = await Enviar(HttpMethod.Post, "https://api.stripe.com/v1/checkout/sessions", datos, idempotencyKey);
         string contenido = await respuesta.Content.ReadAsStringAsync();
         if (!respuesta.IsSuccessStatusCode) throw new InvalidOperationException($"Stripe rechazo la solicitud de pago: {contenido}");
         using JsonDocument documento = JsonDocument.Parse(contenido);
@@ -175,12 +181,13 @@ public sealed class StripeService
         return string.IsNullOrWhiteSpace(url) ? throw new InvalidOperationException("Stripe no devolvio una URL de pago.") : url;
     }
 
-    private async Task<HttpResponseMessage> Enviar(HttpMethod metodo, string url, Dictionary<string, string>? datos)
+    private async Task<HttpResponseMessage> Enviar(HttpMethod metodo, string url, Dictionary<string, string>? datos, string? idempotencyKey = null)
     {
         string claveSecreta = _configuration["Stripe:SecretKey"] ?? throw new InvalidOperationException("No se configuro Stripe:SecretKey. Agregala a los secretos locales de la API.");
         HttpRequestMessage solicitud = new HttpRequestMessage(metodo, url);
         string credencial = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{claveSecreta}:"));
         solicitud.Headers.Authorization = new AuthenticationHeaderValue("Basic", credencial);
+        if (idempotencyKey is not null) solicitud.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
         if (datos is not null) solicitud.Content = new FormUrlEncodedContent(datos);
         HttpResponseMessage respuesta = await _httpClient.SendAsync(solicitud);
         solicitud.Dispose();

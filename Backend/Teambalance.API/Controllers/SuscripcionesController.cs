@@ -28,6 +28,9 @@ public sealed class SuscripcionesController : ControllerBase
     [HttpGet("historial")]
     public IActionResult ConsultarHistorial() => Ejecutar(() => Ok(_suscripcionBLL.ConsultarHistorial(ObtenerSolicitante())));
 
+    [HttpGet("planes/{idPlan:int}/cotizacion-pago")]
+    public IActionResult ConsultarCotizacionPago(int idPlan) => Ejecutar(() => Ok(_suscripcionBLL.ConsultarCotizacionPago(ObtenerSolicitante(), idPlan)));
+
     [HttpGet("cuenta-corriente")]
     public IActionResult ConsultarCuentaCorriente() => Ejecutar(() => Ok(_cuentaCorrienteBLL.Consultar(ObtenerSolicitante())));
 
@@ -81,6 +84,17 @@ public sealed class SuscripcionesController : ControllerBase
         catch (ArgumentException ex) { return BadRequest(new RespuestaErrorSuscripcion("SUBSCRIPTION_VALIDATION", ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(new RespuestaErrorSuscripcion("SUBSCRIPTION_OPERATION_REJECTED", ex.Message)); }
         catch (Exception ex) { Console.Error.WriteLine("[Suscripciones] Error al verificar pago: " + ex); return StatusCode(502, "No fue posible verificar la operación con el proveedor de pago."); }
+    }
+
+    [HttpPost("operaciones/{referencia}/continuar")]
+    public async Task<IActionResult> ContinuarPago(string referencia)
+    {
+        try { return Ok(await _suscripcionBLL.ContinuarActualizacion(ObtenerSolicitante(), referencia)); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(new RespuestaErrorSuscripcion("SUBSCRIPTION_OPERATION_NOT_FOUND", ex.Message)); }
+        catch (ArgumentException ex) { return BadRequest(new RespuestaErrorSuscripcion("SUBSCRIPTION_VALIDATION", ex.Message)); }
+        catch (InvalidOperationException ex) { return BadRequest(new RespuestaErrorSuscripcion("SUBSCRIPTION_OPERATION_REJECTED", ex.Message)); }
+        catch (Exception ex) { Console.Error.WriteLine("[Suscripciones] Error al continuar pago: " + ex); return StatusCode(502, "No fue posible preparar el siguiente pago. Podés retomarlo desde el historial."); }
     }
 
     [HttpPost("cancelar-renovacion")]

@@ -19,12 +19,16 @@
 }
 
 .tb-shell {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   overflow-x: hidden;
   background: var(--tb-surface);
   color: var(--tb-ink);
   transition: background-color 180ms ease, color 180ms ease;
 }
+
+.tb-shell > main { flex: 1; }
 
 .tb-shell.tb-contrast {
   --tb-blue: #52cbe3;

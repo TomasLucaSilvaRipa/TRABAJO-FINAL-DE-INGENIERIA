@@ -22,6 +22,11 @@ public sealed class OperacionSuscripcionPendiente
         TipoOperacion = tipoOperacion;
     }
 
+    public int IdAgencia { get; set; }
+    public string Estado { get; set; } = string.Empty;
+    public decimal CreditoAplicado { get; set; }
+    public bool AplicadaAhora { get; set; }
+    public List<PagoSuscripcion> Pagos { get; set; } = new();
     public int IdOperacion { get; set; }
     public int IdSuscripcion { get; set; }
     public int IdPlanNuevo { get; set; }

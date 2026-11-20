@@ -119,6 +119,19 @@
   gap: 0.85rem;
 }
 
+.tb-payment-parts { display: grid; gap: 1rem; }
+.tb-payment-part { display: grid; grid-template-columns: 1fr 1.4fr 1fr auto; gap: 0.85rem; padding: 1rem; border: 1px solid rgb(203, 213, 225); border-radius: 0.85rem; }
+.tb-payment-part label { font-size: 0.8rem; font-weight: 600; }
+.tb-payment-part__amount { grid-column: 1 / -1; margin: 0; color: rgb(14, 116, 144); font-size: 0.85rem; }
+.tb-credit-allocation { display: grid; gap: 0.75rem; }
+.tb-payment-total { display: flex; flex-wrap: wrap; gap: 1.5rem; padding-top: 1rem; border-top: 1px solid rgb(203, 213, 225); }
+.tb-payment-total span { display: grid; gap: 0.25rem; font-size: 0.8rem; }
+.tb-payment-total strong { font-size: 1rem; }
+:host-context(.dark) .tb-payment-part { border-color: rgb(71, 85, 105); }
+:host-context(.dark) .tb-payment-part__amount { color: rgb(103, 232, 249); }
+@media (max-width: 900px) { .tb-payment-part { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 540px) { .tb-payment-part { grid-template-columns: 1fr; } }
+
 .tb-payment-methods--credit {
   padding-top: 0.15rem;
 }
