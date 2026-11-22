@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 
@@ -27,9 +28,23 @@ public partial class Suscripcion
 
     public int ID { get; set; }
 
-    public int IdAgencia { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Agencia Agencia { get; set; } = new();
 
-    public int IdPlanComercial { get; set; }
+    public int IdAgencia
+    {
+        get => Agencia.ID;
+        set => Agencia = Agencia.ID == value ? Agencia : new() { ID = value };
+    }
+
+    [JsonIgnore, ReferenciaInterna]
+    public PlanComercial PlanComercial { get; set; } = new();
+
+    public int IdPlanComercial
+    {
+        get => PlanComercial.ID;
+        set => PlanComercial = PlanComercial.ID == value ? PlanComercial : new() { ID = value, Nombre = PlanComercial.Nombre, Periodicidad = PlanComercial.Periodicidad, Moneda = PlanComercial.Moneda };
+    }
 
     public string? ReferenciaExterna { get; set; }
 
@@ -61,11 +76,23 @@ public partial class Suscripcion
     public string? MotivoRenovacion { get; set; }
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public string? NombrePlan { get; set; }
+    public string? NombrePlan
+    {
+        get => PlanComercial.Nombre;
+        set => PlanComercial.Nombre = value!;
+    }
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public string? PeriodicidadPlan { get; set; }
+    public string? PeriodicidadPlan
+    {
+        get => PlanComercial.Periodicidad;
+        set => PlanComercial.Periodicidad = value!;
+    }
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public string? Moneda { get; set; }
+    public string? Moneda
+    {
+        get => PlanComercial.Moneda;
+        set => PlanComercial.Moneda = value!;
+    }
 }

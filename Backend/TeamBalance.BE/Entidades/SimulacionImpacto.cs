@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -6,6 +7,12 @@ namespace TeamBalance.BE.Entidades;
 
 public partial class SimulacionImpacto
 {
+    [JsonIgnore, ReferenciaInterna]
+    public Skill Habilidad { get; set; } = new();
+
+    [JsonIgnore, ReferenciaInterna]
+    public Proyecto Proyecto { get; set; } = new();
+
     public SimulacionImpacto()
     {
     }
@@ -47,11 +54,32 @@ public partial class SimulacionImpacto
 
     public int ID { get; set; }
 
-    public int IdTarea { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Tarea Tarea { get; set; } = new();
 
-    public int IdEmpleadoCandidato { get; set; }
+    public int IdTarea
+    {
+        get => Tarea.ID;
+        set => Tarea = Tarea.ID == value ? Tarea : new() { ID = value, Titulo = Tarea.Titulo, Prioridad = Tarea.Prioridad, Deadline = Tarea.Deadline };
+    }
 
-    public int IdUsuarioCreador { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Empleado EmpleadoCandidato { get; set; } = new();
+
+    public int IdEmpleadoCandidato
+    {
+        get => EmpleadoCandidato.ID;
+        set => EmpleadoCandidato = EmpleadoCandidato.ID == value ? EmpleadoCandidato : new() { ID = value };
+    }
+
+    [JsonIgnore, ReferenciaInterna]
+    public Usuario UsuarioCreador { get; set; } = new();
+
+    public int IdUsuarioCreador
+    {
+        get => UsuarioCreador.ID;
+        set => UsuarioCreador = UsuarioCreador.ID == value ? UsuarioCreador : new() { ID = value };
+    }
 
     public decimal? CargaActual { get; set; }
 
@@ -87,22 +115,42 @@ public partial class SimulacionImpacto
     public int DiasAusenciaProximaSemana { get; set; }
 
     [NotMapped]
-    public DateTime? DeadlineTarea { get; set; }
+    public DateTime? DeadlineTarea
+    {
+        get => Tarea.Deadline;
+        set => Tarea.Deadline = value;
+    }
 
     [NotMapped]
-    public string? PrioridadTarea { get; set; }
+    public string? PrioridadTarea
+    {
+        get => Tarea.Prioridad;
+        set => Tarea.Prioridad = value;
+    }
 
     [NotMapped]
-    public string? NombreTarea { get; set; }
+    public string? NombreTarea
+    {
+        get => Tarea.Titulo;
+        set => Tarea.Titulo = value!;
+    }
 
     [NotMapped]
-    public string? NombreProyecto { get; set; }
+    public string? NombreProyecto
+    {
+        get => Proyecto.Nombre;
+        set => Proyecto.Nombre = value!;
+    }
 
     [NotMapped]
     public string? NombreEmpleado { get; set; }
 
     [NotMapped]
-    public string? NombreSkillRequerida { get; set; }
+    public string? NombreSkillRequerida
+    {
+        get => Habilidad.Nombre;
+        set => Habilidad.Nombre = value!;
+    }
 
     [NotMapped]
     public string? NivelSkillCandidato { get; set; }

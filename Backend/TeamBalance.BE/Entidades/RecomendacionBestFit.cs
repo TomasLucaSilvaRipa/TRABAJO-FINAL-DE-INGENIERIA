@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 
@@ -40,11 +41,32 @@ public partial class RecomendacionBestFit
 
     public int ID { get; set; }
 
-    public int IdTarea { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Tarea Tarea { get; set; } = new();
 
-    public int IdEmpleadoSugerido { get; set; }
+    public int IdTarea
+    {
+        get => Tarea.ID;
+        set => Tarea = Tarea.ID == value ? Tarea : new() { ID = value };
+    }
 
-    public int IdUsuarioSolicitante { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Empleado EmpleadoSugerido { get; set; } = new() { Seniority = string.Empty };
+
+    public int IdEmpleadoSugerido
+    {
+        get => EmpleadoSugerido.ID;
+        set => EmpleadoSugerido = EmpleadoSugerido.ID == value ? EmpleadoSugerido : new() { ID = value, Seniority = EmpleadoSugerido.Seniority, CantidadTareasHistoricasComparables = EmpleadoSugerido.CantidadTareasHistoricasComparables };
+    }
+
+    [JsonIgnore, ReferenciaInterna]
+    public Usuario UsuarioSolicitante { get; set; } = new();
+
+    public int IdUsuarioSolicitante
+    {
+        get => UsuarioSolicitante.ID;
+        set => UsuarioSolicitante = UsuarioSolicitante.ID == value ? UsuarioSolicitante : new() { ID = value };
+    }
 
     public decimal PuntajeCompatibilidad { get; set; }
 
@@ -58,7 +80,11 @@ public partial class RecomendacionBestFit
 
     public string NombreEmpleado { get; set; } = string.Empty;
 
-    public string SeniorityEmpleado { get; set; } = string.Empty;
+    public string SeniorityEmpleado
+    {
+        get => EmpleadoSugerido.Seniority;
+        set => EmpleadoSugerido.Seniority = value;
+    }
 
     public decimal HorasDisponibles { get; set; }
 
@@ -78,7 +104,11 @@ public partial class RecomendacionBestFit
 
     public decimal PuntajeHistorial { get; set; }
 
-    public int CantidadTareasHistoricasComparables { get; set; }
+    public int CantidadTareasHistoricasComparables
+    {
+        get => EmpleadoSugerido.CantidadTareasHistoricasComparables;
+        set => EmpleadoSugerido.CantidadTareasHistoricasComparables = value;
+    }
 
     public string DetalleCompatibilidad { get; set; } = string.Empty;
 

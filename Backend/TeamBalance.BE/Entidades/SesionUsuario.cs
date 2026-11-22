@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 
@@ -24,7 +25,14 @@ public partial class SesionUsuario
 
     public int ID { get; set; }
 
-    public int IdUsuario { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Usuario Usuario { get; set; } = new();
+
+    public int IdUsuario
+    {
+        get => Usuario.ID;
+        set => Usuario = Usuario.ID == value ? Usuario : new() { ID = value };
+    }
 
     public string TokenHash { get; set; } = null!;
 

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TeamBalance.BE.Entidades;
 public class RevisionOperativaPendiente
 {
@@ -21,8 +23,40 @@ public class RevisionOperativaPendiente
 
     public int ID { get; set; }
     public string Tipo { get; set; } = string.Empty;
-    public int? IdCliente { get; set; }
-    public string Cliente { get; set; } = string.Empty;
+    private string _nombreClienteSinReferencia = string.Empty;
+
+    [JsonIgnore, ReferenciaInterna]
+    public Cliente? ClienteRelacionado { get; set; }
+
+    public int? IdCliente
+    {
+        get => ClienteRelacionado?.ID;
+        set
+        {
+            if (value is int id)
+            {
+                if (ClienteRelacionado?.ID != id)
+                    ClienteRelacionado = new Cliente { ID = id, Nombre = Cliente };
+            }
+            else
+            {
+                _nombreClienteSinReferencia = Cliente;
+                ClienteRelacionado = null;
+            }
+        }
+    }
+
+    public string Cliente
+    {
+        get => ClienteRelacionado is Cliente cliente ? cliente.Nombre : _nombreClienteSinReferencia;
+        set
+        {
+            if (ClienteRelacionado is Cliente cliente)
+                cliente.Nombre = value;
+            else
+                _nombreClienteSinReferencia = value;
+        }
+    }
     public string Referencia { get; set; } = string.Empty;
     public string NombreProyecto { get; set; } = string.Empty;
     public string CausaPrincipal { get; set; } = string.Empty;

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -48,15 +49,56 @@ public partial class Tarea
 
     public int ID { get; set; }
 
-    public int IdProyecto { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Proyecto Proyecto { get; set; } = new();
 
-    public int? IdEmpleadoAsignado { get; set; }
+    public int IdProyecto
+    {
+        get => Proyecto.ID;
+        set => Proyecto = Proyecto.ID == value ? Proyecto : new() { ID = value };
+    }
 
-    public int? IdSkillRequerido { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Empleado? EmpleadoAsignado { get; set; }
 
-    public int IdEstadoTarea { get; set; }
+    public int? IdEmpleadoAsignado
+    {
+        get => EmpleadoAsignado?.ID;
+        set => EmpleadoAsignado = value.HasValue
+            ? (EmpleadoAsignado?.ID == value.Value ? EmpleadoAsignado : new() { ID = value.Value })
+            : null;
+    }
 
-    public int? IdTareaPredecesora { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Skill? HabilidadRequerida { get; set; }
+
+    public int? IdSkillRequerido
+    {
+        get => HabilidadRequerida?.ID;
+        set => HabilidadRequerida = value.HasValue
+            ? (HabilidadRequerida?.ID == value.Value ? HabilidadRequerida : new() { ID = value.Value })
+            : null;
+    }
+
+    [JsonIgnore, ReferenciaInterna]
+    public EstadoTarea EstadoRelacionado { get; set; } = new();
+
+    public int IdEstadoTarea
+    {
+        get => EstadoRelacionado.ID;
+        set => EstadoRelacionado = EstadoRelacionado.ID == value ? EstadoRelacionado : new() { ID = value };
+    }
+
+    [JsonIgnore, ReferenciaInterna]
+    public Tarea? TareaPredecesora { get; set; }
+
+    public int? IdTareaPredecesora
+    {
+        get => TareaPredecesora?.ID;
+        set => TareaPredecesora = value.HasValue
+            ? (TareaPredecesora?.ID == value.Value ? TareaPredecesora : new() { ID = value.Value })
+            : null;
+    }
 
     public string Titulo { get; set; } = null!;
 

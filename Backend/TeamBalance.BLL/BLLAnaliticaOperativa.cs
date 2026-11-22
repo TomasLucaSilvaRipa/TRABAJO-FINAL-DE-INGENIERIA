@@ -452,7 +452,18 @@ public class BLLAnaliticaOperativa
             if (!creada) { continue; }
             creadas++;
             DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(new PM { ID = grupoPM.Key });
-            if (destinatario is not null && await _emailService.EnviarCorreoRevisionConveniencia(new RevisionConvenienciaCorreo { Destinatario = destinatario, NombreCliente = nombreCliente, Proyectos = grupoPM.Select(contexto => contexto.Proyecto.Nombre).Distinct().ToList(), CausaPrincipal = causa, AccionSugerida = accion })) { correosEnviados++; }
+            if (destinatario is not null)
+            {
+                RevisionConvenienciaCorreo correo = new RevisionConvenienciaCorreo
+                {
+                    Destinatario = destinatario,
+                    Cliente = contextos[0].Proyecto.Cliente,
+                    ProyectosRelacionados = grupoPM.Select(contexto => contexto.Proyecto).DistinctBy(proyecto => proyecto.Nombre).ToList(),
+                    CausaPrincipal = causa,
+                    AccionSugerida = accion
+                };
+                if (await _emailService.EnviarCorreoRevisionConveniencia(correo)) { correosEnviados++; }
+            }
         }
         string resultado = creadas == 0 ? "Sin cambios" : correosEnviados == creadas ? "Exitoso" : "Parcial";
         string detalle = creadas == 0

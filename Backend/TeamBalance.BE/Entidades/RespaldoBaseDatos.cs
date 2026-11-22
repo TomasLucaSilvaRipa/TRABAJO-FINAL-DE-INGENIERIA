@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TeamBalance.BE.Entidades;
 public sealed class RespaldoBaseDatos
 {
@@ -10,6 +12,15 @@ public sealed class RespaldoBaseDatos
     public bool Verificado { get; set; }
     public long? TamanoBytes { get; set; }
     public string? Mensaje { get; set; }
-    public int? IdUsuarioSolicitante { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Usuario? UsuarioSolicitante { get; set; }
+
+    public int? IdUsuarioSolicitante
+    {
+        get => UsuarioSolicitante?.ID;
+        set => UsuarioSolicitante = value.HasValue
+            ? (UsuarioSolicitante?.ID == value.Value ? UsuarioSolicitante : new() { ID = value.Value })
+            : null;
+    }
     public DateTime FechaExpiracion { get; set; }
 }

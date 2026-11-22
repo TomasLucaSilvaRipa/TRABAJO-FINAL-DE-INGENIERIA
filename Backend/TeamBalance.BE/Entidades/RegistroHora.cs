@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -23,9 +24,23 @@ public partial class RegistroHora
 
     public int ID { get; set; }
 
-    public int IdTarea { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Tarea Tarea { get; set; } = new();
 
-    public int IdEmpleado { get; set; }
+    public int IdTarea
+    {
+        get => Tarea.ID;
+        set => Tarea = Tarea.ID == value ? Tarea : new() { ID = value };
+    }
+
+    [JsonIgnore, ReferenciaInterna]
+    public Empleado Empleado { get; set; } = new();
+
+    public int IdEmpleado
+    {
+        get => Empleado.ID;
+        set => Empleado = Empleado.ID == value ? Empleado : new() { ID = value };
+    }
 
     public DateTime Fecha { get; set; }
 

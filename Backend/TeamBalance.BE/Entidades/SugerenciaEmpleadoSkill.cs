@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TeamBalance.BE.Entidades;
 public class SugerenciaEmpleadoSkill
 {
@@ -15,9 +17,20 @@ public class SugerenciaEmpleadoSkill
         SkillsRelacionadas = skillsRelacionadas;
     }
 
-    public int IdEmpleado { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Empleado Empleado { get; set; } = new() { Seniority = string.Empty };
+
+    public int IdEmpleado
+    {
+        get => Empleado.ID;
+        set => Empleado = Empleado.ID == value ? Empleado : new() { ID = value, Seniority = Empleado.Seniority };
+    }
     public string NombreEmpleado { get; set; } = string.Empty;
-    public string Seniority { get; set; } = string.Empty;
+    public string Seniority
+    {
+        get => Empleado.Seniority;
+        set => Empleado.Seniority = value;
+    }
     public decimal HorasSemanales { get; set; }
     public decimal CargaActual { get; set; }
     public decimal HorasDisponibles { get; set; }

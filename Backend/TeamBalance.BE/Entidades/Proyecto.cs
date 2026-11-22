@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 
@@ -31,11 +32,32 @@ public partial class Proyecto
 
     public int ID { get; set; }
 
-    public int IdAgencia { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Agencia Agencia { get; set; } = new();
 
-    public int IdCliente { get; set; }
+    public int IdAgencia
+    {
+        get => Agencia.ID;
+        set => Agencia = Agencia.ID == value ? Agencia : new() { ID = value };
+    }
 
-    public int IdPMResponsable { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Cliente Cliente { get; set; } = new() { Nombre = null! };
+
+    public int IdCliente
+    {
+        get => Cliente.ID;
+        set => Cliente = Cliente.ID == value ? Cliente : new() { ID = value, Nombre = Cliente.Nombre };
+    }
+
+    [JsonIgnore, ReferenciaInterna]
+    public PM PMResponsable { get; set; } = new();
+
+    public int IdPMResponsable
+    {
+        get => PMResponsable.ID;
+        set => PMResponsable = PMResponsable.ID == value ? PMResponsable : new() { ID = value };
+    }
 
     public string Nombre { get; set; } = null!;
 
@@ -55,7 +77,11 @@ public partial class Proyecto
 
     public DateTime? FechaBaja { get; set; }
 
-    public string? NombreCliente { get; set; }
+    public string? NombreCliente
+    {
+        get => Cliente.Nombre;
+        set => Cliente.Nombre = value!;
+    }
 
     public string? NombrePMResponsable { get; set; }
 

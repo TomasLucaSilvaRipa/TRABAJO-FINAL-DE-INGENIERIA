@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TeamBalance.BE.Entidades;
 
 public class RegistroAgenciaResultado
@@ -12,6 +14,20 @@ public class RegistroAgenciaResultado
         IdUsuario = idUsuario;
     }
 
-    public int IdAgencia { get; set; }
-    public int IdUsuario { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Agencia Agencia { get; set; } = new();
+
+    public int IdAgencia
+    {
+        get => Agencia.ID;
+        set => Agencia = Agencia.ID == value ? Agencia : new() { ID = value };
+    }
+    [JsonIgnore, ReferenciaInterna]
+    public Usuario Usuario { get; set; } = new();
+
+    public int IdUsuario
+    {
+        get => Usuario.ID;
+        set => Usuario = Usuario.ID == value ? Usuario : new() { ID = value };
+    }
 }

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TeamBalance.BE.Entidades;
 public sealed class RenovacionProveedorPendiente
 {
@@ -10,9 +12,30 @@ public sealed class RenovacionProveedorPendiente
         Proveedor = proveedor;
     }
 
-    public int IdSuscripcion { get; set; }
-    public int IdAgencia { get; set; }
-    public int IdPlanComercial { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Suscripcion Suscripcion { get; set; } = new();
+
+    public int IdSuscripcion
+    {
+        get => Suscripcion.ID;
+        set => Suscripcion = Suscripcion.ID == value ? Suscripcion : new() { ID = value };
+    }
+    [JsonIgnore, ReferenciaInterna]
+    public Agencia Agencia { get; set; } = new();
+
+    public int IdAgencia
+    {
+        get => Agencia.ID;
+        set => Agencia = Agencia.ID == value ? Agencia : new() { ID = value };
+    }
+    [JsonIgnore, ReferenciaInterna]
+    public PlanComercial PlanComercial { get; set; } = new();
+
+    public int IdPlanComercial
+    {
+        get => PlanComercial.ID;
+        set => PlanComercial = PlanComercial.ID == value ? PlanComercial : new() { ID = value };
+    }
     public string ReferenciaRenovacionProveedor { get; set; } = string.Empty;
     public string Proveedor { get; set; } = string.Empty;
     public string ReferenciaPago { get; set; } = string.Empty;

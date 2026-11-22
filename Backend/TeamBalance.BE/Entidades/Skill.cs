@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 
@@ -29,10 +30,41 @@ public partial class Skill
 
     public string? Categoria { get; set; }
 
-    public int? IdAreaSkill { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public AreaSkill? Area { get; set; }
+
+    public int? IdAreaSkill
+    {
+        get => Area?.ID;
+        set
+        {
+            if (value is int id)
+            {
+                if (Area?.ID != id)
+                    Area = new() { ID = id, Nombre = NombreArea! };
+            }
+            else
+            {
+                _nombreAreaSinReferencia = NombreArea;
+                Area = null;
+            }
+        }
+    }
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public string? NombreArea { get; set; }
+    private string? _nombreAreaSinReferencia;
+
+    public string? NombreArea
+    {
+        get => Area is null ? _nombreAreaSinReferencia : Area.Nombre;
+        set
+        {
+            if (Area is null)
+                _nombreAreaSinReferencia = value;
+            else
+                Area.Nombre = value!;
+        }
+    }
 
     public bool Activo { get; set; }
 }

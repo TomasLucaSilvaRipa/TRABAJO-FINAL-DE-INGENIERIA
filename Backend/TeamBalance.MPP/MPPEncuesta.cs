@@ -123,7 +123,7 @@ public sealed class MPPEncuesta
             DataRow filaPregunta = grupoPregunta.First();
             PreguntaEncuesta pregunta = new PreguntaEncuesta();
             pregunta.ID = Convert.ToInt32(filaPregunta["IdPreguntaEncuesta"]);
-            pregunta.IdEncuesta = encuesta.ID;
+            pregunta.Encuesta = encuesta;
             pregunta.EnunciadoEs = Convert.ToString(filaPregunta["EnunciadoEs"]) ?? string.Empty;
             pregunta.EnunciadoEn = Convert.ToString(filaPregunta["EnunciadoEn"]) ?? string.Empty;
             pregunta.Orden = Convert.ToInt32(filaPregunta["OrdenPregunta"]);
@@ -132,7 +132,7 @@ public sealed class MPPEncuesta
             {
                 OpcionEncuesta opcion = new OpcionEncuesta();
                 opcion.ID = Convert.ToInt32(filaOpcion["IdOpcionEncuesta"]);
-                opcion.IdPreguntaEncuesta = pregunta.ID;
+                opcion.Pregunta = pregunta;
                 opcion.TextoEs = Convert.ToString(filaOpcion["TextoEs"]) ?? string.Empty;
                 opcion.TextoEn = Convert.ToString(filaOpcion["TextoEn"]) ?? string.Empty;
                 opcion.Orden = Convert.ToInt32(filaOpcion["OrdenOpcion"]);

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TeamBalance.BE.Entidades;
 
 public sealed class RegistroContinuidadXml
@@ -25,11 +27,29 @@ public sealed class RegistroContinuidadXml
     public string Estado { get; set; } = string.Empty;
     public DateTime FechaInicioUtc { get; set; }
     public DateTime? FechaFinUtc { get; set; }
-    public int? IdRespaldo { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public RespaldoBaseDatos? Respaldo { get; set; }
+
+    public int? IdRespaldo
+    {
+        get => Respaldo?.ID;
+        set => Respaldo = value.HasValue
+            ? (Respaldo?.ID == value.Value ? Respaldo : new() { ID = value.Value })
+            : null;
+    }
     public string NombreArchivo { get; set; } = string.Empty;
     public long? TamanoBytes { get; set; }
     public bool? Verificado { get; set; }
-    public int? IdUsuarioSolicitante { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Usuario? UsuarioSolicitante { get; set; }
+
+    public int? IdUsuarioSolicitante
+    {
+        get => UsuarioSolicitante?.ID;
+        set => UsuarioSolicitante = value.HasValue
+            ? (UsuarioSolicitante?.ID == value.Value ? UsuarioSolicitante : new() { ID = value.Value })
+            : null;
+    }
     public int? ArchivosConfiguracion { get; set; }
     public string? Mensaje { get; set; }
 }

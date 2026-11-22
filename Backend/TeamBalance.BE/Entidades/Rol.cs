@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System.Text.Json.Serialization;
+using System;
 using System.Collections.Generic;
 
 namespace TeamBalance.BE.Entidades;
@@ -29,7 +30,16 @@ public partial class Rol
 
     public int ID { get; set; }
 
-    public int? IdAgencia { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Agencia? Agencia { get; set; }
+
+    public int? IdAgencia
+    {
+        get => Agencia?.ID;
+        set => Agencia = value.HasValue
+            ? (Agencia?.ID == value.Value ? Agencia : new() { ID = value.Value })
+            : null;
+    }
 
     public string Nombre { get; set; } = null!;
 

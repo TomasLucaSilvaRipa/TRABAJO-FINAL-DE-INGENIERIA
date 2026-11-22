@@ -1,9 +1,13 @@
+using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 
 namespace TeamBalance.BE.Entidades;
 public class TareaDisponibilidadAfectada
 {
+    [JsonIgnore, ReferenciaInterna]
+    public Proyecto Proyecto { get; set; } = new() { Nombre = string.Empty };
+
     public TareaDisponibilidadAfectada()
     {
     }
@@ -16,8 +20,27 @@ public class TareaDisponibilidadAfectada
         Deadline = deadline;
     }
 
-    public int IdTarea { get; set; }
-    public string Titulo { get; set; } = string.Empty;
-    public string NombreProyecto { get; set; } = string.Empty;
-    public DateTime? Deadline { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Tarea Tarea { get; set; } = new() { Titulo = string.Empty };
+
+    public int IdTarea
+    {
+        get => Tarea.ID;
+        set => Tarea = Tarea.ID == value ? Tarea : new() { ID = value, Titulo = Tarea.Titulo, Deadline = Tarea.Deadline };
+    }
+    public string Titulo
+    {
+        get => Tarea.Titulo;
+        set => Tarea.Titulo = value;
+    }
+    public string NombreProyecto
+    {
+        get => Proyecto.Nombre;
+        set => Proyecto.Nombre = value;
+    }
+    public DateTime? Deadline
+    {
+        get => Tarea.Deadline;
+        set => Tarea.Deadline = value;
+    }
 }

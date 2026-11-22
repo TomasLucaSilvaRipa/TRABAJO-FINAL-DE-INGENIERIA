@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TeamBalance.BE.Entidades;
 public sealed class BandejaSoporteItem
 {
@@ -5,9 +7,9 @@ public sealed class BandejaSoporteItem
     {
         Origen = OrigenBandejaSoporte.HelpDesk;
         ID = consulta.ID;
-        IdUsuario = consulta.IdUsuario;
-        IdAgencia = consulta.IdAgencia;
-        IdSuscripcion = consulta.IdSuscripcion;
+        Usuario = consulta.Usuario;
+        Agencia = consulta.Agencia;
+        Suscripcion = consulta.Suscripcion;
         Categoria = consulta.Categoria;
         Asunto = consulta.Asunto;
         Descripcion = consulta.Descripcion;
@@ -25,7 +27,7 @@ public sealed class BandejaSoporteItem
     {
         Origen = OrigenBandejaSoporte.ConsultaPlan;
         ID = consulta.ID;
-        IdPlanComercial = consulta.IdPlanComercial;
+        PlanComercial = consulta.PlanComercial;
         Categoria = "Consulta sobre plan";
         Asunto = "Consulta sobre plan";
         Descripcion = consulta.Consulta;
@@ -42,10 +44,76 @@ public sealed class BandejaSoporteItem
 
     public OrigenBandejaSoporte Origen { get; set; }
     public int ID { get; set; }
-    public int? IdUsuario { get; set; }
-    public int? IdAgencia { get; set; }
-    public int? IdSuscripcion { get; set; }
-    public int? IdPlanComercial { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Usuario? Usuario { get; set; }
+
+    public int? IdUsuario
+    {
+        get => Usuario?.ID;
+        set
+        {
+            if (value is int id)
+            {
+                if (Usuario?.ID != id)
+                    Usuario = new() { ID = id, Email = EmailSolicitante! };
+            }
+            else
+            {
+                _emailSolicitanteSinReferencia = EmailSolicitante;
+                Usuario = null;
+            }
+        }
+    }
+    [JsonIgnore, ReferenciaInterna]
+    public Agencia? Agencia { get; set; }
+
+    public int? IdAgencia
+    {
+        get => Agencia?.ID;
+        set
+        {
+            if (value is int id)
+            {
+                if (Agencia?.ID != id)
+                    Agencia = new() { ID = id, NombreComercial = NombreAgencia! };
+            }
+            else
+            {
+                _nombreAgenciaSinReferencia = NombreAgencia;
+                Agencia = null;
+            }
+        }
+    }
+    [JsonIgnore, ReferenciaInterna]
+    public Suscripcion? Suscripcion { get; set; }
+
+    public int? IdSuscripcion
+    {
+        get => Suscripcion?.ID;
+        set => Suscripcion = value.HasValue
+            ? (Suscripcion?.ID == value.Value ? Suscripcion : new() { ID = value.Value })
+            : null;
+    }
+    [JsonIgnore, ReferenciaInterna]
+    public PlanComercial? PlanComercial { get; set; }
+
+    public int? IdPlanComercial
+    {
+        get => PlanComercial?.ID;
+        set
+        {
+            if (value is int id)
+            {
+                if (PlanComercial?.ID != id)
+                    PlanComercial = new() { ID = id, Nombre = NombrePlan! };
+            }
+            else
+            {
+                _nombrePlanSinReferencia = NombrePlan;
+                PlanComercial = null;
+            }
+        }
+    }
     public string Categoria { get; set; } = string.Empty;
     public string Asunto { get; set; } = string.Empty;
     public string Descripcion { get; set; } = string.Empty;
@@ -53,9 +121,45 @@ public sealed class BandejaSoporteItem
     public DateTime FechaCreacion { get; set; }
     public DateTime? FechaActualizacion { get; set; }
     public string NombreSolicitante { get; set; } = string.Empty;
-    public string? EmailSolicitante { get; set; }
-    public string? NombreAgencia { get; set; }
-    public string? NombrePlan { get; set; }
+    private string? _emailSolicitanteSinReferencia;
+
+    public string? EmailSolicitante
+    {
+        get => Usuario is null ? _emailSolicitanteSinReferencia : Usuario.Email;
+        set
+        {
+            if (Usuario is null)
+                _emailSolicitanteSinReferencia = value;
+            else
+                Usuario.Email = value!;
+        }
+    }
+    private string? _nombreAgenciaSinReferencia;
+
+    public string? NombreAgencia
+    {
+        get => Agencia is null ? _nombreAgenciaSinReferencia : Agencia.NombreComercial;
+        set
+        {
+            if (Agencia is null)
+                _nombreAgenciaSinReferencia = value;
+            else
+                Agencia.NombreComercial = value!;
+        }
+    }
+    private string? _nombrePlanSinReferencia;
+
+    public string? NombrePlan
+    {
+        get => PlanComercial is null ? _nombrePlanSinReferencia : PlanComercial.Nombre;
+        set
+        {
+            if (PlanComercial is null)
+                _nombrePlanSinReferencia = value;
+            else
+                PlanComercial.Nombre = value!;
+        }
+    }
     public int CantidadMensajes { get; set; }
     public string? Respuesta { get; set; }
     public DateTime? FechaRespuesta { get; set; }
