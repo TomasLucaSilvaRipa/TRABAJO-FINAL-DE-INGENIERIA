@@ -1,9 +1,17 @@
 namespace TeamBalance.BE.Entidades;
 public class AnalisisCoberturaSkill
 {
-    public int IdSkill { get; set; }
-    public string NombreSkill { get; set; } = string.Empty;
-    public string? CategoriaSkill { get; set; }
+    public AnalisisCoberturaSkill(Skill skill)
+    {
+        Skill = skill;
+    }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Skill Skill { get; }
+
+    public int IdSkill => Skill.ID;
+    public string NombreSkill => Skill.Nombre;
+    public string? CategoriaSkill => Skill.Categoria;
     public decimal DemandaHoras { get; set; }
     public decimal CapacidadDisponibleHoras { get; set; }
     public decimal CapacidadTotalHoras { get; set; }

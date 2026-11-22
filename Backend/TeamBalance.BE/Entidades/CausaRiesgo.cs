@@ -2,19 +2,18 @@ namespace TeamBalance.BE.Entidades;
 
 public class CausaRiesgo
 {
-    public CausaRiesgo()
+    public CausaRiesgo(Proyecto proyecto, string tipoElemento, string descripcion, string nivel)
     {
-    }
-
-    public CausaRiesgo(int idElemento, string tipoElemento, string descripcion, string nivel)
-    {
-        IdElemento = idElemento;
+        Proyecto = proyecto;
         TipoElemento = tipoElemento;
         Descripcion = descripcion;
         Nivel = nivel;
     }
 
-    public int IdElemento { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Proyecto Proyecto { get; }
+
+    public int IdElemento => Proyecto.ID;
 
     public string TipoElemento { get; set; } = string.Empty;
 

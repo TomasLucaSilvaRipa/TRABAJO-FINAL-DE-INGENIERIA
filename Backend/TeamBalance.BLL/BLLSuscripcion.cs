@@ -240,7 +240,7 @@ public sealed partial class BLLSuscripcion
         Suscripcion actual = _suscripcionMPP.ConsultarActual(solicitante) ?? throw new KeyNotFoundException("La agencia no tiene una suscripción registrada.");
         PlanComercial plan = _planMPP.ConsultarPlan(new PlanComercial(actual.IdPlanComercial));
         (string publicKey, decimal importe, string moneda) = _mercadoPagoService.ObtenerCobroRecurrente(plan.Nombre);
-        return new ConfiguracionRenovacionAutomatica(publicKey, importe, moneda, plan.Nombre);
+        return new ConfiguracionRenovacionAutomatica(publicKey, importe, moneda, plan);
     }
 
     public async Task<InicioActualizacionSuscripcion> AutorizarRenovacionAutomatica(Usuario solicitante, AutorizarRenovacionAutomaticaRequest solicitud)

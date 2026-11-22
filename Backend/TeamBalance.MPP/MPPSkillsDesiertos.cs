@@ -38,7 +38,7 @@ public class MPPSkillsDesiertos
     {
         DataTable tabla = _conexion.Leer("dbo.usp_SkillsDesiertos_SugerirEmpleados", new List<SqlParameter>
         {
-            new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@IdSkill", consulta.IdSkill), new SqlParameter("@IdProyecto", consulta.IdProyecto)
+            new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@IdSkill", consulta.Skill.ID), new SqlParameter("@IdProyecto", consulta.Proyecto.ID)
         });
         return tabla.Rows.Cast<DataRow>().Select(fila => new SugerenciaEmpleadoSkill(Convert.ToInt32(fila["IdEmpleado"]), Convert.ToString(fila["NombreEmpleado"]) ?? string.Empty, Convert.ToString(fila["Seniority"]) ?? string.Empty, Convert.ToDecimal(fila["HorasSemanales"]), Convert.ToDecimal(fila["CargaActual"]), Convert.ToDecimal(fila["HorasDisponibles"]), Convert.ToBoolean(fila["EsDelProyecto"]), Convert.ToBoolean(fila["TieneSkillObjetivo"]), Convert.ToInt32(fila["CantidadSkillsMismaArea"]), Convert.ToString(fila["SkillsRelacionadas"]) ?? string.Empty)).ToList();
     }

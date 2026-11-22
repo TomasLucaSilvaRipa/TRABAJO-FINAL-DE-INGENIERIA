@@ -84,7 +84,8 @@ public sealed class MPPHelpDesk
         consulta.FechaActualizacion = fila["FechaActualizacion"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaActualizacion"]);
         consulta.NombreSolicitante = fila.Table.Columns.Contains("NombreSolicitante") ? Convert.ToString(fila["NombreSolicitante"]) ?? string.Empty : string.Empty;
         consulta.EmailSolicitante = fila.Table.Columns.Contains("EmailSolicitante") && fila["EmailSolicitante"] != DBNull.Value ? Convert.ToString(fila["EmailSolicitante"]) : null;
-        consulta.NombreAgencia = fila.Table.Columns.Contains("NombreAgencia") && fila["NombreAgencia"] != DBNull.Value ? Convert.ToString(fila["NombreAgencia"]) : null;
+        if (consulta.Agencia is { } agencia && fila.Table.Columns.Contains("NombreAgencia") && fila["NombreAgencia"] != DBNull.Value)
+            agencia.NombreComercial = Convert.ToString(fila["NombreAgencia"])!;
         consulta.NombrePlan = fila.Table.Columns.Contains("NombrePlan") && fila["NombrePlan"] != DBNull.Value ? Convert.ToString(fila["NombrePlan"]) : null;
         consulta.CantidadMensajes = fila.Table.Columns.Contains("CantidadMensajes") ? Convert.ToInt32(fila["CantidadMensajes"]) : 0;
         return consulta;

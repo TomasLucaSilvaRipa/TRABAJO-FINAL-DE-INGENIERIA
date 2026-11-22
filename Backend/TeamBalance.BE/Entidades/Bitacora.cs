@@ -48,8 +48,24 @@ public partial class Bitacora
     }
 
     public int ID { get; set; }
-    public int? IdUsuario { get; set; }
-    public int? IdAgencia { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Usuario? Usuario { get; set; }
+
+    // Adaptador para el formato plano de entrada y salida.
+    public int? IdUsuario
+    {
+        get => Usuario?.ID;
+        set => Usuario = value.HasValue ? new() { ID = value.Value } : null;
+    }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Agencia? Agencia { get; set; }
+
+    // Adaptador para el formato plano de entrada y salida.
+    public int? IdAgencia
+    {
+        get => Agencia?.ID;
+        set => Agencia = value.HasValue ? new() { ID = value.Value } : null;
+    }
     public string? Entidad { get; set; }
     public int? IdEntidad { get; set; }
     public string Accion { get; set; } = null!;

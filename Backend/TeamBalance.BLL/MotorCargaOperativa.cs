@@ -11,8 +11,7 @@ public class MotorCargaOperativa
     {
         DateTime inicioPeriodo = desde.Date;
         DateTime finPeriodo = hasta.Date;
-        CargaOperativaEmpleado resultado = new CargaOperativaEmpleado();
-        resultado.IdEmpleado = empleado.ID;
+        CargaOperativaEmpleado resultado = new CargaOperativaEmpleado(empleado);
         Dictionary<DateTime, decimal> capacidadPorDia = CrearCapacidadPorDia(empleado.HorasDisponiblesSemanales, ausencias, inicioPeriodo, finPeriodo);
         Dictionary<DateTime, decimal> cargaPorDia = capacidadPorDia.Keys.ToDictionary(fecha => fecha, _ => 0m);
         resultado.HorasCapacidadPeriodo = capacidadPorDia.Values.Sum();

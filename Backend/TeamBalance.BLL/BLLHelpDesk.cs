@@ -98,5 +98,5 @@ public sealed class BLLHelpDesk
     private static bool EsSoporte(Usuario usuario) => usuario.Roles.Any(rol => string.Equals(rol.TipoUsuario, "Soporte", StringComparison.OrdinalIgnoreCase));
     private void ExigirSoportePropio(Usuario usuario) { if (!_rolBLL.TienePermiso(usuario, "GestionarSoporte")) throw new UnauthorizedAccessException("No tenés permiso para gestionar consultas de soporte."); }
     private void ExigirBandeja(Usuario usuario) { if (!EsSoporte(usuario) || !_rolBLL.TienePermiso(usuario, "GestionarBandejaSoporte")) throw new UnauthorizedAccessException("Esta bandeja sólo está disponible para operadores de Soporte autorizados."); }
-    private void RegistrarBitacora(Usuario usuario, ConsultaSoporteResumen consulta, string accion, string mensaje) => _bitacoraBLL.Add(new Bitacora(usuario.ID, consulta.IdAgencia, "ConsultaSoporte", consulta.ID, accion, mensaje, "Exitoso", "Informacion", "HelpDesk"));
+    private void RegistrarBitacora(Usuario usuario, ConsultaSoporteResumen consulta, string accion, string mensaje) => _bitacoraBLL.Add(new Bitacora(usuario.ID, consulta.Agencia?.ID, "ConsultaSoporte", consulta.ID, accion, mensaje, "Exitoso", "Informacion", "HelpDesk"));
 }

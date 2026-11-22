@@ -33,7 +33,7 @@ public class BLLSkillsDesiertos
     {
         int idSkill = filtro.Skill.ID;
         if (idSkill <= 0) { throw new ArgumentException("Seleccioná una skill válida."); }
-        AnalisisCoberturaSkill resultado = AnalizarCobertura(filtro, usuario, false).FirstOrDefault(item => item.IdSkill == idSkill) ?? throw new KeyNotFoundException("La skill no pertenece al alcance seleccionado.");
+        AnalisisCoberturaSkill resultado = AnalizarCobertura(filtro, usuario, false).FirstOrDefault(item => item.Skill.ID == idSkill) ?? throw new KeyNotFoundException("La skill no pertenece al alcance seleccionado.");
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Skill", idSkill, "Consultar detalle de cobertura", $"Se consultó el detalle de la skill {resultado.NombreSkill}.", "Exitoso", "Información", "Recursos"));
         return resultado;
     }
@@ -53,12 +53,12 @@ public class BLLSkillsDesiertos
     public List<SugerenciaEmpleadoSkill> SugerirEmpleados(ConsultaSugerenciasSkill consulta, Usuario usuario)
     {
         ValidarAcceso(usuario);
-        if (consulta.IdSkill <= 0 || consulta.IdProyecto <= 0) { throw new ArgumentException("Seleccioná una skill y un proyecto válidos."); }
+        if (consulta.Skill.ID <= 0 || consulta.Proyecto.ID <= 0) { throw new ArgumentException("Seleccioná una skill y un proyecto válidos."); }
         FiltroCoberturaSkill filtro = new FiltroCoberturaSkill();
-        filtro.IdProyecto = consulta.IdProyecto;
+        filtro.IdProyecto = consulta.Proyecto.ID;
         filtro.FechaDesde = DateTime.Today;
         filtro.FechaHasta = DateTime.Today.AddDays(90);
-        AnalisisCoberturaSkill analisis = AnalizarCobertura(filtro, usuario, false).FirstOrDefault(item => item.IdSkill == consulta.IdSkill)
+        AnalisisCoberturaSkill analisis = AnalizarCobertura(filtro, usuario, false).FirstOrDefault(item => item.Skill.ID == consulta.Skill.ID)
             ?? throw new KeyNotFoundException("La skill no tiene demanda activa en el proyecto seleccionado.");
 
         List<SugerenciaEmpleadoSkill> candidatos = _skillsMPP.ConsultarSugerencias(consulta, usuario);
@@ -78,7 +78,7 @@ public class BLLSkillsDesiertos
             candidato.Motivo = CrearMotivo(candidato);
         }
 
-        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Skill", consulta.IdSkill, "Sugerir empleados para skill", $"Se generaron candidatos para cubrir {analisis.NombreSkill} en el proyecto {consulta.IdProyecto}.", "Exitoso", "Información", "Recursos"));
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Skill", consulta.Skill.ID, "Sugerir empleados para skill", $"Se generaron candidatos para cubrir {analisis.NombreSkill} en el proyecto {consulta.Proyecto.ID}.", "Exitoso", "Información", "Recursos"));
         return alcance.OrderByDescending(candidato => candidato.PuntajeAfinidad).ThenByDescending(candidato => candidato.TieneSkillObjetivo).ThenByDescending(candidato => candidato.HorasDisponibles).ToList();
     }
 
@@ -94,9 +94,10 @@ public class BLLSkillsDesiertos
             decimal capacidadDisponible = empleadosSkill.Sum(empleado => Math.Max(0, empleado.HorasDisponibles) * FactorNivel(empleado.NivelSkill));
             DateTime deadline = tareasSkill.Min(tarea => tarea.Deadline);
             (string tipo, string criticidad, int puntaje) = Clasificar(demanda, capacidadTotal, capacidadDisponible, empleadosSkill.Count, deadline);
-            return new AnalisisCoberturaSkill
+            Skill skill = new Skill { ID = grupo.Key, Nombre = tareaRepresentativa.NombreSkill, Categoria = tareaRepresentativa.CategoriaSkill };
+            return new AnalisisCoberturaSkill(skill)
             {
-                IdSkill = grupo.Key, NombreSkill = tareaRepresentativa.NombreSkill, CategoriaSkill = tareaRepresentativa.CategoriaSkill, DemandaHoras = demanda,
+                DemandaHoras = demanda,
                 CapacidadDisponibleHoras = decimal.Round(capacidadDisponible, 2), CapacidadTotalHoras = decimal.Round(capacidadTotal, 2),
                 PorcentajeCobertura = demanda == 0 ? 100 : decimal.Round(Math.Min(100, capacidadDisponible * 100 / demanda), 2), CantidadTareasAfectadas = tareasSkill.Count,
                 CantidadProyectosAfectados = tareasSkill.Select(tarea => tarea.IdProyecto).Distinct().Count(), TipoBrecha = tipo, Criticidad = criticidad, PuntajeCriticidad = puntaje,

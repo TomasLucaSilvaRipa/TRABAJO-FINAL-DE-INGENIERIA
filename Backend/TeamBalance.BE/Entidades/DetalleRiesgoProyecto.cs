@@ -1,21 +1,9 @@
 namespace TeamBalance.BE.Entidades;
 public class DetalleRiesgoProyecto
 {
-    public DetalleRiesgoProyecto()
+    public DetalleRiesgoProyecto(Proyecto proyecto, DateTime? fechaEstimadaFinalizacion, int diasPosibleRetraso, decimal horasRestantes, decimal disponibilidadEquipo, decimal ritmoAvance, string nivelRiesgo, List<CausaRiesgo> causas, List<TareaRiesgoRetraso> tareasPendientes, List<HitoTareaProyecto> hitosTareas)
     {
-        Causas = new List<CausaRiesgo>();
-        TareasPendientes = new List<TareaRiesgoRetraso>();
-        HitosTareas = new List<HitoTareaProyecto>();
-    }
-
-    public DetalleRiesgoProyecto(int idProyecto, string nombreProyecto, string nombreCliente, string nombrePM, DateTime? fechaInicio, DateTime? deadline, DateTime? fechaEstimadaFinalizacion, int diasPosibleRetraso, decimal horasRestantes, decimal disponibilidadEquipo, decimal ritmoAvance, string nivelRiesgo, List<CausaRiesgo> causas, List<TareaRiesgoRetraso> tareasPendientes, List<HitoTareaProyecto> hitosTareas)
-    {
-        IdProyecto = idProyecto;
-        NombreProyecto = nombreProyecto;
-        NombreCliente = nombreCliente;
-        NombrePM = nombrePM;
-        FechaInicio = fechaInicio;
-        Deadline = deadline;
+        Proyecto = proyecto;
         FechaEstimadaFinalizacion = fechaEstimadaFinalizacion;
         DiasPosibleRetraso = diasPosibleRetraso;
         HorasRestantes = horasRestantes;
@@ -27,12 +15,7 @@ public class DetalleRiesgoProyecto
         HitosTareas = hitosTareas;
     }
 
-    public int IdProyecto { get; set; }
-    public string NombreProyecto { get; set; } = string.Empty;
-    public string NombreCliente { get; set; } = string.Empty;
-    public string NombrePM { get; set; } = string.Empty;
-    public DateTime? FechaInicio { get; set; }
-    public DateTime? Deadline { get; set; }
+    public Proyecto Proyecto { get; }
     public DateTime? FechaEstimadaFinalizacion { get; set; }
     public int DiasPosibleRetraso { get; set; }
     public decimal HorasRestantes { get; set; }

@@ -231,7 +231,7 @@ public class MPPUsuario
         DataTable resultado = _conexion.Leer("dbo.usp_Usuario2FA_Consultar", parametros);
         if (resultado.Rows.Count != 1) return null;
         DataRow fila = resultado.Rows[0];
-        return new ConfiguracionAutenticacionDosFactores(Convert.ToInt32(fila["IdUsuario"]), fila["SecretoTotpCifrado"] == DBNull.Value ? null : Convert.ToString(fila["SecretoTotpCifrado"]), fila["SecretoPendienteCifrado"] == DBNull.Value ? null : Convert.ToString(fila["SecretoPendienteCifrado"]), fila["FechaExpiracionPendiente"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaExpiracionPendiente"]), Convert.ToInt32(fila["IntentosPendientes"]), Convert.ToBoolean(fila["TotpHabilitado"]), fila["FechaActivacionTotp"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaActivacionTotp"]), fila["UltimoPasoTotp"] == DBNull.Value ? null : Convert.ToInt64(fila["UltimoPasoTotp"]));
+        return new ConfiguracionAutenticacionDosFactores(usuario, fila["SecretoTotpCifrado"] == DBNull.Value ? null : Convert.ToString(fila["SecretoTotpCifrado"]), fila["SecretoPendienteCifrado"] == DBNull.Value ? null : Convert.ToString(fila["SecretoPendienteCifrado"]), fila["FechaExpiracionPendiente"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaExpiracionPendiente"]), Convert.ToInt32(fila["IntentosPendientes"]), Convert.ToBoolean(fila["TotpHabilitado"]), fila["FechaActivacionTotp"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaActivacionTotp"]), fila["UltimoPasoTotp"] == DBNull.Value ? null : Convert.ToInt64(fila["UltimoPasoTotp"]));
     }
 
     public void GuardarAutenticacionDosFactoresPendiente(Usuario usuario, string secretoCifrado, DateTime fechaExpiracion)

@@ -25,15 +25,40 @@ public partial class AsignacionTarea
     public AsignacionTarea(Tarea tarea)
         : this(0, tarea.ID, tarea.IdEmpleadoAsignado ?? 0, 0, DateTime.MinValue, null, null, tarea.HorasEstimadas, true)
     {
+        Tarea = tarea;
     }
 
     public int ID { get; set; }
 
-    public int IdTarea { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Tarea Tarea { get; set; } = new();
 
-    public int IdEmpleado { get; set; }
+    // Adaptador para el formato plano de entrada y salida.
+    public int IdTarea
+    {
+        get => Tarea.ID;
+        set => Tarea = Tarea.ID == value ? Tarea : new() { ID = value };
+    }
 
-    public int IdUsuarioAsignador { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Empleado Empleado { get; set; } = new();
+
+    // Adaptador para el formato plano de entrada y salida.
+    public int IdEmpleado
+    {
+        get => Empleado.ID;
+        set => Empleado = Empleado.ID == value ? Empleado : new() { ID = value };
+    }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Usuario UsuarioAsignador { get; set; } = new();
+
+    // Adaptador para el formato plano de entrada y salida.
+    public int IdUsuarioAsignador
+    {
+        get => UsuarioAsignador.ID;
+        set => UsuarioAsignador = UsuarioAsignador.ID == value ? UsuarioAsignador : new() { ID = value };
+    }
 
     public DateTime FechaDesde { get; set; }
 
@@ -46,11 +71,11 @@ public partial class AsignacionTarea
 
     public bool Activa { get; set; }
 
-    // Navegaciones del modelo de persistencia. No crean una entidad nueva ni un
-    // nuevo tipo de persona: la asignación siempre apunta a un Empleado existente.
-    public virtual Empleado? IdEmpleadoNavigation { get; set; }
+    // Campos de compatibilidad con respuestas anteriores. Las referencias internas
+    // se excluyen del JSON porque pueden apuntar a la tarea o al empleado que contiene esta asignación.
+    public Empleado? IdEmpleadoNavigation => null;
 
-    public virtual Tarea? IdTareaNavigation { get; set; }
+    public Tarea? IdTareaNavigation => null;
 
-    public virtual Usuario? IdUsuarioAsignadorNavigation { get; set; }
+    public Usuario? IdUsuarioAsignadorNavigation => null;
 }

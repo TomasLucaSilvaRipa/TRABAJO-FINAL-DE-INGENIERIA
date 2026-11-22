@@ -1,11 +1,8 @@
 namespace TeamBalance.BE.Entidades;
 public class DesvioHorasTarea
 {
-    public int IdTarea { get; set; }
-    public int? IdEmpleadoResponsable { get; set; }
-    public string Titulo { get; set; } = string.Empty;
-    public string Responsable { get; set; } = string.Empty;
-    public string EstadoTarea { get; set; } = string.Empty;
+    public required Tarea Tarea { get; init; }
+    public Empleado? EmpleadoResponsable { get; init; }
     public decimal HorasEstimadas { get; set; }
     public decimal HorasReales { get; set; }
     public decimal DesvioHoras { get; set; }

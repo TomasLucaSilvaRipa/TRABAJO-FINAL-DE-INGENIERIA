@@ -1,13 +1,9 @@
 namespace TeamBalance.BE.Entidades;
 public class ConfiguracionAutenticacionDosFactores
 {
-    public ConfiguracionAutenticacionDosFactores()
+    public ConfiguracionAutenticacionDosFactores(Usuario usuario, string? secretoTotpCifrado, string? secretoPendienteCifrado, DateTime? fechaExpiracionPendiente, int intentosPendientes, bool totpHabilitado, DateTime? fechaActivacionTotp, long? ultimoPasoTotp)
     {
-    }
-
-    public ConfiguracionAutenticacionDosFactores(int idUsuario, string? secretoTotpCifrado, string? secretoPendienteCifrado, DateTime? fechaExpiracionPendiente, int intentosPendientes, bool totpHabilitado, DateTime? fechaActivacionTotp, long? ultimoPasoTotp)
-    {
-        IdUsuario = idUsuario;
+        Usuario = usuario;
         SecretoTotpCifrado = secretoTotpCifrado;
         SecretoPendienteCifrado = secretoPendienteCifrado;
         FechaExpiracionPendiente = fechaExpiracionPendiente;
@@ -17,7 +13,7 @@ public class ConfiguracionAutenticacionDosFactores
         UltimoPasoTotp = ultimoPasoTotp;
     }
 
-    public int IdUsuario { get; set; }
+    public Usuario Usuario { get; }
     public string? SecretoTotpCifrado { get; set; }
     public string? SecretoPendienteCifrado { get; set; }
     public DateTime? FechaExpiracionPendiente { get; set; }

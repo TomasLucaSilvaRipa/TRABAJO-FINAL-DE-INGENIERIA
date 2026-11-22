@@ -29,7 +29,7 @@ public sealed class MPPContratacion
             new SqlParameter("@EmailLaboralResponsable", request.EmailLaboralResponsable),
             new SqlParameter("@CargoResponsable", request.CargoResponsable),
             new SqlParameter("@ProveedorPagoSeleccionado", request.ProveedorPagoSeleccionado),
-            new SqlParameter("@IdPlanComercial", request.IdPlanComercial),
+            new SqlParameter("@IdPlanComercial", request.PlanComercial.ID),
         };
         DataTable resultado = _conexion.Leer("dbo.usp_Contratacion_CrearPendiente", parametros);
         if (resultado.Rows.Count != 1)
@@ -38,7 +38,7 @@ public sealed class MPPContratacion
         }
 
         DataRow fila = resultado.Rows[0];
-        ContratacionPendiente contratacion = new ContratacionPendiente(Convert.ToInt32(fila["IdContratacion"]), Convert.ToInt32(fila["IdPlanComercial"]), Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty, Convert.ToString(fila["ReferenciaOperacion"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty);
+        ContratacionPendiente contratacion = new ContratacionPendiente(new ContratacionServicio { ID = Convert.ToInt32(fila["IdContratacion"]) }, new PlanComercial(Convert.ToInt32(fila["IdPlanComercial"])), Convert.ToString(fila["ReferenciaContratacion"]) ?? string.Empty, Convert.ToString(fila["ReferenciaOperacion"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty);
         return contratacion;
     }
 

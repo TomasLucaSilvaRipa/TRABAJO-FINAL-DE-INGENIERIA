@@ -298,8 +298,8 @@ public class MPPRecursos
             new SqlParameter("@IdUsuarioSolicitante", solicitante.ID),
             new SqlParameter("@FechaDesde", consulta.FechaDesde),
             new SqlParameter("@FechaHasta", consulta.FechaHasta),
-            new SqlParameter("@IdProyecto", (object?)consulta.IdProyecto ?? DBNull.Value),
-            new SqlParameter("@IdEmpleado", (object?)consulta.IdEmpleado ?? DBNull.Value)
+            new SqlParameter("@IdProyecto", (object?)consulta.Proyecto?.ID ?? DBNull.Value),
+            new SqlParameter("@IdEmpleado", (object?)consulta.Empleado?.ID ?? DBNull.Value)
         });
         return tabla.Rows.Cast<DataRow>().Select(fila => new EventoCalendarioEquipo
         {

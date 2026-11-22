@@ -14,6 +14,6 @@ public sealed class MPPIngresosPlataforma
     public List<CobroPlataformaConfirmado> ConsultarCobrosConfirmados()
     {
         DataTable tabla = _conexion.Leer("dbo.usp_IngresosPlataforma_ConsultarCobrosConfirmados");
-        return tabla.Rows.Cast<DataRow>().Select(fila => new CobroPlataformaConfirmado(Convert.ToInt32(fila["IdAgencia"]), Convert.ToString(fila["Agencia"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty, fila["Proveedor"] == DBNull.Value ? null : Convert.ToString(fila["Proveedor"]), Convert.ToDateTime(fila["FechaCobro"]))).ToList();
+        return tabla.Rows.Cast<DataRow>().Select(fila => new CobroPlataformaConfirmado(new Agencia { ID = Convert.ToInt32(fila["IdAgencia"]), NombreComercial = Convert.ToString(fila["Agencia"]) ?? string.Empty }, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty, fila["Proveedor"] == DBNull.Value ? null : Convert.ToString(fila["Proveedor"]), Convert.ToDateTime(fila["FechaCobro"]))).ToList();
     }
 }

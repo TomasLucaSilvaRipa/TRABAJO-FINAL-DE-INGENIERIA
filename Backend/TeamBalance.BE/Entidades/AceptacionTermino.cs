@@ -9,20 +9,20 @@ public partial class AceptacionTermino
     {
     }
 
-    public AceptacionTermino(int iD, int idUsuario, int idTerminosCondiciones, DateTime fechaAceptacion, string? direccionIP)
+    public AceptacionTermino(int iD, Usuario usuario, TerminosCondicione terminosCondiciones, DateTime fechaAceptacion, string? direccionIP)
     {
         ID = iD;
-        IdUsuario = idUsuario;
-        IdTerminosCondiciones = idTerminosCondiciones;
+        Usuario = usuario;
+        TerminosCondiciones = terminosCondiciones;
         FechaAceptacion = fechaAceptacion;
         DireccionIP = direccionIP;
     }
 
     public int ID { get; set; }
 
-    public int IdUsuario { get; set; }
+    public Usuario Usuario { get; set; } = new();
 
-    public int IdTerminosCondiciones { get; set; }
+    public TerminosCondicione TerminosCondiciones { get; set; } = new();
 
     public DateTime FechaAceptacion { get; set; }
 

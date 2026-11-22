@@ -1,9 +1,7 @@
 namespace TeamBalance.BE.Entidades;
 public class DesvioHorasProyecto
 {
-    public int IdProyecto { get; set; }
-    public string NombreProyecto { get; set; } = string.Empty;
-    public string NombreCliente { get; set; } = string.Empty;
+    public required Proyecto Proyecto { get; init; }
     public decimal HorasEstimadas { get; set; }
     public decimal HorasReales { get; set; }
     public decimal DesvioHoras { get; set; }

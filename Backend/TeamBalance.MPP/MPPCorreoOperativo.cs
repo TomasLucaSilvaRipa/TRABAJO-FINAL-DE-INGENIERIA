@@ -86,7 +86,7 @@ public class MPPCorreoOperativo
 
     public void CrearToken(AccionCorreoTarea accion) => _conexion.Escribir("dbo.usp_AccionCorreoTarea_Crear", new()
     {
-        new("@TokenHash", accion.TokenHash), new("@IdUsuario", accion.IdUsuario), new("@IdTarea", accion.IdTarea), new("@Accion", accion.Accion), new("@FechaExpiracion", accion.FechaExpiracion)
+        new("@TokenHash", accion.TokenHash), new("@IdUsuario", accion.Usuario.ID), new("@IdTarea", accion.Tarea.ID), new("@Accion", accion.Accion), new("@FechaExpiracion", accion.FechaExpiracion)
     });
 
     public AccionCorreoTarea? ConsultarAccion(string tokenHash)
@@ -96,8 +96,10 @@ public class MPPCorreoOperativo
         DataRow fila = tabla.Rows[0];
         return new AccionCorreoTarea
         {
-            IdUsuario = Convert.ToInt32(fila["IdUsuario"]), IdTarea = Convert.ToInt32(fila["IdTarea"]), Accion = Convert.ToString(fila["Accion"]) ?? string.Empty,
-            TituloTarea = Convert.ToString(fila["TituloTarea"]) ?? string.Empty, Proyecto = Convert.ToString(fila["Proyecto"]) ?? string.Empty,
+            Usuario = new Usuario(Convert.ToInt32(fila["IdUsuario"])),
+            Tarea = new Tarea { ID = Convert.ToInt32(fila["IdTarea"]), Titulo = Convert.ToString(fila["TituloTarea"]) ?? string.Empty },
+            ProyectoRelacionado = new Proyecto { Nombre = Convert.ToString(fila["Proyecto"]) ?? string.Empty },
+            Accion = Convert.ToString(fila["Accion"]) ?? string.Empty,
             FechaExpiracion = Convert.ToDateTime(fila["FechaExpiracion"]), Disponible = Convert.ToBoolean(fila["Disponible"])
         };
     }

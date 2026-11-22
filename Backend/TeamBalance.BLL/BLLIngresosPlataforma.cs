@@ -34,8 +34,8 @@ public sealed class BLLIngresosPlataforma
     private static ResumenIngresosMoneda CrearResumenMoneda(string moneda, List<CobroPlataformaConfirmado> cobros, DateTime fechaCorte, DateTime inicioSemana)
     {
         List<IngresosPorAgencia> agencias = cobros
-                .GroupBy(cobro => cobro.IdAgencia)
-                .Select(grupo => new IngresosPorAgencia(grupo.Key, grupo.First().Agencia, SumarPeriodo(grupo, cobro => cobro.FechaCobro.Date == fechaCorte), SumarPeriodo(grupo, cobro => cobro.FechaCobro.Date >= inicioSemana && cobro.FechaCobro.Date <= fechaCorte), SumarPeriodo(grupo, cobro => cobro.FechaCobro.Year == fechaCorte.Year && cobro.FechaCobro.Month == fechaCorte.Month), SumarPeriodo(grupo, cobro => cobro.FechaCobro.Year == fechaCorte.Year), grupo.Sum(cobro => cobro.Importe), grupo.Count()))
+                .GroupBy(cobro => cobro.Agencia.ID)
+                .Select(grupo => new IngresosPorAgencia(grupo.Key, grupo.First().Agencia.NombreComercial, SumarPeriodo(grupo, cobro => cobro.FechaCobro.Date == fechaCorte), SumarPeriodo(grupo, cobro => cobro.FechaCobro.Date >= inicioSemana && cobro.FechaCobro.Date <= fechaCorte), SumarPeriodo(grupo, cobro => cobro.FechaCobro.Year == fechaCorte.Year && cobro.FechaCobro.Month == fechaCorte.Month), SumarPeriodo(grupo, cobro => cobro.FechaCobro.Year == fechaCorte.Year), grupo.Sum(cobro => cobro.Importe), grupo.Count()))
                 .OrderByDescending(agencia => agencia.Anio)
                 .ThenByDescending(agencia => agencia.TotalHistorico)
                 .ThenBy(agencia => agencia.Agencia)

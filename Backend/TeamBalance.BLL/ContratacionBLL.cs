@@ -41,10 +41,10 @@ namespace TeamBalance.BLL
                 referenciaContratacion,
                 referenciaOperacion);
 
-            Bitacora bitacora = new Bitacora(0, null, null, "ContratacionServicio", contratacion.IdContratacion, "IniciarContratacion", "Se inició una contratación pendiente de pago.", "Pendiente", "Informacion", "Contratacion", DateTime.Now, null);
+            Bitacora bitacora = new Bitacora(0, null, null, "ContratacionServicio", contratacion.Contratacion.ID, "IniciarContratacion", "Se inició una contratación pendiente de pago.", "Pendiente", "Informacion", "Contratacion", DateTime.Now, null);
             _bitacoraBLL.Add(bitacora);
 
-            PlanComercial plan = _planMPP.ConsultarPlan(new PlanComercial(contratacion.IdPlanComercial));
+            PlanComercial plan = _planMPP.ConsultarPlan(contratacion.PlanComercial);
             string urlPago = string.Equals(request.ProveedorPagoSeleccionado, "Stripe", StringComparison.Ordinal)
                 ? await _stripeService.CrearPago(contratacion, plan)
                 : await _mercadoPagoService.CrearPago(new MercadoPagoPreferenceRequest("Suscripción TeamBalance", contratacion.Importe, contratacion.Moneda, contratacion.ReferenciaContratacion, plan.Nombre));
@@ -133,7 +133,7 @@ namespace TeamBalance.BLL
                 throw new ArgumentException("Completá los datos obligatorios de la contratación.");
             }
 
-            if (request.IdPlanComercial <= 0){ throw new ArgumentException("Seleccioná un plan comercial válido."); }
+            if (request.PlanComercial.ID <= 0){ throw new ArgumentException("Seleccioná un plan comercial válido."); }
         }
     }
 }

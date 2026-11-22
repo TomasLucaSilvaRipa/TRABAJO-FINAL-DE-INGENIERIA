@@ -20,7 +20,15 @@ public partial class Cliente
         Proyectos = proyectos;
     }
     public int ID { get; set; }
-    public int? IdAgencia { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Agencia? Agencia { get; set; }
+
+    // Adaptador para el formato plano de entrada y salida.
+    public int? IdAgencia
+    {
+        get => Agencia?.ID;
+        set => Agencia = value.HasValue ? new() { ID = value.Value } : null;
+    }
     public string Nombre { get; set; } = string.Empty;
 
     public string? RazonSocial { get; set; }

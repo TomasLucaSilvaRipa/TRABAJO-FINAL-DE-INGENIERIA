@@ -35,7 +35,7 @@ public class MPPConsultaPlan
     {
         try
         {
-            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdPlanComercial", consulta.IdPlanComercial), new SqlParameter("@Nombre", consulta.Nombre), new SqlParameter("@Email", consulta.Email), new SqlParameter("@Consulta", consulta.Consulta) };
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdPlanComercial", consulta.PlanComercial.ID), new SqlParameter("@Nombre", consulta.Nombre), new SqlParameter("@Email", consulta.Email), new SqlParameter("@Consulta", consulta.Consulta) };
             DataTable tabla = _conexion.Leer("dbo.usp_ConsultaPlan_Registrar", parametros);
             if (tabla.Rows.Count != 1) { throw new InvalidOperationException("No fue posible registrar la consulta."); }
             ConsultaPlan resultado = CrearConsulta(tabla.Rows[0]);

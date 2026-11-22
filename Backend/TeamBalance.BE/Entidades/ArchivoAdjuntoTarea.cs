@@ -2,8 +2,16 @@ namespace TeamBalance.BE.Entidades;
 public class ArchivoAdjuntoTarea
 {
     public int ID { get; set; }
-    public int IdTarea { get; set; }
-    public int IdUsuarioAlta { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Tarea Tarea { get; set; } = new();
+
+    // Campo del contrato de salida.
+    public int IdTarea => Tarea.ID;
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Usuario UsuarioAlta { get; set; } = new();
+
+    // Campo del contrato de salida.
+    public int IdUsuarioAlta => UsuarioAlta.ID;
     public string NombreOriginal { get; set; } = string.Empty;
     public string ClaveAlmacenamiento { get; set; } = string.Empty;
     public string TipoContenido { get; set; } = "application/octet-stream";

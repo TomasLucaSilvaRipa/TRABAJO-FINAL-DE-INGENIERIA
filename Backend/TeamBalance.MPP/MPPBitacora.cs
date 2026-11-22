@@ -18,8 +18,8 @@ public class MPPBitacora
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@IdUsuario", (object?)bitacora.IdUsuario ?? DBNull.Value),
-            new SqlParameter("@IdAgencia", (object?)bitacora.IdAgencia ?? DBNull.Value),
+            new SqlParameter("@IdUsuario", (object?)bitacora.Usuario?.ID ?? DBNull.Value),
+            new SqlParameter("@IdAgencia", (object?)bitacora.Agencia?.ID ?? DBNull.Value),
             new SqlParameter("@Entidad", (object?)bitacora.Entidad ?? DBNull.Value),
             new SqlParameter("@IdEntidad", (object?)bitacora.IdEntidad ?? DBNull.Value),
             new SqlParameter("@Accion", bitacora.Accion),

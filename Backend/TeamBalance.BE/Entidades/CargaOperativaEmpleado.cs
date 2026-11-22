@@ -3,7 +3,12 @@ namespace TeamBalance.BE.Entidades;
 // Resultado transitorio: se recalcula en cada consulta y no se persiste.
 public class CargaOperativaEmpleado
 {
-    public int IdEmpleado { get; set; }
+    public CargaOperativaEmpleado(Empleado empleado)
+    {
+        Empleado = empleado;
+    }
+
+    public Empleado Empleado { get; }
     public decimal HorasCapacidadPeriodo { get; set; }
     public decimal HorasPlanificadasPeriodo { get; set; }
     public decimal HorasRegistradasPeriodo { get; set; }

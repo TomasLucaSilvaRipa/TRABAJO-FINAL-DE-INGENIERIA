@@ -44,9 +44,9 @@ public class BLLCorreoOperativo
         string hash = Hash(token);
         AccionCorreoTarea accion = _correoMPP.ConsultarAccion(hash) ?? throw new ArgumentException("El enlace no existe o ya no está disponible.");
         if (!accion.Disponible || accion.FechaExpiracion < DateTime.Now) throw new ArgumentException("El enlace venció o ya fue utilizado.");
-        Usuario usuario = _usuarioMPP.ConsultarUsuarioPorId(new Usuario { ID = accion.IdUsuario }) ?? throw new ArgumentException("La cuenta asociada al enlace ya no está disponible.");
+        Usuario usuario = _usuarioMPP.ConsultarUsuarioPorId(accion.Usuario) ?? throw new ArgumentException("La cuenta asociada al enlace ya no está disponible.");
         _rolBLL.CargarAutorizacion(usuario);
-        _tareaBLL.CambiarEstadoPropio(new Tarea { ID = accion.IdTarea, Estado = accion.Accion }, usuario);
+        _tareaBLL.CambiarEstadoPropio(new Tarea { ID = accion.Tarea.ID, Estado = accion.Accion }, usuario);
         if (!_correoMPP.MarcarAccionUsada(hash)) throw new InvalidOperationException("El estado se actualizó, pero no se pudo cerrar el enlace. Recargá la página antes de volver a intentarlo.");
         accion.Disponible = false;
         return accion;
@@ -136,8 +136,8 @@ public class BLLCorreoOperativo
         _correoMPP.CrearToken(new AccionCorreoTarea
         {
             TokenHash = Hash(token),
-            IdUsuario = idUsuario,
-            IdTarea = idTarea,
+            Usuario = new Usuario(idUsuario),
+            Tarea = new Tarea { ID = idTarea, Titulo = string.Empty },
             Accion = accion,
             FechaExpiracion = expiracion
         });

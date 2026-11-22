@@ -1,8 +1,7 @@
 namespace TeamBalance.BE.Entidades;
 public class ConvenienciaOperativaCliente
 {
-    public int IdCliente { get; set; }
-    public string NombreCliente { get; set; } = string.Empty;
+    public required Cliente Cliente { get; init; }
     public decimal HorasEstimadas { get; set; }
     public decimal HorasReales { get; set; }
     public decimal CostoPlanificado { get; set; }

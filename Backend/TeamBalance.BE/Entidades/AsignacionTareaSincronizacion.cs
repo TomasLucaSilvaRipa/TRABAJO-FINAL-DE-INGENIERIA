@@ -5,7 +5,7 @@ public class AsignacionTareaSincronizacion
 {
     public AsignacionTareaSincronizacion(AsignacionTarea asignacion)
     {
-        IdEmpleado = asignacion.IdEmpleado;
+        IdEmpleado = asignacion.Empleado.ID;
         HorasAsignadas = asignacion.HorasAsignadas;
         Motivo = string.IsNullOrWhiteSpace(asignacion.Motivo) ? null : asignacion.Motivo.Trim();
     }

@@ -40,6 +40,14 @@ namespace TeamBalance.BE.Entidades
 
         public string ProveedorPagoSeleccionado { get; set; } = string.Empty;
 
-        public int IdPlanComercial { get; set; }
+        [System.Text.Json.Serialization.JsonIgnore]
+        public PlanComercial PlanComercial { get; set; } = new();
+
+        // Adaptador para el contrato plano.
+        public int IdPlanComercial
+        {
+            get => PlanComercial.ID;
+            set => PlanComercial = PlanComercial.ID == value ? PlanComercial : new() { ID = value };
+        }
     }
 }

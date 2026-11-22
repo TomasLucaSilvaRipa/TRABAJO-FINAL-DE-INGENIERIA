@@ -64,10 +64,7 @@ public class BLLAnaliticaOperativa
             string estado = ObtenerEstadoOcupacion(porcentaje);
             if (!string.IsNullOrWhiteSpace(filtroAplicado.EstadoCarga) && !string.Equals(estado, filtroAplicado.EstadoCarga, StringComparison.OrdinalIgnoreCase)) { continue; }
             Tarea? tareaPrincipal = tareasEmpleado.OrderByDescending(tarea => carga.HorasPlanificadasPorTarea[tarea.ID]).FirstOrDefault();
-            OcupacionEmpleado detalle = new OcupacionEmpleado();
-            detalle.IdEmpleado = empleado.ID;
-            detalle.Nombre = empleado.Nombre;
-            detalle.Seniority = empleado.Seniority;
+            OcupacionEmpleado detalle = new OcupacionEmpleado(empleado);
             detalle.HorasDisponibles = carga.HorasCapacidadPeriodo;
             detalle.HorasEstimadasActivas = horasPlanificadas;
             detalle.HorasRegistradas = carga.HorasRegistradasPeriodo;
@@ -78,7 +75,7 @@ public class BLLAnaliticaOperativa
             detalle.Proyectos = contextos.Where(contexto => contexto.Tareas.Any(tarea => carga.HorasPlanificadasPorTarea.ContainsKey(tarea.ID))).Select(contexto => contexto.Proyecto.Nombre).Distinct().OrderBy(nombre => nombre).ToList();
             resultado.Empleados.Add(detalle);
         }
-        resultado.Empleados = resultado.Empleados.OrderByDescending(empleado => empleado.PorcentajeOcupacion).ThenBy(empleado => empleado.Nombre).ToList();
+        resultado.Empleados = resultado.Empleados.OrderByDescending(empleado => empleado.PorcentajeOcupacion).ThenBy(empleado => empleado.Empleado.Nombre).ToList();
         resultado.HorasDisponiblesSemanales = resultado.Empleados.Sum(empleado => empleado.HorasDisponibles);
         resultado.HorasEstimadasActivas = resultado.Empleados.Sum(empleado => empleado.HorasEstimadasActivas);
         resultado.PorcentajeOcupacionGeneral = CalcularPorcentaje(resultado.HorasEstimadasActivas, resultado.HorasDisponiblesSemanales);
@@ -86,7 +83,7 @@ public class BLLAnaliticaOperativa
         resultado.CantidadSubutilizados = resultado.Empleados.Count(empleado => empleado.EstadoCarga == "Subutilizado");
         resultado.CantidadBalanceados = resultado.Empleados.Count(empleado => empleado.EstadoCarga == "Balanceado");
         resultado.CantidadSobrecargados = resultado.Empleados.Count(empleado => empleado.EstadoCarga is "Sobrecargado" or "Crítico");
-        HashSet<int> empleadosIncluidos = resultado.Empleados.Select(empleado => empleado.IdEmpleado).ToHashSet();
+        HashSet<int> empleadosIncluidos = resultado.Empleados.Select(empleado => empleado.Empleado.ID).ToHashSet();
         resultado.Proyectos = CrearDistribucionProyectos(contextos, resultado.HorasEstimadasActivas, empleadosIncluidos, horasPlanificadasPorTarea, horasPlanificadasPorTareaEmpleado);
         resultado.Clientes = CrearDistribucionClientes(resultado.Proyectos, resultado.HorasEstimadasActivas);
         return resultado;
@@ -135,7 +132,7 @@ public class BLLAnaliticaOperativa
                 .Distinct()
                 .OrderBy(nombre => nombre)
                 .ToList();
-        return new OcupacionEmpleado(empleado.ID, empleado.Nombre, empleado.Seniority, carga.HorasCapacidadPeriodo, carga.HorasPlanificadasPeriodo, carga.HorasRegistradasPeriodo, porcentaje, estado, causaPrincipal, accionSugerida, proyectos);
+        return new OcupacionEmpleado(empleado, carga.HorasCapacidadPeriodo, carga.HorasPlanificadasPeriodo, carga.HorasRegistradasPeriodo, porcentaje, estado, causaPrincipal, accionSugerida, proyectos);
     }
 
     public DetalleOcupacionEmpleado ConsultarDetalleOcupacionEmpleado(Usuario usuario, FiltroOcupacionOperativa filtro)
@@ -143,28 +140,21 @@ public class BLLAnaliticaOperativa
         ValidarAccesoOcupacion(usuario);
         if (!filtro.IdEmpleado.HasValue) { throw new ArgumentException("Seleccioná un empleado para consultar el detalle de ocupación."); }
         AnalisisOcupacionOperativa analisis = ConsultarOcupacion(usuario, filtro);
-        OcupacionEmpleado empleado = analisis.Empleados.FirstOrDefault(item => item.IdEmpleado == filtro.IdEmpleado.Value) ?? throw new KeyNotFoundException("No se encontró el empleado dentro de los filtros seleccionados.");
+        OcupacionEmpleado empleado = analisis.Empleados.FirstOrDefault(item => item.Empleado.ID == filtro.IdEmpleado.Value) ?? throw new KeyNotFoundException("No se encontró el empleado dentro de los filtros seleccionados.");
         List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, filtro.IdProyecto, filtro.IdCliente);
         List<Tarea> tareas = contextos.SelectMany(contexto => contexto.Tareas).ToList();
         List<AsignacionTarea> asignaciones = _asignacionMPP.ConsultarActivas(tareas, usuario);
         List<RegistroHora> registros = contextos.SelectMany(contexto => contexto.Registros).ToList();
-        Empleado empleadoBase = _analiticaMPP.ConsultarEmpleadosActivos(usuario).First(item => item.ID == empleado.IdEmpleado);
+        Empleado empleadoBase = _analiticaMPP.ConsultarEmpleadosActivos(usuario).First(item => item.ID == empleado.Empleado.ID);
         (DateTime desde, DateTime hasta) = _motorCargaOperativa.ObtenerPeriodo(filtro);
         List<AusenciaEmpleado> ausencias = _recursosMPP.ConsultarAusenciasEmpleado(empleadoBase, usuario);
         CargaOperativaEmpleado carga = _motorCargaOperativa.Calcular(empleadoBase, tareas, asignaciones, registros, ausencias, desde, hasta);
-        DetalleOcupacionEmpleado detalle = new DetalleOcupacionEmpleado();
-        detalle.Empleado = empleado;
+        DetalleOcupacionEmpleado detalle = new DetalleOcupacionEmpleado { Empleado = empleado };
         foreach (ContextoProyectoAnalitico contexto in contextos)
         {
             foreach (Tarea tarea in contexto.Tareas.Where(item => carga.HorasPlanificadasPorTarea.ContainsKey(item.ID)))
             {
-                DetalleOcupacionTarea tareaDetalle = new DetalleOcupacionTarea();
-                tareaDetalle.IdTarea = tarea.ID;
-                tareaDetalle.IdProyecto = contexto.Proyecto.ID;
-                tareaDetalle.IdPMResponsable = contexto.Proyecto.IdPMResponsable;
-                tareaDetalle.Titulo = tarea.Titulo;
-                tareaDetalle.NombreProyecto = contexto.Proyecto.Nombre;
-                tareaDetalle.NombreCliente = contexto.Proyecto.NombreCliente ?? "Cliente sin nombre";
+                DetalleOcupacionTarea tareaDetalle = new DetalleOcupacionTarea { Tarea = tarea, Proyecto = contexto.Proyecto };
                 tareaDetalle.HorasEstimadas = carga.HorasPlanificadasPorTarea[tarea.ID];
                 tareaDetalle.IncidenciaSobreCargaEmpleado = CalcularPorcentaje(tareaDetalle.HorasEstimadas, empleado.HorasEstimadasActivas);
                 detalle.Tareas.Add(tareaDetalle);
@@ -182,21 +172,21 @@ public class BLLAnaliticaOperativa
         filtro.IdEmpleado = nuevaSolicitud.IdEmpleado;
         filtro.IdProyecto = nuevaSolicitud.IdProyecto;
         DetalleOcupacionEmpleado detalle = ConsultarDetalleOcupacionEmpleado(usuario, filtro);
-        DetalleOcupacionTarea? tarea = nuevaSolicitud.IdTarea.HasValue ? detalle.Tareas.FirstOrDefault(item => item.IdTarea == nuevaSolicitud.IdTarea.Value) : detalle.Tareas.FirstOrDefault();
+        DetalleOcupacionTarea? tarea = nuevaSolicitud.IdTarea.HasValue ? detalle.Tareas.FirstOrDefault(item => item.Tarea.ID == nuevaSolicitud.IdTarea.Value) : detalle.Tareas.FirstOrDefault();
         if (tarea is null) { throw new InvalidOperationException("El empleado no tiene una tarea activa asociada para derivar al PM responsable."); }
         SolicitudRevisionOperativa solicitud = new SolicitudRevisionOperativa();
         solicitud.IdAgencia = usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.");
-        solicitud.IdEmpleado = detalle.Empleado.IdEmpleado;
-        solicitud.IdProyecto = tarea.IdProyecto;
-        solicitud.IdTarea = tarea.IdTarea;
-        solicitud.IdPMResponsable = tarea.IdPMResponsable;
+        solicitud.IdEmpleado = detalle.Empleado.Empleado.ID;
+        solicitud.IdProyecto = tarea.Proyecto.ID;
+        solicitud.IdTarea = tarea.Tarea.ID;
+        solicitud.IdPMResponsable = tarea.Proyecto.IdPMResponsable;
         solicitud.IdUsuarioSolicitante = usuario.ID;
         solicitud.CausaPrincipal = detalle.Empleado.CausaPrincipal;
         solicitud.AccionSugerida = detalle.Empleado.AccionSugerida;
         solicitud.ID = _analiticaMPP.RegistrarSolicitudRevision(solicitud);
         DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(new PM { ID = solicitud.IdPMResponsable });
-        bool correoEnviado = destinatario is not null && await _emailService.EnviarCorreoSolicitudRevisionOperativa(new SolicitudRevisionCorreo { Destinatario = destinatario, NombreEmpleado = detalle.Empleado.Nombre, NombreProyecto = tarea.NombreProyecto, CausaPrincipal = solicitud.CausaPrincipal, AccionSugerida = solicitud.AccionSugerida });
-        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "SolicitudRevisionOperativa", solicitud.ID, "SolicitarRevisionOperativa", "Se derivó una revisión operativa del empleado '" + detalle.Empleado.Nombre + "' al PM responsable.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia", "Proyectos"));
+        bool correoEnviado = destinatario is not null && await _emailService.EnviarCorreoSolicitudRevisionOperativa(new SolicitudRevisionCorreo { Destinatario = destinatario, NombreEmpleado = detalle.Empleado.Empleado.Nombre, NombreProyecto = tarea.Proyecto.Nombre, CausaPrincipal = solicitud.CausaPrincipal, AccionSugerida = solicitud.AccionSugerida });
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "SolicitudRevisionOperativa", solicitud.ID, "SolicitarRevisionOperativa", "Se derivó una revisión operativa del empleado '" + detalle.Empleado.Empleado.Nombre + "' al PM responsable.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia", "Proyectos"));
     }
 
     public List<RevisionOperativaPendiente> ConsultarSolicitudesRevisionPendientes(Usuario usuario)
@@ -245,20 +235,16 @@ public class BLLAnaliticaOperativa
         AnalisisDesvioHoras resultado = new AnalisisDesvioHoras();
         foreach (ContextoProyectoAnalitico contexto in contextos)
         {
-            DesvioHorasProyecto proyecto = new DesvioHorasProyecto();
-            proyecto.IdProyecto = contexto.Proyecto.ID;
-            proyecto.NombreProyecto = contexto.Proyecto.Nombre;
-            proyecto.NombreCliente = contexto.Proyecto.NombreCliente ?? "Cliente sin nombre";
+            DesvioHorasProyecto proyecto = new DesvioHorasProyecto { Proyecto = contexto.Proyecto };
             List<Tarea> tareasFiltradas = contexto.Tareas.Where(tarea => CumpleFiltroTarea(tarea, filtroAplicado)).ToList();
             foreach (Tarea tarea in tareasFiltradas)
             {
                 decimal horasReales = contexto.Registros.Where(registro => registro.IdTarea == tarea.ID && registro.Activo && CumplePeriodo(registro, filtroAplicado)).Sum(registro => registro.CantidadHoras);
-                DesvioHorasTarea detalle = new DesvioHorasTarea();
-                detalle.IdTarea = tarea.ID;
-                detalle.IdEmpleadoResponsable = tarea.IdEmpleadoAsignado;
-                detalle.Titulo = tarea.Titulo;
-                detalle.Responsable = ObtenerNombreEmpleado(contexto, tarea.IdEmpleadoAsignado);
-                detalle.EstadoTarea = tarea.Estado ?? string.Empty;
+                DesvioHorasTarea detalle = new DesvioHorasTarea
+                {
+                    Tarea = tarea,
+                    EmpleadoResponsable = contexto.Equipo.FirstOrDefault(item => item.ID == tarea.IdEmpleadoAsignado)
+                };
                 detalle.HorasEstimadas = tarea.HorasEstimadas;
                 detalle.HorasReales = horasReales;
                 detalle.DesvioHoras = horasReales - tarea.HorasEstimadas;
@@ -299,13 +285,12 @@ public class BLLAnaliticaOperativa
         ContextoProyectoAnalitico contexto = ConsultarContextos(usuario, filtro.IdProyecto).FirstOrDefault() ?? throw new KeyNotFoundException("No existe el proyecto solicitado o no tenés acceso a él.");
         Tarea tarea = contexto.Tareas.FirstOrDefault(item => item.ID == filtro.IdTarea && item.Activo) ?? throw new KeyNotFoundException("La tarea seleccionada no pertenece al proyecto.");
         List<RegistroHora> registros = contexto.Registros.Where(registro => registro.IdTarea == tarea.ID && registro.Activo && CumplePeriodo(registro, filtro)).OrderByDescending(registro => registro.Fecha).ToList();
-        DetalleDesvioHorasTarea detalle = new DetalleDesvioHorasTarea();
-        detalle.IdProyecto = contexto.Proyecto.ID;
-        detalle.IdTarea = tarea.ID;
-        detalle.NombreProyecto = contexto.Proyecto.Nombre;
-        detalle.Titulo = tarea.Titulo;
-        detalle.Responsable = ObtenerNombreEmpleado(contexto, tarea.IdEmpleadoAsignado);
-        detalle.EstadoTarea = tarea.Estado ?? string.Empty;
+        DetalleDesvioHorasTarea detalle = new DetalleDesvioHorasTarea
+        {
+            Proyecto = contexto.Proyecto,
+            Tarea = tarea,
+            EmpleadoResponsable = contexto.Equipo.FirstOrDefault(item => item.ID == tarea.IdEmpleadoAsignado)
+        };
         detalle.HorasEstimadas = tarea.HorasEstimadas;
         detalle.HorasReales = registros.Sum(registro => registro.CantidadHoras);
         detalle.DesvioHoras = detalle.HorasReales - detalle.HorasEstimadas;
@@ -350,14 +335,14 @@ public class BLLAnaliticaOperativa
     public async Task ComunicarDesvioHorasADueno(Usuario usuario, ComunicacionDesvioHoras comunicacion)
     {
         ValidarPMODueno(usuario);
-        if (comunicacion.IdProyecto <= 0) { throw new ArgumentException("Seleccioná el proyecto cuyo desvío querés informar."); }
+        if (comunicacion.Proyecto.ID <= 0) { throw new ArgumentException("Seleccioná el proyecto cuyo desvío querés informar."); }
         FiltroDesvioHoras filtro = comunicacion.Filtro ?? new FiltroDesvioHoras();
-        filtro.IdProyecto = comunicacion.IdProyecto;
+        filtro.IdProyecto = comunicacion.Proyecto.ID;
         AnalisisDesvioHoras analisis = ConsultarDesvioHoras(usuario, filtro);
-        DesvioHorasProyecto proyecto = analisis.Proyectos.FirstOrDefault(item => item.IdProyecto == comunicacion.IdProyecto) ?? throw new InvalidOperationException("No hay información de desvío para comunicar con los filtros seleccionados.");
+        DesvioHorasProyecto proyecto = analisis.Proyectos.FirstOrDefault(item => item.Proyecto.ID == comunicacion.Proyecto.ID) ?? throw new InvalidOperationException("No hay información de desvío para comunicar con los filtros seleccionados.");
         List<DestinatarioDesvioHoras> destinatarios = _analiticaMPP.ConsultarDuenosAgencia(usuario);
         if (destinatarios.Count == 0) { throw new InvalidOperationException("No se encontró un Dueño activo para recibir el desvío."); }
-        List<string> tareas = proyecto.Tareas.OrderByDescending(tarea => tarea.DesvioHoras).ThenByDescending(tarea => tarea.PorcentajeConsumo).Take(5).Select(tarea => tarea.Titulo + ": " + tarea.DesvioHoras.ToString("N2") + " h de desvío (" + tarea.PorcentajeConsumo.ToString("N2") + "% de consumo)").ToList();
+        List<string> tareas = proyecto.Tareas.OrderByDescending(tarea => tarea.DesvioHoras).ThenByDescending(tarea => tarea.PorcentajeConsumo).Take(5).Select(tarea => tarea.Tarea.Titulo + ": " + tarea.DesvioHoras.ToString("N2") + " h de desvío (" + tarea.PorcentajeConsumo.ToString("N2") + "% de consumo)").ToList();
         int enviados = 0;
         foreach (DestinatarioDesvioHoras destinatario in destinatarios)
         {
@@ -365,7 +350,7 @@ public class BLLAnaliticaOperativa
         }
         string resultado = enviados == destinatarios.Count ? "Exitoso" : enviados > 0 ? "Parcial" : "Fallido";
         string criticidad = enviados == destinatarios.Count ? "Informacion" : "Advertencia";
-        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Proyecto", proyecto.IdProyecto, "InformarDesvioHorasADueno", "Se informó el desvío de horas del proyecto '" + proyecto.NombreProyecto + "' a " + enviados + " de " + destinatarios.Count + " Dueño(s).", resultado, criticidad, "Proyectos"));
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Proyecto", proyecto.Proyecto.ID, "InformarDesvioHorasADueno", "Se informó el desvío de horas del proyecto '" + proyecto.Proyecto.Nombre + "' a " + enviados + " de " + destinatarios.Count + " Dueño(s).", resultado, criticidad, "Proyectos"));
         if (enviados == 0) { throw new InvalidOperationException("No fue posible enviar el correo al Dueño. Revisá la configuración de correo de TeamBalance."); }
     }
 
@@ -390,7 +375,7 @@ public class BLLAnaliticaOperativa
             if (CumpleNivelConveniencia(detalle, filtroAplicado.NivelDesvioCosto)) { resultado.Proyectos.Add(detalle); }
         }
 
-        resultado.Proyectos = resultado.Proyectos.OrderByDescending(proyecto => proyecto.Sobrecosto).ThenByDescending(proyecto => proyecto.HorasRealesSinCosto).ThenBy(proyecto => proyecto.NombreCliente).ToList();
+        resultado.Proyectos = resultado.Proyectos.OrderByDescending(proyecto => proyecto.Sobrecosto).ThenByDescending(proyecto => proyecto.HorasRealesSinCosto).ThenBy(proyecto => proyecto.Proyecto.NombreCliente ?? "Cliente sin nombre").ToList();
         HashSet<int> clientesEnRevision = _analiticaMPP.ConsultarClientesEnRevision(usuario).ToHashSet();
         resultado.Clientes = CrearResumenClientes(resultado.Proyectos, clientesEnRevision);
         resultado.CostoPlanificado = resultado.Proyectos.Sum(proyecto => proyecto.CostoPlanificado);
@@ -494,16 +479,8 @@ public class BLLAnaliticaOperativa
                     if (empleado is null || ObtenerNivelSeniority(empleado.Seniority) <= ObtenerNivelSeniority(seniorityRequerido)) { continue; }
                     decimal horasRegistradas = contexto.Registros.Where(registro => registro.IdTarea == tarea.ID && registro.IdEmpleado == empleado.ID).Sum(registro => registro.CantidadHoras);
                     decimal horasAfectadas = horasRegistradas > 0 ? horasRegistradas : asignacion.HorasAsignadas;
-                    SobrecalificacionTarea detalle = new SobrecalificacionTarea();
-                    detalle.IdTarea = tarea.ID;
-                    detalle.IdProyecto = contexto.Proyecto.ID;
-                    detalle.IdEmpleado = empleado.ID;
-                    detalle.Titulo = tarea.Titulo;
-                    detalle.NombreProyecto = contexto.Proyecto.Nombre;
-                    detalle.NombreCliente = contexto.Proyecto.NombreCliente ?? "Cliente sin nombre";
+                    SobrecalificacionTarea detalle = new SobrecalificacionTarea { Tarea = tarea, Proyecto = contexto.Proyecto, Empleado = empleado };
                     detalle.SeniorityRequerido = seniorityRequerido;
-                    detalle.SeniorityAsignado = empleado.Seniority;
-                    detalle.EmpleadoAsignado = empleado.Nombre;
                     detalle.HorasAfectadas = horasAfectadas;
                     detalle.ImpactoOperativoEstimado = horasAfectadas * empleado.CostoHora;
                     detalle.Nivel = ObtenerNivelSeniority(empleado.Seniority) - ObtenerNivelSeniority(seniorityRequerido) > 1 ? "Alto" : "Moderado";
@@ -511,10 +488,10 @@ public class BLLAnaliticaOperativa
                 }
             }
         }
-        resultado.Tareas = resultado.Tareas.OrderBy(tarea => tarea.EmpleadoAsignado).ThenByDescending(tarea => tarea.ImpactoOperativoEstimado).ThenByDescending(tarea => tarea.HorasAfectadas).ToList();
+        resultado.Tareas = resultado.Tareas.OrderBy(tarea => tarea.Empleado.Nombre).ThenByDescending(tarea => tarea.ImpactoOperativoEstimado).ThenByDescending(tarea => tarea.HorasAfectadas).ToList();
         resultado.HorasAfectadas = resultado.Tareas.Sum(tarea => tarea.HorasAfectadas);
         resultado.ImpactoOperativoEstimado = resultado.Tareas.Sum(tarea => tarea.ImpactoOperativoEstimado);
-        resultado.CantidadTareasAfectadas = resultado.Tareas.Select(tarea => tarea.IdTarea).Distinct().Count();
+        resultado.CantidadTareasAfectadas = resultado.Tareas.Select(tarea => tarea.Tarea.ID).Distinct().Count();
         return resultado;
     }
 
@@ -534,7 +511,7 @@ public class BLLAnaliticaOperativa
             throw new ArgumentException("La observación no puede superar los 1500 caracteres.");
         }
 
-        SobrecalificacionTarea detalle = ConsultarSobrecalificacion(usuario, nuevaSolicitud.IdProyecto).Tareas.FirstOrDefault(item => item.IdProyecto == nuevaSolicitud.IdProyecto && item.IdTarea == nuevaSolicitud.IdTarea && item.IdEmpleado == nuevaSolicitud.IdEmpleado)
+        SobrecalificacionTarea detalle = ConsultarSobrecalificacion(usuario, nuevaSolicitud.IdProyecto).Tareas.FirstOrDefault(item => item.Proyecto.ID == nuevaSolicitud.IdProyecto && item.Tarea.ID == nuevaSolicitud.IdTarea && item.Empleado.ID == nuevaSolicitud.IdEmpleado)
             ?? throw new KeyNotFoundException("La asignación ya no forma parte del análisis de sobrecalificación actual.");
         ContextoProyectoAnalitico contexto = ConsultarContextos(usuario, nuevaSolicitud.IdProyecto).FirstOrDefault(item => item.Proyecto.ID == nuevaSolicitud.IdProyecto)
             ?? throw new KeyNotFoundException("No existe el proyecto solicitado o no tenés acceso a él.");
@@ -542,18 +519,18 @@ public class BLLAnaliticaOperativa
         SolicitudRevisionOperativa solicitud = new SolicitudRevisionOperativa
         {
             IdAgencia = usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."),
-            IdEmpleado = detalle.IdEmpleado,
-            IdProyecto = detalle.IdProyecto,
-            IdTarea = detalle.IdTarea,
+            IdEmpleado = detalle.Empleado.ID,
+            IdProyecto = detalle.Proyecto.ID,
+            IdTarea = detalle.Tarea.ID,
             IdPMResponsable = contexto.Proyecto.IdPMResponsable,
             IdUsuarioSolicitante = usuario.ID,
-            CausaPrincipal = $"La tarea '{detalle.Titulo}' requiere seniority {detalle.SeniorityRequerido} y está asignada a un perfil {detalle.SeniorityAsignado}.",
+            CausaPrincipal = $"La tarea '{detalle.Tarea.Titulo}' requiere seniority {detalle.SeniorityRequerido} y está asignada a un perfil {detalle.Empleado.Seniority}.",
             AccionSugerida = nuevaSolicitud.Observacion.Trim()
         };
         solicitud.ID = _analiticaMPP.RegistrarSolicitudRevision(solicitud);
         DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(new PM { ID = solicitud.IdPMResponsable });
-        bool correoEnviado = destinatario is not null && await _emailService.EnviarCorreoSolicitudRevisionOperativa(new SolicitudRevisionCorreo { Destinatario = destinatario, NombreEmpleado = detalle.EmpleadoAsignado, NombreProyecto = detalle.NombreProyecto, CausaPrincipal = solicitud.CausaPrincipal, AccionSugerida = solicitud.AccionSugerida });
-        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "SolicitudRevisionOperativa", solicitud.ID, "SolicitarRevisionSobrecalificacion", $"Se derivó al PM la revisión de una asignación sobrecalificada de '{detalle.EmpleadoAsignado}' en la tarea '{detalle.Titulo}'.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia", "Proyectos"));
+        bool correoEnviado = destinatario is not null && await _emailService.EnviarCorreoSolicitudRevisionOperativa(new SolicitudRevisionCorreo { Destinatario = destinatario, NombreEmpleado = detalle.Empleado.Nombre, NombreProyecto = detalle.Proyecto.Nombre, CausaPrincipal = solicitud.CausaPrincipal, AccionSugerida = solicitud.AccionSugerida });
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "SolicitudRevisionOperativa", solicitud.ID, "SolicitarRevisionSobrecalificacion", $"Se derivó al PM la revisión de una asignación sobrecalificada de '{detalle.Empleado.Nombre}' en la tarea '{detalle.Tarea.Titulo}'.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia", "Proyectos"));
     }
 
     private List<ContextoProyectoAnalitico> ConsultarContextos(Usuario usuario, int? idProyecto, int? idCliente = null)
@@ -636,12 +613,6 @@ public class BLLAnaliticaOperativa
         horasExcedidas = Math.Max(horasReales - horasEstimadas, 0);
     }
 
-    private static string ObtenerNombreEmpleado(ContextoProyectoAnalitico contexto, int? idEmpleado)
-    {
-        Empleado? empleado = contexto.Equipo.FirstOrDefault(item => item.ID == idEmpleado);
-        return empleado is null ? "Sin asignar" : empleado.Nombre;
-    }
-
     private static void ValidarFiltroOcupacion(FiltroOcupacionOperativa filtro)
     {
         if (filtro.Desde.HasValue && filtro.Hasta.HasValue && filtro.Desde.Value.Date > filtro.Hasta.Value.Date) { throw new ArgumentException("La fecha desde no puede ser posterior a la fecha hasta."); }
@@ -682,12 +653,7 @@ public class BLLAnaliticaOperativa
         {
             List<Tarea> tareas = contexto.Tareas.Where(tarea => horasPlanificadasPorTarea.ContainsKey(tarea.ID) && horasPlanificadasPorTareaEmpleado.Keys.Any(item => item.IdTarea == tarea.ID && empleadosIncluidos.Contains(item.IdEmpleado))).ToList();
             if (tareas.Count == 0) { continue; }
-            OcupacionProyecto proyecto = new OcupacionProyecto();
-            proyecto.IdProyecto = contexto.Proyecto.ID;
-            proyecto.IdCliente = contexto.Proyecto.IdCliente;
-            proyecto.IdPMResponsable = contexto.Proyecto.IdPMResponsable;
-            proyecto.NombreProyecto = contexto.Proyecto.Nombre;
-            proyecto.NombreCliente = contexto.Proyecto.NombreCliente ?? "Cliente sin nombre";
+            OcupacionProyecto proyecto = new OcupacionProyecto { Proyecto = contexto.Proyecto };
             proyecto.HorasEstimadasActivas = tareas.Sum(tarea => horasPlanificadasPorTarea[tarea.ID]);
             proyecto.PorcentajeSobreCargaAgencia = CalcularPorcentaje(proyecto.HorasEstimadasActivas, horasTotales);
             foreach (IGrouping<int, KeyValuePair<(int IdTarea, int IdEmpleado), decimal>> grupo in horasPlanificadasPorTareaEmpleado.Where(item => empleadosIncluidos.Contains(item.Key.IdEmpleado) && tareas.Any(tarea => tarea.ID == item.Key.IdTarea)).GroupBy(item => item.Key.IdEmpleado))
@@ -709,11 +675,11 @@ public class BLLAnaliticaOperativa
     private static List<OcupacionCliente> CrearDistribucionClientes(List<OcupacionProyecto> proyectos, decimal horasTotales)
     {
         List<OcupacionCliente> clientes = new List<OcupacionCliente>();
-        foreach (IGrouping<int, OcupacionProyecto> grupo in proyectos.GroupBy(proyecto => proyecto.IdCliente))
+        foreach (IGrouping<int, OcupacionProyecto> grupo in proyectos.GroupBy(proyecto => proyecto.Proyecto.IdCliente))
         {
             OcupacionCliente cliente = new OcupacionCliente();
             cliente.IdCliente = grupo.Key;
-            cliente.NombreCliente = grupo.First().NombreCliente;
+            cliente.NombreCliente = grupo.First().Proyecto.NombreCliente ?? "Cliente sin nombre";
             cliente.HorasEstimadasActivas = grupo.Sum(proyecto => proyecto.HorasEstimadasActivas);
             cliente.PorcentajeSobreCargaAgencia = CalcularPorcentaje(cliente.HorasEstimadasActivas, horasTotales);
             cliente.Proyectos = grupo.OrderByDescending(proyecto => proyecto.HorasEstimadasActivas).ToList();
@@ -787,10 +753,7 @@ public class BLLAnaliticaOperativa
     {
         ConvenienciaOperativaProyecto detalle = new ConvenienciaOperativaProyecto
         {
-            IdProyecto = contexto.Proyecto.ID,
-            IdCliente = contexto.Proyecto.IdCliente,
-            NombreProyecto = contexto.Proyecto.Nombre,
-            NombreCliente = contexto.Proyecto.NombreCliente ?? "Cliente sin nombre",
+            Proyecto = contexto.Proyecto,
             HorasEstimadas = tareas.Sum(tarea => tarea.HorasEstimadas),
             HorasReales = registros.Sum(registro => registro.CantidadHoras)
         };
@@ -843,12 +806,9 @@ public class BLLAnaliticaOperativa
         if (componentes.TryGetValue(clave, out ComposicionCostoOperativo? existente)) { return existente; }
         ComposicionCostoOperativo componente = new ComposicionCostoOperativo
         {
-            IdTarea = tarea.ID,
-            IdEmpleado = idEmpleado,
-            Tarea = tarea.Titulo,
-            Empleado = empleado?.Nombre ?? "Empleado sin costo configurado",
-            Seniority = empleado?.Seniority ?? "Sin datos",
-            CostoHora = empleado?.CostoHora ?? 0,
+            Tarea = tarea,
+            Empleado = empleado,
+            IdEmpleadoSinFicha = empleado is null ? idEmpleado : null,
             CostoNoConfigurado = empleado is null || empleado.CostoHora <= 0
         };
         componentes.Add(clave, componente);
@@ -858,19 +818,18 @@ public class BLLAnaliticaOperativa
     private static List<ConvenienciaOperativaCliente> CrearResumenClientes(List<ConvenienciaOperativaProyecto> proyectos, HashSet<int> clientesEnRevision)
     {
         List<ConvenienciaOperativaCliente> clientes = new List<ConvenienciaOperativaCliente>();
-        foreach (IGrouping<int, ConvenienciaOperativaProyecto> grupo in proyectos.GroupBy(proyecto => proyecto.IdCliente))
+        foreach (IGrouping<int, ConvenienciaOperativaProyecto> grupo in proyectos.GroupBy(proyecto => proyecto.Proyecto.IdCliente))
         {
             ConvenienciaOperativaCliente cliente = new ConvenienciaOperativaCliente
             {
-                IdCliente = grupo.Key,
-                NombreCliente = grupo.First().NombreCliente,
+                Cliente = new Cliente { ID = grupo.Key, Nombre = grupo.First().Proyecto.NombreCliente ?? "Cliente sin nombre" },
                 HorasEstimadas = grupo.Sum(proyecto => proyecto.HorasEstimadas),
                 HorasReales = grupo.Sum(proyecto => proyecto.HorasReales),
                 CostoPlanificado = grupo.Sum(proyecto => proyecto.CostoPlanificado),
                 CostoReal = grupo.Sum(proyecto => proyecto.CostoReal),
                 HorasRealesSinCosto = grupo.Sum(proyecto => proyecto.HorasRealesSinCosto),
                 EnRevisionOperativa = clientesEnRevision.Contains(grupo.Key),
-                Proyectos = grupo.OrderByDescending(proyecto => proyecto.Sobrecosto).ThenBy(proyecto => proyecto.NombreProyecto).ToList()
+                Proyectos = grupo.OrderByDescending(proyecto => proyecto.Sobrecosto).ThenBy(proyecto => proyecto.Proyecto.Nombre).ToList()
             };
             cliente.DesvioCosto = cliente.CostoReal - cliente.CostoPlanificado;
             cliente.PresupuestoNoConsumido = Math.Max(cliente.CostoPlanificado - cliente.CostoReal, 0);
@@ -878,7 +837,7 @@ public class BLLAnaliticaOperativa
             cliente.EstadoConveniencia = cliente.Sobrecosto > 0 ? "Costo excedido" : cliente.HorasRealesSinCosto > 0 ? "Costo real incompleto" : cliente.CostoPlanificado <= 0 ? "Sin datos de planificación" : "Dentro del presupuesto";
             clientes.Add(cliente);
         }
-        return clientes.OrderByDescending(cliente => cliente.Sobrecosto).ThenByDescending(cliente => cliente.HorasRealesSinCosto).ThenBy(cliente => cliente.NombreCliente).ToList();
+        return clientes.OrderByDescending(cliente => cliente.Sobrecosto).ThenByDescending(cliente => cliente.HorasRealesSinCosto).ThenBy(cliente => cliente.Cliente.Nombre).ToList();
     }
 
     private static string ObtenerEstadoConveniencia(ConvenienciaOperativaProyecto detalle)

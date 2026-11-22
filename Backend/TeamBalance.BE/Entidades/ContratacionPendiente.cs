@@ -2,18 +2,18 @@ namespace TeamBalance.BE.Entidades;
 
 public sealed class ContratacionPendiente
 {
-    public ContratacionPendiente(int idContratacion, int idPlanComercial, string referenciaContratacion, string referenciaOperacion, decimal importe, string moneda)
+    public ContratacionPendiente(ContratacionServicio contratacion, PlanComercial planComercial, string referenciaContratacion, string referenciaOperacion, decimal importe, string moneda)
     {
-        IdContratacion = idContratacion;
-        IdPlanComercial = idPlanComercial;
+        Contratacion = contratacion;
+        PlanComercial = planComercial;
         ReferenciaContratacion = referenciaContratacion;
         ReferenciaOperacion = referenciaOperacion;
         Importe = importe;
         Moneda = moneda;
     }
 
-    public int IdContratacion { get; set; }
-    public int IdPlanComercial { get; set; }
+    public ContratacionServicio Contratacion { get; }
+    public PlanComercial PlanComercial { get; }
     public string ReferenciaContratacion { get; set; }
     public string ReferenciaOperacion { get; set; }
     public decimal Importe { get; set; }

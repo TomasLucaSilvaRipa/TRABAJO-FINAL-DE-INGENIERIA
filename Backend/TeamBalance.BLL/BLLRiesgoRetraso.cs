@@ -95,13 +95,10 @@ public class BLLRiesgoRetraso
         decimal ritmoAvance = CalcularRitmoAvance(proyecto, registros);
         DateTime? fechaEstimada = CalcularFechaEstimada(horasRestantes, disponibilidadEquipo, ritmoAvance);
         int diasRetraso = CalcularDiasRetraso(fechaEstimada, proyecto.Deadline);
-        int tareasBloqueadas = tareasPendientes.Count(tarea => tarea.Bloqueada || string.Equals(tarea.Estado, "Bloqueada", StringComparison.OrdinalIgnoreCase));
+        int tareasBloqueadas = tareasPendientes.Count(detalle => EstaBloqueada(detalle.Tarea));
         string nivelRiesgo = ClasificarRiesgo(diasRetraso, tareasBloqueadas, horasRestantes, disponibilidadEquipo, proyecto.Deadline);
         List<CausaRiesgo> causas = IdentificarCausas(proyecto, tareasPendientes, horasRestantes, disponibilidadEquipo, ritmoAvance, tareasBloqueadas, fechaEstimada, diasRetraso);
-        string nombreCliente = string.IsNullOrWhiteSpace(proyecto.NombreCliente) ? "Cliente #" + proyecto.IdCliente : proyecto.NombreCliente;
-        string nombrePM = string.IsNullOrWhiteSpace(proyecto.NombrePMResponsable) ? "PM #" + proyecto.IdPMResponsable : proyecto.NombrePMResponsable;
-        DetalleRiesgoProyecto detalle = new DetalleRiesgoProyecto(proyecto.ID, proyecto.Nombre, nombreCliente, nombrePM, proyecto.FechaInicio ?? proyecto.FechaAlta, proyecto.Deadline, fechaEstimada, diasRetraso, horasRestantes, disponibilidadEquipo, ritmoAvance, nivelRiesgo, causas, tareasPendientes, hitosTareas);
-        return detalle;
+        return new DetalleRiesgoProyecto(proyecto, fechaEstimada, diasRetraso, horasRestantes, disponibilidadEquipo, ritmoAvance, nivelRiesgo, causas, tareasPendientes, hitosTareas);
     }
 
     private static List<TareaRiesgoRetraso> CrearTareasPendientes(IEnumerable<Tarea> tareas, IReadOnlyDictionary<int, decimal> horasRegistradasPorTarea)
@@ -113,8 +110,11 @@ public class BLLRiesgoRetraso
             decimal porcentajeAvance = Math.Clamp(tarea.PorcentajeAvance, 0, 100);
             decimal horasCubiertasPorAvance = horasEstimadas * porcentajeAvance / 100;
             decimal horasRestantes = Math.Max(0, horasEstimadas - Math.Max(horasRegistradas, horasCubiertasPorAvance));
-            return new TareaRiesgoRetraso(tarea.ID, tarea.Titulo, tarea.Estado ?? "Sin estado", tarea.Bloqueada, tarea.FechaInicio, tarea.Deadline, horasEstimadas, porcentajeAvance, horasRestantes);
-        }).Where(tarea => tarea.HorasRestantes > 0 || tarea.Bloqueada || string.Equals(tarea.Estado, "Bloqueada", StringComparison.OrdinalIgnoreCase)).OrderByDescending(tarea => tarea.Bloqueada || string.Equals(tarea.Estado, "Bloqueada", StringComparison.OrdinalIgnoreCase)).ThenByDescending(tarea => tarea.HorasRestantes).ToList();
+            return new TareaRiesgoRetraso(tarea, horasEstimadas, porcentajeAvance, horasRestantes);
+        }).Where(detalle => detalle.HorasRestantes > 0 || EstaBloqueada(detalle.Tarea))
+          .OrderByDescending(detalle => EstaBloqueada(detalle.Tarea))
+          .ThenByDescending(detalle => detalle.HorasRestantes)
+          .ToList();
     }
 
     private static List<HitoTareaProyecto> CrearHitosTareas(IEnumerable<Tarea> tareas, IReadOnlyDictionary<int, decimal> horasRegistradasPorTarea)
@@ -126,9 +126,12 @@ public class BLLRiesgoRetraso
             decimal porcentajeAvance = Math.Clamp(tarea.PorcentajeAvance, 0, 100);
             decimal horasCubiertasPorAvance = horasEstimadas * porcentajeAvance / 100;
             decimal horasRestantes = Math.Max(0, horasEstimadas - Math.Max(horasRegistradas, horasCubiertasPorAvance));
-            return new HitoTareaProyecto(tarea.ID, tarea.Titulo, tarea.FechaInicio, tarea.Deadline, horasEstimadas, porcentajeAvance, horasRestantes);
-        }).OrderBy(tarea => tarea.Deadline ?? DateTime.MaxValue).ToList();
+            return new HitoTareaProyecto(tarea, horasEstimadas, porcentajeAvance, horasRestantes);
+        }).OrderBy(hito => hito.Tarea.Deadline ?? DateTime.MaxValue).ToList();
     }
+
+    private static bool EstaBloqueada(Tarea tarea)
+        => tarea.Bloqueada || string.Equals(tarea.Estado, "Bloqueada", StringComparison.OrdinalIgnoreCase);
 
     private static decimal CalcularDisponibilidadEquipo(List<Empleado> equipo)
     {
@@ -177,19 +180,20 @@ public class BLLRiesgoRetraso
     private static List<CausaRiesgo> IdentificarCausas(Proyecto proyecto, List<TareaRiesgoRetraso> tareas, decimal horasRestantes, decimal disponibilidadEquipo, decimal ritmoAvance, int tareasBloqueadas, DateTime? fechaEstimada, int diasRetraso)
     {
         List<CausaRiesgo> causas = new List<CausaRiesgo>();
-        if (!proyecto.Deadline.HasValue) { causas.Add(new CausaRiesgo(proyecto.ID, "Proyecto", "El proyecto no tiene una fecha límite definida.", "Medio")); }
-        if (tareasBloqueadas > 0) { causas.Add(new CausaRiesgo(proyecto.ID, "Tarea", "Hay " + tareasBloqueadas + " tarea(s) bloqueada(s) que requieren seguimiento.", "Alto")); }
-        if (horasRestantes > 0 && disponibilidadEquipo <= 0) { causas.Add(new CausaRiesgo(proyecto.ID, "Equipo", "No se registró disponibilidad para el equipo asignado.", "Alto")); }
-        if (horasRestantes > 0 && ritmoAvance <= 0) { causas.Add(new CausaRiesgo(proyecto.ID, "Avance", "No hay avance registrado en los últimos " + DiasVentanaRitmo + " días; la fecha se proyecta con la capacidad disponible.", "Medio")); }
-        if (diasRetraso > 0 && fechaEstimada.HasValue) { causas.Add(new CausaRiesgo(proyecto.ID, "Plazo", "Con el ritmo y la capacidad actuales, la finalización se proyecta para el " + fechaEstimada.Value.ToString("dd/MM/yyyy") + ", " + diasRetraso + " día(s) después del deadline.", diasRetraso > 14 ? "Alto" : "Medio")); }
-        if (causas.Count == 0) { causas.Add(new CausaRiesgo(proyecto.ID, "Proyecto", "El proyecto no presenta señales críticas con la información disponible.", "Bajo")); }
+        if (!proyecto.Deadline.HasValue) { causas.Add(new CausaRiesgo(proyecto, "Proyecto", "El proyecto no tiene una fecha límite definida.", "Medio")); }
+        if (tareasBloqueadas > 0) { causas.Add(new CausaRiesgo(proyecto, "Tarea", "Hay " + tareasBloqueadas + " tarea(s) bloqueada(s) que requieren seguimiento.", "Alto")); }
+        if (horasRestantes > 0 && disponibilidadEquipo <= 0) { causas.Add(new CausaRiesgo(proyecto, "Equipo", "No se registró disponibilidad para el equipo asignado.", "Alto")); }
+        if (horasRestantes > 0 && ritmoAvance <= 0) { causas.Add(new CausaRiesgo(proyecto, "Avance", "No hay avance registrado en los últimos " + DiasVentanaRitmo + " días; la fecha se proyecta con la capacidad disponible.", "Medio")); }
+        if (diasRetraso > 0 && fechaEstimada.HasValue) { causas.Add(new CausaRiesgo(proyecto, "Plazo", "Con el ritmo y la capacidad actuales, la finalización se proyecta para el " + fechaEstimada.Value.ToString("dd/MM/yyyy") + ", " + diasRetraso + " día(s) después del deadline.", diasRetraso > 14 ? "Alto" : "Medio")); }
+        if (causas.Count == 0) { causas.Add(new CausaRiesgo(proyecto, "Proyecto", "El proyecto no presenta señales críticas con la información disponible.", "Bajo")); }
         return causas;
     }
 
     private static bool CumpleFiltro(DetalleRiesgoProyecto detalle, FiltroRiesgoRetraso filtro)
     {
         bool coincideNivel = string.IsNullOrWhiteSpace(filtro.NivelRiesgo) || string.Equals(detalle.NivelRiesgo, filtro.NivelRiesgo, StringComparison.OrdinalIgnoreCase);
-        bool coincideDeadline = !filtro.DiasHastaDeadlineMaximo.HasValue || (detalle.Deadline.HasValue && (detalle.Deadline.Value.Date - DateTime.Today).Days <= filtro.DiasHastaDeadlineMaximo.Value);
+        DateTime? deadline = detalle.Proyecto.Deadline;
+        bool coincideDeadline = !filtro.DiasHastaDeadlineMaximo.HasValue || (deadline.HasValue && (deadline.Value.Date - DateTime.Today).Days <= filtro.DiasHastaDeadlineMaximo.Value);
         return coincideNivel && coincideDeadline;
     }
 

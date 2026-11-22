@@ -129,14 +129,14 @@ namespace TeamBalance.Services
             string tareas = tareasConMayorDesvio.Count == 0
                 ? "No se identificaron tareas con sobreconsumo en los filtros aplicados."
                 : string.Join("<br />", tareasConMayorDesvio.Select(tarea => "• " + System.Net.WebUtility.HtmlEncode(tarea)));
-            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(destinatario.Nombre)},</p><p>El PM informó un desvío de horas en el proyecto <strong>{System.Net.WebUtility.HtmlEncode(proyecto.NombreProyecto)}</strong>.</p><p><strong>Horas estimadas:</strong> {proyecto.HorasEstimadas:N2}<br /><strong>Horas reales:</strong> {proyecto.HorasReales:N2}<br /><strong>Diferencia:</strong> {proyecto.DesvioHoras:N2}<br /><strong>Consumo:</strong> {proyecto.PorcentajeConsumo:N2}%</p><p><strong>Tareas con mayor desvío</strong><br />{tareas}</p><p>Ingresá a TeamBalance para revisar el control operativo completo.</p>";
+            string descripcion = $@"<p>Hola {System.Net.WebUtility.HtmlEncode(destinatario.Nombre)},</p><p>El PM informó un desvío de horas en el proyecto <strong>{System.Net.WebUtility.HtmlEncode(proyecto.Proyecto.Nombre)}</strong>.</p><p><strong>Horas estimadas:</strong> {proyecto.HorasEstimadas:N2}<br /><strong>Horas reales:</strong> {proyecto.HorasReales:N2}<br /><strong>Diferencia:</strong> {proyecto.DesvioHoras:N2}<br /><strong>Consumo:</strong> {proyecto.PorcentajeConsumo:N2}%</p><p><strong>Tareas con mayor desvío</strong><br />{tareas}</p><p>Ingresá a TeamBalance para revisar el control operativo completo.</p>";
             return await EnviarMail(new CorreoElectronico { Asunto = "Desvío de horas informado · TeamBalance", ContenidoHtml = descripcion, Receptor = destinatario.Email });
         }
 
         public async Task<bool> EnviarAlertaOperativa(AlertaOperativaEnvio alerta)
         {
             string explicacion=alerta.Tipo=="Desvio70_40"?"El consumo de horas es alto respecto del avance informado.":"El proyecto alcanzó el umbral de consumo configurado por la agencia.";
-            string descripcion=$@"<p>Hola {System.Net.WebUtility.HtmlEncode(alerta.NombreDestinatario)},</p><p><strong>{System.Net.WebUtility.HtmlEncode(alerta.Proyecto)}</strong> requiere atención.</p><p>{explicacion}</p><p><strong>Consumo:</strong> {alerta.Consumo:N1}%<br/><strong>Avance:</strong> {alerta.Avance:N1}%</p><p>Ingresá a TeamBalance para revisar el control de horas y tomar una acción.</p>";
+            string descripcion=$@"<p>Hola {System.Net.WebUtility.HtmlEncode(alerta.NombreDestinatario)},</p><p><strong>{System.Net.WebUtility.HtmlEncode(alerta.Proyecto.Nombre)}</strong> requiere atención.</p><p>{explicacion}</p><p><strong>Consumo:</strong> {alerta.Consumo:N1}%<br/><strong>Avance:</strong> {alerta.Avance:N1}%</p><p>Ingresá a TeamBalance para revisar el control de horas y tomar una acción.</p>";
             return await EnviarMail(new CorreoElectronico { Asunto = "Alerta operativa · TeamBalance", ContenidoHtml = descripcion, Receptor = alerta.Email });
         }
 

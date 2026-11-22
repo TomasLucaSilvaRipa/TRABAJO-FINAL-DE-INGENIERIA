@@ -29,7 +29,15 @@ public partial class AusenciaEmpleado
     }
 
     public int ID { get; set; }
-    public int IdEmpleado { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Empleado Empleado { get; set; } = new() { Nombre = null! };
+
+    // Adaptador para el formato plano de entrada y salida.
+    public int IdEmpleado
+    {
+        get => Empleado.ID;
+        set => Empleado = Empleado.ID == value ? Empleado : new() { ID = value, Nombre = Empleado.Nombre };
+    }
     public string TipoPeriodo { get; set; } = null!;
     public DateTime FechaInicioSolicitada { get; set; }
     public DateTime FechaFinSolicitada { get; set; }
@@ -38,7 +46,15 @@ public partial class AusenciaEmpleado
     public decimal? HorasNoDisponiblesSolicitadas { get; set; }
     public decimal? HorasNoDisponiblesAprobadas { get; set; }
     public string? Motivo { get; set; }
-    public int? IdUsuarioResolucion { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Usuario? UsuarioResolucion { get; set; }
+
+    // Adaptador para el formato plano de entrada y salida.
+    public int? IdUsuarioResolucion
+    {
+        get => UsuarioResolucion?.ID;
+        set => UsuarioResolucion = value.HasValue ? new() { ID = value.Value } : null;
+    }
     public string? Estado { get; set; }
     public DateTime FechaSolicitud { get; set; }
     public DateTime? FechaResolucion { get; set; }
@@ -47,5 +63,5 @@ public partial class AusenciaEmpleado
     public string? ComprobanteUrl { get; set; }
 
     [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public string? NombreEmpleado { get; set; }
+    public string? NombreEmpleado { get => Empleado.Nombre; set => Empleado.Nombre = value!; }
 }

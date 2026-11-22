@@ -26,9 +26,25 @@ public partial class ConsultaSoporte
 
     public int ID { get; set; }
 
-    public int IdUsuario { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Usuario Usuario { get; set; } = new();
 
-    public int? IdAgencia { get; set; }
+    // Adaptador para el contrato plano.
+    public int IdUsuario
+    {
+        get => Usuario.ID;
+        set => Usuario = Usuario.ID == value ? Usuario : new() { ID = value };
+    }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Agencia? Agencia { get; set; }
+
+    // Adaptador para el contrato plano.
+    public int? IdAgencia
+    {
+        get => Agencia?.ID;
+        set => Agencia = value.HasValue ? (Agencia?.ID == value.Value ? Agencia : new() { ID = value.Value }) : null;
+    }
 
     public string Asunto { get; set; } = null!;
 

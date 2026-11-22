@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
+using Teambalance.API.Models;
 
 namespace Teambalance.API.Controllers;
 
@@ -20,7 +21,7 @@ public class AnaliticaOperativaController : ControllerBase
     [HttpGet("ocupacion")]
     public IActionResult ConsultarOcupacion([FromQuery] FiltroOcupacionOperativa filtro)
     {
-        try { return Ok(_analiticaBLL.ConsultarOcupacion(ObtenerSolicitante(), filtro)); }
+        try { return Ok(AnaliticaOperativaResponse.Desde(_analiticaBLL.ConsultarOcupacion(ObtenerSolicitante(), filtro))); }
         catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception) { return StatusCode(500, "No fue posible analizar la ocupación operativa."); }
@@ -29,7 +30,7 @@ public class AnaliticaOperativaController : ControllerBase
     [HttpGet("mi-carga")]
     public IActionResult ConsultarMiCargaOperativa()
     {
-        try { return Ok(_analiticaBLL.ConsultarMiCargaOperativa(ObtenerSolicitante())); }
+        try { return Ok(AnaliticaOperativaResponse.Desde(_analiticaBLL.ConsultarMiCargaOperativa(ObtenerSolicitante()))); }
         catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
         catch (Exception) { return StatusCode(500, "No fue posible consultar tu carga operativa."); }
     }
@@ -37,7 +38,7 @@ public class AnaliticaOperativaController : ControllerBase
     [HttpGet("ocupacion/detalle-empleado")]
     public IActionResult ConsultarDetalleOcupacionEmpleado([FromQuery] FiltroOcupacionOperativa filtro)
     {
-        try { return Ok(_analiticaBLL.ConsultarDetalleOcupacionEmpleado(ObtenerSolicitante(), filtro)); }
+        try { return Ok(AnaliticaOperativaResponse.Desde(_analiticaBLL.ConsultarDetalleOcupacionEmpleado(ObtenerSolicitante(), filtro))); }
         catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
@@ -76,7 +77,7 @@ public class AnaliticaOperativaController : ControllerBase
     [HttpGet("desvio-horas")]
     public IActionResult ConsultarDesvioHoras([FromQuery] FiltroDesvioHoras filtro)
     {
-        try { return Ok(_analiticaBLL.ConsultarDesvioHoras(ObtenerSolicitante(), filtro)); }
+        try { return Ok(AnaliticaOperativaResponse.Desde(_analiticaBLL.ConsultarDesvioHoras(ObtenerSolicitante(), filtro))); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception) { return StatusCode(500, "No fue posible analizar el desvío de horas."); }
@@ -85,7 +86,7 @@ public class AnaliticaOperativaController : ControllerBase
     [HttpGet("desvio-horas/detalle-tarea")]
     public IActionResult ConsultarDetalleDesvioHorasTarea([FromQuery] int idProyecto, [FromQuery] int idTarea, [FromQuery] DateTime? desde, [FromQuery] DateTime? hasta)
     {
-        try { return Ok(_analiticaBLL.ConsultarDetalleDesvioHorasTarea(ObtenerSolicitante(), new FiltroDesvioHoras { IdProyecto = idProyecto, IdTarea = idTarea, Desde = desde, Hasta = hasta })); }
+        try { return Ok(AnaliticaOperativaResponse.Desde(_analiticaBLL.ConsultarDetalleDesvioHorasTarea(ObtenerSolicitante(), new FiltroDesvioHoras { IdProyecto = idProyecto, IdTarea = idTarea, Desde = desde, Hasta = hasta }))); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
@@ -115,7 +116,7 @@ public class AnaliticaOperativaController : ControllerBase
     [HttpGet("conveniencia")]
     public IActionResult ConsultarConveniencia([FromQuery] FiltroConvenienciaOperativa filtro)
     {
-        try { return Ok(_analiticaBLL.ConsultarConveniencia(ObtenerSolicitante(), filtro)); }
+        try { return Ok(AnaliticaOperativaResponse.Desde(_analiticaBLL.ConsultarConveniencia(ObtenerSolicitante(), filtro))); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception) { return StatusCode(500, "No fue posible analizar la conveniencia operativa."); }
@@ -124,7 +125,7 @@ public class AnaliticaOperativaController : ControllerBase
     [HttpGet("conveniencia/detalle")]
     public IActionResult ConsultarDetalleConveniencia([FromQuery] int idProyecto, [FromQuery] FiltroConvenienciaOperativa filtro)
     {
-        try { filtro.IdProyecto = idProyecto; return Ok(_analiticaBLL.ConsultarDetalleConveniencia(ObtenerSolicitante(), filtro)); }
+        try { filtro.IdProyecto = idProyecto; return Ok(AnaliticaOperativaResponse.Desde(_analiticaBLL.ConsultarDetalleConveniencia(ObtenerSolicitante(), filtro))); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
@@ -154,7 +155,7 @@ public class AnaliticaOperativaController : ControllerBase
     [HttpGet("sobrecalificacion")]
     public IActionResult ConsultarSobrecalificacion([FromQuery] int? idProyecto)
     {
-        try { return Ok(_analiticaBLL.ConsultarSobrecalificacion(ObtenerSolicitante(), idProyecto)); }
+        try { return Ok(AnaliticaOperativaResponse.Desde(_analiticaBLL.ConsultarSobrecalificacion(ObtenerSolicitante(), idProyecto))); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (Exception) { return StatusCode(500, "No fue posible analizar la sobrecalificación de perfiles."); }
     }

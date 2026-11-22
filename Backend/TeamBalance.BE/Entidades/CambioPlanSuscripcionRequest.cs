@@ -1,5 +1,5 @@
 namespace TeamBalance.BE.Entidades;
-// DTOs del CU05-003. No contienen ni reciben datos sensibles de pago.
+
 public sealed class CambioPlanSuscripcionRequest
 {
     public int IdSuscripcion { get; set; }
