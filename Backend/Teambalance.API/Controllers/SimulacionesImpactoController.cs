@@ -1,3 +1,4 @@
+using Teambalance.API.Models;
 using Microsoft.AspNetCore.Mvc;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
@@ -20,10 +21,7 @@ public class SimulacionesImpactoController : ControllerBase
     [HttpGet("tareas")]
     public IActionResult ConsultarTareasDisponibles()
     {
-        try
-        {
-            return Ok(_simulacionBLL.ConsultarTareasDisponibles(ValidarSesion()));
-        }
+        try { return Ok(_simulacionBLL.ConsultarTareasDisponibles(ValidarSesion())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
@@ -32,19 +30,16 @@ public class SimulacionesImpactoController : ControllerBase
     [HttpPost("calcular")]
     public IActionResult Calcular([FromBody] SimulacionImpacto simulacion)
     {
-        try
-        {
-            return Ok(_simulacionBLL.Calcular(simulacion, ValidarSesion()));
-        }
+        try { return Ok(_simulacionBLL.Calcular(simulacion, ValidarSesion())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
     [HttpGet("conservadas")]
-    public IActionResult ConsultarConservadas([FromQuery] int? idTarea)
+    public IActionResult ConsultarConservadas([ReferenciaHttp("idTarea", consulta: true, opcional: true)] Tarea? tarea)
     {
-        try { return Ok(_simulacionBLL.ConsultarConservadas(idTarea.HasValue ? new Tarea { ID = idTarea.Value } : null, ValidarSesion())); }
+        try { return Ok(_simulacionBLL.ConsultarConservadas(tarea, ValidarSesion())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
@@ -66,10 +61,7 @@ public class SimulacionesImpactoController : ControllerBase
     [HttpPatch("descartar")]
     public IActionResult Descartar([FromBody] SimulacionImpacto simulacion)
     {
-        try
-        {
-            return Ok(_simulacionBLL.Descartar(simulacion, ValidarSesion()));
-        }
+        try { return Ok(_simulacionBLL.Descartar(simulacion, ValidarSesion())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
@@ -79,7 +71,6 @@ public class SimulacionesImpactoController : ControllerBase
     {
         string token = Request.Headers.Authorization.ToString().Replace("Bearer ", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
         Usuario? usuario = _usuarioBLL.ConsultarUsuarioSesion(token);
-
         if (usuario is null)
         {
             throw new UnauthorizedAccessException("Tu sesión ya no es válida.");

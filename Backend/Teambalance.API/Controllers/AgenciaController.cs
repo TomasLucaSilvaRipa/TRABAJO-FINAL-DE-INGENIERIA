@@ -5,11 +5,13 @@ using Teambalance.API.Models;
 using Teambalance.API.Services;
 
 namespace Teambalance.API.Controllers;
+
 [Route("api/agencias")]
 public class AgenciaController : ControllerBase
 {
     private readonly BLLAgencia _agenciaBLL;
     private readonly BLLUsuario _usuarioBLL;
+
     public AgenciaController(BLLAgencia agenciaBLL, BLLUsuario usuarioBLL)
     {
         _agenciaBLL = agenciaBLL;
@@ -24,14 +26,8 @@ public class AgenciaController : ControllerBase
             Agencia agencia = _agenciaBLL.ConsultarAgencia(ObtenerSolicitante());
             return Ok(agencia);
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
     }
 
     [HttpPut("actual")]
@@ -42,14 +38,8 @@ public class AgenciaController : ControllerBase
             Agencia agenciaActualizada = _agenciaBLL.ModificarAgencia(agencia, ObtenerSolicitante());
             return Ok(agenciaActualizada);
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
     }
 
     [HttpGet("suscripcion")]
@@ -60,45 +50,29 @@ public class AgenciaController : ControllerBase
             Suscripcion? suscripcion = _agenciaBLL.ConsultarSuscripcionActual(ObtenerSolicitante());
             return Ok(suscripcion);
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
     }
 
     [HttpPost("{referenciaContratacion}/registro")]
-    public async Task<IActionResult> RegistrarAgencia([FromRoute] string referenciaContratacion, [FromBody] RegistrarAgenciaRequest solicitud)
+    public async Task<IActionResult> RegistrarAgencia([ReferenciaHttp("referenciaContratacion", nameof(ContratacionServicio.ReferenciaContratacion))] ContratacionServicio contratacion, [FromBody] RegistrarAgenciaRequest solicitud)
     {
         try
         {
             Agencia agencia = solicitud.Agencia;
             Usuario? usuario = agencia.Usuarios.FirstOrDefault();
-            ContratacionServicio contratacionSericio = new ContratacionServicio(referenciaContratacion);
             if (usuario is null)
             {
                 return BadRequest("No se recibieron los datos del dueño.");
             }
 
-            ResultadoRegistroAgenciaValidacion resultado = await _agenciaBLL.RegistrarAgencia(agencia, usuario, contratacionSericio, solicitud.RecibirNewsletter, solicitud.CategoriasNewsletterIds);
+            ResultadoRegistroAgenciaValidacion resultado = await _agenciaBLL.RegistrarAgencia(agencia, usuario, contratacion, solicitud.RecibirNewsletter, solicitud.CategoriasNewsletterIds);
             RespuestaRegistroAgencia respuesta = new RespuestaRegistroAgencia("La agencia y el usuario Dueño fueron registrados correctamente.", resultado.TokenGestion, resultado.FechaExpiracion);
             return Ok(respuesta);
         }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ex.Message);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, "No fue posible completar el registro de la agencia.");
-        }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible completar el registro de la agencia."); }
     }
 
     [HttpPost("validar-cuenta")]
@@ -113,10 +87,7 @@ public class AgenciaController : ControllerBase
 
             return Ok(new RespuestaMensaje("Tu correo fue confirmado. Ya podés iniciar sesión en TeamBalance."));
         }
-        catch (Exception)
-        {
-            return StatusCode(500, "No fue posible validar la cuenta en este momento.");
-        }
+        catch (Exception) { return StatusCode(500, "No fue posible validar la cuenta en este momento."); }
     }
 
     [HttpPost("reenvio-validacion")]
@@ -127,10 +98,7 @@ public class AgenciaController : ControllerBase
             await _agenciaBLL.ReenviarValidacion(usuario);
             return Ok(new RespuestaMensaje("Si existe una cuenta pendiente asociada a ese email, enviamos un nuevo enlace de validación."));
         }
-        catch (Exception)
-        {
-            return StatusCode(500, "No fue posible procesar el reenvío de validación.");
-        }
+        catch (Exception) { return StatusCode(500, "No fue posible procesar el reenvío de validación."); }
     }
 
     [HttpPost("validacion/email")]
@@ -141,40 +109,22 @@ public class AgenciaController : ControllerBase
             await _agenciaBLL.EnviarValidacionEmailRegistro(request.TokenGestion ?? string.Empty);
             return NoContent();
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return StatusCode(503, ex.Message);
-        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (InvalidOperationException ex) { return StatusCode(503, ex.Message); }
     }
 
     [HttpPost("validacion/telegram")]
     public IActionResult PrepararValidacionTelegramRegistro([FromBody] TokenGestionValidacionRequest request)
     {
-        try
-        {
-            return Ok(_agenciaBLL.PrepararValidacionTelegramRegistro(request.TokenGestion ?? string.Empty));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        try { return Ok(_agenciaBLL.PrepararValidacionTelegramRegistro(request.TokenGestion ?? string.Empty)); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
     }
 
     [HttpGet("validacion/telegram")]
     public IActionResult ConsultarEstadoTelegramRegistro([FromQuery] string tokenGestion)
     {
-        try
-        {
-            return Ok(_agenciaBLL.ConsultarEstadoTelegramRegistro(tokenGestion));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        try { return Ok(_agenciaBLL.ConsultarEstadoTelegramRegistro(tokenGestion)); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
     }
 
     [HttpPost("validacion/telegram/confirmar")]
@@ -187,14 +137,8 @@ public class AgenciaController : ControllerBase
             _agenciaBLL.ConfirmarValidacionTelegramRegistro(request.TokenGestion ?? string.Empty, request.Codigo);
             return Ok(new RespuestaMensaje("Tu cuenta fue validada mediante Telegram. Ya podés iniciar sesión."));
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
     }
 
     [HttpPost("validacion/telegram/reenviar")]
@@ -207,10 +151,7 @@ public class AgenciaController : ControllerBase
                 return StatusCode(503, "No fue posible enviar el código por Telegram.");
             return NoContent();
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
     }
 
     private Usuario ObtenerSolicitante()

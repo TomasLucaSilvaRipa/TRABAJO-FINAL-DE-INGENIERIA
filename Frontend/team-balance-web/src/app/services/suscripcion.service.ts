@@ -10,7 +10,7 @@ export interface InicioActualizacionSuscripcion { urlPago: string; referenciaOpe
 export interface ResultadoGestionSuscripcion { mensaje: string; estado: string; suscripcion?: Suscripcion | null; urlPagoSiguiente?: string | null; referenciaOperacion?: string | null; pagoConfirmado?: boolean; pagosCompletados?: number; pagosTotales?: number; }
 export interface DistribucionPagoSuscripcion { proveedor: string; medioPago: string; importe: number; }
 export interface CotizacionPagoSuscripcion { importePlan: number; monedaPlan: string; importeMercadoPago: number; monedaMercadoPago: string; }
-export interface ConfiguracionRenovacionAutomatica { publicKey: string; importePrueba: number; monedaPrueba: string; nombrePlan: string; }
+export interface ConfiguracionRenovacionAutomatica { publicKey: string; importePrueba: number; monedaPrueba: string; nombrePlan: string; fechaPrimerCobro: string; }
 export interface ReactivacionConCreditoRequest { idPlanComercial: number; proveedor: 'MercadoPago' | 'Stripe'; }
 
 @Injectable({ providedIn: 'root' })

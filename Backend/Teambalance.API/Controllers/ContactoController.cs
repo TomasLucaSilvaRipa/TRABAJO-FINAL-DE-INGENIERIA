@@ -4,11 +4,13 @@ using TeamBalance.BE.Entidades;
 using TeamBalance.Services;
 
 namespace Teambalance.API.Controllers;
+
 [ApiController]
 [Route("api/contacto")]
 public class ContactoController : ControllerBase
 {
     private readonly EmailService _emailService;
+
     public ContactoController(EmailService emailService)
     {
         _emailService = emailService;

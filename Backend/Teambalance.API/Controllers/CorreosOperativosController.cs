@@ -10,7 +10,12 @@ public class CorreosOperativosController : ControllerBase
 {
     private readonly BLLCorreoOperativo _correoBLL;
     private readonly BLLUsuario _usuarioBLL;
-    public CorreosOperativosController(BLLCorreoOperativo correoBLL, BLLUsuario usuarioBLL) { _correoBLL = correoBLL; _usuarioBLL = usuarioBLL; }
+
+    public CorreosOperativosController(BLLCorreoOperativo correoBLL, BLLUsuario usuarioBLL)
+    {
+        _correoBLL = correoBLL;
+        _usuarioBLL = usuarioBLL;
+    }
 
     [HttpGet("preferencias")]
     public IActionResult ConsultarPreferencias()
@@ -49,6 +54,7 @@ public class CorreosOperativosController : ControllerBase
         string token = authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? authorization[7..].Trim() : string.Empty;
         return _usuarioBLL.ConsultarUsuarioSesion(token) ?? throw new UnauthorizedAccessException("Tu sesión ya no es válida. Volvé a iniciar sesión.");
     }
+
     private static object ProyectarAccion(TeamBalance.BE.Entidades.AccionCorreoTarea accion) => new
     {
         accion.TokenHash,

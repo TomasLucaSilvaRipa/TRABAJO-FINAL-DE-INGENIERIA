@@ -35,6 +35,15 @@ public sealed class StripeService
         return CrearCheckoutPago($"TeamBalance - {plan.Nombre}", pago.Importe, pago.Moneda, pago.ReferenciaInterna, plan.Nombre, $"{pago.ReferenciaInterna}-{pago.Intento}");
     }
 
+    public async Task<(string Url, string Id)> CrearPagoContratacion(PagoSuscripcion pago, PlanComercial plan)
+    {
+        string sesion = string.Empty;
+        string url = await CrearCheckoutPago($"TeamBalance - {plan.Nombre}", pago.Importe, pago.Moneda,
+            pago.ReferenciaInterna, plan.Nombre, $"{pago.ReferenciaInterna}-{pago.Intento}-checkout-v2", id => sesion = id);
+        if (string.IsNullOrWhiteSpace(sesion)) throw new InvalidOperationException("Stripe no devolvió el identificador de la sesión de pago.");
+        return (url, sesion);
+    }
+
     public async Task<string> CrearRenovacionAutomatica(Suscripcion suscripcion, PlanComercial plan)
     {
         string referencia = $"ren-{suscripcion.ID}";
@@ -153,7 +162,7 @@ public sealed class StripeService
         return CryptographicOperations.FixedTimeEquals(firmaCalculada, firmaRecibida);
     }
 
-    private async Task<string> CrearCheckoutPago(string titulo, decimal importe, string moneda, string referencia, string? codigoPlan, string? idempotencyKey = null)
+    private async Task<string> CrearCheckoutPago(string titulo, decimal importe, string moneda, string referencia, string? codigoPlan, string? idempotencyKey = null, Action<string>? alCrearContratacion = null)
     {
         Dictionary<string, string> datos = CrearDatosRetorno(referencia);
         datos["mode"] = "payment";
@@ -168,16 +177,17 @@ public sealed class StripeService
         datos["line_items[0][price_data][unit_amount]"] = ConvertirAUnidadMenor(importe, moneda).ToString(CultureInfo.InvariantCulture);
         datos["line_items[0][quantity]"] = "1";
 
-        return await CrearSesion(datos, idempotencyKey);
+        return await CrearSesion(datos, idempotencyKey, alCrearContratacion);
     }
 
-    private async Task<string> CrearSesion(Dictionary<string, string> datos, string? idempotencyKey = null)
+    private async Task<string> CrearSesion(Dictionary<string, string> datos, string? idempotencyKey = null, Action<string>? alCrearContratacion = null)
     {
         using HttpResponseMessage respuesta = await Enviar(HttpMethod.Post, "https://api.stripe.com/v1/checkout/sessions", datos, idempotencyKey);
         string contenido = await respuesta.Content.ReadAsStringAsync();
         if (!respuesta.IsSuccessStatusCode) throw new InvalidOperationException($"Stripe rechazo la solicitud de pago: {contenido}");
         using JsonDocument documento = JsonDocument.Parse(contenido);
         string url = ObtenerTexto(documento.RootElement, "url");
+        alCrearContratacion?.Invoke(ObtenerTexto(documento.RootElement, "id"));
         return string.IsNullOrWhiteSpace(url) ? throw new InvalidOperationException("Stripe no devolvio una URL de pago.") : url;
     }
 

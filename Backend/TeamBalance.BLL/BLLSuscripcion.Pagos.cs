@@ -5,10 +5,10 @@ namespace TeamBalance.BLL;
 
 public sealed partial class BLLSuscripcion
 {
-    public CotizacionPagoSuscripcion ConsultarCotizacionPago(Usuario usuario, int idPlan)
+    public CotizacionPagoSuscripcion ConsultarCotizacionPago(Usuario usuario, PlanComercial planSolicitado)
     {
         ValidarDueño(usuario);
-        PlanComercial plan = _planMPP.ConsultarPlan(new PlanComercial(idPlan));
+        PlanComercial plan = _planMPP.ConsultarPlan(planSolicitado);
         if (!plan.Activo) throw new ArgumentException("La modalidad no está disponible.");
         CobroMercadoPago cobro = _mercadoPagoService.ObtenerCobroPlan(plan);
         return new(plan.PrecioVigente, plan.Moneda, cobro.Importe, cobro.Moneda);
@@ -87,10 +87,10 @@ public sealed partial class BLLSuscripcion
         return pagos;
     }
 
-    public async Task<ResultadoGestionSuscripcion> ContinuarActualizacion(Usuario usuario, string referencia)
+    public async Task<ResultadoGestionSuscripcion> ContinuarActualizacion(Usuario usuario, OperacionSuscripcionPendiente operacionSolicitada)
     {
         ValidarDueño(usuario);
-        OperacionSuscripcionPendiente operacion = _suscripcionMPP.ConsultarDistribucion(usuario, referencia)
+        OperacionSuscripcionPendiente operacion = _suscripcionMPP.ConsultarDistribucion(usuario, operacionSolicitada)
             ?? throw new KeyNotFoundException("No encontramos una actualización de esta agencia para continuar.");
         return await PrepararSiguientePago(usuario, operacion, reanudando: true);
     }
@@ -153,7 +153,7 @@ public sealed partial class BLLSuscripcion
                 url = await _mercadoPagoService.CrearPago(preferencia);
             }
             _suscripcionMPP.GuardarCheckout(usuario, siguiente, url);
-            operacion = _suscripcionMPP.ConsultarDistribucion(usuario, operacion.ReferenciaInterna)!;
+            operacion = _suscripcionMPP.ConsultarDistribucion(usuario, operacion)!;
             siguiente = operacion.Pagos.FirstOrDefault(p => p.Estado != "Aprobada");
         }
         if (reanudando && siguiente is { Proveedor: "MercadoPago", MedioPago.Length: > 0, UrlPago.Length: > 0 })

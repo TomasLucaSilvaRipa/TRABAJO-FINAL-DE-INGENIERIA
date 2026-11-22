@@ -124,6 +124,20 @@
           <p>{{ localization.traducir('checkout.paymentHelp') }}</p>
         </div>
 
+        <div class="flex flex-col gap-3">
+          <div class="tb-payment-options" role="group" [attr.aria-label]="localization.traducir('checkout.paymentTitle')">
+            <label class="tb-payment-option" [class.tb-payment-option--selected]="checkoutForm.controls.paymentMode.value === 'unico'">
+              <input type="radio" formControlName="paymentMode" value="unico" (change)="cambiarModoPago()" />
+              <span class="tb-payment-option__radio" aria-hidden="true"></span>
+              <strong>{{ localization.traducir('private.subscription.singlePayment') }}</strong>
+            </label>
+            <label class="tb-payment-option" [class.tb-payment-option--selected]="checkoutForm.controls.paymentMode.value === 'combinado'">
+              <input type="radio" formControlName="paymentMode" value="combinado" (change)="cambiarModoPago()" />
+              <span class="tb-payment-option__radio" aria-hidden="true"></span>
+              <strong>{{ localization.traducir('private.subscription.splitPayment') }}</strong>
+            </label>
+          </div>
+        @if (checkoutForm.controls.paymentMode.value === 'unico') {
         <div class="tb-payment-options">
           <label class="tb-payment-option" [class.tb-payment-option--selected]="checkoutForm.controls.paymentProvider.value === 'MercadoPago'">
             <input type="radio" formControlName="paymentProvider" value="MercadoPago" />
@@ -143,7 +157,52 @@
           </label>
         </div>
 
+        } @else {
+          @for (parte of partesPago.controls; track parte; let i = $index) {
+            <fieldset class="grid min-w-0 gap-3 rounded-xl border border-current/20 p-3 sm:grid-cols-2" [formGroup]="parte">
+              <legend class="px-1 text-sm font-semibold">{{ i + 1 }} / {{ partesPago.length }}</legend>
+              <label class="tb-field">
+                <span>{{ localization.traducir('private.subscription.provider') }}</span>
+                <select formControlName="proveedor" (change)="cambiarProveedor(i)">
+                  <option value="MercadoPago">Mercado Pago</option>
+                  <option value="Stripe">Stripe</option>
+                </select>
+              </label>
+              <label class="tb-field">
+                <span>{{ localization.traducir('private.subscription.paymentMethod') }}</span>
+                <select formControlName="medioPago">
+                  <option value="credit_card">{{ localization.traducir('private.subscription.creditCard') }}</option>
+                  <option value="debit_card">{{ localization.traducir('private.subscription.debitCard') }}</option>
+                  @if (parte.controls.proveedor.value === 'MercadoPago') {
+                    <option value="account_money">{{ localization.traducir('private.subscription.mpBalance') }}</option>
+                  }
+                </select>
+              </label>
+              <label class="tb-field">
+                <span>{{ localization.traducir('checkout.splitAmount') }} ({{ cotizacion()?.monedaPlan || plan()?.moneda }})</span>
+                <input type="number" min="0.01" step="0.01" inputmode="decimal" formControlName="importe" (input)="repartirImportes()" />
+              </label>
+              @if (parte.controls.proveedor.value === 'MercadoPago' && cotizacion(); as cotizacionMp) {
+                <p class="self-end text-sm">{{ localization.formatearMoneda(importeMercadoPago(i), cotizacionMp.monedaMercadoPago) }} · Mercado Pago</p>
+              }
+              @if (partesPago.length > 2) {
+                <button class="tb-button" type="button" (click)="cambiarCantidadPartes(i)">{{ localization.traducir('private.subscription.removePayment').replace('{number}', (i + 1).toString()) }}</button>
+              }
+            </fieldset>
+          }
+          <div class="flex flex-wrap gap-2">
+            <button class="tb-button" type="button" (click)="cambiarCantidadPartes()">{{ localization.traducir('private.subscription.addPayment') }}</button>
+            <button class="tb-button" type="button" (click)="repartirEnPartesIguales()">{{ localization.traducir('private.subscription.splitEvenly') }}</button>
+          </div>
+          @if (errorDistribucion(); as error) {
+            <p class="tb-field__error" role="status">{{ localization.traducir(error) }}</p>
+          }
+        }
+        @if (errorPago(); as error) {
+          <p class="tb-field__error" role="alert">{{ localization.traducir(error) }}</p>
+        }
         <p class="tb-payment-notice">{{ localization.traducir('checkout.paymentNotice') }}</p>
+        </div>
       </section>
 
       <section class="tb-checkout-form__section tb-checkout-form__section--final">
@@ -164,7 +223,7 @@
             <div class="mt-4 flex flex-wrap gap-3"><button class="tb-button tb-button--primary" type="button" [disabled]="paymentIntegrationPending()" (click)="confirmPayment()">{{ localization.traducir('checkout.confirmPayment') }}</button><button class="tb-button" type="button" [disabled]="paymentIntegrationPending()" (click)="editCommercialData()">{{ localization.traducir('checkout.editData') }}</button></div>
           </div>
         } @else {
-          <button class="tb-button tb-button--primary tb-checkout-submit" type="submit" [disabled]="checkoutForm.invalid || !plan() || paymentIntegrationPending()">
+          <button class="tb-button tb-button--primary tb-checkout-submit" type="submit" [disabled]="checkoutForm.invalid || !plan() || !pagoListo() || paymentIntegrationPending()">
             {{ localization.traducir('checkout.continue') }}
           </button>
         }

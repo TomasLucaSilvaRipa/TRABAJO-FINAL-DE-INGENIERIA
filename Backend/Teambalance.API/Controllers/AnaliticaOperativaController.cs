@@ -48,7 +48,11 @@ public class AnaliticaOperativaController : ControllerBase
     [HttpPost("ocupacion/solicitudes-revision")]
     public async Task<IActionResult> SolicitarRevisionOperativa([FromBody] SolicitudRevisionOperativaNueva solicitud)
     {
-        try { await _analiticaBLL.SolicitarRevisionOperativa(ObtenerSolicitante(), solicitud); return Ok("Solicitud de revisión enviada correctamente"); }
+        try
+        {
+            await _analiticaBLL.SolicitarRevisionOperativa(ObtenerSolicitante(), solicitud);
+            return Ok("Solicitud de revisión enviada correctamente");
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
@@ -65,9 +69,9 @@ public class AnaliticaOperativaController : ControllerBase
     }
 
     [HttpPatch("ocupacion/solicitudes-revision/{idSolicitud:int}/resolver")]
-    public IActionResult MarcarSolicitudRevisionResuelta(int idSolicitud, [FromQuery] string? tipo)
+    public IActionResult MarcarSolicitudRevisionResuelta([ReferenciaHttp("idSolicitud")] RevisionOperativaPendiente revision, [FromQuery] string? tipo)
     {
-        try { _analiticaBLL.MarcarSolicitudRevisionResuelta(ObtenerSolicitante(), new RevisionOperativaPendiente { ID = idSolicitud, Tipo = tipo ?? string.Empty }); return Ok("La solicitud quedó marcada como resuelta."); }
+        try { revision.Tipo = tipo ?? string.Empty; _analiticaBLL.MarcarSolicitudRevisionResuelta(ObtenerSolicitante(), revision); return Ok("La solicitud quedó marcada como resuelta."); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
@@ -84,9 +88,12 @@ public class AnaliticaOperativaController : ControllerBase
     }
 
     [HttpGet("desvio-horas/detalle-tarea")]
-    public IActionResult ConsultarDetalleDesvioHorasTarea([FromQuery] int idProyecto, [FromQuery] int idTarea, [FromQuery] DateTime? desde, [FromQuery] DateTime? hasta)
+    public IActionResult ConsultarDetalleDesvioHorasTarea([ReferenciaHttp("idProyecto", consulta: true)] Proyecto proyecto, [ReferenciaHttp("idTarea", consulta: true)] Tarea tarea, [FromQuery] DateTime? desde, [FromQuery] DateTime? hasta)
     {
-        try { return Ok(AnaliticaOperativaResponse.Desde(_analiticaBLL.ConsultarDetalleDesvioHorasTarea(ObtenerSolicitante(), new FiltroDesvioHoras { IdProyecto = idProyecto, IdTarea = idTarea, Desde = desde, Hasta = hasta }))); }
+        try
+        {
+            return Ok(AnaliticaOperativaResponse.Desde(_analiticaBLL.ConsultarDetalleDesvioHorasTarea(ObtenerSolicitante(), new FiltroDesvioHoras { Proyecto = proyecto, Tarea = tarea, Desde = desde, Hasta = hasta })));
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
@@ -106,7 +113,11 @@ public class AnaliticaOperativaController : ControllerBase
     [HttpPost("desvio-horas/comunicar-dueno")]
     public async Task<IActionResult> ComunicarDesvioADueno([FromBody] ComunicacionDesvioHoras comunicacion)
     {
-        try { await _analiticaBLL.ComunicarDesvioHorasADueno(ObtenerSolicitante(), comunicacion); return Ok("El desvío fue comunicado al Dueño y el envío quedó registrado."); }
+        try
+        {
+            await _analiticaBLL.ComunicarDesvioHorasADueno(ObtenerSolicitante(), comunicacion);
+            return Ok("El desvío fue comunicado al Dueño y el envío quedó registrado.");
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
@@ -123,9 +134,13 @@ public class AnaliticaOperativaController : ControllerBase
     }
 
     [HttpGet("conveniencia/detalle")]
-    public IActionResult ConsultarDetalleConveniencia([FromQuery] int idProyecto, [FromQuery] FiltroConvenienciaOperativa filtro)
+    public IActionResult ConsultarDetalleConveniencia([ReferenciaHttp("idProyecto", consulta: true)] Proyecto proyecto, [FromQuery] FiltroConvenienciaOperativa filtro)
     {
-        try { filtro.IdProyecto = idProyecto; return Ok(AnaliticaOperativaResponse.Desde(_analiticaBLL.ConsultarDetalleConveniencia(ObtenerSolicitante(), filtro))); }
+        try
+        {
+            filtro.Proyecto = proyecto;
+            return Ok(AnaliticaOperativaResponse.Desde(_analiticaBLL.ConsultarDetalleConveniencia(ObtenerSolicitante(), filtro)));
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
@@ -135,7 +150,11 @@ public class AnaliticaOperativaController : ControllerBase
     [HttpPost("conveniencia/seguimientos")]
     public IActionResult RegistrarSeguimientoConveniencia([FromBody] NuevoSeguimientoConvenienciaOperativa seguimiento)
     {
-        try { _analiticaBLL.RegistrarSeguimientoConveniencia(ObtenerSolicitante(), seguimiento); return Ok("El seguimiento quedó asociado al resultado de conveniencia."); }
+        try
+        {
+            _analiticaBLL.RegistrarSeguimientoConveniencia(ObtenerSolicitante(), seguimiento);
+            return Ok("El seguimiento quedó asociado al resultado de conveniencia.");
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
@@ -143,9 +162,9 @@ public class AnaliticaOperativaController : ControllerBase
     }
 
     [HttpPost("conveniencia/clientes/{idCliente:int}/marcar-revision")]
-    public async Task<IActionResult> MarcarClienteRevisionConveniencia(int idCliente)
+    public async Task<IActionResult> MarcarClienteRevisionConveniencia([ReferenciaHttp("idCliente")] Cliente cliente)
     {
-        try { return Ok(await _analiticaBLL.MarcarClienteRevisionConveniencia(ObtenerSolicitante(), new Cliente { ID = idCliente })); }
+        try { return Ok(await _analiticaBLL.MarcarClienteRevisionConveniencia(ObtenerSolicitante(), cliente)); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
@@ -153,9 +172,9 @@ public class AnaliticaOperativaController : ControllerBase
     }
 
     [HttpGet("sobrecalificacion")]
-    public IActionResult ConsultarSobrecalificacion([FromQuery] int? idProyecto)
+    public IActionResult ConsultarSobrecalificacion([ReferenciaHttp("idProyecto", consulta: true, opcional: true)] Proyecto? proyecto)
     {
-        try { return Ok(AnaliticaOperativaResponse.Desde(_analiticaBLL.ConsultarSobrecalificacion(ObtenerSolicitante(), idProyecto))); }
+        try { return Ok(AnaliticaOperativaResponse.Desde(_analiticaBLL.ConsultarSobrecalificacion(ObtenerSolicitante(), proyecto))); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (Exception) { return StatusCode(500, "No fue posible analizar la sobrecalificación de perfiles."); }
     }
@@ -163,7 +182,11 @@ public class AnaliticaOperativaController : ControllerBase
     [HttpPost("sobrecalificacion/solicitudes-revision")]
     public async Task<IActionResult> SolicitarRevisionSobrecalificacion([FromBody] SolicitudRevisionSobrecalificacionNueva solicitud)
     {
-        try { await _analiticaBLL.SolicitarRevisionSobrecalificacion(ObtenerSolicitante(), solicitud); return Ok("La solicitud de revisión fue enviada al PM responsable."); }
+        try
+        {
+            await _analiticaBLL.SolicitarRevisionSobrecalificacion(ObtenerSolicitante(), solicitud);
+            return Ok("La solicitud de revisión fue enviada al PM responsable.");
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }

@@ -4,7 +4,7 @@ using TeamBalance.BE.Entidades;
 using TeamBalance.DAL;
 
 namespace TeamBalance.MPP;
-public sealed class MPPContratacion
+public sealed partial class MPPContratacion
 {
     private readonly Conexion _conexion;
     public MPPContratacion(Conexion conexion)
@@ -12,7 +12,7 @@ public sealed class MPPContratacion
         _conexion = conexion;
     }
 
-    public ContratacionPendiente CrearPendiente(ContratacionRequest request, string referenciaContratacion, string referenciaOperacion)
+    public ContratacionPendiente CrearPendiente(ContratacionRequest request, string referenciaContratacion, string referenciaOperacion, List<PagoSuscripcion>? pagos = null)
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
@@ -31,6 +31,8 @@ public sealed class MPPContratacion
             new SqlParameter("@ProveedorPagoSeleccionado", request.ProveedorPagoSeleccionado),
             new SqlParameter("@IdPlanComercial", request.PlanComercial.ID),
         };
+        if (pagos is not null)
+            parametros.Add(new SqlParameter("@PagosCombinados", SqlDbType.NVarChar, -1) { Value = System.Text.Json.JsonSerializer.Serialize(pagos) });
         DataTable resultado = _conexion.Leer("dbo.usp_Contratacion_CrearPendiente", parametros);
         if (resultado.Rows.Count != 1)
         {

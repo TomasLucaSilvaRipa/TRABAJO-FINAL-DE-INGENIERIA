@@ -20,6 +20,7 @@ builder.Services.AddControllers(options => options.ModelMetadataDetailsProviders
     });
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddTransient<Microsoft.AspNetCore.Mvc.ApiExplorer.IApiDescriptionProvider, Teambalance.API.Models.ReferenciaHttpApiDescriptionProvider>();
 
 builder.Services.AddHttpClient<MercadoPagoService>();
 builder.Services.AddHttpClient<StripeService>();

@@ -9,5 +9,9 @@ using Microsoft.Extensions.Configuration;
 
 namespace TeamBalance.Services
 {
-    public sealed record MercadoPagoPreapproval(string Id, string Status, string InitPoint, string ExternalReference);
+    public sealed record MercadoPagoPreapproval(string Id, string Status, string InitPoint, string ExternalReference)
+    {
+        public DateTimeOffset? NextPaymentDate { get; init; }
+        public DateTimeOffset? StartDate { get; init; }
+    }
 }

@@ -4,20 +4,17 @@ namespace TeamBalance.BE.Entidades;
 public sealed class SolicitudRenovacionMercadoPago
 {
     [JsonIgnore, ReferenciaInterna]
-    public PlanComercial PlanComercial { get; set; } = new();
+    public PlanComercial PlanComercial { get; }
 
-    public SolicitudRenovacionMercadoPago(string nombrePlan, string referenciaExterna, string payerEmail)
+    public SolicitudRenovacionMercadoPago(PlanComercial planComercial, string referenciaExterna, string payerEmail, DateTimeOffset fechaPrimerCobro)
     {
-        NombrePlan = nombrePlan;
+        PlanComercial = planComercial;
+        FechaPrimerCobro = fechaPrimerCobro;
         ReferenciaExterna = referenciaExterna;
         PayerEmail = payerEmail;
     }
 
-    public string NombrePlan
-    {
-        get => PlanComercial.Nombre;
-        set => PlanComercial.Nombre = value;
-    }
+    public DateTimeOffset FechaPrimerCobro { get; }
     public string ReferenciaExterna { get; set; }
     public string PayerEmail { get; set; }
 }

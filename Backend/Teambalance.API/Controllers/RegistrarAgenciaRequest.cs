@@ -5,6 +5,7 @@ using Teambalance.API.Models;
 using Teambalance.API.Services;
 
 namespace Teambalance.API.Controllers;
+
 public sealed class RegistrarAgenciaRequest
 {
     public Agencia Agencia { get; set; } = new Agencia();

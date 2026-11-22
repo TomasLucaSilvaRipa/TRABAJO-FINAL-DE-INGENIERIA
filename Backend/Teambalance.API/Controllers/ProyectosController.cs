@@ -96,11 +96,7 @@ public class ProyectosController : ControllerBase
     [HttpPatch("estado")]
     public IActionResult CambiarEstado([FromBody] Proyecto proyecto)
     {
-        try
-        {
-            bool resultado = _proyectoBLL.CambiarEstado(proyecto, ValidarSesion());
-            return Ok(resultado);
-        }
+        try { bool resultado = _proyectoBLL.CambiarEstado(proyecto, ValidarSesion()); return Ok(resultado); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
@@ -109,11 +105,7 @@ public class ProyectosController : ControllerBase
     [HttpPatch("cerrar")]
     public IActionResult Cerrar([FromBody] Proyecto proyecto)
     {
-        try
-        {
-            bool resultado = _proyectoBLL.Cerrar(proyecto, ValidarSesion());
-            return Ok(resultado);
-        }
+        try { bool resultado = _proyectoBLL.Cerrar(proyecto, ValidarSesion()); return Ok(resultado); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
@@ -149,11 +141,7 @@ public class ProyectosController : ControllerBase
     [HttpPatch("clientes/estado")]
     public IActionResult CambiarEstadoCliente([FromBody] Cliente cliente)
     {
-        try
-        {
-            bool resultado = _proyectoBLL.CambiarEstadoCliente(cliente, ValidarSesion());
-            return Ok(resultado);
-        }
+        try { bool resultado = _proyectoBLL.CambiarEstadoCliente(cliente, ValidarSesion()); return Ok(resultado); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
@@ -165,7 +153,11 @@ public class ProyectosController : ControllerBase
         {
             string token = Request.Headers.Authorization.ToString().Replace("Bearer ", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
             Usuario? usuario = _usuarioBLL.ConsultarUsuarioSesion(token);
-            if (usuario is null) { throw new UnauthorizedAccessException("Tu sesión ya no es válida."); }
+            if (usuario is null)
+            {
+                throw new UnauthorizedAccessException("Tu sesión ya no es válida.");
+            }
+
             return usuario;
         }
         catch (UnauthorizedAccessException ex) { throw new UnauthorizedAccessException(ex.Message); }

@@ -1,3 +1,4 @@
+using Teambalance.API.Models;
 using Microsoft.AspNetCore.Mvc;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
@@ -24,15 +25,15 @@ public class UsuarioController : ControllerBase
             Usuario solicitante = ObtenerSolicitante();
             return Ok(_usuarioBLL.ConsultarUsuariosAgencia(solicitante));
         }
-        catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
-        catch (Exception){ return StatusCode(500, "No fue posible consultar los usuarios de la agencia."); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible consultar los usuarios de la agencia."); }
     }
 
     [HttpGet("soporte-inicial-disponible")]
     public IActionResult ConsultarSoporteInicialDisponible()
     {
         try { return Ok(new RespuestaSoporteInicial(_usuarioBLL.SoporteInicialDisponible(ObtenerSolicitante()))); }
-        catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
     }
 
     [HttpGet("operadores")]
@@ -54,12 +55,13 @@ public class UsuarioController : ControllerBase
     }
 
     [HttpPut("operadores/{idUsuario:int}")]
-    public IActionResult ModificarOperador(int idUsuario, [FromBody] Usuario operador)
+    public IActionResult ModificarOperador([ReferenciaHttp("idUsuario")] Usuario operadorRuta, [FromBody] Usuario operador)
     {
         try
         {
-            operador.ID = idUsuario;
-            _usuarioBLL.ModificarOperador(operador, ObtenerSolicitante()); return NoContent();
+            operador.ID = operadorRuta.ID;
+            _usuarioBLL.ModificarOperador(operador, ObtenerSolicitante());
+            return NoContent();
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
@@ -69,9 +71,9 @@ public class UsuarioController : ControllerBase
     }
 
     [HttpPatch("operadores/{idUsuario:int}/estado")]
-    public IActionResult CambiarEstadoOperador(int idUsuario, [FromBody] Usuario operador)
+    public IActionResult CambiarEstadoOperador([ReferenciaHttp("idUsuario")] Usuario operadorRuta, [FromBody] Usuario operador)
     {
-        try { operador.ID = idUsuario; _usuarioBLL.CambiarEstadoOperador(operador, ObtenerSolicitante()); return NoContent(); }
+        try { operador.ID = operadorRuta.ID; _usuarioBLL.CambiarEstadoOperador(operador, ObtenerSolicitante()); return NoContent(); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
@@ -88,11 +90,12 @@ public class UsuarioController : ControllerBase
             {
                 return NotFound("El usuario inicial de Soporte ya fue creado.");
             }
+
             Rol rol = new Rol("Soporte");
             return Ok(_rolBLL.ConsultarRolPorNombre(rol));
         }
-        catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
-        catch (KeyNotFoundException ex){ return NotFound(ex.Message); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
     }
 
     [HttpPost("agencia")]
@@ -104,10 +107,10 @@ public class UsuarioController : ControllerBase
             Usuario usuarioRegistrado = await _usuarioBLL.RegistrarUsuarioAgencia(usuario, solicitante);
             return Ok(usuarioRegistrado);
         }
-        catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
-        catch (ArgumentException ex){ return BadRequest(ex.Message); }
-        catch (InvalidOperationException ex){ return BadRequest(ex.Message); }
-        catch (Exception){ return StatusCode(500, "No fue posible registrar el usuario."); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible registrar el usuario."); }
     }
 
     [HttpPut("agencia/{idUsuario:int}")]
@@ -118,24 +121,20 @@ public class UsuarioController : ControllerBase
             _usuarioBLL.ModificarUsuarioAgencia(usuario, ObtenerSolicitante());
             return NoContent();
         }
-        catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
-        catch (KeyNotFoundException ex){ return NotFound(ex.Message); }
-        catch (ArgumentException ex){ return BadRequest(ex.Message); }
-        catch (Exception){ return StatusCode(500, "No fue posible modificar el usuario."); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible modificar el usuario."); }
     }
 
     [HttpPatch("agencia/{idUsuario:int}/estado")]
     public IActionResult CambiarEstadoUsuarioAgencia([FromBody] Usuario usuario)
     {
-        try
-        {
-            _usuarioBLL.CambiarEstadoUsuarioAgencia(usuario, ObtenerSolicitante());
-            return NoContent();
-        }
-        catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
-        catch (KeyNotFoundException ex){ return NotFound(ex.Message); }
-        catch (InvalidOperationException ex){ return BadRequest(ex.Message); }
-        catch (Exception){ return StatusCode(500, "No fue posible actualizar el usuario."); }
+        try { _usuarioBLL.CambiarEstadoUsuarioAgencia(usuario, ObtenerSolicitante()); return NoContent(); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
+        catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible actualizar el usuario."); }
     }
 
     [HttpPut("perfil/foto")]
@@ -143,7 +142,7 @@ public class UsuarioController : ControllerBase
     {
         try
         {
-            string fotoPerfil = _usuarioBLL.ActualizarFotoPerfil(ObtenerSolicitante(), usuario.FotoPerfil);
+            string fotoPerfil = _usuarioBLL.ActualizarFotoPerfil(ObtenerSolicitante(), usuario);
             return Ok(new RespuestaFotoPerfil(fotoPerfil));
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }

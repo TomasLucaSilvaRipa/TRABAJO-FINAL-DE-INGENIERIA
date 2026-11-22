@@ -5,6 +5,7 @@ using Teambalance.API.Models;
 using Teambalance.API.Services;
 
 namespace Teambalance.API.Controllers;
+
 public class TokenGestionValidacionRequest
 {
     public string? TokenGestion { get; set; }

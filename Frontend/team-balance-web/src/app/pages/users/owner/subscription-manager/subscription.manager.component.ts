@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, inject, Injector, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterModule } from '@angular/router';
-import { finalize, forkJoin } from 'rxjs';
+import { Router, RouterModule } from '@angular/router';
+import { EMPTY, expand, finalize, forkJoin, last, Observable, of, switchMap, timer } from 'rxjs';
 import { PlanComercial } from '../../../../services/plan-comercial.service';
 import { ConfiguracionRenovacionAutomatica, CotizacionPagoSuscripcion, DistribucionPagoSuscripcion, DocumentoComercial, OperacionSuscripcion, Suscripcion, SuscripcionService } from '../../../../services/suscripcion.service';
 import { LocalizationService } from '../../../../services/localization.service';
@@ -58,6 +59,7 @@ export class Subscription {
   private readonly suscripcionService = inject(SuscripcionService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  private readonly destroyRef = inject(DestroyRef);
   readonly localization = inject(LocalizationService);
 
   t(key: string, values: Record<string, string | number> = {}): string {
@@ -111,6 +113,8 @@ export class Subscription {
   readonly cancelando = signal(false);
   readonly cancelandoServicio = signal(false);
   readonly regularizandoConCredito = signal(false);
+  private readonly injector = inject(Injector);
+  private readonly correoCompradorMp = viewChild<ElementRef<HTMLInputElement>>('correoCompradorMp');
   readonly mostrandoAutorizacion = signal(false);
   readonly cargandoFormularioMp = signal(false);
   readonly configuracionRenovacion = signal<ConfiguracionRenovacionAutomatica | null>(null);
@@ -121,13 +125,40 @@ export class Subscription {
   readonly renovacionMercadoPagoForm = this.formBuilder.nonNullable.group({ payerEmail: ['', [Validators.required, Validators.email]] });
   readonly bajaForm = this.formBuilder.nonNullable.group({ motivo: ['', [Validators.required, Validators.maxLength(1000)]] });
   readonly cancelacionServicioForm = this.formBuilder.nonNullable.group({ motivo: ['', [Validators.required, Validators.maxLength(1000)]] });
-  constructor() { this.recargar(); }
+  constructor() {
+    const regresoDePagoConfirmado = inject(Router).currentNavigation()?.extras.info === 'pago-suscripcion-confirmado';
+    this.recargar(regresoDePagoConfirmado);
+  }
 
-  recargar(): void {
-    this.cargando.set(true); this.error.set('');
-    forkJoin({ suscripcion: this.suscripcionService.consultarActual(), planes: this.suscripcionService.consultarPlanes(), historial: this.suscripcionService.consultarHistorial(), documentos: this.suscripcionService.consultarCuentaCorriente() })
-      .pipe(finalize(() => this.cargando.set(false)))
-      .subscribe({ next: ({ suscripcion, planes, historial, documentos }) => { this.suscripcion.set(suscripcion); this.planes.set(planes); this.historial.set(historial); this.documentos.set(documentos); }, error: error => this.error.set(this.obtenerMensajeError(error, this.t('loadError'))) });
+  recargar(esperarActivacion = false): void {
+    this.cargando.set(true);
+    this.error.set('');
+    const consultaActual = this.suscripcionService.consultarActual();
+    const cargarPantalla = (suscripcion: Observable<Suscripcion>) => forkJoin({
+      suscripcion,
+      planes: this.suscripcionService.consultarPlanes(),
+      historial: this.suscripcionService.consultarHistorial(),
+      documentos: this.suscripcionService.consultarCuentaCorriente(),
+    });
+    const carga = esperarActivacion
+      ? consultaActual.pipe(
+          expand((suscripcion, intento) => suscripcion.activo || intento >= 3
+            ? EMPTY
+            : timer(1000).pipe(switchMap(() => consultaActual))),
+          last(),
+          switchMap(suscripcion => cargarPantalla(of(suscripcion))),
+        )
+      : cargarPantalla(consultaActual);
+
+    carga.pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.cargando.set(false))).subscribe({
+      next: ({ suscripcion, planes, historial, documentos }) => {
+        this.suscripcion.set(suscripcion);
+        this.planes.set(planes);
+        this.historial.set(historial);
+        this.documentos.set(documentos);
+      },
+      error: error => this.error.set(this.obtenerMensajeError(error, this.t('loadError'))),
+    });
   }
 
   abrirActualizacion(): void { this.mostrandoActualizacion.set(true); this.mensaje.set(''); }
@@ -222,6 +253,7 @@ export class Subscription {
       next: configuracion => {
         this.configuracionRenovacion.set(configuracion);
         this.mostrandoAutorizacion.set(true);
+        afterNextRender(() => this.correoCompradorMp()?.nativeElement.focus(), { injector: this.injector });
       },
       error: error => this.error.set(this.obtenerMensajeError(error, this.t('mpFormError')))
     });
@@ -363,7 +395,7 @@ export class Subscription {
         if (resultado.urlPagoSiguiente) { window.location.assign(resultado.urlPagoSiguiente); return; }
         if (resultado.pagoConfirmado) this.authService.establecerSuscripcionRestringida(false);
         this.mensaje.set(this.textoRegistrado(resultado.mensaje));
-        this.recargar();
+        this.recargar(resultado.pagoConfirmado === true);
       },
       error: error => this.error.set(this.obtenerMensajeError(error, this.t('resumeError'))),
     });

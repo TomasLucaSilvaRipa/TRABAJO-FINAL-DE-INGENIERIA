@@ -36,7 +36,11 @@ public class ReportesEjecutivosController : ControllerBase
         {
             string token = Request.Headers.Authorization.ToString().Replace("Bearer ", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
             Usuario? usuario = _usuarioBLL.ConsultarUsuarioSesion(token);
-            if (usuario is null) { throw new UnauthorizedAccessException("Tu sesión ya no es válida."); }
+            if (usuario is null)
+            {
+                throw new UnauthorizedAccessException("Tu sesión ya no es válida.");
+            }
+
             return usuario;
         }
         catch (UnauthorizedAccessException ex) { throw new UnauthorizedAccessException(ex.Message); }

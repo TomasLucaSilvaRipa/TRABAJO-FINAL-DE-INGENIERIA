@@ -52,11 +52,7 @@ public class MPPAsignacionTarea
             Convert.ToDecimal(fila["HorasAsignadas"]), Convert.ToBoolean(fila["Activa"]))).ToList();
     }
 
-    /// <summary>
-    /// Obtiene únicamente la capacidad semanal configurada de los empleados
-    /// seleccionados. La asignación de horas se resuelve en la BLL; este método
-    /// sólo recupera el dato persistido necesario para calcularla.
-    /// </summary>
+   
     public List<Empleado> ConsultarCapacidades(IEnumerable<Empleado> empleados, Usuario usuario)
     {
         List<int> ids = empleados.Select(empleado => empleado.ID).Distinct().Where(id => id > 0).ToList();

@@ -44,20 +44,21 @@ public class AuthController : ControllerBase
             LoginDecryptedData datosLogin = _encryptionService.DesencriptarLogin(credencial);
             Usuario usuario = new Usuario(0, null, new Rol(), string.Empty, string.Empty, datosLogin.Email, datosLogin.Password, string.Empty, DateTime.MinValue, false);
             usuario.RecaptchaToken = request.RecaptchaToken;
-
             ResultadoInicioSesionDosFactores resultado = await _usuarioBLL.IniciarSesion(usuario, mantenerSesion);
             if (resultado.RequiereDosFactores && !string.IsNullOrWhiteSpace(resultado.TokenDesafio) && resultado.FechaExpiracionDesafio is not null)
             {
                 return Accepted(new DesafioInicioSesionDosFactoresResponse(resultado.TokenDesafio, resultado.FechaExpiracionDesafio.Value));
             }
-            if (resultado.InicioSesion is null) throw new InvalidOperationException("No fue posible completar el inicio de sesión.");
+
+            if (resultado.InicioSesion is null)
+                throw new InvalidOperationException("No fue posible completar el inicio de sesión.");
             return Ok(CrearLoginResponse(resultado.InicioSesion));
         }
-        catch (System.Security.Cryptography.CryptographicException){ return BadRequest("No fue posible descifrar las credenciales recibidas."); }
-        catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
-        catch (ArgumentException ex){ return BadRequest(ex.Message); }
-        catch (InvalidOperationException ex){ return StatusCode(500, ex.Message); }
-        catch (Exception){ return StatusCode(500, "No fue posible iniciar sesión en este momento."); }
+        catch (System.Security.Cryptography.CryptographicException) { return BadRequest("No fue posible descifrar las credenciales recibidas."); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return StatusCode(500, ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible iniciar sesión en este momento."); }
     }
 
     [HttpPost("login/confirmar-2fa")]
@@ -65,7 +66,8 @@ public class AuthController : ControllerBase
     {
         try
         {
-            if (request is null || string.IsNullOrWhiteSpace(request.TokenDesafio) || string.IsNullOrWhiteSpace(request.Codigo)) throw new ArgumentException("Ingresá el código de verificación.");
+            if (request is null || string.IsNullOrWhiteSpace(request.TokenDesafio) || string.IsNullOrWhiteSpace(request.Codigo))
+                throw new ArgumentException("Ingresá el código de verificación.");
             InicioSesionResultado resultado = _usuarioBLL.CompletarInicioSesionTotp(request.TokenDesafio, request.Codigo);
             return Ok(CrearLoginResponse(resultado));
         }
@@ -94,7 +96,8 @@ public class AuthController : ControllerBase
     {
         try
         {
-            if (request is null || string.IsNullOrWhiteSpace(request.Codigo)) throw new ArgumentException("Ingresá el código de seis dígitos.");
+            if (request is null || string.IsNullOrWhiteSpace(request.Codigo))
+                throw new ArgumentException("Ingresá el código de seis dígitos.");
             List<string> codigosRecuperacion = _usuarioBLL.ConfirmarActivacionTotp(ObtenerUsuarioAutenticado(), request.Codigo);
             return Ok(new RespuestaCodigosRecuperacion(codigosRecuperacion));
         }
@@ -108,7 +111,8 @@ public class AuthController : ControllerBase
     {
         try
         {
-            if (request is null || string.IsNullOrWhiteSpace(request.Codigo)) throw new ArgumentException("Ingresá un código de Authenticator o de recuperación.");
+            if (request is null || string.IsNullOrWhiteSpace(request.Codigo))
+                throw new ArgumentException("Ingresá un código de Authenticator o de recuperación.");
             _usuarioBLL.DesactivarAutenticacionDosFactores(ObtenerUsuarioAutenticado(), request.Codigo);
             return NoContent();
         }
@@ -121,7 +125,6 @@ public class AuthController : ControllerBase
     public IActionResult ValidarSesion()
     {
         string? accessToken = ObtenerAccessToken();
-
         if (!_usuarioBLL.SesionVigente(accessToken ?? string.Empty))
         {
             return Unauthorized();
@@ -138,6 +141,7 @@ public class AuthController : ControllerBase
         {
             return Unauthorized();
         }
+
         List<RolResponse> roles = usuario.Roles.Select(rol => new RolResponse(rol.ID, rol.Nombre, rol.TipoUsuario)).ToList();
         List<PermisoResponse> permisos = usuario.Permisos.Select(permiso => new PermisoResponse(permiso.ID, permiso.Codigo, permiso.Nombre, permiso.Url)).ToList();
         RolResponse rolPrincipal = new RolResponse(usuario.Rol.ID, usuario.Rol.Nombre, usuario.Rol.TipoUsuario);
@@ -150,7 +154,6 @@ public class AuthController : ControllerBase
     public IActionResult CerrarSesion()
     {
         _usuarioBLL.CerrarSesion(ObtenerAccessToken() ?? string.Empty);
-
         return NoContent();
     }
 
@@ -160,12 +163,11 @@ public class AuthController : ControllerBase
         try
         {
             await _usuarioBLL.SolicitarRecuperoPassword(usuario);
-
             return Ok(new RespuestaMensaje("Si existe una cuenta activa asociada a ese email, enviamos un enlace para restablecer la contraseña."));
         }
-        catch (ArgumentException ex){ return BadRequest(ex.Message); }
-        catch (InvalidOperationException ex){ return StatusCode(500, ex.Message); }
-        catch (Exception){ return StatusCode(500, "No fue posible procesar la solicitud de recuperación en este momento."); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return StatusCode(500, ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible procesar la solicitud de recuperación en este momento."); }
     }
 
     [HttpPost("restablecer-password")]
@@ -174,12 +176,11 @@ public class AuthController : ControllerBase
         try
         {
             await _usuarioBLL.RestablecerPassword(usuario, token);
-
             return Ok(new RespuestaMensaje("La contraseña fue restablecida correctamente. Volvé a iniciar sesión."));
         }
-        catch (ArgumentException ex){ return BadRequest(ex.Message); }
-        catch (InvalidOperationException ex){ return StatusCode(500, ex.Message); }
-        catch (Exception){ return StatusCode(500, "No fue posible restablecer la contraseña en este momento."); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return StatusCode(500, ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible restablecer la contraseña en este momento."); }
     }
 
     [HttpPost("cambiar-password")]
@@ -188,19 +189,17 @@ public class AuthController : ControllerBase
         try
         {
             await _usuarioBLL.CambiarPassword(usuario, ObtenerAccessToken() ?? string.Empty);
-
             return Ok(new RespuestaMensaje("La contraseña fue modificada correctamente. Volvé a iniciar sesión."));
         }
-        catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
-        catch (ArgumentException ex){ return BadRequest(ex.Message); }
-        catch (InvalidOperationException ex){ return StatusCode(500, ex.Message); }
-        catch (Exception){ return StatusCode(500, "No fue posible modificar la contraseña en este momento."); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (InvalidOperationException ex) { return StatusCode(500, ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible modificar la contraseña en este momento."); }
     }
 
     private string? ObtenerAccessToken()
     {
         string? authorization = Request.Headers.Authorization;
-
         if (string.IsNullOrWhiteSpace(authorization) || !authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
         {
             return null;

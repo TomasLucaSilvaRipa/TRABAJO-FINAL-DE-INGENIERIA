@@ -14,9 +14,9 @@ public class MPPIdioma
     public List<Idioma> ConsultarActivos() => Consultar("dbo.usp_Idioma_ConsultarActivos");
     public List<Idioma> ConsultarGestion() => Consultar("dbo.usp_Idioma_ConsultarGestion");
 
-    public Dictionary<string, string>? ConsultarTraduccionesActivas(string codigo)
+    public Dictionary<string, string>? ConsultarTraduccionesActivas(Idioma idioma)
     {
-        List<SqlParameter> parametros = new() { new SqlParameter("@Codigo", codigo) };
+        List<SqlParameter> parametros = new() { new SqlParameter("@Codigo", idioma.Codigo) };
         DataTable tabla = _conexion.Leer("dbo.usp_Idioma_ConsultarTraduccionesActivas", parametros);
         return tabla.Rows.Count == 0 ? null : LeerTraducciones(Convert.ToString(tabla.Rows[0]["TraduccionesJson"]) ?? "{}");
     }

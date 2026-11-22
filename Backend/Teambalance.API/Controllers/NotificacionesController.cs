@@ -1,3 +1,4 @@
+using Teambalance.API.Models;
 using Microsoft.AspNetCore.Mvc;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
@@ -10,14 +11,33 @@ public class NotificacionesController : ControllerBase
 {
     private readonly BLLNotificacion _notificacionBLL;
     private readonly BLLUsuario _usuarioBLL;
-    public NotificacionesController(BLLNotificacion notificacionBLL, BLLUsuario usuarioBLL) { _notificacionBLL = notificacionBLL; _usuarioBLL = usuarioBLL; }
+
+    public NotificacionesController(BLLNotificacion notificacionBLL, BLLUsuario usuarioBLL)
+    {
+        _notificacionBLL = notificacionBLL;
+        _usuarioBLL = usuarioBLL;
+    }
 
     [HttpGet]
-    public IActionResult Consultar() { try { return Ok(_notificacionBLL.ConsultarPropias(ObtenerSolicitante())); } catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); } }
+    public IActionResult Consultar()
+    {
+        try { return Ok(_notificacionBLL.ConsultarPropias(ObtenerSolicitante())); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+    }
+
     [HttpPatch("{idNotificacion:int}/leida")]
-    public IActionResult MarcarLeida(int idNotificacion) { try { _notificacionBLL.MarcarLeida(ObtenerSolicitante(), idNotificacion); return NoContent(); } catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); } }
+    public IActionResult MarcarLeida([ReferenciaHttp("idNotificacion")] NotificacionUsuario notificacion)
+    {
+        try { _notificacionBLL.MarcarLeida(ObtenerSolicitante(), notificacion); return NoContent(); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+    }
+
     [HttpPatch("leer-todas")]
-    public IActionResult MarcarTodasLeidas() { try { _notificacionBLL.MarcarTodasLeidas(ObtenerSolicitante()); return NoContent(); } catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); } }
+    public IActionResult MarcarTodasLeidas()
+    {
+        try { _notificacionBLL.MarcarTodasLeidas(ObtenerSolicitante()); return NoContent(); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+    }
 
     private Usuario ObtenerSolicitante()
     {

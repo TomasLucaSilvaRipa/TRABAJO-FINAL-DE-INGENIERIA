@@ -1,3 +1,4 @@
+using Teambalance.API.Models;
 using Microsoft.AspNetCore.Mvc;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
@@ -10,15 +11,19 @@ public class IdiomasController : ControllerBase
 {
     private readonly BLLIdioma _idiomaBLL;
     private readonly BLLUsuario _usuarioBLL;
-    public IdiomasController(BLLIdioma idiomaBLL, BLLUsuario usuarioBLL) { _idiomaBLL = idiomaBLL; _usuarioBLL = usuarioBLL; }
+
+    public IdiomasController(BLLIdioma idiomaBLL, BLLUsuario usuarioBLL)
+    {
+        _idiomaBLL = idiomaBLL;
+        _usuarioBLL = usuarioBLL;
+    }
 
     [HttpGet("activos")]
     public IActionResult ConsultarActivos() => Ok(_idiomaBLL.ConsultarActivos());
-
     [HttpGet("activos/{codigo}/traducciones")]
-    public IActionResult ConsultarTraduccionesActivas(string codigo)
+    public IActionResult ConsultarTraduccionesActivas([ReferenciaHttp("codigo", nameof(Idioma.Codigo))] Idioma idioma)
     {
-        try { return Ok(_idiomaBLL.ConsultarTraduccionesActivas(codigo)); }
+        try { return Ok(_idiomaBLL.ConsultarTraduccionesActivas(idioma)); }
         catch (ArgumentException ex) { return NotFound(ex.Message); }
     }
 
@@ -30,9 +35,9 @@ public class IdiomasController : ControllerBase
     }
 
     [HttpGet("gestion/{idIdioma:int}/traducciones")]
-    public IActionResult ConsultarTraduccionesGestion(int idIdioma)
+    public IActionResult ConsultarTraduccionesGestion([ReferenciaHttp("idIdioma")] Idioma idioma)
     {
-        try { return Ok(_idiomaBLL.ConsultarTraduccionesGestion(idIdioma, ObtenerSolicitante())); }
+        try { return Ok(_idiomaBLL.ConsultarTraduccionesGestion(idioma, ObtenerSolicitante())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return NotFound(ex.Message); }
     }
@@ -47,20 +52,24 @@ public class IdiomasController : ControllerBase
     }
 
     [HttpPut("{idIdioma:int}")]
-    public IActionResult Modificar(int idIdioma, [FromBody] Idioma idioma)
+    public IActionResult Modificar([ReferenciaHttp("idIdioma")] Idioma idiomaRuta, [FromBody] Idioma idioma)
     {
-        try { idioma.ID = idIdioma; _idiomaBLL.Modificar(idioma, ObtenerSolicitante()); return NoContent(); }
+        try
+        {
+            idioma.ID = idiomaRuta.ID;
+            _idiomaBLL.Modificar(idioma, ObtenerSolicitante());
+            return NoContent();
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception) { return StatusCode(500, "No fue posible guardar el idioma."); }
     }
 
     [HttpDelete("{idIdioma:int}")]
-    public IActionResult DarDeBaja(int idIdioma)
+    public IActionResult DarDeBaja([ReferenciaHttp("idIdioma")] Idioma idioma)
     {
         try
         {
-            Idioma idioma = new Idioma(idIdioma);
             _idiomaBLL.DarDeBaja(idioma, ObtenerSolicitante());
             return NoContent();
         }

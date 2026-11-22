@@ -1,3 +1,4 @@
+using Teambalance.API.Models;
 using Microsoft.AspNetCore.Mvc;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
@@ -10,7 +11,12 @@ public class SkillsDesiertosController : ControllerBase
 {
     private readonly BLLSkillsDesiertos _skillsBLL;
     private readonly BLLUsuario _usuarioBLL;
-    public SkillsDesiertosController(BLLSkillsDesiertos skillsBLL, BLLUsuario usuarioBLL) { _skillsBLL = skillsBLL; _usuarioBLL = usuarioBLL; }
+
+    public SkillsDesiertosController(BLLSkillsDesiertos skillsBLL, BLLUsuario usuarioBLL)
+    {
+        _skillsBLL = skillsBLL;
+        _usuarioBLL = usuarioBLL;
+    }
 
     [HttpGet("resumen")]
     public IActionResult ConsultarResumen()
@@ -29,9 +35,13 @@ public class SkillsDesiertosController : ControllerBase
     }
 
     [HttpPost("detalle/{idSkill:int}")]
-    public IActionResult ConsultarDetalle([FromRoute] int idSkill, [FromBody] FiltroCoberturaSkill filtro)
+    public IActionResult ConsultarDetalle([ReferenciaHttp("idSkill")] Skill skill, [FromBody] FiltroCoberturaSkill filtro)
     {
-        try { filtro.Skill = new Skill { ID = idSkill }; return Ok(_skillsBLL.ConsultarDetalle(filtro, ObtenerSolicitante())); }
+        try
+        {
+            filtro.Skill = skill;
+            return Ok(_skillsBLL.ConsultarDetalle(filtro, ObtenerSolicitante()));
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }

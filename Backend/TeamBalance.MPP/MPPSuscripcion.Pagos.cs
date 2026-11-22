@@ -18,11 +18,11 @@ public sealed partial class MPPSuscripcion
         return LeerDistribucion(tabla);
     }
 
-    public OperacionSuscripcionPendiente? ConsultarDistribucion(Usuario usuario, string referencia)
+    public OperacionSuscripcionPendiente? ConsultarDistribucion(Usuario usuario, OperacionSuscripcionPendiente operacion)
     {
         DataTable tabla = _conexion.Leer("dbo.usp_Suscripcion_ConsultarDistribucion", new List<SqlParameter>
         {
-            new("@IdAgencia", usuario.IdAgencia), new("@ReferenciaInterna", referencia),
+            new("@IdAgencia", usuario.IdAgencia), new("@ReferenciaInterna", operacion.ReferenciaInterna),
         });
         return tabla.Rows.Count == 0 ? null : LeerDistribucion(tabla);
     }

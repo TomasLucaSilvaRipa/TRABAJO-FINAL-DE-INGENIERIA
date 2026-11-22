@@ -11,13 +11,17 @@ namespace TeamBalance.Services
 {
     public sealed class MercadoPagoAutoRecurringRequest
     {
-        public MercadoPagoAutoRecurringRequest(int frequency, string frequencyType, decimal transactionAmount, string currencyId)
+        public MercadoPagoAutoRecurringRequest(int frequency, string frequencyType, decimal transactionAmount, string currencyId, DateTimeOffset startDate)
         {
             Frequency = frequency;
             FrequencyType = frequencyType;
             TransactionAmount = transactionAmount;
             CurrencyId = currencyId;
+            StartDate = startDate.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture);
         }
+
+        [JsonPropertyName("start_date")]
+        public string StartDate { get; }
 
         [JsonPropertyName("frequency")]
         public int Frequency { get; set; }

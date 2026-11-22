@@ -12,7 +12,8 @@ public sealed class HelpDeskController : ControllerBase
     private readonly BLLConsultaPlan _consultaPlanBLL;
     private readonly BLLUsuario _usuarioBLL;
 
-    public HelpDeskController(BLLHelpDesk helpDeskBLL, BLLConsultaPlan consultaPlanBLL, BLLUsuario usuarioBLL) {
+    public HelpDeskController(BLLHelpDesk helpDeskBLL, BLLConsultaPlan consultaPlanBLL, BLLUsuario usuarioBLL)
+    {
         _helpDeskBLL = helpDeskBLL;
         _consultaPlanBLL = consultaPlanBLL;
         _usuarioBLL = usuarioBLL;
@@ -31,7 +32,8 @@ public sealed class HelpDeskController : ControllerBase
     }
 
     [HttpGet("consultas/{ID:int}")]
-    public IActionResult Detalle([FromRoute] ConsultaSoporteResumen consulta) {
+    public IActionResult Detalle([FromRoute] ConsultaSoporteResumen consulta)
+    {
         return Ejecutar(() =>
         {
             (ConsultaSoporteResumen Consulta, List<MensajeSoporteDetalle> Mensajes) detalle = _helpDeskBLL.ConsultarDetalle(UsuarioActual(), consulta);
@@ -40,7 +42,8 @@ public sealed class HelpDeskController : ControllerBase
     }
 
     [HttpPost("consultas/{ID:int}/mensajes")]
-    public async Task<IActionResult> Mensaje([FromRoute] ConsultaSoporteResumen consulta, [FromBody] EnviarMensajeSoporteRequest solicitud) {
+    public async Task<IActionResult> Mensaje([FromRoute] ConsultaSoporteResumen consulta, [FromBody] EnviarMensajeSoporteRequest solicitud)
+    {
         try
         {
             solicitud.IdConsulta = consulta.ID;
@@ -51,7 +54,8 @@ public sealed class HelpDeskController : ControllerBase
     }
 
     [HttpPost("consultas/{ID:int}/cerrar")]
-    public IActionResult Cerrar([FromRoute] ConsultaSoporteResumen consulta) {
+    public IActionResult Cerrar([FromRoute] ConsultaSoporteResumen consulta)
+    {
         return Ejecutar(() =>
         {
             _helpDeskBLL.Cerrar(UsuarioActual(), consulta);
@@ -60,7 +64,8 @@ public sealed class HelpDeskController : ControllerBase
     }
 
     [HttpPost("consultas/{ID:int}/estado")]
-    public IActionResult CambiarEstado([FromRoute] ConsultaSoporteResumen consulta, [FromBody] CambiarEstadoConsultaRequest solicitud) {
+    public IActionResult CambiarEstado([FromRoute] ConsultaSoporteResumen consulta, [FromBody] CambiarEstadoConsultaRequest solicitud)
+    {
         return Ejecutar(() =>
         {
             solicitud.IdConsulta = consulta.ID;
@@ -70,7 +75,8 @@ public sealed class HelpDeskController : ControllerBase
     }
 
     [HttpGet("bandeja")]
-    public IActionResult Bandeja([FromQuery] ConsultaSoporteResumen filtro) {
+    public IActionResult Bandeja([FromQuery] ConsultaSoporteResumen filtro)
+    {
         return Ejecutar(() =>
         {
             Usuario usuario = UsuarioActual();
@@ -82,7 +88,8 @@ public sealed class HelpDeskController : ControllerBase
     }
 
     [HttpPost("consultas-plan/{ID:int}/respuesta")]
-    public IActionResult ResponderConsultaPlan([FromRoute] ConsultaPlan consulta, [FromBody] ConsultaPlan solicitud) {
+    public IActionResult ResponderConsultaPlan([FromRoute] ConsultaPlan consulta, [FromBody] ConsultaPlan solicitud)
+    {
         return Ejecutar(() =>
         {
             solicitud.ID = consulta.ID;
@@ -91,7 +98,16 @@ public sealed class HelpDeskController : ControllerBase
         });
     }
 
-    private static int OrdenEstado(string estado) { return estado switch { "Pendiente" => 1, "En revisión" => 2, "Respondida" => 3, _ => 4 }; }
+    private static int OrdenEstado(string estado)
+    {
+        return estado switch
+        {
+            "Pendiente" => 1,
+            "En revisión" => 2,
+            "Respondida" => 3,
+            _ => 4
+        };
+    }
 
     private Usuario UsuarioActual()
     {
@@ -112,7 +128,6 @@ public sealed class HelpDeskController : ControllerBase
             UnauthorizedAccessException => Unauthorized(ex.Message),
             KeyNotFoundException => NotFound(ex.Message),
             ArgumentException or InvalidOperationException => BadRequest(ex.Message),
-            _ => StatusCode(500, "No fue posible procesar la consulta de soporte.")
-        };
+            _ => StatusCode(500, "No fue posible procesar la consulta de soporte.")};
     }
 }

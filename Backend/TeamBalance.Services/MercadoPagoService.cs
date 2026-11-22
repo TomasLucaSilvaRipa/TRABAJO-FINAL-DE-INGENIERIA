@@ -119,10 +119,10 @@ namespace TeamBalance.Services
             string? publicBaseUrl = _configuration["Frontend:PublicBaseUrl"];
             if (string.IsNullOrWhiteSpace(publicBaseUrl) || !Uri.TryCreate(publicBaseUrl, UriKind.Absolute, out Uri? publicUri) || publicUri.Scheme != Uri.UriSchemeHttps)
                 throw new InvalidOperationException("Frontend:PublicBaseUrl debe ser una URL pública con HTTPS para autorizar renovaciones automáticas.");
-            (decimal importe, string moneda) = ObtenerCobroPrueba(renovacion.NombrePlan);
-            MercadoPagoAutoRecurringRequest autoRecurring = new MercadoPagoAutoRecurringRequest(1, "months", importe, moneda);
+            (decimal importe, string moneda) = ObtenerCobroPrueba(renovacion.PlanComercial.Nombre);
+            MercadoPagoAutoRecurringRequest autoRecurring = new MercadoPagoAutoRecurringRequest(Math.Max(1, renovacion.PlanComercial.DuracionMeses), "months", importe, moneda, renovacion.FechaPrimerCobro.ToUniversalTime());
             string backUrl = publicBaseUrl.TrimEnd('/') + "/pago/resultado?referencia_renovacion=" + Uri.EscapeDataString(renovacion.ReferenciaExterna) + "&renovacion=mercadopago";
-            MercadoPagoPreapprovalRequest body = new MercadoPagoPreapprovalRequest($"TeamBalance · renovación {renovacion.NombrePlan}", renovacion.ReferenciaExterna, renovacion.PayerEmail, backUrl, "pending", autoRecurring);
+            MercadoPagoPreapprovalRequest body = new MercadoPagoPreapprovalRequest($"TeamBalance · renovación {renovacion.PlanComercial.Nombre}", renovacion.ReferenciaExterna, renovacion.PayerEmail, backUrl, "pending", autoRecurring);
             using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "https://api.mercadopago.com/preapproval");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             request.Content = JsonContent.Create(body);
@@ -137,7 +137,12 @@ namespace TeamBalance.Services
             MercadoPagoPreapprovalResponse? resultado = await response.Content.ReadFromJsonAsync<MercadoPagoPreapprovalResponse>();
             if (resultado is null || string.IsNullOrWhiteSpace(resultado.Id) || string.IsNullOrWhiteSpace(resultado.Status) || string.IsNullOrWhiteSpace(resultado.InitPoint))
                 throw new InvalidOperationException("Mercado Pago no devolvió el enlace para autorizar la renovación.");
-            return new MercadoPagoPreapproval(resultado.Id, resultado.Status, resultado.InitPoint, renovacion.ReferenciaExterna);
+            var preapproval = CrearPreapproval(resultado, renovacion.ReferenciaExterna);
+            if ((preapproval.NextPaymentDate ?? preapproval.StartDate) is not DateTimeOffset fechaProgramada ||
+                fechaProgramada.ToUnixTimeSeconds() < renovacion.FechaPrimerCobro.ToUnixTimeSeconds())
+                throw new InvalidOperationException("Mercado Pago no confirmó un primer cobro a partir del vencimiento. La renovación no se inició.");
+
+            return preapproval;
         }
 
         public async Task<MercadoPagoPreapproval> ConsultarRenovacionPorId(string id)
@@ -150,7 +155,7 @@ namespace TeamBalance.Services
             var resultado = await response.Content.ReadFromJsonAsync<MercadoPagoPreapprovalResponse>();
             if (resultado?.Id != id || string.IsNullOrWhiteSpace(resultado.ExternalReference) || string.IsNullOrWhiteSpace(resultado.Status))
                 throw new InvalidOperationException("Mercado Pago no devolvió los datos de la autorización.");
-            return new MercadoPagoPreapproval(id, resultado.Status, resultado.InitPoint ?? string.Empty, resultado.ExternalReference);
+            return CrearPreapproval(resultado, resultado.ExternalReference);
         }
 
         public async Task<MercadoPagoPreapproval> ConsultarRenovacionAutomatica(string referenciaExterna)
@@ -174,7 +179,7 @@ namespace TeamBalance.Services
             MercadoPagoPreapprovalResponse? resultado = busqueda?.Results?.Where(item => string.Equals(item.ExternalReference, referenciaExterna, StringComparison.Ordinal)).OrderByDescending(item => item.LastModified).FirstOrDefault();
             if (resultado is null || string.IsNullOrWhiteSpace(resultado.Id) || string.IsNullOrWhiteSpace(resultado.Status))
                 throw new InvalidOperationException("Mercado Pago no encontró la autorización de renovación solicitada.");
-            return new MercadoPagoPreapproval(resultado.Id, resultado.Status, resultado.InitPoint ?? string.Empty, resultado.ExternalReference ?? referenciaExterna);
+            return CrearPreapproval(resultado, referenciaExterna);
         }
 
         public async Task<List<MercadoPagoAuthorizedPayment>> ConsultarCobrosRecurrentes(string preapprovalId)
@@ -210,7 +215,16 @@ namespace TeamBalance.Services
             MercadoPagoPreapprovalResponse? resultado = await response.Content.ReadFromJsonAsync<MercadoPagoPreapprovalResponse>();
             if (resultado is null || string.IsNullOrWhiteSpace(resultado.Id) || string.IsNullOrWhiteSpace(resultado.Status))
                 throw new InvalidOperationException("Mercado Pago no devolvió el estado de la autorización recurrente.");
-            return new MercadoPagoPreapproval(resultado.Id, resultado.Status, resultado.InitPoint ?? string.Empty, resultado.ExternalReference ?? string.Empty);
+            return CrearPreapproval(resultado, string.Empty);
+        }
+
+        private static MercadoPagoPreapproval CrearPreapproval(MercadoPagoPreapprovalResponse resultado, string referenciaAlternativa)
+        {
+            return new MercadoPagoPreapproval(resultado.Id!, resultado.Status!, resultado.InitPoint ?? string.Empty, resultado.ExternalReference ?? referenciaAlternativa)
+            {
+                NextPaymentDate = resultado.NextPaymentDate,
+                StartDate = resultado.AutoRecurring?.StartDate,
+            };
         }
 
         private (decimal Importe, string Moneda) ObtenerCobroPrueba(string? codigoPlan)

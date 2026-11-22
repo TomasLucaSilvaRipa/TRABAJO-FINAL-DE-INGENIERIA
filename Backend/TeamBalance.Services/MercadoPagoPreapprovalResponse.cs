@@ -23,7 +23,19 @@ namespace TeamBalance.Services
         [JsonPropertyName("external_reference")]
         public string? ExternalReference { get; set; }
 
+        [JsonPropertyName("next_payment_date")]
+        public DateTimeOffset? NextPaymentDate { get; set; }
+
+        [JsonPropertyName("auto_recurring")]
+        public MercadoPagoRecurringSchedule? AutoRecurring { get; set; }
+
         [JsonPropertyName("last_modified")]
         public DateTime? LastModified { get; set; }
+    }
+
+    public sealed class MercadoPagoRecurringSchedule
+    {
+        [JsonPropertyName("start_date")]
+        public DateTimeOffset? StartDate { get; set; }
     }
 }

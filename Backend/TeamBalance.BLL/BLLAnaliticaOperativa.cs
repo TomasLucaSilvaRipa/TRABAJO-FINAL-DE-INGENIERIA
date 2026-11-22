@@ -473,10 +473,10 @@ public class BLLAnaliticaOperativa
         return detalle;
     }
 
-    public AnalisisSobrecalificacionPerfiles ConsultarSobrecalificacion(Usuario usuario, int? idProyecto)
+    public AnalisisSobrecalificacionPerfiles ConsultarSobrecalificacion(Usuario usuario, Proyecto? proyecto)
     {
         ValidarDueno(usuario);
-        List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, idProyecto);
+        List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, proyecto?.ID);
         List<AsignacionTarea> asignaciones = ConsultarAsignacionesActivas(contextos, usuario);
         AnalisisSobrecalificacionPerfiles resultado = new AnalisisSobrecalificacionPerfiles();
         foreach (ContextoProyectoAnalitico contexto in contextos)
@@ -522,7 +522,7 @@ public class BLLAnaliticaOperativa
             throw new ArgumentException("La observación no puede superar los 1500 caracteres.");
         }
 
-        SobrecalificacionTarea detalle = ConsultarSobrecalificacion(usuario, nuevaSolicitud.IdProyecto).Tareas.FirstOrDefault(item => item.Proyecto.ID == nuevaSolicitud.IdProyecto && item.Tarea.ID == nuevaSolicitud.IdTarea && item.Empleado.ID == nuevaSolicitud.IdEmpleado)
+        SobrecalificacionTarea detalle = ConsultarSobrecalificacion(usuario, nuevaSolicitud.Proyecto).Tareas.FirstOrDefault(item => item.Proyecto.ID == nuevaSolicitud.IdProyecto && item.Tarea.ID == nuevaSolicitud.IdTarea && item.Empleado.ID == nuevaSolicitud.IdEmpleado)
             ?? throw new KeyNotFoundException("La asignación ya no forma parte del análisis de sobrecalificación actual.");
         ContextoProyectoAnalitico contexto = ConsultarContextos(usuario, nuevaSolicitud.IdProyecto).FirstOrDefault(item => item.Proyecto.ID == nuevaSolicitud.IdProyecto)
             ?? throw new KeyNotFoundException("No existe el proyecto solicitado o no tenés acceso a él.");

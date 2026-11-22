@@ -105,10 +105,10 @@ public sealed partial class BLLSuscripcion
         ValidarDueño(solicitante);
         if (string.IsNullOrWhiteSpace(solicitud.ReferenciaOperacion) || string.IsNullOrWhiteSpace(solicitud.PaymentId)) throw new ArgumentException("No recibimos la referencia de la operación de actualización.");
 
-        OperacionSuscripcionPendiente? distribuida = _suscripcionMPP.ConsultarDistribucion(solicitante, solicitud.ReferenciaOperacion);
+        OperacionSuscripcionPendiente operacion = new OperacionSuscripcionPendiente(solicitud.ReferenciaOperacion);
+        OperacionSuscripcionPendiente? distribuida = _suscripcionMPP.ConsultarDistribucion(solicitante, operacion);
         if (distribuida is not null) return await VerificarParte(solicitante, distribuida, solicitud);
 
-        OperacionSuscripcionPendiente operacion = new OperacionSuscripcionPendiente(solicitud.ReferenciaOperacion);
         operacion = _suscripcionMPP.ConsultarOperacionPendiente(operacion);
         if (operacion.Agencia.ID != solicitante.IdAgencia) throw new UnauthorizedAccessException("La operación no pertenece a tu agencia.");
         if (operacion.Estado == "Aprobada")
@@ -240,7 +240,7 @@ public sealed partial class BLLSuscripcion
         Suscripcion actual = _suscripcionMPP.ConsultarActual(solicitante) ?? throw new KeyNotFoundException("La agencia no tiene una suscripción registrada.");
         PlanComercial plan = _planMPP.ConsultarPlan(new PlanComercial(actual.IdPlanComercial));
         (string publicKey, decimal importe, string moneda) = _mercadoPagoService.ObtenerCobroRecurrente(plan.Nombre);
-        return new ConfiguracionRenovacionAutomatica(publicKey, importe, moneda, plan);
+        return new ConfiguracionRenovacionAutomatica(publicKey, importe, moneda, plan, new DateTimeOffset(actual.FechaVencimiento));
     }
 
     public async Task<InicioActualizacionSuscripcion> AutorizarRenovacionAutomatica(Usuario solicitante, AutorizarRenovacionAutomaticaRequest solicitud)
@@ -256,7 +256,7 @@ public sealed partial class BLLSuscripcion
 
         PlanComercial plan = _planMPP.ConsultarPlan(new PlanComercial(actual.IdPlanComercial));
         string referencia = $"ren-{actual.ID}-{Guid.NewGuid():N}";
-        SolicitudRenovacionMercadoPago renovacion = new SolicitudRenovacionMercadoPago(plan.Nombre, referencia, solicitud.PayerEmail.Trim());
+        SolicitudRenovacionMercadoPago renovacion = new SolicitudRenovacionMercadoPago(plan, referencia, solicitud.PayerEmail.Trim(), new DateTimeOffset(actual.FechaVencimiento));
         MercadoPagoPreapproval preapproval = await _mercadoPagoService.CrearRenovacionAutomatica(renovacion);
         if (!preapproval.Status.Equals("pending", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(preapproval.InitPoint))
             throw new InvalidOperationException("Mercado Pago no devolvió el checkout para autorizar la renovación automática.");
@@ -285,6 +285,11 @@ public sealed partial class BLLSuscripcion
         if (actual.ID != idSuscripcion) throw new UnauthorizedAccessException("La renovación no pertenece a la suscripción de tu agencia.");
         if (!preapproval.Status.Equals("authorized", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Mercado Pago todavía no confirmó la autorización de la renovación automática.");
+
+        if (string.IsNullOrWhiteSpace(actual.ReferenciaRenovacionProveedor) &&
+            (preapproval.NextPaymentDate is not DateTimeOffset proximoCobro ||
+             proximoCobro.ToUnixTimeSeconds() < new DateTimeOffset(actual.FechaVencimiento).ToUnixTimeSeconds()))
+            throw new InvalidOperationException("Mercado Pago todavía no confirmó que el próximo cobro sea a partir del vencimiento.");
 
         return RegistrarRenovacionConfirmada(solicitante, actual, "MercadoPago", preapproval.Id, preapproval.Status);
     }

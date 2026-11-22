@@ -22,50 +22,68 @@ public class RolController : ControllerBase
         try
         {
             Usuario solicitante = ObtenerSolicitante();
-            if (!_rolBLL.TienePermiso(solicitante, "GestionarUsuarios")){ return Unauthorized("No tenés permiso para gestionar usuarios."); }
+            if (!_rolBLL.TienePermiso(solicitante, "GestionarUsuarios"))
+            {
+                return Unauthorized("No tenés permiso para gestionar usuarios.");
+            }
+
             return Ok(_rolBLL.ConsultarRolesAsignablesAgencia(solicitante));
         }
-        catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
     }
 
     [HttpGet]
     public IActionResult ConsultarRoles()
     {
         try { return Ok(_rolBLL.ConsultarRolesGestion(ObtenerSolicitante())); }
-        catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
     }
 
     [HttpGet("permisos")]
     public IActionResult ConsultarPermisos()
     {
-        try { ValidarGestionRoles(); return Ok(_rolBLL.ConsultarPermisosActivos()); }
-        catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
+        try
+        {
+            ValidarGestionRoles();
+            return Ok(_rolBLL.ConsultarPermisosActivos());
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
     }
 
     [HttpPost]
     public IActionResult RegistrarRol([FromBody] Rol rol)
     {
         try { return Ok(_rolBLL.RegistrarRol(rol, ObtenerSolicitante())); }
-        catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
-        catch (ArgumentException ex){ return BadRequest(ex.Message); }
-        catch (Exception){ return StatusCode(500, "No fue posible registrar el rol."); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible registrar el rol."); }
     }
 
     [HttpPut("{idRol:int}")]
     public IActionResult ModificarRol([FromBody] Rol rol)
     {
-        try { _rolBLL.ModificarRol(rol, ObtenerSolicitante()); return NoContent(); }
-        catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
-        catch (ArgumentException ex){ return BadRequest(ex.Message); }
-        catch (Exception){ return StatusCode(500, "No fue posible modificar el rol."); }
+        try
+        {
+            _rolBLL.ModificarRol(rol, ObtenerSolicitante());
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible modificar el rol."); }
     }
 
     [HttpPatch("{idRol:int}/estado")]
     public IActionResult CambiarEstado([FromBody] Rol rol)
     {
-        try { Usuario solicitante = ObtenerSolicitante(); ValidarGestionRoles(solicitante); _rolBLL.CambiarEstado(rol, solicitante); return NoContent(); }
-        catch (UnauthorizedAccessException ex){ return Unauthorized(ex.Message); }
-        catch (Exception){ return StatusCode(500, "No fue posible actualizar el rol."); }
+        try
+        {
+            Usuario solicitante = ObtenerSolicitante();
+            ValidarGestionRoles(solicitante);
+            _rolBLL.CambiarEstado(rol, solicitante);
+            return NoContent();
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible actualizar el rol."); }
     }
 
     private void ValidarGestionRoles()

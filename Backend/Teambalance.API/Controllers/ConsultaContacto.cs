@@ -3,6 +3,7 @@ using System.Net.Mail;
 using TeamBalance.Services;
 
 namespace Teambalance.API.Controllers;
+
 public class ConsultaContacto
 {
     public ConsultaContacto()

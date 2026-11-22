@@ -32,7 +32,8 @@ public class TelegramVerificationController : ControllerBase
     {
         try
         {
-            if (!_telegramBot.Configurado) return StatusCode(503, "Telegram todavía no está configurado en el servidor.");
+            if (!_telegramBot.Configurado)
+                return StatusCode(503, "Telegram todavía no está configurado en el servidor.");
             return Ok(_telegramBLL.PrepararVinculacion(ObtenerUsuarioAutenticado()));
         }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
@@ -43,7 +44,8 @@ public class TelegramVerificationController : ControllerBase
     {
         try
         {
-            if (request is null || string.IsNullOrWhiteSpace(request.Codigo)) throw new ArgumentException("Ingresá el código de seis dígitos enviado por Telegram.");
+            if (request is null || string.IsNullOrWhiteSpace(request.Codigo))
+                throw new ArgumentException("Ingresá el código de seis dígitos enviado por Telegram.");
             _telegramBLL.ConfirmarVinculacion(ObtenerUsuarioAutenticado(), request.Codigo);
             return NoContent();
         }
@@ -57,8 +59,10 @@ public class TelegramVerificationController : ControllerBase
         try
         {
             EntregaTelegram entrega = _telegramBLL.ReenviarCodigoVinculacion(ObtenerUsuarioAutenticado());
-            if (!entrega.Valida) return BadRequest("No hay un código de vinculación disponible para reenviar.");
-            if (!await _telegramBot.EnviarCodigoAsync(entrega.ChatId, entrega.Codigo, "Vinculación de Telegram", cancellationToken)) return StatusCode(503, "No fue posible enviar el código por Telegram. Verificá que el bot no esté bloqueado.");
+            if (!entrega.Valida)
+                return BadRequest("No hay un código de vinculación disponible para reenviar.");
+            if (!await _telegramBot.EnviarCodigoAsync(entrega.ChatId, entrega.Codigo, "Vinculación de Telegram", cancellationToken))
+                return StatusCode(503, "No fue posible enviar el código por Telegram. Verificá que el bot no esté bloqueado.");
             return NoContent();
         }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
@@ -70,7 +74,8 @@ public class TelegramVerificationController : ControllerBase
         try
         {
             EntregaTelegram entrega = _telegramBLL.PrepararDesvinculacion(ObtenerUsuarioAutenticado());
-            if (!entrega.Valida || !await _telegramBot.EnviarCodigoAsync(entrega.ChatId, entrega.Codigo, "Desvinculación de Telegram", cancellationToken)) return StatusCode(503, "No fue posible enviar el código por Telegram.");
+            if (!entrega.Valida || !await _telegramBot.EnviarCodigoAsync(entrega.ChatId, entrega.Codigo, "Desvinculación de Telegram", cancellationToken))
+                return StatusCode(503, "No fue posible enviar el código por Telegram.");
             return NoContent();
         }
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
@@ -81,7 +86,8 @@ public class TelegramVerificationController : ControllerBase
     {
         try
         {
-            if (request is null || string.IsNullOrWhiteSpace(request.Codigo)) throw new ArgumentException("Ingresá el código enviado por Telegram.");
+            if (request is null || string.IsNullOrWhiteSpace(request.Codigo))
+                throw new ArgumentException("Ingresá el código enviado por Telegram.");
             _telegramBLL.ConfirmarDesvinculacion(ObtenerUsuarioAutenticado(), request.Codigo);
             return NoContent();
         }

@@ -1,25 +1,29 @@
-﻿using System;
+using System;
 using TeamBalance.BE.Entidades;
 using TeamBalance.MPP;
 using TeamBalance.Services;
 
 namespace TeamBalance.BLL
 {
-    public class ContratacionBLL
+    public partial class ContratacionBLL
     {
         private readonly MercadoPagoService _mercadoPagoService;
         private readonly StripeService _stripeService;
         private readonly MPPContratacion _contratacionMPP;
         private readonly MPPPlanComercial _planMPP;
+        private readonly MPPAgencia _agenciaMPP;
+        private readonly MPPUsuario _usuarioMPP;
         private readonly BLLBitacora _bitacoraBLL;
         private readonly EmailService _emailService;
 
-        public ContratacionBLL(MercadoPagoService mercadoPagoService, StripeService stripeService, MPPContratacion contratacionMPP, MPPPlanComercial planMPP, BLLBitacora bitacoraBLL, EmailService emailService)
+        public ContratacionBLL(MercadoPagoService mercadoPagoService, StripeService stripeService, MPPContratacion contratacionMPP, MPPPlanComercial planMPP, BLLBitacora bitacoraBLL, EmailService emailService, MPPAgencia agenciaMPP, MPPUsuario usuarioMPP)
         {
             _mercadoPagoService = mercadoPagoService;
             _stripeService = stripeService;
             _contratacionMPP = contratacionMPP;
             _planMPP = planMPP;
+            _agenciaMPP = agenciaMPP;
+            _usuarioMPP = usuarioMPP;
             _bitacoraBLL = bitacoraBLL;
             _emailService = emailService;
         }
@@ -27,6 +31,8 @@ namespace TeamBalance.BLL
         public async Task<ContratacionInicioResponse> Contratar(ContratacionRequest request)
         {
             ValidarSolicitud(request);
+            ValidarDisponibilidadRegistro(request);
+            if (request.Pagos is { Count: > 0 }) return ContratarConPagos(request);
 
             if (!string.Equals(request.ProveedorPagoSeleccionado, "MercadoPago", StringComparison.Ordinal) && !string.Equals(request.ProveedorPagoSeleccionado, "Stripe", StringComparison.Ordinal))
             {
@@ -55,6 +61,8 @@ namespace TeamBalance.BLL
 
         public EstadoContratacionResponse ConsultarEstado(ContratacionServicio contratacionServicio)
         {
+            if (contratacionServicio.ReferenciaContratacion.StartsWith("alta-", StringComparison.Ordinal))
+                return CrearEstadoPagoCombinado(contratacionServicio);
             EstadoContratacionPersistido contratacion = _contratacionMPP.ConsultarEstado(contratacionServicio);
             return CrearRespuestaEstado(contratacion);
         }
@@ -70,6 +78,9 @@ namespace TeamBalance.BLL
             {
                 throw new ArgumentException("Mercado Pago no informó el identificador del pago.", nameof(paymentId));
             }
+
+            if (contratacionServicio.ReferenciaContratacion.StartsWith("alta-", StringComparison.Ordinal))
+                return await VerificarPagoCombinado(contratacionServicio.ReferenciaContratacion, paymentId);
 
             EstadoContratacionPersistido contratacion = _contratacionMPP.ConsultarEstado(contratacionServicio);
 
@@ -122,6 +133,20 @@ namespace TeamBalance.BLL
             return respuesta;
         }
 
+        private void ValidarDisponibilidadRegistro(ContratacionRequest request)
+        {
+            request.CUIT = request.CUIT.Trim();
+            request.EmailFacturacion = request.EmailFacturacion?.Trim() ?? string.Empty;
+            request.EmailLaboralResponsable = request.EmailLaboralResponsable.Trim();
+            string emailContacto = string.IsNullOrEmpty(request.EmailFacturacion)
+                ? request.EmailLaboralResponsable
+                : request.EmailFacturacion;
+            Agencia agencia = new Agencia { CUIT = request.CUIT, EmailContacto = emailContacto };
+            Usuario responsable = new Usuario { Email = request.EmailLaboralResponsable };
+            if (_agenciaMPP.ExisteAgencia(agencia) || _usuarioMPP.ExisteUsuarioPorEmail(responsable))
+                throw new DatosContratacionEnUsoException();
+        }
+
         private static void ValidarSolicitud(ContratacionRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.NombreComercialAgencia) ||
@@ -134,6 +159,14 @@ namespace TeamBalance.BLL
             }
 
             if (request.PlanComercial.ID <= 0){ throw new ArgumentException("Seleccioná un plan comercial válido."); }
+        }
+    }
+
+    public sealed class DatosContratacionEnUsoException : InvalidOperationException
+    {
+        public DatosContratacionEnUsoException()
+            : base("Ya hay datos de esta contratación asociados a una agencia o cuenta existente.")
+        {
         }
     }
 }

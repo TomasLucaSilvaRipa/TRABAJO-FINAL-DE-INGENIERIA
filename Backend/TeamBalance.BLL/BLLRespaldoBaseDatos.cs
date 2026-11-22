@@ -34,20 +34,20 @@ public sealed class BLLRespaldoBaseDatos
         return CrearRespaldoAsync(solicitante.ID, "Manual");
     }
 
-    public async Task<PruebaRestauracionRespaldo> RestaurarEnEntornoAislado(Usuario solicitante, int idRespaldo, RestaurarRespaldoRequest solicitud)
+    public async Task<PruebaRestauracionRespaldo> RestaurarEnEntornoAislado(Usuario solicitante, RespaldoBaseDatos respaldoSolicitado, RestaurarRespaldoRequest solicitud)
     {
         ExigirGestionRespaldos(solicitante);
-        if (!string.Equals(solicitud.Confirmacion?.Trim(), $"RESTORE {idRespaldo}", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(solicitud.Confirmacion?.Trim(), $"RESTORE {respaldoSolicitado.ID}", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentException($"Para confirmar la restauración escribí RESTORE {idRespaldo}.");
+            throw new ArgumentException($"Para confirmar la restauración escribí RESTORE {respaldoSolicitado.ID}.");
         }
 
-        RespaldoBaseDatos respaldo = _respaldoMPP.Consultar().FirstOrDefault(item => item.ID == idRespaldo && item.Estado == "Completado" && item.Verificado)
+        RespaldoBaseDatos respaldo = _respaldoMPP.Consultar().FirstOrDefault(item => item.ID == respaldoSolicitado.ID && item.Estado == "Completado" && item.Verificado)
             ?? throw new KeyNotFoundException("No existe un respaldo verificado disponible para restaurar.");
         ValidarRutaRespaldo(respaldo.RutaArchivo);
         if (!File.Exists(respaldo.RutaArchivo)) { throw new FileNotFoundException("No se encontró el archivo de respaldo en la ubicación configurada."); }
 
-        string nombreDestino = $"TeamBalanceRecovery_{idRespaldo}_{DateTime.UtcNow:yyyyMMddHHmmss}";
+        string nombreDestino = $"TeamBalanceRecovery_{respaldoSolicitado.ID}_{DateTime.UtcNow:yyyyMMddHHmmss}";
         PruebaRestauracionRespaldo prueba = new PruebaRestauracionRespaldo()
         {
             IdRespaldo = respaldo.ID,
@@ -88,15 +88,15 @@ public sealed class BLLRespaldoBaseDatos
         }
     }
 
-    public async Task RestaurarProduccion(Usuario solicitante, int idRespaldo, RestaurarRespaldoRequest solicitud)
+    public async Task RestaurarProduccion(Usuario solicitante, RespaldoBaseDatos respaldoSolicitado, RestaurarRespaldoRequest solicitud)
     {
         ExigirGestionRespaldos(solicitante);
-        if (!string.Equals(solicitud.Confirmacion?.Trim(), $"RECUPERAR PRODUCCION {idRespaldo}", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(solicitud.Confirmacion?.Trim(), $"RECUPERAR PRODUCCION {respaldoSolicitado.ID}", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentException($"Para confirmar la recuperación escribí RECUPERAR PRODUCCION {idRespaldo}.");
+            throw new ArgumentException($"Para confirmar la recuperación escribí RECUPERAR PRODUCCION {respaldoSolicitado.ID}.");
         }
 
-        RespaldoBaseDatos respaldo = _respaldoMPP.Consultar().FirstOrDefault(item => item.ID == idRespaldo && item.Estado == "Completado" && item.Verificado)
+        RespaldoBaseDatos respaldo = _respaldoMPP.Consultar().FirstOrDefault(item => item.ID == respaldoSolicitado.ID && item.Estado == "Completado" && item.Verificado)
             ?? throw new KeyNotFoundException("No existe un respaldo verificado disponible para recuperar producción.");
         ValidarRutaRespaldo(respaldo.RutaArchivo);
         if (!File.Exists(respaldo.RutaArchivo)) throw new FileNotFoundException("No se encontró el archivo de respaldo en la ubicación configurada.");

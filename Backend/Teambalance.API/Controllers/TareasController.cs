@@ -1,35 +1,49 @@
+using Teambalance.API.Models;
 using Microsoft.AspNetCore.Mvc;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
 
 namespace Teambalance.API.Controllers;
+
 [ApiController]
 [Route("api/tareas")]
 public class TareasController : ControllerBase
 {
-    private readonly BLLTarea _tareaBLL; 
+    private readonly BLLTarea _tareaBLL;
     private readonly BLLUsuario _usuarioBLL;
-    public TareasController(BLLTarea tareaBLL, BLLUsuario usuarioBLL) { _tareaBLL = tareaBLL; _usuarioBLL = usuarioBLL; }
-    [HttpGet] public IActionResult Consultar()
+
+    public TareasController(BLLTarea tareaBLL, BLLUsuario usuarioBLL)
+    {
+        _tareaBLL = tareaBLL;
+        _usuarioBLL = usuarioBLL;
+    }
+
+    [HttpGet]
+    public IActionResult Consultar()
+    {
+        try { return Ok(_tareaBLL.Consultar(ValidarSesion())); }
+        catch (Exception ex) { throw new Exception(ex.Message); }
+    }
+
+    [HttpGet("mias")]
+    public IActionResult ConsultarAsignadas()
     {
         try
         {
-            return Ok(_tareaBLL.Consultar(ValidarSesion()));
-        }catch(Exception ex) { throw new Exception(ex.Message); }
+            List<Tarea> tareas = _tareaBLL.ConsultarAsignadas(ValidarSesion());
+            return Ok(tareas);
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
     }
 
-    [HttpGet("mias")] 
-    public IActionResult ConsultarAsignadas() { 
-        try 
-        { 
-            List<Tarea> tareas = _tareaBLL.ConsultarAsignadas(ValidarSesion()); 
-            return Ok(tareas); 
-        } catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); } 
-    }
     [HttpGet("proyectos-pm")]
     public IActionResult ConsultarPorPM()
     {
-        try { List<Tarea> tareas = _tareaBLL.ConsultarPorPM(ValidarSesion()); return Ok(tareas); }
+        try
+        {
+            List<Tarea> tareas = _tareaBLL.ConsultarPorPM(ValidarSesion());
+            return Ok(tareas);
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
@@ -46,23 +60,21 @@ public class TareasController : ControllerBase
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
-    
+
     [HttpPatch("mias/comentarios")]
     public IActionResult GuardarComentarios([FromBody] Tarea tarea)
     {
-        try
-        {
-            bool resultado = _tareaBLL.GuardarComentarios(tarea, ValidarSesion());
-            return Ok(resultado);
-        }
+        try { bool resultado = _tareaBLL.GuardarComentarios(tarea, ValidarSesion()); return Ok(resultado); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
-    [HttpGet("opciones")] 
-    public IActionResult Opciones() { 
-        return Ok(_tareaBLL.ConsultarOpciones(ValidarSesion())); 
+    [HttpGet("opciones")]
+    public IActionResult Opciones()
+    {
+        return Ok(_tareaBLL.ConsultarOpciones(ValidarSesion()));
     }
+
     [HttpGet("estados")]
     public IActionResult ConsultarEstados()
     {
@@ -73,37 +85,47 @@ public class TareasController : ControllerBase
     [HttpPost("estados")]
     public IActionResult RegistrarEstado([FromBody] EstadoTarea estado)
     {
-        try { estado.ID = 0; return Ok(_tareaBLL.GuardarEstadoPersonalizado(estado, ValidarSesion())); }
+        try
+        {
+            estado.ID = 0;
+            return Ok(_tareaBLL.GuardarEstadoPersonalizado(estado, ValidarSesion()));
+        }
         catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
 
     [HttpPut("estados/{id:int}")]
-    public IActionResult ModificarEstado(int id, [FromBody] EstadoTarea estado)
+    public IActionResult ModificarEstado([ReferenciaHttp("id")] EstadoTarea estadoRuta, [FromBody] EstadoTarea estado)
     {
-        try { estado.ID = id; return Ok(_tareaBLL.GuardarEstadoPersonalizado(estado, ValidarSesion())); }
+        try
+        {
+            estado.ID = estadoRuta.ID;
+            return Ok(_tareaBLL.GuardarEstadoPersonalizado(estado, ValidarSesion()));
+        }
         catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
 
     [HttpDelete("estados/{id:int}")]
-    public IActionResult DesactivarEstado(int id)
+    public IActionResult DesactivarEstado([ReferenciaHttp("id")] EstadoTarea estado)
     {
-        try { return Ok(_tareaBLL.DesactivarEstadoPersonalizado(new EstadoTarea { ID = id }, ValidarSesion())); }
+        try { return Ok(_tareaBLL.DesactivarEstadoPersonalizado(estado, ValidarSesion())); }
         catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
+
     [HttpGet("{idTarea:int}/asignaciones")]
-    public IActionResult ConsultarAsignaciones(int idTarea)
+    public IActionResult ConsultarAsignaciones([ReferenciaHttp("idTarea")] Tarea tarea)
     {
-        try { return Ok(_tareaBLL.ConsultarAsignaciones(new Tarea { ID = idTarea }, ValidarSesion())); }
+        try { return Ok(_tareaBLL.ConsultarAsignaciones(tarea, ValidarSesion())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
+
     [HttpPost("filtrar")]
     public IActionResult Filtrar([FromBody] FiltroTarea filtro)
     {
@@ -125,37 +147,45 @@ public class TareasController : ControllerBase
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
-    [HttpPost] public IActionResult Guardar([FromBody] Tarea tarea) 
-    { 
-        try 
-        { 
-            Tarea resultado = _tareaBLL.Guardar(tarea, ValidarSesion()); 
-            return Ok(resultado); 
-        } catch (ArgumentException ex) { return BadRequest(ex.Message); } 
-    }
-    [HttpPut] public IActionResult Modificar([FromBody] Tarea tarea) 
-    { 
-        try 
+
+    [HttpPost]
+    public IActionResult Guardar([FromBody] Tarea tarea)
+    {
+        try
         {
-            Tarea resultado = _tareaBLL.Guardar(tarea, ValidarSesion()); 
-            return Ok(resultado); 
-        } 
-        catch (ArgumentException ex) { return BadRequest(ex.Message); } 
+            Tarea resultado = _tareaBLL.Guardar(tarea, ValidarSesion());
+            return Ok(resultado);
+        }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+    }
+
+    [HttpPut]
+    public IActionResult Modificar([FromBody] Tarea tarea)
+    {
+        try
+        {
+            Tarea resultado = _tareaBLL.Guardar(tarea, ValidarSesion());
+            return Ok(resultado);
+        }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
     }
 
     [HttpPatch("estado")]
-    public IActionResult CambiarEstado([FromBody] Tarea tarea) 
+    public IActionResult CambiarEstado([FromBody] Tarea tarea)
     {
-        return Ok(_tareaBLL.CambiarEstado(tarea, ValidarSesion())); 
+        return Ok(_tareaBLL.CambiarEstado(tarea, ValidarSesion()));
     }
-    [HttpPost("skills")] 
-    public IActionResult RegistrarSkill([FromBody] Skill skill) { 
-        try 
-        { 
-            Skill resultado = _tareaBLL.RegistrarSkill(skill, ValidarSesion()); return Ok(resultado); 
-        } 
-        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); } 
-        catch (ArgumentException ex) { return BadRequest(ex.Message); } 
+
+    [HttpPost("skills")]
+    public IActionResult RegistrarSkill([FromBody] Skill skill)
+    {
+        try
+        {
+            Skill resultado = _tareaBLL.RegistrarSkill(skill, ValidarSesion());
+            return Ok(resultado);
+        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
     }
 
     [HttpGet("skills/areas")]
@@ -173,22 +203,17 @@ public class TareasController : ControllerBase
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
     }
 
-    [HttpPatch("skills/estado")] 
-    public IActionResult CambiarEstadoSkill([FromBody]Skill skill) { 
-        try 
-        {
-            return Ok(_tareaBLL.CambiarEstadoSkill(skill, ValidarSesion())); 
-        } catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); } 
+    [HttpPatch("skills/estado")]
+    public IActionResult CambiarEstadoSkill([FromBody] Skill skill)
+    {
+        try { return Ok(_tareaBLL.CambiarEstadoSkill(skill, ValidarSesion())); }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
     }
 
     [HttpPatch("mias/estado")]
     public IActionResult CambiarEstadoPropio([FromBody] Tarea tarea)
     {
-        try
-        {
-            bool resultado = _tareaBLL.CambiarEstadoPropio(tarea, ValidarSesion());
-            return Ok(resultado);
-        }
+        try { bool resultado = _tareaBLL.CambiarEstadoPropio(tarea, ValidarSesion()); return Ok(resultado); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
@@ -197,17 +222,13 @@ public class TareasController : ControllerBase
     [HttpPatch("mias/avance")]
     public IActionResult ActualizarAvancePropio([FromBody] Tarea tarea)
     {
-        try
-        {
-            Tarea resultado = _tareaBLL.ActualizarAvancePropio(tarea, ValidarSesion());
-            return Ok(resultado);
-        }
+        try { Tarea resultado = _tareaBLL.ActualizarAvancePropio(tarea, ValidarSesion()); return Ok(resultado); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
 
-    private Usuario ValidarSesion() 
+    private Usuario ValidarSesion()
     {
         try
         {
@@ -217,10 +238,10 @@ public class TareasController : ControllerBase
             {
                 throw new UnauthorizedAccessException("Tu sesión ya no es válida.");
             }
+
             return usuario;
         }
         catch (UnauthorizedAccessException ex) { throw new UnauthorizedAccessException(ex.Message); }
-        catch (Exception ex) { throw new Exception(ex.Message); }  
+        catch (Exception ex) { throw new Exception(ex.Message); }
     }
 }
-

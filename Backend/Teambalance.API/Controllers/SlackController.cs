@@ -1,3 +1,4 @@
+using Teambalance.API.Models;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
@@ -39,40 +40,21 @@ public sealed class SlackController : ControllerBase
 
             return Ok(usuarios);
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, "No fue posible consultar los usuarios disponibles para Slack.");
-        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible consultar los usuarios disponibles para Slack."); }
     }
 
     [HttpPost("usuarios/{idUsuario:int}/vinculacion")]
-    public IActionResult VincularUsuario(int idUsuario, [FromBody] string slackUserId)
+    public IActionResult VincularUsuario([ReferenciaHttp("idUsuario")] Usuario usuario, [FromBody] string slackUserId)
     {
         try
         {
-            _slackBLL.VincularUsuario(new VinculacionSlack
-            {
-                Usuario = new TeamBalance.BE.Entidades.Usuario { ID = idUsuario },
-                IdUsuarioSlack = slackUserId
-            }, ObtenerSolicitante());
+            _slackBLL.VincularUsuario(new VinculacionSlack { Usuario = usuario, IdUsuarioSlack = slackUserId }, ObtenerSolicitante());
             return NoContent();
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(ex.Message);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, "No fue posible vincular el usuario con Slack.");
-        }
+        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (ArgumentException ex) { return BadRequest(ex.Message); }
+        catch (Exception) { return StatusCode(500, "No fue posible vincular el usuario con Slack."); }
     }
 
     [HttpPost("balance")]
@@ -100,25 +82,12 @@ public sealed class SlackController : ControllerBase
 
         try
         {
-            string respuesta = _slackBLL.ConsultarBalance(new ConsultaSlack
-            {
-                IdUsuarioSlack = formulario["user_id"].ToString(),
-                Texto = formulario["text"].ToString()
-            });
+            string respuesta = _slackBLL.ConsultarBalance(new ConsultaSlack { IdUsuarioSlack = formulario["user_id"].ToString(), Texto = formulario["text"].ToString() });
             return Ok(new RespuestaSlack("ephemeral", respuesta));
         }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Ok(new RespuestaSlack("ephemeral", ex.Message));
-        }
-        catch (ArgumentException ex)
-        {
-            return Ok(new RespuestaSlack("ephemeral", ex.Message));
-        }
-        catch (Exception)
-        {
-            return Ok(new RespuestaSlack("ephemeral", "No fue posible consultar la información operativa en este momento."));
-        }
+        catch (UnauthorizedAccessException ex) { return Ok(new RespuestaSlack("ephemeral", ex.Message)); }
+        catch (ArgumentException ex) { return Ok(new RespuestaSlack("ephemeral", ex.Message)); }
+        catch (Exception) { return Ok(new RespuestaSlack("ephemeral", "No fue posible consultar la información operativa en este momento.")); }
     }
 
     private async Task<string> LeerCuerpoCrudo()
@@ -141,7 +110,6 @@ public sealed class SlackController : ControllerBase
         string signingSecret = _configuration["Slack:SigningSecret"] ?? string.Empty;
         string timestamp = Request.Headers["X-Slack-Request-Timestamp"].ToString();
         string firmaRecibida = Request.Headers["X-Slack-Signature"].ToString();
-
         if (string.IsNullOrWhiteSpace(signingSecret) || string.IsNullOrWhiteSpace(timestamp) || string.IsNullOrWhiteSpace(firmaRecibida) || !long.TryParse(timestamp, out long timestampUnix))
         {
             return false;

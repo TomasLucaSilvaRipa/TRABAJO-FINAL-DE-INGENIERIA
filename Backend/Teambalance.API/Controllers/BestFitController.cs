@@ -1,3 +1,4 @@
+using Teambalance.API.Models;
 using Microsoft.AspNetCore.Mvc;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
@@ -8,8 +9,14 @@ namespace Teambalance.API.Controllers;
 [Route("api/best-fit")]
 public class BestFitController : ControllerBase
 {
-    private readonly BLLBestFit _bestFitBLL; private readonly BLLUsuario _usuarioBLL;
-    public BestFitController(BLLBestFit bestFitBLL, BLLUsuario usuarioBLL) { _bestFitBLL = bestFitBLL; _usuarioBLL = usuarioBLL; }
+    private readonly BLLBestFit _bestFitBLL;
+    private readonly BLLUsuario _usuarioBLL;
+
+    public BestFitController(BLLBestFit bestFitBLL, BLLUsuario usuarioBLL)
+    {
+        _bestFitBLL = bestFitBLL;
+        _usuarioBLL = usuarioBLL;
+    }
 
     [HttpPost("sugerencias")]
     public IActionResult Sugerir([FromBody] RecomendacionBestFit recomendacion)
@@ -34,9 +41,9 @@ public class BestFitController : ControllerBase
     }
 
     [HttpGet("tareas/{idTarea}/recomendaciones")]
-    public IActionResult ConsultarRecomendaciones(int idTarea)
+    public IActionResult ConsultarRecomendaciones([ReferenciaHttp("idTarea")] Tarea tarea)
     {
-        try { return Ok(_bestFitBLL.ConsultarRecomendaciones(new Tarea { ID = idTarea }, ValidarSesion())); }
+        try { return Ok(_bestFitBLL.ConsultarRecomendaciones(tarea, ValidarSesion())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
@@ -46,7 +53,11 @@ public class BestFitController : ControllerBase
     {
         string token = Request.Headers.Authorization.ToString().Replace("Bearer ", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
         Usuario? usuario = _usuarioBLL.ConsultarUsuarioSesion(token);
-        if (usuario is null) { throw new UnauthorizedAccessException("Tu sesión ya no es válida."); }
+        if (usuario is null)
+        {
+            throw new UnauthorizedAccessException("Tu sesión ya no es válida.");
+        }
+
         return usuario;
     }
 }

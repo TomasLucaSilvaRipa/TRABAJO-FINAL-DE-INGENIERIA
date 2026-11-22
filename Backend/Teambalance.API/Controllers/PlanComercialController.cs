@@ -1,3 +1,4 @@
+using Teambalance.API.Models;
 using Microsoft.AspNetCore.Mvc;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
@@ -29,27 +30,29 @@ public class PlanComercialController : ControllerBase
     [HttpGet("gestion")]
     public IActionResult ConsultarPlanes()
     {
-        try { ValidarSesion(); return Ok(_planBLL.ConsultarPlanes()); }
+        try
+        {
+            ValidarSesion();
+            return Ok(_planBLL.ConsultarPlanes());
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
 
     [HttpGet("{id:int}")]
-    public IActionResult ConsultarPlan(int id)
+    public IActionResult ConsultarPlan([ReferenciaHttp("id")] PlanComercial plan)
     {
-        try 
-        { 
-            return Ok(_planBLL.ConsultarPlanDisponible(new PlanComercial(id))); 
-        }
+        try { return Ok(_planBLL.ConsultarPlanDisponible(plan)); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
 
     [HttpGet("{id:int}/consultas")]
-    public IActionResult ConsultarConsultas(int id)
+    public IActionResult ConsultarConsultas([ReferenciaHttp("id")] PlanComercial plan)
     {
-        try {
-            List<ConsultaPlan> consultas = _consultaBLL.Consultar(new PlanComercial(id)); 
+        try
+        {
+            List<ConsultaPlan> consultas = _consultaBLL.Consultar(plan);
             return Ok(consultas);
         }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
@@ -59,10 +62,10 @@ public class PlanComercialController : ControllerBase
     [HttpPost("consultas")]
     public IActionResult RegistrarConsulta([FromBody] ConsultaPlan consulta)
     {
-        try 
+        try
         {
-            ConsultaPlan resultado = _consultaBLL.Registrar(consulta); 
-            return Ok(resultado); 
+            ConsultaPlan resultado = _consultaBLL.Registrar(consulta);
+            return Ok(resultado);
         }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
@@ -72,10 +75,10 @@ public class PlanComercialController : ControllerBase
     [HttpPost]
     public IActionResult RegistrarPlan([FromBody] PlanComercial plan)
     {
-        try 
-        { 
-            Usuario usuario = ValidarSesion(); 
-            return Ok(_planBLL.RegistrarPlan(plan, usuario)); 
+        try
+        {
+            Usuario usuario = ValidarSesion();
+            return Ok(_planBLL.RegistrarPlan(plan, usuario));
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
@@ -84,9 +87,10 @@ public class PlanComercialController : ControllerBase
     [HttpPut("{id:int}")]
     public IActionResult ModificarPlan([FromBody] PlanComercial plan)
     {
-        try { 
-            Usuario usuario = ValidarSesion(); 
-            return Ok(_planBLL.ModificarPlan(plan, usuario)); 
+        try
+        {
+            Usuario usuario = ValidarSesion();
+            return Ok(_planBLL.ModificarPlan(plan, usuario));
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
@@ -96,11 +100,7 @@ public class PlanComercialController : ControllerBase
     [HttpPatch("{id:int}/estado")]
     public IActionResult CambiarEstado([FromBody] PlanComercial plan)
     {
-        try 
-        { 
-            Usuario usuario = ValidarSesion(); 
-            return Ok(_planBLL.CambiarEstado(plan, usuario)); 
-        }
+        try { Usuario usuario = ValidarSesion(); return Ok(_planBLL.CambiarEstado(plan, usuario)); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
@@ -110,7 +110,11 @@ public class PlanComercialController : ControllerBase
     {
         string accessToken = Request.Headers.Authorization.ToString().Replace("Bearer ", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
         Usuario? usuario = _usuarioBLL.ConsultarUsuarioSesion(accessToken);
-        if (usuario is null){ throw new UnauthorizedAccessException("Tu sesión ya no es válida. Volvé a iniciar sesión."); }
+        if (usuario is null)
+        {
+            throw new UnauthorizedAccessException("Tu sesión ya no es válida. Volvé a iniciar sesión.");
+        }
+
         return usuario;
     }
 }

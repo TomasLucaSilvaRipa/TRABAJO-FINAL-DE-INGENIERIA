@@ -15,11 +15,11 @@ public class BLLIdioma
 
     public List<Idioma> ConsultarActivos() => _idiomaMPP.ConsultarActivos();
 
-    public Dictionary<string, string> ConsultarTraduccionesActivas(string codigo)
+    public Dictionary<string, string> ConsultarTraduccionesActivas(Idioma idioma)
     {
-        string codigoNormalizado = (codigo ?? string.Empty).Trim();
+        string codigoNormalizado = (idioma.Codigo ?? string.Empty).Trim();
         if (codigoNormalizado.Length is < 2 or > 16) throw new ArgumentException("El idioma indicado no es válido.");
-        return _idiomaMPP.ConsultarTraduccionesActivas(codigoNormalizado)
+        return _idiomaMPP.ConsultarTraduccionesActivas(new Idioma { Codigo = codigoNormalizado })
             ?? throw new ArgumentException("El idioma no existe o no se encuentra activo.");
     }
 
@@ -29,11 +29,11 @@ public class BLLIdioma
         return _idiomaMPP.ConsultarGestion();
     }
 
-    public Dictionary<string, string> ConsultarTraduccionesGestion(int idIdioma, Usuario solicitante)
+    public Dictionary<string, string> ConsultarTraduccionesGestion(Idioma idiomaSolicitado, Usuario solicitante)
     {
         ValidarGestion(solicitante);
-        if (idIdioma <= 0) throw new ArgumentException("El idioma indicado no es válido.");
-        Idioma? idioma = _idiomaMPP.ConsultarPorId(new Idioma(idIdioma));
+        if (idiomaSolicitado.ID <= 0) throw new ArgumentException("El idioma indicado no es válido.");
+        Idioma? idioma = _idiomaMPP.ConsultarPorId(idiomaSolicitado);
         return idioma?.Traducciones ?? throw new ArgumentException("No existe el idioma indicado.");
     }
 

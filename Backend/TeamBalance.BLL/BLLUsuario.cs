@@ -686,14 +686,14 @@ public class BLLUsuario
         throw new ArgumentException($"La contraseña debe incluir {string.Join(", ", faltantes)}.");
     }
 
-    public string ActualizarFotoPerfil(Usuario solicitante, string? fotoPerfil)
+    public string ActualizarFotoPerfil(Usuario solicitante, Usuario perfilSolicitado)
     {
         if (solicitante.ID <= 0)
         {
             throw new UnauthorizedAccessException("Tu sesión ya no es válida. Volvé a iniciar sesión.");
         }
 
-        string fotoValidada = ValidarFotoPerfil(fotoPerfil);
+        string fotoValidada = ValidarFotoPerfil(perfilSolicitado.FotoPerfil);
         solicitante.FotoPerfil = fotoValidada;
         _usuarioMPP.ActualizarFotoPerfil(solicitante);
         RegistrarEventoSeguridad(solicitante, "ActualizarFotoPerfil", "El usuario actualizó su foto de perfil.", "Exitoso", "Informacion");

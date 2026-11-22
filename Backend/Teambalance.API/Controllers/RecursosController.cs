@@ -1,3 +1,4 @@
+using Teambalance.API.Models;
 using Microsoft.AspNetCore.Mvc;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
@@ -8,15 +9,19 @@ namespace Teambalance.API.Controllers;
 [Route("api/recursos")]
 public class RecursosController : ControllerBase
 {
-    private readonly BLLRecursos _recursosBLL; private readonly BLLUsuario _usuarioBLL;
-    public RecursosController(BLLRecursos recursosBLL, BLLUsuario usuarioBLL) { _recursosBLL = recursosBLL; _usuarioBLL = usuarioBLL; }
+    private readonly BLLRecursos _recursosBLL;
+    private readonly BLLUsuario _usuarioBLL;
+
+    public RecursosController(BLLRecursos recursosBLL, BLLUsuario usuarioBLL)
+    {
+        _recursosBLL = recursosBLL;
+        _usuarioBLL = usuarioBLL;
+    }
+
     [HttpGet("skills")]
     public IActionResult ConsultarSkills()
     {
-        try
-        {
-            return Ok(_recursosBLL.ConsultarSkills(ObtenerSolicitante()));
-        }
+        try { return Ok(_recursosBLL.ConsultarSkills(ObtenerSolicitante())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
     }
 
@@ -42,20 +47,20 @@ public class RecursosController : ControllerBase
     [HttpPatch("skills/{idSkill:int}/estado")]
     public IActionResult CambiarEstadoSkill([FromBody] Skill skill)
     {
-        try
-        {
-            return Ok(_recursosBLL.CambiarEstadoSkill(skill, ObtenerSolicitante()));
-        }
+        try { return Ok(_recursosBLL.CambiarEstadoSkill(skill, ObtenerSolicitante())); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
     }
 
     [HttpGet("empleados/{ID:int}/ficha")]
-    public IActionResult ConsultarFichaEmpleado([FromRoute(Name = "ID")] int idUsuario)
+    public IActionResult ConsultarFichaEmpleado([ReferenciaHttp("ID")] Usuario usuario)
     {
         try
         {
-            if (idUsuario <= 0) { return BadRequest("Seleccioná un empleado válido."); }
-            Usuario usuario = new Usuario(idUsuario);
+            if (usuario.ID <= 0)
+            {
+                return BadRequest("Seleccioná un empleado válido.");
+            }
+
             return Ok(_recursosBLL.ConsultarFichaEmpleado(usuario, ObtenerSolicitante()));
         }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
@@ -63,11 +68,10 @@ public class RecursosController : ControllerBase
     }
 
     [HttpPost("empleados/{ID:int}/ficha/exportacion")]
-    public IActionResult RegistrarExportacionFichaEmpleado([FromRoute(Name = "ID")] int idUsuario)
+    public IActionResult RegistrarExportacionFichaEmpleado([ReferenciaHttp("ID")] Usuario usuario)
     {
         try
         {
-            Usuario usuario = new Usuario(idUsuario);
             _recursosBLL.RegistrarExportacionFichaEmpleado(usuario, ObtenerSolicitante());
             return NoContent();
         }
@@ -120,7 +124,11 @@ public class RecursosController : ControllerBase
     [HttpGet("ausencias")]
     public IActionResult ConsultarMisAusencias()
     {
-        try { List<AusenciaEmpleado> ausencias = _recursosBLL.ConsultarMisAusencias(ObtenerSolicitante()); return Ok(ausencias); }
+        try
+        {
+            List<AusenciaEmpleado> ausencias = _recursosBLL.ConsultarMisAusencias(ObtenerSolicitante());
+            return Ok(ausencias);
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
@@ -128,7 +136,11 @@ public class RecursosController : ControllerBase
     [HttpPost("ausencias")]
     public IActionResult RegistrarAusencia([FromBody] AusenciaEmpleado ausencia)
     {
-        try { ResultadoGestionDisponibilidad resultado = _recursosBLL.RegistrarAusencia(ausencia, ObtenerSolicitante()); return Ok(resultado); }
+        try
+        {
+            ResultadoGestionDisponibilidad resultado = _recursosBLL.RegistrarAusencia(ausencia, ObtenerSolicitante());
+            return Ok(resultado);
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
@@ -160,9 +172,12 @@ public class RecursosController : ControllerBase
     }
 
     [HttpGet("empleados/{idUsuarioEmpleado:int}/rendimiento")]
-    public IActionResult ConsultarRendimientoEmpleado([FromRoute] int idUsuarioEmpleado, [FromQuery] int meses = 6)
+    public IActionResult ConsultarRendimientoEmpleado([ReferenciaHttp("idUsuarioEmpleado")] Empleado empleado, [FromQuery] int meses = 6)
     {
-        try { return Ok(_recursosBLL.ConsultarRendimientoEmpleado(new ConsultaRendimientoEmpleado { Empleado = new Empleado { ID = idUsuarioEmpleado }, Meses = meses }, ObtenerSolicitante())); }
+        try
+        {
+            return Ok(_recursosBLL.ConsultarRendimientoEmpleado(new ConsultaRendimientoEmpleado { Empleado = empleado, Meses = meses }, ObtenerSolicitante()));
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
@@ -171,7 +186,11 @@ public class RecursosController : ControllerBase
     [HttpPost("ausencias/{IdAusencia:int}/aprobar")]
     public IActionResult AprobarAusencia([FromRoute] ResolucionAusenciaEmpleado resolucionRuta, [FromBody] ResolucionAusenciaEmpleado resolucion)
     {
-        try { resolucion.IdAusencia = resolucionRuta.IdAusencia; return Ok(_recursosBLL.AprobarAusencia(resolucion, ObtenerSolicitante())); }
+        try
+        {
+            resolucion.IdAusencia = resolucionRuta.IdAusencia;
+            return Ok(_recursosBLL.AprobarAusencia(resolucion, ObtenerSolicitante()));
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
@@ -179,7 +198,12 @@ public class RecursosController : ControllerBase
     [HttpPost("ausencias/{IdAusencia:int}/aprobar-parcial")]
     public IActionResult AprobarParcialmenteAusencia([FromRoute] ResolucionAusenciaEmpleado resolucionRuta, [FromBody] ResolucionAusenciaEmpleado resolucion)
     {
-        try { resolucion.IdAusencia = resolucionRuta.IdAusencia; resolucion.EsParcial = true; return Ok(_recursosBLL.AprobarAusencia(resolucion, ObtenerSolicitante())); }
+        try
+        {
+            resolucion.IdAusencia = resolucionRuta.IdAusencia;
+            resolucion.EsParcial = true;
+            return Ok(_recursosBLL.AprobarAusencia(resolucion, ObtenerSolicitante()));
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
     }
@@ -187,7 +211,11 @@ public class RecursosController : ControllerBase
     [HttpPost("ausencias/{IdAusencia:int}/rechazar")]
     public IActionResult RechazarAusencia([FromRoute] ResolucionAusenciaEmpleado resolucionRuta, [FromBody] ResolucionAusenciaEmpleado resolucion)
     {
-        try { resolucion.IdAusencia = resolucionRuta.IdAusencia; return Ok(_recursosBLL.RechazarAusencia(resolucion, ObtenerSolicitante())); }
+        try
+        {
+            resolucion.IdAusencia = resolucionRuta.IdAusencia;
+            return Ok(_recursosBLL.RechazarAusencia(resolucion, ObtenerSolicitante()));
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (Exception ex) { return BadRequest(ex.Message); }
     }

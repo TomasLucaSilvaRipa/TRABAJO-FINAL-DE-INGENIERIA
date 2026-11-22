@@ -1,3 +1,4 @@
+using Teambalance.API.Models;
 using Microsoft.AspNetCore.Mvc;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
@@ -21,19 +22,14 @@ public sealed class SuscripcionesController : ControllerBase
 
     [HttpGet("actual")]
     public IActionResult ConsultarActual() => Ejecutar(() => Ok(_suscripcionBLL.ConsultarSuscripcion(ObtenerSolicitante())));
-
     [HttpGet("planes")]
     public IActionResult ConsultarPlanes() => Ejecutar(() => Ok(_suscripcionBLL.ConsultarPlanesDisponibles(ObtenerSolicitante())));
-
     [HttpGet("historial")]
     public IActionResult ConsultarHistorial() => Ejecutar(() => Ok(_suscripcionBLL.ConsultarHistorial(ObtenerSolicitante())));
-
     [HttpGet("planes/{idPlan:int}/cotizacion-pago")]
-    public IActionResult ConsultarCotizacionPago(int idPlan) => Ejecutar(() => Ok(_suscripcionBLL.ConsultarCotizacionPago(ObtenerSolicitante(), idPlan)));
-
+    public IActionResult ConsultarCotizacionPago([ReferenciaHttp("idPlan")] PlanComercial plan) => Ejecutar(() => Ok(_suscripcionBLL.ConsultarCotizacionPago(ObtenerSolicitante(), plan)));
     [HttpGet("cuenta-corriente")]
     public IActionResult ConsultarCuentaCorriente() => Ejecutar(() => Ok(_cuentaCorrienteBLL.Consultar(ObtenerSolicitante())));
-
     [HttpPost("cancelar-servicio")]
     public IActionResult CancelarServicio([FromBody] DocumentoComercial documento)
     {
@@ -63,7 +59,6 @@ public sealed class SuscripcionesController : ControllerBase
 
     [HttpGet("renovacion-automatica/configuracion")]
     public IActionResult ConsultarConfiguracionRenovacion() => Ejecutar(() => Ok(_suscripcionBLL.ObtenerConfiguracionRenovacionAutomatica(ObtenerSolicitante())));
-
     [HttpPost("actualizar")]
     public async Task<IActionResult> Actualizar([FromBody] CambioPlanSuscripcionRequest solicitud)
     {
@@ -78,23 +73,35 @@ public sealed class SuscripcionesController : ControllerBase
     [HttpPost("operaciones/{ReferenciaOperacion}/verificar-pago")]
     public async Task<IActionResult> VerificarPago([FromRoute] VerificarPagoSuscripcionRequest solicitudRuta, [FromBody] VerificarPagoSuscripcionRequest solicitud)
     {
-        try { solicitud.ReferenciaOperacion = solicitudRuta.ReferenciaOperacion; return Ok(await _suscripcionBLL.VerificarActualizacionPago(ObtenerSolicitante(), solicitud)); }
+        try
+        {
+            solicitud.ReferenciaOperacion = solicitudRuta.ReferenciaOperacion;
+            return Ok(await _suscripcionBLL.VerificarActualizacionPago(ObtenerSolicitante(), solicitud));
+        }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(new RespuestaErrorSuscripcion("SUBSCRIPTION_OPERATION_NOT_FOUND", ex.Message)); }
         catch (ArgumentException ex) { return BadRequest(new RespuestaErrorSuscripcion("SUBSCRIPTION_VALIDATION", ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(new RespuestaErrorSuscripcion("SUBSCRIPTION_OPERATION_REJECTED", ex.Message)); }
-        catch (Exception ex) { Console.Error.WriteLine("[Suscripciones] Error al verificar pago: " + ex); return StatusCode(502, "No fue posible verificar la operación con el proveedor de pago."); }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine("[Suscripciones] Error al verificar pago: " + ex);
+            return StatusCode(502, "No fue posible verificar la operación con el proveedor de pago.");
+        }
     }
 
     [HttpPost("operaciones/{referencia}/continuar")]
-    public async Task<IActionResult> ContinuarPago(string referencia)
+    public async Task<IActionResult> ContinuarPago([ReferenciaHttp("referencia", nameof(OperacionSuscripcionPendiente.ReferenciaInterna))] OperacionSuscripcionPendiente operacion)
     {
-        try { return Ok(await _suscripcionBLL.ContinuarActualizacion(ObtenerSolicitante(), referencia)); }
+        try { return Ok(await _suscripcionBLL.ContinuarActualizacion(ObtenerSolicitante(), operacion)); }
         catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
         catch (KeyNotFoundException ex) { return NotFound(new RespuestaErrorSuscripcion("SUBSCRIPTION_OPERATION_NOT_FOUND", ex.Message)); }
         catch (ArgumentException ex) { return BadRequest(new RespuestaErrorSuscripcion("SUBSCRIPTION_VALIDATION", ex.Message)); }
         catch (InvalidOperationException ex) { return BadRequest(new RespuestaErrorSuscripcion("SUBSCRIPTION_OPERATION_REJECTED", ex.Message)); }
-        catch (Exception ex) { Console.Error.WriteLine("[Suscripciones] Error al continuar pago: " + ex); return StatusCode(502, "No fue posible preparar el siguiente pago. Podés retomarlo desde el historial."); }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine("[Suscripciones] Error al continuar pago: " + ex);
+            return StatusCode(502, "No fue posible preparar el siguiente pago. Podés retomarlo desde el historial.");
+        }
     }
 
     [HttpPost("cancelar-renovacion")]
@@ -175,4 +182,3 @@ public sealed class SuscripcionesController : ControllerBase
         catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
     }
 }
-

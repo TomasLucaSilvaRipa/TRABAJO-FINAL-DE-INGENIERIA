@@ -1,11 +1,11 @@
 <section class="tb-page-hero tb-page-hero--navy">
   <div class="tb-container tb-page-hero__content">
-    <p class="tb-eyebrow">{{ esGestionSuscripcion() ? t('subscriptionTeamBalance') : 'Contratación TeamBalance' }}</p>
-    <h1 class="text-2xl font-bold">{{ esRenovacion() ? t(loading() ? 'renewalChecking' : 'renewalResult') : loading() ? 'Estamos verificando tu pago' : resultadoSuscripcion()?.pagoConfirmado ? 'Pago confirmado' : 'Resultado del pago' }}</h1>
+    <p class="tb-eyebrow">{{ esGestionSuscripcion() ? t('subscriptionTeamBalance') : paymentText('contract') }}</p>
+    <h1 class="text-2xl font-bold">{{ esRenovacion() ? t(loading() ? 'renewalChecking' : 'renewalResult') : paymentText(loading() ? 'checking' : resultadoSuscripcion()?.pagoConfirmado ? 'confirmed' : 'result') }}</h1>
     <p>
       {{ esRenovacion() ? t('renewalCheckingHint') : esGestionSuscripcion()
-        ? 'Confirmamos el resultado de la operación antes de actualizar tu suscripción.'
-        : 'Confirmamos el resultado de la operación antes de habilitar el registro de tu agencia.' }}
+        ? paymentText('subscriptionHint')
+        : paymentText('contractHint') }}
     </p>
   </div>
 </section>
@@ -14,50 +14,64 @@
   <div class="tb-container" style="max-width: 720px;">
     @if (loading()) {
       <div class="tb-card">
-        <p class="tb-eyebrow">{{ esRenovacion() ? t('renovacionAutomatica') : 'Pago en proceso' }}</p>
+        <p class="tb-eyebrow">{{ esRenovacion() ? t('renovacionAutomatica') : paymentText('processing') }}</p>
         <h2>{{ t('providerPending') }}</h2>
         <p>{{ t('checkWait') }}</p>
+      </div>
+    } @else if (referenciaAlta() && (errorAlta() || resultado()?.estado === 'Pendiente')) {
+      <div class="tb-card">
+        <p class="tb-eyebrow">{{ t('splitPayment') }}</p>
+        <h2>{{ localization.traducir(errorAlta() ? 'checkout.splitUnavailable' : 'checkout.splitPending') }}</h2>
+        @if (resultado()?.pagosTotales) {
+          <p>{{ localization.traducir('checkout.splitProgress')
+            .replace('{paid}', (resultado()?.pagosCompletados ?? 0).toString())
+            .replace('{total}', (resultado()?.pagosTotales ?? 0).toString()) }}</p>
+        }
+        <button class="tb-button tb-button--primary mt-4" type="button" (click)="continuarPagoAlta()">{{ t('resume') }}</button>
       </div>
     } @else if (errorMessage() || errorRenovacion()) {
       <div class="tb-card">
         <p class="tb-eyebrow">{{ t('cannotContinue') }}</p>
-        <h2>{{ esRenovacion() ? t('reviewRenewal') : esGestionSuscripcion() ? 'Necesitamos revisar la actualización.' : 'Necesitamos revisar tu contratación.' }}</h2>
-        <p>{{ errorRenovacion() ? t(errorRenovacion()) : errorMessage() }}</p>
+        <h2>{{ esRenovacion() ? t('reviewRenewal') : paymentText(esGestionSuscripcion() ? 'reviewSubscription' : 'reviewContract') }}</h2>
+        <p>{{ errorRenovacion() ? t(errorRenovacion()) : paymentText(errorMessage()) }}</p>
         @if (puedeRevisarRenovacion()) {
           <button class="tb-button tb-button--primary mr-3" type="button" (click)="verificarDeNuevo()">{{ t('renewalCheckAgain') }}</button>
         }
         @if (referenciaContinuar()) {
-          <p class="mt-2">También podés iniciar sesión con la misma cuenta y seguir desde Suscripción.</p>
-          <button class="tb-button tb-button--primary mt-3" type="button" (click)="continuarPago()">Retomar pago</button>
+          <p class="mt-2">{{ paymentText('resumeHint') }}</p>
+          <button class="tb-button tb-button--primary mt-3" type="button" (click)="continuarPago()">{{ t('resume') }}</button>
         }
         <a class="tb-button tb-button--primary" [routerLink]="esGestionSuscripcion() ? '/dashboard/suscripcion' : '/plans'">
-          {{ esGestionSuscripcion() ? t('backSubscription') : 'Ver planes' }}
+          {{ esGestionSuscripcion() ? t('backSubscription') : paymentText('viewPlans') }}
         </a>
       </div>
     } @else if (resultadoSuscripcion(); as suscripcion) {
       <div class="tb-card">
         <p class="tb-eyebrow">{{ esRenovacion() ? t('renovacionAutomatica') : t('planUpdate') }}</p>
-        <h2>{{ esRenovacion() ? t(suscripcion.suscripcion?.renovacionAutomatica ? 'renewalConfirmed' : 'renewalIsOff') : suscripcion.mensaje }}</h2>
-        @if ((suscripcion.pagosTotales ?? 0) > 0) { <p>Pagos confirmados · {{ suscripcion.pagosCompletados }} de {{ suscripcion.pagosTotales }}</p> }
-        @if (suscripcion.urlPagoSiguiente) { <p>Te estamos llevando al siguiente pago.</p> }
-        @if (referenciaContinuar() && !suscripcion.urlPagoSiguiente) { <div class="mt-4 flex flex-wrap gap-3"><button class="tb-button tb-button--primary" type="button" (click)="verificarDeNuevo()">Volver a verificar</button><button class="tb-button" type="button" (click)="continuarPago()">Retomar pago</button></div> }
-        <a class="tb-button tb-button--primary mt-5" routerLink="/dashboard/suscripcion">{{ t('backSubscription') }}</a>
+        <h2>{{ esRenovacion() ? t(suscripcion.suscripcion?.renovacionAutomatica ? 'renewalConfirmed' : 'renewalIsOff') : subscriptionPaymentText(suscripcion) }}</h2>
+        @if ((suscripcion.pagosTotales ?? 0) > 0) {
+          <p>{{ localization.traducir('checkout.splitProgress')
+            .replace('{paid}', (suscripcion.pagosCompletados ?? 0).toString())
+            .replace('{total}', (suscripcion.pagosTotales ?? 0).toString()) }}</p>
+        }
+        @if (referenciaContinuar() && !suscripcion.urlPagoSiguiente) { <div class="mt-4 flex flex-wrap gap-3"><button class="tb-button tb-button--primary" type="button" (click)="verificarDeNuevo()">{{ paymentText('checkAgain') }}</button><button class="tb-button" type="button" (click)="continuarPago()">{{ t('resume') }}</button></div> }
+        <a class="tb-button tb-button--primary mt-5" routerLink="/dashboard/suscripcion" [info]="suscripcion.pagoConfirmado ? 'pago-suscripcion-confirmado' : undefined">{{ t('backSubscription') }}</a>
       </div>
     } @else if (resultado(); as estado) {
       <div class="tb-card">
         @if (estado.puedeRegistrar) {
-          <p class="tb-eyebrow">Pago aprobado</p>
-          <h2>Tu contratación fue confirmada.</h2>
-          <p>La referencia quedó asociada a tu contratación y será utilizada para continuar con el registro seguro de la agencia.</p>
+          <p class="tb-eyebrow">{{ paymentText('confirmed') }}</p>
+          <h2>{{ paymentText('contractConfirmed') }}</h2>
+          <p>{{ paymentText('contractConfirmedHint') }}</p>
         } @else if (estado.estado === 'Rechazada') {
-          <p class="tb-eyebrow">Pago no aprobado</p>
-          <h2>No pudimos confirmar la operación.</h2>
-          <p>Podés volver a los planes e intentar nuevamente con Mercado Pago.</p>
-          <a class="tb-button tb-button--primary" routerLink="/plans">Volver a los planes</a>
+          <p class="tb-eyebrow">{{ paymentText('rejected') }}</p>
+          <h2>{{ paymentText('contractRejected') }}</h2>
+          <p>{{ paymentText('contractRejectedHint') }}</p>
+          <a class="tb-button tb-button--primary" routerLink="/plans">{{ paymentText('viewPlans') }}</a>
         } @else {
-          <p class="tb-eyebrow">Pago pendiente</p>
-          <h2>Tu operación todavía está en proceso.</h2>
-          <p>Cuando Mercado Pago confirme el pago, la contratación quedará habilitada para registrar tu agencia.</p>
+          <p class="tb-eyebrow">{{ paymentText('pending') }}</p>
+          <h2>{{ paymentText('contractPending') }}</h2>
+          <p>{{ paymentText('contractPendingHint') }}</p>
         }
       </div>
     }

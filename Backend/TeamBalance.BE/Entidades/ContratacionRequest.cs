@@ -39,8 +39,9 @@ namespace TeamBalance.BE.Entidades
         public string CargoResponsable { get; set; } = string.Empty;
 
         public string ProveedorPagoSeleccionado { get; set; } = string.Empty;
+        public List<DistribucionPagoSuscripcion>? Pagos { get; set; }
 
-        [System.Text.Json.Serialization.JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore, ReferenciaInterna]
         public PlanComercial PlanComercial { get; set; } = new();
 
         public int IdPlanComercial

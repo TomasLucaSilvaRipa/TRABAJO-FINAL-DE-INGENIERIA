@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import type { CotizacionPagoSuscripcion, DistribucionPagoSuscripcion } from './suscripcion.service';
 
 export interface ContratacionResponse {
   urlPago: string;
@@ -20,12 +21,16 @@ export interface ContratacionRequest {
   cargoResponsable: string;
   proveedorPagoSeleccionado: string;
   idPlanComercial: number;
+  pagos?: DistribucionPagoSuscripcion[];
 }
 
 export interface EstadoContratacionResponse {
   referencia: string;
   estado: string;
   puedeRegistrar: boolean;
+  pagosCompletados?: number;
+  pagosTotales?: number;
+  urlPagoSiguiente?: string;
 }
 
 @Injectable({
@@ -39,6 +44,14 @@ export class ContratacionService {
 
   contratar(data: ContratacionRequest): Observable<ContratacionResponse> {
     return this.http.post<ContratacionResponse>(this.apiUrl, data);
+  }
+
+  consultarCotizacion(idPlan: number): Observable<CotizacionPagoSuscripcion> {
+    return this.http.get<CotizacionPagoSuscripcion>(`${this.apiUrl}/planes/${idPlan}/cotizacion-pago`);
+  }
+
+  continuarPago(referencia: string): Observable<EstadoContratacionResponse> {
+    return this.http.post<EstadoContratacionResponse>(`${this.apiUrl}/${encodeURIComponent(referencia)}/continuar`, {});
   }
 
   consultarEstado(referencia: string): Observable<EstadoContratacionResponse> {

@@ -1,12 +1,13 @@
 namespace TeamBalance.BE.Entidades;
 public sealed class ConfiguracionRenovacionAutomatica
 {
-    public ConfiguracionRenovacionAutomatica(string publicKey, decimal importePrueba, string monedaPrueba, PlanComercial planComercial)
+    public ConfiguracionRenovacionAutomatica(string publicKey, decimal importePrueba, string monedaPrueba, PlanComercial planComercial, DateTimeOffset fechaPrimerCobro)
     {
         PublicKey = publicKey;
         ImportePrueba = importePrueba;
         MonedaPrueba = monedaPrueba;
         PlanComercial = planComercial;
+        FechaPrimerCobro = fechaPrimerCobro;
     }
 
     public string PublicKey { get; set; } = string.Empty;
@@ -16,4 +17,5 @@ public sealed class ConfiguracionRenovacionAutomatica
     public PlanComercial PlanComercial { get; }
 
     public string NombrePlan => PlanComercial.Nombre;
+    public DateTimeOffset FechaPrimerCobro { get; }
 }
