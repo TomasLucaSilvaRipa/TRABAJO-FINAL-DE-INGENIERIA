@@ -32,7 +32,7 @@ public class BLLAnaliticaOperativa
         ValidarAccesoOcupacion(usuario);
         FiltroOcupacionOperativa filtroAplicado = filtro ?? new FiltroOcupacionOperativa();
         ValidarFiltroOcupacion(filtroAplicado);
-        List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, filtroAplicado.IdProyecto, filtroAplicado.IdCliente);
+        List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, filtroAplicado.Proyecto?.ID, filtroAplicado.Cliente?.ID);
         List<Tarea> tareas = contextos.SelectMany(contexto => contexto.Tareas).ToList();
         List<AsignacionTarea> asignaciones = _asignacionMPP.ConsultarActivas(tareas, usuario);
         List<Empleado> empleados = _analiticaMPP.ConsultarEmpleadosActivos(usuario);
@@ -42,7 +42,7 @@ public class BLLAnaliticaOperativa
             empleadosDelAlcance.UnionWith(tareas.Where(tarea => tarea.IdEmpleadoAsignado.HasValue).Select(tarea => tarea.IdEmpleadoAsignado!.Value));
             empleados = empleados.Where(empleado => empleadosDelAlcance.Contains(empleado.ID)).ToList();
         }
-        empleados = empleados.Where(empleado => !filtroAplicado.IdEmpleado.HasValue || empleado.ID == filtroAplicado.IdEmpleado.Value).ToList();
+        empleados = empleados.Where(empleado => filtroAplicado.Empleado is null || empleado.ID == filtroAplicado.Empleado.ID).ToList();
         List<RegistroHora> registros = contextos.SelectMany(contexto => contexto.Registros).ToList();
         (DateTime desde, DateTime hasta) = _motorCargaOperativa.ObtenerPeriodo(filtroAplicado);
         Dictionary<int, decimal> horasPlanificadasPorTarea = new Dictionary<int, decimal>();
@@ -138,10 +138,10 @@ public class BLLAnaliticaOperativa
     public DetalleOcupacionEmpleado ConsultarDetalleOcupacionEmpleado(Usuario usuario, FiltroOcupacionOperativa filtro)
     {
         ValidarAccesoOcupacion(usuario);
-        if (!filtro.IdEmpleado.HasValue) { throw new ArgumentException("Seleccioná un empleado para consultar el detalle de ocupación."); }
+        if (filtro.Empleado is null) { throw new ArgumentException("Seleccioná un empleado para consultar el detalle de ocupación."); }
         AnalisisOcupacionOperativa analisis = ConsultarOcupacion(usuario, filtro);
-        OcupacionEmpleado empleado = analisis.Empleados.FirstOrDefault(item => item.Empleado.ID == filtro.IdEmpleado.Value) ?? throw new KeyNotFoundException("No se encontró el empleado dentro de los filtros seleccionados.");
-        List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, filtro.IdProyecto, filtro.IdCliente);
+        OcupacionEmpleado empleado = analisis.Empleados.FirstOrDefault(item => item.Empleado.ID == filtro.Empleado.ID) ?? throw new KeyNotFoundException("No se encontró el empleado dentro de los filtros seleccionados.");
+        List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, filtro.Proyecto?.ID, filtro.Cliente?.ID);
         List<Tarea> tareas = contextos.SelectMany(contexto => contexto.Tareas).ToList();
         List<AsignacionTarea> asignaciones = _asignacionMPP.ConsultarActivas(tareas, usuario);
         List<RegistroHora> registros = contextos.SelectMany(contexto => contexto.Registros).ToList();
@@ -231,7 +231,7 @@ public class BLLAnaliticaOperativa
         ValidarPMODueno(usuario);
         FiltroDesvioHoras filtroAplicado = filtro ?? new FiltroDesvioHoras();
         ValidarFiltroDesvio(filtroAplicado);
-        List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, filtroAplicado.IdProyecto);
+        List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, filtroAplicado.Proyecto?.ID);
         AnalisisDesvioHoras resultado = new AnalisisDesvioHoras();
         foreach (ContextoProyectoAnalitico contexto in contextos)
         {
@@ -282,8 +282,8 @@ public class BLLAnaliticaOperativa
     {
         ValidarPMODueno(usuario);
         ValidarFiltroDesvio(filtro);
-        ContextoProyectoAnalitico contexto = ConsultarContextos(usuario, filtro.IdProyecto).FirstOrDefault() ?? throw new KeyNotFoundException("No existe el proyecto solicitado o no tenés acceso a él.");
-        Tarea tarea = contexto.Tareas.FirstOrDefault(item => item.ID == filtro.IdTarea && item.Activo) ?? throw new KeyNotFoundException("La tarea seleccionada no pertenece al proyecto.");
+        ContextoProyectoAnalitico contexto = ConsultarContextos(usuario, filtro.Proyecto?.ID).FirstOrDefault() ?? throw new KeyNotFoundException("No existe el proyecto solicitado o no tenés acceso a él.");
+        Tarea tarea = contexto.Tareas.FirstOrDefault(item => item.ID == filtro.Tarea?.ID && item.Activo) ?? throw new KeyNotFoundException("La tarea seleccionada no pertenece al proyecto.");
         List<RegistroHora> registros = contexto.Registros.Where(registro => registro.IdTarea == tarea.ID && registro.Activo && CumplePeriodo(registro, filtro)).OrderByDescending(registro => registro.Fecha).ToList();
         DetalleDesvioHorasTarea detalle = new DetalleDesvioHorasTarea
         {
@@ -337,7 +337,7 @@ public class BLLAnaliticaOperativa
         ValidarPMODueno(usuario);
         if (comunicacion.Proyecto.ID <= 0) { throw new ArgumentException("Seleccioná el proyecto cuyo desvío querés informar."); }
         FiltroDesvioHoras filtro = comunicacion.Filtro ?? new FiltroDesvioHoras();
-        filtro.IdProyecto = comunicacion.Proyecto.ID;
+        filtro.Proyecto = comunicacion.Proyecto;
         AnalisisDesvioHoras analisis = ConsultarDesvioHoras(usuario, filtro);
         DesvioHorasProyecto proyecto = analisis.Proyectos.FirstOrDefault(item => item.Proyecto.ID == comunicacion.Proyecto.ID) ?? throw new InvalidOperationException("No hay información de desvío para comunicar con los filtros seleccionados.");
         List<DestinatarioDesvioHoras> destinatarios = _analiticaMPP.ConsultarDuenosAgencia(usuario);
@@ -359,7 +359,7 @@ public class BLLAnaliticaOperativa
         ValidarDueno(usuario);
         FiltroConvenienciaOperativa filtroAplicado = filtro ?? new FiltroConvenienciaOperativa();
         ValidarFiltroConveniencia(filtroAplicado);
-        List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, filtroAplicado.IdProyecto, filtroAplicado.IdCliente)
+        List<ContextoProyectoAnalitico> contextos = ConsultarContextos(usuario, filtroAplicado.Proyecto?.ID, filtroAplicado.Cliente?.ID)
             .Where(contexto => string.IsNullOrWhiteSpace(filtroAplicado.EstadoProyecto) || string.Equals(contexto.Proyecto.Estado, filtroAplicado.EstadoProyecto, StringComparison.OrdinalIgnoreCase))
             .ToList();
         List<AsignacionTarea> asignaciones = ConsultarAsignacionesActivas(contextos, usuario);
@@ -392,10 +392,10 @@ public class BLLAnaliticaOperativa
     {
         ValidarDueno(usuario);
         FiltroConvenienciaOperativa filtroAplicado = filtro ?? new FiltroConvenienciaOperativa();
-        int idProyecto = filtroAplicado.IdProyecto ?? 0;
+        int idProyecto = filtroAplicado.Proyecto?.ID ?? 0;
         if (idProyecto <= 0) { throw new ArgumentException("Seleccioná un proyecto para consultar su composición de costo."); }
         ValidarFiltroConveniencia(filtroAplicado);
-        ContextoProyectoAnalitico contexto = ConsultarContextos(usuario, idProyecto, filtroAplicado.IdCliente).FirstOrDefault()
+        ContextoProyectoAnalitico contexto = ConsultarContextos(usuario, idProyecto, filtroAplicado.Cliente?.ID).FirstOrDefault()
             ?? throw new KeyNotFoundException("No existe el proyecto solicitado o no tenés acceso a él.");
         if (!string.IsNullOrWhiteSpace(filtroAplicado.EstadoProyecto) && !string.Equals(contexto.Proyecto.Estado, filtroAplicado.EstadoProyecto, StringComparison.OrdinalIgnoreCase))
         {
@@ -621,7 +621,7 @@ public class BLLAnaliticaOperativa
 
     private static List<Tarea> ObtenerTareasOcupacion(ContextoProyectoAnalitico contexto, FiltroOcupacionOperativa filtro)
     {
-        return contexto.Tareas.Where(tarea => tarea.Activo && (!filtro.IdEmpleado.HasValue || tarea.IdEmpleadoAsignado == filtro.IdEmpleado.Value) && CumplePeriodoOcupacion(tarea.FechaInicio, tarea.Deadline, filtro)).ToList();
+        return contexto.Tareas.Where(tarea => tarea.Activo && (filtro.Empleado is null || tarea.IdEmpleadoAsignado == filtro.Empleado.ID) && CumplePeriodoOcupacion(tarea.FechaInicio, tarea.Deadline, filtro)).ToList();
     }
 
     private static bool CumplePeriodoOcupacion(DateTime fecha, FiltroOcupacionOperativa filtro)
@@ -696,8 +696,8 @@ public class BLLAnaliticaOperativa
 
     private static bool CumpleFiltroTarea(Tarea tarea, FiltroDesvioHoras filtro)
     {
-        if (filtro.IdTarea.HasValue && tarea.ID != filtro.IdTarea.Value) { return false; }
-        if (filtro.IdEmpleado.HasValue && tarea.IdEmpleadoAsignado != filtro.IdEmpleado.Value) { return false; }
+        if (filtro.Tarea is not null && tarea.ID != filtro.Tarea.ID) { return false; }
+        if (filtro.Empleado is not null && tarea.IdEmpleadoAsignado != filtro.Empleado.ID) { return false; }
         if (!string.IsNullOrWhiteSpace(filtro.EstadoTarea) && !string.Equals(tarea.Estado, filtro.EstadoTarea, StringComparison.OrdinalIgnoreCase)) { return false; }
         return true;
     }

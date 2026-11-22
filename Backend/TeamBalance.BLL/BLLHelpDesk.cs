@@ -25,7 +25,7 @@ public sealed class BLLHelpDesk
     public ConsultaSoporteResumen Crear(Usuario usuario, CrearConsultaSoporteRequest solicitud) {
         ExigirSoportePropio(usuario);
         ValidarSolicitud(solicitud);
-        solicitud.IdSuscripcion = usuario.IdAgencia.HasValue ? _suscripcionMPP.ConsultarActual(usuario)?.ID : null;
+        solicitud.Suscripcion = usuario.IdAgencia.HasValue ? _suscripcionMPP.ConsultarActual(usuario) : null;
         ConsultaSoporteResumen consulta = _helpDeskMPP.Crear(usuario, solicitud);
         RegistrarBitacora(usuario, consulta, "CrearConsultaSoporte", "Se registró una consulta de HelpDesk.");
         return consulta;
@@ -41,7 +41,7 @@ public sealed class BLLHelpDesk
     public async Task EnviarMensaje(Usuario usuario, EnviarMensajeSoporteRequest solicitud) {
         if (string.IsNullOrWhiteSpace(solicitud.Mensaje) || solicitud.Mensaje.Trim().Length > 4000) throw new ArgumentException("Ingresá un mensaje de hasta 4000 caracteres.");
         ConsultaSoporteResumen consulta = new ConsultaSoporteResumen();
-        consulta.ID = solicitud.IdConsulta;
+        consulta.ID = solicitud.Consulta.ID;
         consulta = ObtenerAutorizada(usuario, consulta);
         bool esSoporte = EsSoporte(usuario);
         if (esSoporte) ExigirBandeja(usuario); else ExigirSoportePropio(usuario);

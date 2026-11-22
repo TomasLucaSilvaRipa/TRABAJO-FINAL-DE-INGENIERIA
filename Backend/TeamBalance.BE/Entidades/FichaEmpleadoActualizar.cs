@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TeamBalance.BE.Entidades;
 
 /// <summary>
@@ -6,7 +8,18 @@ namespace TeamBalance.BE.Entidades;
 /// </summary>
 public sealed class FichaEmpleadoActualizar
 {
-    public int ID { get; set; }
-    public List<EmpleadoSkill> EmpleadoSkills { get; set; } = new List<EmpleadoSkill>();
-    public DisponibilidadBase? DisponibilidadBase { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Empleado Empleado { get; set; } = new();
+
+    public int ID { get => Empleado.ID; set => Empleado.ID = value; }
+    public List<EmpleadoSkill> EmpleadoSkills
+    {
+        get => Empleado.EmpleadoSkills;
+        set => Empleado.EmpleadoSkills = value;
+    }
+    public DisponibilidadBase? DisponibilidadBase
+    {
+        get => Empleado.DisponibilidadBase;
+        set => Empleado.DisponibilidadBase = value;
+    }
 }

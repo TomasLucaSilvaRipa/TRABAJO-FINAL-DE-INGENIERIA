@@ -23,7 +23,7 @@ public sealed class MPPCuentaCorriente
 
     public DocumentoComercial CancelarSuscripcion(DocumentoComercial documento, Usuario usuario)
     {
-        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("El usuario no pertenece a una agencia.")), new SqlParameter("@IdSuscripcion", documento.IdSuscripcion ?? throw new ArgumentException("Indicá la suscripción a cancelar.")), new SqlParameter("@Motivo", documento.Motivo ?? string.Empty) };
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("El usuario no pertenece a una agencia.")), new SqlParameter("@IdSuscripcion", documento.Suscripcion?.ID ?? throw new ArgumentException("Indicá la suscripción a cancelar.")), new SqlParameter("@Motivo", documento.Motivo ?? string.Empty) };
         DataTable tabla = _conexion.Leer("dbo.usp_CuentaCorriente_CancelarSuscripcion", parametros);
         if (tabla.Rows.Count != 1) { throw new InvalidOperationException("No fue posible emitir la nota de crédito de la cancelación."); }
         return CrearDocumento(tabla.Rows[0]);
@@ -31,7 +31,7 @@ public sealed class MPPCuentaCorriente
 
     public DocumentoComercial ReactivarConNotaCredito(DocumentoComercial documento, Usuario usuario)
     {
-        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("El usuario no pertenece a una agencia.")), new SqlParameter("@IdSuscripcion", documento.IdSuscripcion ?? throw new ArgumentException("Indicá la suscripción a regularizar.")), new SqlParameter("@IdPlanComercial", documento.IdPlanComercial ?? throw new ArgumentException("Seleccioná una modalidad para reactivar.")) };
+        List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("El usuario no pertenece a una agencia.")), new SqlParameter("@IdSuscripcion", documento.Suscripcion?.ID ?? throw new ArgumentException("Indicá la suscripción a regularizar.")), new SqlParameter("@IdPlanComercial", documento.PlanComercial?.ID ?? throw new ArgumentException("Seleccioná una modalidad para reactivar.")) };
         DataTable tabla = _conexion.Leer("dbo.usp_CuentaCorriente_ReactivarConNotaCredito", parametros);
         if (tabla.Rows.Count != 1) { throw new InvalidOperationException("No fue posible aplicar la nota de crédito."); }
         return CrearDocumento(tabla.Rows[0]);

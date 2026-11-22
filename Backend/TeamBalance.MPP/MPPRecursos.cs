@@ -117,7 +117,7 @@ public class MPPRecursos
             _conexion.Escribir("dbo.usp_EmpleadoSkill_Limpiar", parametrosLimpiar);
             foreach (EmpleadoSkill empleadoSkill in empleado.EmpleadoSkills)
             {
-                List<SqlParameter> parametrosSkill = new List<SqlParameter>() { new SqlParameter("@IdEmpleado", idEmpleado), new SqlParameter("@IdSkill", empleadoSkill.IdSkill), new SqlParameter("@Nivel", (object?)empleadoSkill.Nivel ?? DBNull.Value) };
+                List<SqlParameter> parametrosSkill = new List<SqlParameter>() { new SqlParameter("@IdEmpleado", idEmpleado), new SqlParameter("@IdSkill", empleadoSkill.Skill.ID), new SqlParameter("@Nivel", (object?)empleadoSkill.Nivel ?? DBNull.Value) };
                 _conexion.Escribir("dbo.usp_EmpleadoSkill_Registrar", parametrosSkill);
             }
             if (empleado.DisponibilidadBase is null) { throw new ArgumentException("Completá la disponibilidad base del empleado."); }
@@ -307,14 +307,17 @@ public class MPPRecursos
             IdUsuario = Convert.ToInt32(fila["IdUsuario"]),
             NombreEmpleado = Convert.ToString(fila["NombreEmpleado"]) ?? string.Empty,
             HorasSemanales = Convert.ToDecimal(fila["HorasSemanales"]),
-            IdAusencia = fila["IdAusencia"] == DBNull.Value ? null : Convert.ToInt32(fila["IdAusencia"]),
-            TipoPeriodo = fila["TipoPeriodo"] == DBNull.Value ? null : Convert.ToString(fila["TipoPeriodo"]),
+            Ausencia = fila["IdAusencia"] == DBNull.Value ? null : new AusenciaEmpleado
+            {
+                ID = Convert.ToInt32(fila["IdAusencia"]),
+                TipoPeriodo = (fila["TipoPeriodo"] as string)!,
+                Estado = fila["Estado"] == DBNull.Value ? null : Convert.ToString(fila["Estado"]),
+                Motivo = fila["Motivo"] == DBNull.Value ? null : Convert.ToString(fila["Motivo"]),
+                MotivoResolucion = fila["MotivoResolucion"] == DBNull.Value ? null : Convert.ToString(fila["MotivoResolucion"])
+            },
             FechaInicio = fila["FechaInicio"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaInicio"]),
             FechaFin = fila["FechaFin"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaFin"]),
             HorasNoDisponibles = fila["HorasNoDisponibles"] == DBNull.Value ? null : Convert.ToDecimal(fila["HorasNoDisponibles"]),
-            Estado = fila["Estado"] == DBNull.Value ? null : Convert.ToString(fila["Estado"]),
-            Motivo = fila["Motivo"] == DBNull.Value ? null : Convert.ToString(fila["Motivo"]),
-            MotivoResolucion = fila["MotivoResolucion"] == DBNull.Value ? null : Convert.ToString(fila["MotivoResolucion"]),
             CantidadTareasAfectadas = Convert.ToInt32(fila["CantidadTareasAfectadas"]),
             TareasAfectadas = fila["TareasAfectadas"] == DBNull.Value ? null : Convert.ToString(fila["TareasAfectadas"])
         }).ToList();

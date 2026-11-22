@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TeamBalance.BE.Entidades;
 
 public class FiltroReporteEjecutivo
@@ -21,11 +23,38 @@ public class FiltroReporteEjecutivo
 
     public DateTime? FechaHasta { get; set; }
 
-    public int? IdCliente { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Cliente? Cliente { get; set; }
 
-    public int? IdProyecto { get; set; }
+    public int? IdCliente
+    {
+        get => Cliente?.ID;
+        set => Cliente = value.HasValue
+            ? (Cliente?.ID == value.Value ? Cliente : new() { ID = value.Value })
+            : null;
+    }
 
-    public int? IdResponsable { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Proyecto? Proyecto { get; set; }
+
+    public int? IdProyecto
+    {
+        get => Proyecto?.ID;
+        set => Proyecto = value.HasValue
+            ? (Proyecto?.ID == value.Value ? Proyecto : new() { ID = value.Value })
+            : null;
+    }
+
+    [JsonIgnore, ReferenciaInterna]
+    public PM? Responsable { get; set; }
+
+    public int? IdResponsable
+    {
+        get => Responsable?.ID;
+        set => Responsable = value.HasValue
+            ? (Responsable?.ID == value.Value ? Responsable : new() { ID = value.Value })
+            : null;
+    }
 
     public string? EstadoProyecto { get; set; }
 

@@ -17,7 +17,7 @@ public sealed class MPPHelpDesk
         List<SqlParameter> parametros = new List<SqlParameter>() {
             new SqlParameter("@IdUsuario", usuario.ID),
             new SqlParameter("@IdAgencia", (object?)usuario.IdAgencia ?? DBNull.Value),
-            new SqlParameter("@IdSuscripcion", (object?)solicitud.IdSuscripcion ?? DBNull.Value),
+            new SqlParameter("@IdSuscripcion", (object?)solicitud.Suscripcion?.ID ?? DBNull.Value),
             new SqlParameter("@Categoria", solicitud.Categoria),
             new SqlParameter("@Asunto", solicitud.Asunto),
             new SqlParameter("@Descripcion", solicitud.Descripcion)

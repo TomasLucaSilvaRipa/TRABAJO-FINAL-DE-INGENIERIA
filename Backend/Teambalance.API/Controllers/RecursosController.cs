@@ -80,8 +80,7 @@ public class RecursosController : ControllerBase
     {
         try
         {
-            Empleado empleado = new Empleado();
-            empleado.ID = fichaRuta.ID;
+            Empleado empleado = fichaRuta.Empleado;
             empleado.EmpleadoSkills = ficha.EmpleadoSkills ?? new List<EmpleadoSkill>();
             empleado.DisponibilidadBase = ficha.DisponibilidadBase;
             _recursosBLL.GuardarFichaEmpleado(empleado, ObtenerSolicitante());

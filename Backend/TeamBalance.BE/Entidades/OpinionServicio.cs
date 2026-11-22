@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TeamBalance.BE.Entidades;
 
 public class OpinionServicio
@@ -18,8 +20,24 @@ public class OpinionServicio
     }
 
     public int ID { get; set; }
-    public int IdUsuario { get; set; }
-    public int? IdAgencia { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Usuario Usuario { get; set; } = new();
+
+    public int IdUsuario
+    {
+        get => Usuario.ID;
+        set => Usuario = Usuario.ID == value ? Usuario : new() { ID = value };
+    }
+    [JsonIgnore, ReferenciaInterna]
+    public Agencia? Agencia { get; set; }
+
+    public int? IdAgencia
+    {
+        get => Agencia?.ID;
+        set => Agencia = value.HasValue
+            ? (Agencia?.ID == value.Value ? Agencia : new() { ID = value.Value })
+            : null;
+    }
     public int Calificacion { get; set; }
     public string Titulo { get; set; } = string.Empty;
     public string Comentario { get; set; } = string.Empty;

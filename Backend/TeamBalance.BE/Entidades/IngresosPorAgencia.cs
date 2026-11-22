@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TeamBalance.BE.Entidades;
 public sealed class IngresosPorAgencia
 {
@@ -13,8 +15,19 @@ public sealed class IngresosPorAgencia
         CobrosHistoricos = cobrosHistoricos;
     }
 
-    public int IdAgencia { get; set; }
-    public string Agencia { get; set; } = string.Empty;
+    [JsonIgnore, ReferenciaInterna]
+    public Agencia AgenciaRelacionada { get; set; } = new() { NombreComercial = string.Empty };
+
+    public int IdAgencia
+    {
+        get => AgenciaRelacionada.ID;
+        set => AgenciaRelacionada = AgenciaRelacionada.ID == value ? AgenciaRelacionada : new() { ID = value, NombreComercial = AgenciaRelacionada.NombreComercial };
+    }
+    public string Agencia
+    {
+        get => AgenciaRelacionada.NombreComercial;
+        set => AgenciaRelacionada.NombreComercial = value;
+    }
     public decimal Hoy { get; set; }
     public decimal Semana { get; set; }
     public decimal Mes { get; set; }

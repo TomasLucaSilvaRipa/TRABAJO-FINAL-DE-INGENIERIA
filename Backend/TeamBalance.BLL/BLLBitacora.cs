@@ -73,7 +73,7 @@ public class BLLBitacora
     public async Task<int> GenerarYEnviarInforme(FiltroBitacora filtro, Usuario solicitante)
     {
         ValidarConsultaBitacora(solicitante);
-        if (!filtro.IdAgencia.HasValue || filtro.IdAgencia.Value <= 0)
+        if (filtro.Agencia is null || filtro.Agencia.ID <= 0)
         {
             throw new ArgumentException("Seleccioná una agencia para generar y enviar el informe.");
         }
@@ -84,7 +84,7 @@ public class BLLBitacora
             throw new InvalidOperationException("No existen eventos para generar el informe con los filtros seleccionados.");
         }
 
-        Usuario agenciaConsultada = new Usuario { IdAgencia = filtro.IdAgencia };
+        Usuario agenciaConsultada = new Usuario { IdAgencia = filtro.Agencia.ID };
         List<DestinatarioDesvioHoras> destinatarios = _analiticaMPP.ConsultarDuenosAgencia(agenciaConsultada)
             .Where(destinatario => !string.IsNullOrWhiteSpace(destinatario.Email))
             .ToList();
@@ -106,7 +106,7 @@ public class BLLBitacora
         string criticidad = enviados == destinatarios.Count ? "Informacion" : "Advertencia";
         Add(new Bitacora(
             solicitante.ID,
-            filtro.IdAgencia,
+            filtro.Agencia?.ID,
             "Bitacora",
             null,
             "GenerarInformeBitacora",

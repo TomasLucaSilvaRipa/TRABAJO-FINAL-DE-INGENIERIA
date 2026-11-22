@@ -197,7 +197,7 @@ public class MPPProyecto
     {
         try
         {
-            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@IdCliente", (object?)filtro.IdCliente ?? DBNull.Value), new SqlParameter("@IdPMResponsable", (object?)filtro.IdPMResponsable ?? DBNull.Value), new SqlParameter("@Estado", (object?)filtro.Estado ?? DBNull.Value), new SqlParameter("@FechaDesde", (object?)filtro.FechaDesde ?? DBNull.Value), new SqlParameter("@FechaHasta", (object?)filtro.FechaHasta ?? DBNull.Value) };
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@IdCliente", (object?)filtro.Cliente?.ID ?? DBNull.Value), new SqlParameter("@IdPMResponsable", (object?)filtro.PMResponsable?.ID ?? DBNull.Value), new SqlParameter("@Estado", (object?)filtro.Estado ?? DBNull.Value), new SqlParameter("@FechaDesde", (object?)filtro.FechaDesde ?? DBNull.Value), new SqlParameter("@FechaHasta", (object?)filtro.FechaHasta ?? DBNull.Value) };
             return parametros;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }

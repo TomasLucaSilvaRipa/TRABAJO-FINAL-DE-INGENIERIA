@@ -23,7 +23,7 @@ public class BLLSkillsDesiertos
         List<AnalisisCoberturaSkill> resultados = ProcesarCobertura(tareas, empleados);
         if (registrarConsulta)
         {
-            string alcance = $"Del {filtro.FechaDesde:dd/MM/yyyy} al {filtro.FechaHasta:dd/MM/yyyy}" + (filtro.IdProyecto.HasValue ? $"; proyecto {filtro.IdProyecto}" : string.Empty) + (filtro.IdCliente.HasValue ? $"; cliente {filtro.IdCliente}" : string.Empty);
+            string alcance = $"Del {filtro.FechaDesde:dd/MM/yyyy} al {filtro.FechaHasta:dd/MM/yyyy}" + (filtro.Proyecto is not null ? $"; proyecto {filtro.Proyecto.ID}" : string.Empty) + (filtro.Cliente is not null ? $"; cliente {filtro.Cliente.ID}" : string.Empty);
             _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Skill", null, "Analizar skills desiertos", $"Se consultó el ranking de cobertura de skills. {alcance}.", "Exitoso", "Información", "Recursos"));
         }
         return OrdenarRanking(resultados);
@@ -55,7 +55,7 @@ public class BLLSkillsDesiertos
         ValidarAcceso(usuario);
         if (consulta.Skill.ID <= 0 || consulta.Proyecto.ID <= 0) { throw new ArgumentException("Seleccioná una skill y un proyecto válidos."); }
         FiltroCoberturaSkill filtro = new FiltroCoberturaSkill();
-        filtro.IdProyecto = consulta.Proyecto.ID;
+        filtro.Proyecto = consulta.Proyecto;
         filtro.FechaDesde = DateTime.Today;
         filtro.FechaHasta = DateTime.Today.AddDays(90);
         AnalisisCoberturaSkill analisis = AnalizarCobertura(filtro, usuario, false).FirstOrDefault(item => item.Skill.ID == consulta.Skill.ID)
@@ -87,7 +87,7 @@ public class BLLSkillsDesiertos
         return tareas.GroupBy(tarea => tarea.IdSkill).Select(grupo =>
         {
             List<TareaCoberturaSkill> tareasSkill = grupo.ToList();
-            List<EmpleadoCoberturaSkill> empleadosSkill = empleados.Where(empleado => empleado.IdSkill == grupo.Key).ToList();
+            List<EmpleadoCoberturaSkill> empleadosSkill = empleados.Where(empleado => empleado.Habilidad.Skill.ID == grupo.Key).ToList();
             TareaCoberturaSkill tareaRepresentativa = tareasSkill.First();
             decimal demanda = tareasSkill.Sum(tarea => tarea.HorasEstimadas);
             decimal capacidadTotal = empleadosSkill.Sum(empleado => empleado.HorasSemanales * FactorNivel(empleado.NivelSkill));

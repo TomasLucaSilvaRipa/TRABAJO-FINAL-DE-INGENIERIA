@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TeamBalance.BE.Entidades;
 public class DesafioAutenticacionDosFactores
 {
@@ -13,6 +15,13 @@ public class DesafioAutenticacionDosFactores
     }
 
     public bool Valido { get; set; }
-    public int? IdUsuario { get; set; }
+    [JsonIgnore]
+    public Usuario? Usuario { get; set; }
+
+    public int? IdUsuario
+    {
+        get => Usuario?.ID;
+        set => Usuario = value.HasValue ? (Usuario?.ID == value.Value ? Usuario : new Usuario { ID = value.Value }) : null;
+    }
     public bool MantenerSesion { get; set; }
 }

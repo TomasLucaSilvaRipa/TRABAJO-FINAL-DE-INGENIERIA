@@ -49,7 +49,7 @@ public class MPPCorreoOperativo
 
     public List<TareaResumenCorreo> ConsultarTareas(DestinatarioCorreoOperativo destinatario)
     {
-        DataTable tabla = _conexion.Leer("dbo.usp_CorreoOperativo_ConsultarTareasEmpleado", new() { new("@IdUsuario", destinatario.IdUsuario) });
+        DataTable tabla = _conexion.Leer("dbo.usp_CorreoOperativo_ConsultarTareasEmpleado", new() { new("@IdUsuario", destinatario.Usuario.ID) });
         return tabla.Rows.Cast<DataRow>().Select(fila => new TareaResumenCorreo
         {
             IdTarea = Convert.ToInt32(fila["IdTarea"]), Titulo = Convert.ToString(fila["Titulo"]) ?? string.Empty,

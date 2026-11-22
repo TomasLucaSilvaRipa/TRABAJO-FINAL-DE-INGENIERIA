@@ -1,5 +1,6 @@
 ﻿using System;
 namespace TeamBalance.BE.Entidades;
+using System.Text.Json.Serialization;
 
 public class FiltroBitacora
 {
@@ -18,10 +19,24 @@ public class FiltroBitacora
         Modulo = modulo;
     }
 
-    public int? IdAgencia { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Agencia? Agencia { get; set; }
+
+    public int? IdAgencia
+    {
+        get => Agencia?.ID;
+        set => Agencia = value.HasValue ? (Agencia?.ID == value.Value ? Agencia : new Agencia { ID = value.Value }) : null;
+    }
     public DateTime? Desde { get; set; }
     public DateTime? Hasta { get; set; }
-    public int? IdUsuario { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Usuario? Usuario { get; set; }
+
+    public int? IdUsuario
+    {
+        get => Usuario?.ID;
+        set => Usuario = value.HasValue ? (Usuario?.ID == value.Value ? Usuario : new Usuario { ID = value.Value }) : null;
+    }
     public string? Entidad { get; set; }
     public string? Accion { get; set; }
     public ResultadoBitacora? Resultado { get; set; }

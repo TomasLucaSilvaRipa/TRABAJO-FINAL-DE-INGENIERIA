@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace TeamBalance.BE.Entidades;
 
@@ -22,7 +23,14 @@ public partial class EstadoTarea
 
     public int ID { get; set; }
 
-    public int IdAgencia { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Agencia Agencia { get; set; } = new();
+
+    public int IdAgencia
+    {
+        get => Agencia.ID;
+        set => Agencia = Agencia.ID == value ? Agencia : new Agencia { ID = value };
+    }
 
     public string Nombre { get; set; } = null!;
 

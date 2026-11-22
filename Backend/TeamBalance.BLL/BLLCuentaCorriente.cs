@@ -25,23 +25,23 @@ public sealed class BLLCuentaCorriente
     public DocumentoComercial CancelarSuscripcion(DocumentoComercial documento, Usuario usuario)
     {
         ValidarDueño(usuario);
-        if (documento.IdSuscripcion.GetValueOrDefault() <= 0) { throw new ArgumentException("No encontramos la suscripción a cancelar."); }
+        if ((documento.Suscripcion?.ID ?? 0) <= 0) { throw new ArgumentException("No encontramos la suscripción a cancelar."); }
         if (string.IsNullOrWhiteSpace(documento.Motivo)) { throw new ArgumentException("Indicá el motivo de la cancelación."); }
 
         documento.Motivo = documento.Motivo.Trim();
         DocumentoComercial notaCredito = _cuentaCorrienteMPP.CancelarSuscripcion(documento, usuario);
-        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Suscripcion", documento.IdSuscripcion, "CancelarSuscripcion", "Se canceló el servicio y se emitió la nota de crédito interna " + notaCredito.Numero + ".", "Exitoso", "Advertencia", "Suscripción"));
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Suscripcion", documento.Suscripcion?.ID, "CancelarSuscripcion", "Se canceló el servicio y se emitió la nota de crédito interna " + notaCredito.Numero + ".", "Exitoso", "Advertencia", "Suscripción"));
         return notaCredito;
     }
 
     public DocumentoComercial ReactivarConNotaCredito(DocumentoComercial documento, Usuario usuario)
     {
         ValidarDueño(usuario);
-        if (documento.IdSuscripcion.GetValueOrDefault() <= 0) { throw new ArgumentException("No encontramos la suscripción a regularizar."); }
-        if (documento.IdPlanComercial.GetValueOrDefault() <= 0) { throw new ArgumentException("Seleccioná una modalidad para reactivar."); }
+        if ((documento.Suscripcion?.ID ?? 0) <= 0) { throw new ArgumentException("No encontramos la suscripción a regularizar."); }
+        if ((documento.PlanComercial?.ID ?? 0) <= 0) { throw new ArgumentException("Seleccioná una modalidad para reactivar."); }
 
         DocumentoComercial factura = _cuentaCorrienteMPP.ReactivarConNotaCredito(documento, usuario);
-        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Suscripcion", documento.IdSuscripcion, "ReactivarConNotaCredito", "Se reactivó la suscripción aplicando una nota de crédito interna a la factura " + factura.Numero + ".", "Exitoso", "Informacion", "Suscripción"));
+        _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "Suscripcion", documento.Suscripcion?.ID, "ReactivarConNotaCredito", "Se reactivó la suscripción aplicando una nota de crédito interna a la factura " + factura.Numero + ".", "Exitoso", "Informacion", "Suscripción"));
         return factura;
     }
 

@@ -46,6 +46,6 @@ public class MPPSkillsDesiertos
     private static List<SqlParameter> CrearParametros(FiltroCoberturaSkill filtro, Usuario usuario) => new List<SqlParameter>
     {
         new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@FechaDesde", filtro.FechaDesde), new SqlParameter("@FechaHasta", filtro.FechaHasta),
-        new SqlParameter("@IdProyecto", (object?)filtro.IdProyecto ?? DBNull.Value), new SqlParameter("@IdCliente", (object?)filtro.IdCliente ?? DBNull.Value)
+        new SqlParameter("@IdProyecto", (object?)filtro.Proyecto?.ID ?? DBNull.Value), new SqlParameter("@IdCliente", (object?)filtro.Cliente?.ID ?? DBNull.Value)
     };
 }

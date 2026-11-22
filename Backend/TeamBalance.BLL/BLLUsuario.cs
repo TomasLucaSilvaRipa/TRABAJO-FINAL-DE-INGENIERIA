@@ -191,8 +191,8 @@ public class BLLUsuario
     {
         string tokenHash = _seguridad.GenerarHashToken(tokenDesafio);
         DesafioAutenticacionDosFactores desafio = _usuarioMPP.ConsumirDesafioAutenticacionDosFactores(tokenHash, false);
-        if (!desafio.Valido || desafio.IdUsuario is null) throw new UnauthorizedAccessException("El desafío de verificación venció o ya fue utilizado.");
-        Usuario usuario = _usuarioMPP.ConsultarUsuarioPorId(new Usuario { ID = desafio.IdUsuario.Value }) ?? throw new UnauthorizedAccessException("No se encontró la cuenta asociada al desafío.");
+        if (!desafio.Valido || desafio.Usuario is null) throw new UnauthorizedAccessException("El desafío de verificación venció o ya fue utilizado.");
+        Usuario usuario = _usuarioMPP.ConsultarUsuarioPorId(desafio.Usuario) ?? throw new UnauthorizedAccessException("No se encontró la cuenta asociada al desafío.");
         if (!ValidarSegundoFactor(usuario, codigo)) throw new UnauthorizedAccessException("El código no es válido, venció o ya fue utilizado.");
         DesafioAutenticacionDosFactores desafioCompletado = _usuarioMPP.ConsumirDesafioAutenticacionDosFactores(tokenHash, true);
         if (!desafioCompletado.Valido) throw new UnauthorizedAccessException("El desafío de verificación ya no está vigente.");

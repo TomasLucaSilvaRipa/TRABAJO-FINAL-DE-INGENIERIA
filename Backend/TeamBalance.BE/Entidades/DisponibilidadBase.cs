@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace TeamBalance.BE.Entidades;
 
@@ -22,7 +23,14 @@ public partial class DisponibilidadBase
 
     public int ID { get; set; }
 
-    public int IdEmpleado { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Empleado Empleado { get; set; } = new();
+
+    public int IdEmpleado
+    {
+        get => Empleado.ID;
+        set => Empleado = Empleado.ID == value ? Empleado : new Empleado { ID = value };
+    }
 
     public TimeOnly HoraInicio { get; set; }
 

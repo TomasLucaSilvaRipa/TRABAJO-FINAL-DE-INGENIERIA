@@ -1,4 +1,7 @@
+using System.Text.Json.Serialization;
+
 namespace TeamBalance.BE.Entidades;
+
 public class DestinatarioDesvioHoras
 {
     public DestinatarioDesvioHoras()
@@ -7,12 +10,13 @@ public class DestinatarioDesvioHoras
 
     public DestinatarioDesvioHoras(int idUsuario, string nombre, string email)
     {
-        IdUsuario = idUsuario;
-        Nombre = nombre;
-        Email = email;
+        Usuario = new Usuario(idUsuario) { Nombre = nombre, Email = email };
     }
 
-    public int IdUsuario { get; set; }
-    public string Nombre { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
+    [JsonIgnore]
+    public Usuario Usuario { get; set; } = new() { Nombre = string.Empty, Email = string.Empty };
+
+    public string Nombre { get => Usuario.Nombre; set => Usuario.Nombre = value; }
+    public string Email { get => Usuario.Email; set => Usuario.Email = value; }
+    public int IdUsuario { get => Usuario.ID; set => Usuario.ID = value; }
 }

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TeamBalance.BE.Entidades;
 
 public class FiltroTarea
@@ -17,15 +19,42 @@ public class FiltroTarea
         DeadlineHasta = deadlineHasta;
     }
 
-    public int? IdProyecto { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Proyecto? Proyecto { get; set; }
+
+    public int? IdProyecto
+    {
+        get => Proyecto?.ID;
+        set => Proyecto = value.HasValue
+            ? (Proyecto?.ID == value.Value ? Proyecto : new() { ID = value.Value })
+            : null;
+    }
 
     public string? Estado { get; set; }
 
     public string? Prioridad { get; set; }
 
-    public int? IdEmpleadoAsignado { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Empleado? EmpleadoAsignado { get; set; }
 
-    public int? IdSkillRequerido { get; set; }
+    public int? IdEmpleadoAsignado
+    {
+        get => EmpleadoAsignado?.ID;
+        set => EmpleadoAsignado = value.HasValue
+            ? (EmpleadoAsignado?.ID == value.Value ? EmpleadoAsignado : new() { ID = value.Value })
+            : null;
+    }
+
+    [JsonIgnore, ReferenciaInterna]
+    public Skill? SkillRequerido { get; set; }
+
+    public int? IdSkillRequerido
+    {
+        get => SkillRequerido?.ID;
+        set => SkillRequerido = value.HasValue
+            ? (SkillRequerido?.ID == value.Value ? SkillRequerido : new() { ID = value.Value })
+            : null;
+    }
 
     public DateTime? DeadlineDesde { get; set; }
 

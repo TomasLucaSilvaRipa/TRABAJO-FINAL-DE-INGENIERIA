@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 
@@ -26,7 +27,14 @@ public partial class OperacionPago
 
     public int ID { get; set; }
 
-    public int IdContratacionServicio { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public ContratacionServicio ContratacionServicio { get; set; } = new();
+
+    public int IdContratacionServicio
+    {
+        get => ContratacionServicio.ID;
+        set => ContratacionServicio = ContratacionServicio.ID == value ? ContratacionServicio : new() { ID = value };
+    }
 
     public string ReferenciaInterna { get; set; } = null!;
 

@@ -38,7 +38,7 @@ public class MPPBitacora
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@IdAgencia", (object?)filtro.IdAgencia ?? DBNull.Value),
+            new SqlParameter("@IdAgencia", (object?)filtro.Agencia?.ID ?? DBNull.Value),
         };
 
         DataTable tabla = _conexion.Leer("dbo.usp_Bitacora_Consultar", parametros);
@@ -50,10 +50,10 @@ public class MPPBitacora
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@IdAgencia", (object?)filtro.IdAgencia ?? DBNull.Value),
+            new SqlParameter("@IdAgencia", (object?)filtro.Agencia?.ID ?? DBNull.Value),
             new SqlParameter("@Desde", (object?)filtro.Desde ?? DBNull.Value),
             new SqlParameter("@Hasta", (object?)filtro.Hasta ?? DBNull.Value),
-            new SqlParameter("@IdUsuario", (object?)filtro.IdUsuario ?? DBNull.Value),
+            new SqlParameter("@IdUsuario", (object?)filtro.Usuario?.ID ?? DBNull.Value),
             new SqlParameter("@Entidad", (object?)filtro.Entidad ?? DBNull.Value),
             new SqlParameter("@Accion", (object?)filtro.Accion ?? DBNull.Value),
             new SqlParameter("@ResultadoCodigo", filtro.Resultado.HasValue ? (object)(int)filtro.Resultado.Value : DBNull.Value),
@@ -72,10 +72,10 @@ public class MPPBitacora
     {
         List<SqlParameter> parametros = new List<SqlParameter>()
         {
-            new SqlParameter("@IdAgencia", (object?)filtro.IdAgencia ?? DBNull.Value),
+            new SqlParameter("@IdAgencia", (object?)filtro.Agencia?.ID ?? DBNull.Value),
             new SqlParameter("@Desde", (object?)filtro.Desde ?? DBNull.Value),
             new SqlParameter("@Hasta", (object?)filtro.Hasta ?? DBNull.Value),
-            new SqlParameter("@IdUsuario", (object?)filtro.IdUsuario ?? DBNull.Value),
+            new SqlParameter("@IdUsuario", (object?)filtro.Usuario?.ID ?? DBNull.Value),
             new SqlParameter("@Entidad", (object?)filtro.Entidad ?? DBNull.Value),
             new SqlParameter("@Accion", (object?)filtro.Accion ?? DBNull.Value),
             new SqlParameter("@ResultadoCodigo", filtro.Resultado.HasValue ? (object)(int)filtro.Resultado.Value : DBNull.Value),

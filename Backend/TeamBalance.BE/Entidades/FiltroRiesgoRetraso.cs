@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TeamBalance.BE.Entidades;
 
 public class FiltroRiesgoRetraso
@@ -15,11 +17,38 @@ public class FiltroRiesgoRetraso
         DiasHastaDeadlineMaximo = diasHastaDeadlineMaximo;
     }
 
-    public int? IdProyecto { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Proyecto? Proyecto { get; set; }
 
-    public int? IdCliente { get; set; }
+    public int? IdProyecto
+    {
+        get => Proyecto?.ID;
+        set => Proyecto = value.HasValue
+            ? (Proyecto?.ID == value.Value ? Proyecto : new() { ID = value.Value })
+            : null;
+    }
 
-    public int? IdPM { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Cliente? Cliente { get; set; }
+
+    public int? IdCliente
+    {
+        get => Cliente?.ID;
+        set => Cliente = value.HasValue
+            ? (Cliente?.ID == value.Value ? Cliente : new() { ID = value.Value })
+            : null;
+    }
+
+    [JsonIgnore, ReferenciaInterna]
+    public PM? PM { get; set; }
+
+    public int? IdPM
+    {
+        get => PM?.ID;
+        set => PM = value.HasValue
+            ? (PM?.ID == value.Value ? PM : new() { ID = value.Value })
+            : null;
+    }
 
     public string? NivelRiesgo { get; set; }
 

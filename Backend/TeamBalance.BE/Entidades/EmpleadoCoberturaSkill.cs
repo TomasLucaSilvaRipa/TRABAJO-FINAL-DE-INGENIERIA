@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace TeamBalance.BE.Entidades;
 public class EmpleadoCoberturaSkill
 {
@@ -12,11 +14,18 @@ public class EmpleadoCoberturaSkill
         CargaActual = cargaActual;
     }
 
-    public int IdEmpleado { get; set; }
-    public int IdSkill { get; set; }
+    [JsonIgnore]
+    public EmpleadoSkill Habilidad { get; set; } = new()
+    {
+        Empleado = new Empleado { Seniority = string.Empty },
+        Nivel = string.Empty
+    };
+
+    public int IdEmpleado { get => Habilidad.Empleado.ID; set => Habilidad.Empleado.ID = value; }
+    public int IdSkill { get => Habilidad.Skill.ID; set => Habilidad.Skill.ID = value; }
     public string NombreEmpleado { get; set; } = string.Empty;
-    public string Seniority { get; set; } = string.Empty;
-    public string NivelSkill { get; set; } = string.Empty;
+    public string Seniority { get => Habilidad.Empleado.Seniority; set => Habilidad.Empleado.Seniority = value; }
+    public string NivelSkill { get => Habilidad.Nivel!; set => Habilidad.Nivel = value; }
     public decimal HorasSemanales { get; set; }
     public decimal CargaActual { get; set; }
     public decimal HorasDisponibles { get; set; }

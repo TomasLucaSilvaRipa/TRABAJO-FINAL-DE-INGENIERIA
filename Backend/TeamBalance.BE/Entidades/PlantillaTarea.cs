@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 
@@ -32,9 +33,25 @@ public partial class PlantillaTarea
 
     public int ID { get; set; }
 
-    public int IdAgencia { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public Agencia Agencia { get; set; } = new();
 
-    public int? IdSkillRequerido { get; set; }
+    public int IdAgencia
+    {
+        get => Agencia.ID;
+        set => Agencia = Agencia.ID == value ? Agencia : new() { ID = value };
+    }
+
+    [JsonIgnore, ReferenciaInterna]
+    public Skill? HabilidadRequerida { get; set; }
+
+    public int? IdSkillRequerido
+    {
+        get => HabilidadRequerida?.ID;
+        set => HabilidadRequerida = value.HasValue
+            ? (HabilidadRequerida?.ID == value.Value ? HabilidadRequerida : new() { ID = value.Value })
+            : null;
+    }
 
     public string Nombre { get; set; } = null!;
 

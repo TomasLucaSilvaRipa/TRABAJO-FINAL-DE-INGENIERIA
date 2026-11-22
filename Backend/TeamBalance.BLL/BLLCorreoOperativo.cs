@@ -66,7 +66,7 @@ public class BLLCorreoOperativo
             {
                 enviados += await EnviarAlertasDeadline(destinatario, ahora);
             }
-            if (destinatario.ResumenSemanalActivo && string.Equals(destinatario.TipoUsuario, "Dueno", StringComparison.OrdinalIgnoreCase) && ahora.DayOfWeek == DayOfWeek.Monday && ahora.Hour >= 9 && destinatario.IdAgencia.HasValue)
+            if (destinatario.ResumenSemanalActivo && string.Equals(destinatario.TipoUsuario, "Dueno", StringComparison.OrdinalIgnoreCase) && ahora.DayOfWeek == DayOfWeek.Monday && ahora.Hour >= 9 && destinatario.Agencia is not null)
             {
                 enviados += await EnviarResumenSemanal(destinatario, ahora);
             }
@@ -76,7 +76,7 @@ public class BLLCorreoOperativo
 
     private async Task<int> EnviarResumenDiario(DestinatarioCorreoOperativo destinatario, DateTime ahora)
     {
-        string clave = $"resumen-diario:{destinatario.IdUsuario}:{ahora:yyyyMMdd}";
+        string clave = $"resumen-diario:{destinatario.Usuario.ID}:{ahora:yyyyMMdd}";
         EnvioCorreoOperativo envio = new() { Clave = clave, Destinatario = destinatario, Tipo = "ResumenDiario" };
         if (!_correoMPP.ReservarEnvio(envio)) return 0;
         try
@@ -85,8 +85,8 @@ public class BLLCorreoOperativo
             if (tareas.Count == 0) { envio.Enviado = true; _correoMPP.CompletarEnvio(envio); return 0; }
             foreach (TareaResumenCorreo tarea in tareas)
             {
-                tarea.TokenEnProgreso = CrearToken(destinatario.IdUsuario, tarea.IdTarea, "En progreso", ahora.AddHours(36));
-                tarea.TokenFinalizada = CrearToken(destinatario.IdUsuario, tarea.IdTarea, "Finalizada", ahora.AddHours(36));
+                tarea.TokenEnProgreso = CrearToken(destinatario.Usuario.ID, tarea.IdTarea, "En progreso", ahora.AddHours(36));
+                tarea.TokenFinalizada = CrearToken(destinatario.Usuario.ID, tarea.IdTarea, "Finalizada", ahora.AddHours(36));
             }
             bool enviado = await _emailService.EnviarResumenDiarioTareas(destinatario, tareas);
             envio.Enviado = enviado;
@@ -102,7 +102,7 @@ public class BLLCorreoOperativo
         List<TareaResumenCorreo> tareas = _correoMPP.ConsultarTareas(destinatario)
             .Where(tarea => tarea.Deadline.HasValue && tarea.Deadline.Value.Date >= ahora.Date && tarea.Deadline.Value.Date <= ahora.Date.AddDays(2)).ToList();
         if (tareas.Count == 0) return 0;
-        string clave = $"alerta-deadline:{destinatario.IdUsuario}:{ahora:yyyyMMdd}";
+        string clave = $"alerta-deadline:{destinatario.Usuario.ID}:{ahora:yyyyMMdd}";
         EnvioCorreoOperativo envio = new() { Clave = clave, Destinatario = destinatario, Tipo = "AlertaDeadline" };
         if (!_correoMPP.ReservarEnvio(envio)) return 0;
         bool enviado = await _emailService.EnviarAlertaDeadline(destinatario, tareas);
@@ -115,12 +115,12 @@ public class BLLCorreoOperativo
     private async Task<int> EnviarResumenSemanal(DestinatarioCorreoOperativo destinatario, DateTime ahora)
     {
         int semana = ISOWeek.GetWeekOfYear(ahora);
-        string clave = $"resumen-semanal:{destinatario.IdUsuario}:{ISOWeek.GetYear(ahora)}-{semana:00}";
+        string clave = $"resumen-semanal:{destinatario.Usuario.ID}:{ISOWeek.GetYear(ahora)}-{semana:00}";
         EnvioCorreoOperativo envio = new() { Clave = clave, Destinatario = destinatario, Tipo = "ResumenSemanal" };
         if (!_correoMPP.ReservarEnvio(envio)) return 0;
         try
         {
-            ResumenSemanalCorreo resumen = _correoMPP.ConsultarResumenSemanal(new Agencia { ID = destinatario.IdAgencia!.Value });
+            ResumenSemanalCorreo resumen = _correoMPP.ConsultarResumenSemanal(destinatario.Agencia!);
             bool enviado = await _emailService.EnviarResumenSemanalAgencia(destinatario, resumen);
             envio.Enviado = enviado;
             envio.DetalleError = enviado ? null : "El proveedor SMTP no confirmó el envío.";

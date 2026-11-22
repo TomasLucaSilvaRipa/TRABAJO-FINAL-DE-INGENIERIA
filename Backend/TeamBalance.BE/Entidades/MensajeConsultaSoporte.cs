@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 
@@ -22,9 +23,23 @@ public partial class MensajeConsultaSoporte
 
     public int ID { get; set; }
 
-    public int IdConsultaSoporte { get; set; }
+    [JsonIgnore, ReferenciaInterna]
+    public ConsultaSoporte Consulta { get; set; } = new();
 
-    public int IdUsuario { get; set; }
+    public int IdConsultaSoporte
+    {
+        get => Consulta.ID;
+        set => Consulta = Consulta.ID == value ? Consulta : new() { ID = value };
+    }
+
+    [JsonIgnore, ReferenciaInterna]
+    public Usuario Usuario { get; set; } = new();
+
+    public int IdUsuario
+    {
+        get => Usuario.ID;
+        set => Usuario = Usuario.ID == value ? Usuario : new() { ID = value };
+    }
 
     public string Mensaje { get; set; } = null!;
 
