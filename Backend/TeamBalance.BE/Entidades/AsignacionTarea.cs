@@ -33,7 +33,6 @@ public partial class AsignacionTarea
     [System.Text.Json.Serialization.JsonIgnore]
     public Tarea Tarea { get; set; } = new();
 
-    // Adaptador para el formato plano de entrada y salida.
     public int IdTarea
     {
         get => Tarea.ID;
@@ -43,7 +42,6 @@ public partial class AsignacionTarea
     [System.Text.Json.Serialization.JsonIgnore]
     public Empleado Empleado { get; set; } = new();
 
-    // Adaptador para el formato plano de entrada y salida.
     public int IdEmpleado
     {
         get => Empleado.ID;
@@ -53,7 +51,6 @@ public partial class AsignacionTarea
     [System.Text.Json.Serialization.JsonIgnore]
     public Usuario UsuarioAsignador { get; set; } = new();
 
-    // Adaptador para el formato plano de entrada y salida.
     public int IdUsuarioAsignador
     {
         get => UsuarioAsignador.ID;
@@ -66,13 +63,10 @@ public partial class AsignacionTarea
 
     public string? Motivo { get; set; }
 
-    // Horas de la tarea que forman parte de la carga planificada de este empleado.
     public decimal HorasAsignadas { get; set; }
 
     public bool Activa { get; set; }
 
-    // Campos de compatibilidad con respuestas anteriores. Las referencias internas
-    // se excluyen del JSON porque pueden apuntar a la tarea o al empleado que contiene esta asignación.
     public Empleado? IdEmpleadoNavigation => null;
 
     public Tarea? IdTareaNavigation => null;

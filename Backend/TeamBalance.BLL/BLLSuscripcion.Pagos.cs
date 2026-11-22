@@ -115,7 +115,7 @@ public sealed partial class BLLSuscripcion
             if (referencia != parte.ReferenciaInterna || importe != parte.Importe || !string.Equals(moneda, parte.Moneda, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("El pago informado por el proveedor no coincide con la referencia, el importe o la moneda de esta parte.");
             operacion = _suscripcionMPP.ConfirmarParte(usuario, operacion.ReferenciaInterna, parte.ReferenciaInterna, id, estado);
-            if (operacion.AplicadaAhora) await NotificarActualizacionSuscripcion(usuario, _planMPP.ConsultarPlan(new PlanComercial(operacion.IdPlanNuevo)));
+            if (operacion.AplicadaAhora) await NotificarActualizacionSuscripcion(usuario, _planMPP.ConsultarPlan(operacion.PlanNuevo));
             if (!estado.Equals("approved", StringComparison.OrdinalIgnoreCase))
                 return ResultadoDistribucion(operacion, "Esta parte todavía no está aprobada. Podés consultar su estado o continuar desde la suscripción.");
         }
@@ -129,7 +129,7 @@ public sealed partial class BLLSuscripcion
         if (siguiente is null)
         {
             operacion = _suscripcionMPP.ConfirmarParte(usuario, operacion.ReferenciaInterna, string.Empty, string.Empty, "approved");
-            if (operacion.AplicadaAhora) await NotificarActualizacionSuscripcion(usuario, _planMPP.ConsultarPlan(new PlanComercial(operacion.IdPlanNuevo)));
+            if (operacion.AplicadaAhora) await NotificarActualizacionSuscripcion(usuario, _planMPP.ConsultarPlan(operacion.PlanNuevo));
             return ResultadoFinal(usuario, operacion);
         }
         if (reanudando && siguiente.Proveedor == "MercadoPago")
@@ -143,7 +143,7 @@ public sealed partial class BLLSuscripcion
             return await VerificarParte(usuario, operacion, new() { ReferenciaOperacion = siguiente.ReferenciaInterna, PaymentId = siguiente.ReferenciaProveedor });
         if (string.IsNullOrWhiteSpace(siguiente.UrlPago))
         {
-            PlanComercial plan = _planMPP.ConsultarPlan(new PlanComercial(operacion.IdPlanNuevo));
+            PlanComercial plan = _planMPP.ConsultarPlan(operacion.PlanNuevo);
             string url;
             if (siguiente.Proveedor == "Stripe") url = await _stripeService.CrearPago(siguiente, plan);
             else

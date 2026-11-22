@@ -160,7 +160,7 @@ public class MPPTarea
     {
         try
         {
-            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@IdProyecto", (object?)filtro.IdProyecto ?? DBNull.Value), new SqlParameter("@Estado", (object?)filtro.Estado ?? DBNull.Value), new SqlParameter("@Prioridad", (object?)filtro.Prioridad ?? DBNull.Value), new SqlParameter("@IdEmpleadoAsignado", (object?)filtro.IdEmpleadoAsignado ?? DBNull.Value), new SqlParameter("@IdSkillRequerido", (object?)filtro.IdSkillRequerido ?? DBNull.Value), new SqlParameter("@DeadlineDesde", (object?)filtro.DeadlineDesde ?? DBNull.Value), new SqlParameter("@DeadlineHasta", (object?)filtro.DeadlineHasta ?? DBNull.Value) };
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@IdProyecto", (object?)filtro.Proyecto?.ID ?? DBNull.Value), new SqlParameter("@Estado", (object?)filtro.Estado ?? DBNull.Value), new SqlParameter("@Prioridad", (object?)filtro.Prioridad ?? DBNull.Value), new SqlParameter("@IdEmpleadoAsignado", (object?)filtro.EmpleadoAsignado?.ID ?? DBNull.Value), new SqlParameter("@IdSkillRequerido", (object?)filtro.SkillRequerido?.ID ?? DBNull.Value), new SqlParameter("@DeadlineDesde", (object?)filtro.DeadlineDesde ?? DBNull.Value), new SqlParameter("@DeadlineHasta", (object?)filtro.DeadlineHasta ?? DBNull.Value) };
             return parametros;
         }
         catch (Exception ex) { throw new Exception(ex.Message); }

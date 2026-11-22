@@ -10,8 +10,8 @@ public class FiltroProyecto
 
     public FiltroProyecto(int? idCliente, int? idPMResponsable, string? estado, DateTime? fechaDesde, DateTime? fechaHasta)
     {
-        IdCliente = idCliente;
-        IdPMResponsable = idPMResponsable;
+        Cliente = idCliente is int valorCliente ? new Cliente { ID = valorCliente } : null;
+        PMResponsable = idPMResponsable is int valorPMResponsable ? new PM { ID = valorPMResponsable } : null;
         Estado = estado;
         FechaDesde = fechaDesde;
         FechaHasta = fechaHasta;
@@ -20,20 +20,8 @@ public class FiltroProyecto
     [JsonIgnore, ReferenciaInterna]
     public Cliente? Cliente { get; set; }
 
-    public int? IdCliente
-    {
-        get => Cliente?.ID;
-        set => Cliente = value.HasValue ? (Cliente?.ID == value.Value ? Cliente : new Cliente { ID = value.Value }) : null;
-    }
-
     [JsonIgnore, ReferenciaInterna]
     public PM? PMResponsable { get; set; }
-
-    public int? IdPMResponsable
-    {
-        get => PMResponsable?.ID;
-        set => PMResponsable = value.HasValue ? (PMResponsable?.ID == value.Value ? PMResponsable : new PM { ID = value.Value }) : null;
-    }
 
     public string? Estado { get; set; }
 

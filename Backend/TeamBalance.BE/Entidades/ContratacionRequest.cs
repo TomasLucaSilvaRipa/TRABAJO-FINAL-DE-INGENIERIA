@@ -43,7 +43,6 @@ namespace TeamBalance.BE.Entidades
         [System.Text.Json.Serialization.JsonIgnore]
         public PlanComercial PlanComercial { get; set; } = new();
 
-        // Adaptador para el contrato plano.
         public int IdPlanComercial
         {
             get => PlanComercial.ID;

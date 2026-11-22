@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization.Metadata;
 using TeamBalance.BLL;
 using TeamBalance.BE.Entidades;
 using TeamBalance.DAL;
@@ -10,7 +11,13 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers(options => options.ModelMetadataDetailsProviders.Add(new Teambalance.API.Models.ReferenciaInternaMetadataProvider()));
+builder.Services.AddControllers(options => options.ModelMetadataDetailsProviders.Add(new Teambalance.API.Models.ReferenciaInternaMetadataProvider()))
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new Teambalance.API.Models.SkillJsonConverter());
+        var resolver = options.JsonSerializerOptions.TypeInfoResolver ?? new DefaultJsonTypeInfoResolver();
+        options.JsonSerializerOptions.TypeInfoResolver = resolver.WithAddedModifier(Teambalance.API.Models.FiltrosJson.Configurar);
+    });
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 

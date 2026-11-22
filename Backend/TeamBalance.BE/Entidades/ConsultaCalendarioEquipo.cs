@@ -9,7 +9,6 @@ public class ConsultaCalendarioEquipo
     [System.Text.Json.Serialization.JsonIgnore]
     public Proyecto? Proyecto { get; set; }
 
-    // Adaptador para el contrato plano.
     public int? IdProyecto
     {
         get => Proyecto?.ID;
@@ -18,7 +17,6 @@ public class ConsultaCalendarioEquipo
     [System.Text.Json.Serialization.JsonIgnore]
     public Empleado? Empleado { get; set; }
 
-    // Adaptador para el contrato plano.
     public int? IdEmpleado
     {
         get => Empleado?.ID;

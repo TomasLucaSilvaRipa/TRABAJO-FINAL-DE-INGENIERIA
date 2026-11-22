@@ -10,9 +10,9 @@ public class FiltroRiesgoRetraso
 
     public FiltroRiesgoRetraso(int? idProyecto, int? idCliente, int? idPM, string? nivelRiesgo, int? diasHastaDeadlineMaximo)
     {
-        IdProyecto = idProyecto;
-        IdCliente = idCliente;
-        IdPM = idPM;
+        Proyecto = idProyecto is int valorProyecto ? new Proyecto { ID = valorProyecto } : null;
+        Cliente = idCliente is int valorCliente ? new Cliente { ID = valorCliente } : null;
+        PM = idPM is int valorPM ? new PM { ID = valorPM } : null;
         NivelRiesgo = nivelRiesgo;
         DiasHastaDeadlineMaximo = diasHastaDeadlineMaximo;
     }
@@ -20,35 +20,11 @@ public class FiltroRiesgoRetraso
     [JsonIgnore, ReferenciaInterna]
     public Proyecto? Proyecto { get; set; }
 
-    public int? IdProyecto
-    {
-        get => Proyecto?.ID;
-        set => Proyecto = value.HasValue
-            ? (Proyecto?.ID == value.Value ? Proyecto : new() { ID = value.Value })
-            : null;
-    }
-
     [JsonIgnore, ReferenciaInterna]
     public Cliente? Cliente { get; set; }
 
-    public int? IdCliente
-    {
-        get => Cliente?.ID;
-        set => Cliente = value.HasValue
-            ? (Cliente?.ID == value.Value ? Cliente : new() { ID = value.Value })
-            : null;
-    }
-
     [JsonIgnore, ReferenciaInterna]
     public PM? PM { get; set; }
-
-    public int? IdPM
-    {
-        get => PM?.ID;
-        set => PM = value.HasValue
-            ? (PM?.ID == value.Value ? PM : new() { ID = value.Value })
-            : null;
-    }
 
     public string? NivelRiesgo { get; set; }
 

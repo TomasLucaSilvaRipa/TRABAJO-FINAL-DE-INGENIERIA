@@ -1,6 +1,5 @@
 namespace TeamBalance.BE.Entidades;
 
-/// <summary>Área funcional única que agrupa skills relacionadas.</summary>
 public sealed class AreaSkill
 {
     public int ID { get; set; }

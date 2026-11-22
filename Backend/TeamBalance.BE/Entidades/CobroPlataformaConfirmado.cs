@@ -1,5 +1,4 @@
 namespace TeamBalance.BE.Entidades;
-/// <summary>Movimiento de cobro confirmado utilizado sólo por el BackOffice financiero.</summary>
 public sealed class CobroPlataformaConfirmado
 {
     public CobroPlataformaConfirmado(Agencia agencia, decimal importe, string moneda, string? proveedor, DateTime fechaCobro)

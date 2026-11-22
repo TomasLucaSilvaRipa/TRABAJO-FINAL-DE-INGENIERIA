@@ -86,7 +86,7 @@ public class BLLBitacora
 
         Usuario agenciaConsultada = new Usuario { IdAgencia = filtro.Agencia.ID };
         List<DestinatarioDesvioHoras> destinatarios = _analiticaMPP.ConsultarDuenosAgencia(agenciaConsultada)
-            .Where(destinatario => !string.IsNullOrWhiteSpace(destinatario.Email))
+            .Where(destinatario => !string.IsNullOrWhiteSpace(destinatario.Usuario.Email))
             .ToList();
         if (destinatarios.Count == 0)
         {

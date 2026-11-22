@@ -110,7 +110,7 @@ public sealed partial class BLLSuscripcion
 
         OperacionSuscripcionPendiente operacion = new OperacionSuscripcionPendiente(solicitud.ReferenciaOperacion);
         operacion = _suscripcionMPP.ConsultarOperacionPendiente(operacion);
-        if (operacion.IdAgencia != solicitante.IdAgencia) throw new UnauthorizedAccessException("La operación no pertenece a tu agencia.");
+        if (operacion.Agencia.ID != solicitante.IdAgencia) throw new UnauthorizedAccessException("La operación no pertenece a tu agencia.");
         if (operacion.Estado == "Aprobada")
             return new ResultadoGestionSuscripcion("Suscripción actualizada correctamente.", "Aprobada", ConsultarSuscripcion(solicitante)) { PagoConfirmado = true };
 
@@ -129,7 +129,7 @@ public sealed partial class BLLSuscripcion
             if (!string.Equals(pago.ExternalReference, operacion.ReferenciaInterna, StringComparison.Ordinal)) throw new InvalidOperationException("La referencia devuelta por Mercado Pago no corresponde a la actualización solicitada.");
             bool requiereImporteExacto = string.Equals(operacion.TipoOperacion, "Regularización con crédito parcial", StringComparison.OrdinalIgnoreCase) || string.Equals(operacion.TipoOperacion, "Actualización con crédito parcial", StringComparison.OrdinalIgnoreCase);
             bool importeConvertidoPorProveedor = pago.TransactionAmount != operacion.Importe || !string.Equals(pago.CurrencyId, operacion.Moneda, StringComparison.OrdinalIgnoreCase);
-            PlanComercial plan = _planMPP.ConsultarPlan(new PlanComercial(operacion.IdPlanNuevo));
+            PlanComercial plan = _planMPP.ConsultarPlan(operacion.PlanNuevo);
             if (importeConvertidoPorProveedor && (requiereImporteExacto || !_mercadoPagoService.EsCobroPruebaEsperado(pago, plan.Nombre))) throw new InvalidOperationException($"El pago recibido fue {pago.TransactionAmount:0.##} {pago.CurrencyId}; no coincide con el importe a regularizar.");
             operacion.ReferenciaProveedor = pago.Id;
             operacion.EstadoProveedor = pago.Status;

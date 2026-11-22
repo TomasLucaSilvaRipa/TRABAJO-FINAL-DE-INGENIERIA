@@ -16,7 +16,4 @@ public class DestinatarioDesvioHoras
     [JsonIgnore]
     public Usuario Usuario { get; set; } = new() { Nombre = string.Empty, Email = string.Empty };
 
-    public string Nombre { get => Usuario.Nombre; set => Usuario.Nombre = value; }
-    public string Email { get => Usuario.Email; set => Usuario.Email = value; }
-    public int IdUsuario { get => Usuario.ID; set => Usuario.ID = value; }
 }

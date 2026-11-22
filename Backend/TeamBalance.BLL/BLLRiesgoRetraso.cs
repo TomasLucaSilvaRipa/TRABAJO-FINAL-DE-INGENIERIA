@@ -59,11 +59,11 @@ public class BLLRiesgoRetraso
         if (seguimiento.IdTarea.HasValue && !_riesgoMPP.ConsultarTareasProyecto(proyecto).Any(tarea => tarea.ID == seguimiento.IdTarea.Value)) { throw new ArgumentException("La tarea seleccionada no pertenece al proyecto indicado."); }
 
         seguimiento.Observacion = seguimiento.Observacion.Trim();
-        string? tituloTarea = seguimiento.IdTarea.HasValue ? _riesgoMPP.ConsultarTareasProyecto(proyecto).First(tarea => tarea.ID == seguimiento.IdTarea.Value).Titulo : null;
+        Tarea? tareaSeguimiento = seguimiento.IdTarea.HasValue ? _riesgoMPP.ConsultarTareasProyecto(proyecto).First(tarea => tarea.ID == seguimiento.IdTarea.Value) : null;
         DestinatarioDesvioHoras? destinatarioResponsable = seguimiento.ComunicarResponsable
             ? _riesgoMPP.ConsultarDestinatarioSeguimiento(proyecto, seguimiento.IdTarea.HasValue ? new Tarea { ID = seguimiento.IdTarea.Value } : null)
             : null;
-        if (seguimiento.ComunicarResponsable && (destinatarioResponsable is null || string.IsNullOrWhiteSpace(destinatarioResponsable.Email))) { throw new InvalidOperationException("No se encontró un correo activo para comunicar el seguimiento."); }
+        if (seguimiento.ComunicarResponsable && (destinatarioResponsable is null || string.IsNullOrWhiteSpace(destinatarioResponsable.Usuario.Email))) { throw new InvalidOperationException("No se encontró un correo activo para comunicar el seguimiento."); }
         int idSeguimiento = _riesgoMPP.RegistrarSeguimiento(usuario, seguimiento);
         SolicitudRevisionGestion solicitud = new SolicitudRevisionGestion
         {
@@ -73,8 +73,8 @@ public class BLLRiesgoRetraso
         };
         solicitud.ID = _analiticaMPP.RegistrarSolicitudRevisionGestion(solicitud);
         DestinatarioDesvioHoras? destinatarioPM = _analiticaMPP.ConsultarDestinatarioPM(new PM { ID = solicitud.IdPMResponsable });
-        bool correoPM = destinatarioPM is not null && !string.IsNullOrWhiteSpace(destinatarioPM.Email) && await _emailService.EnviarCorreoSolicitudRevisionGestion(new SolicitudRevisionCorreo { Destinatario = destinatarioPM, Tipo = "riesgo de retraso", NombreProyecto = proyecto.Nombre, TituloTarea = tituloTarea, CausaPrincipal = solicitud.CausaPrincipal, AccionSugerida = solicitud.AccionSugerida });
-        bool correoResponsable = !seguimiento.ComunicarResponsable || (destinatarioResponsable!.IdUsuario == destinatarioPM?.IdUsuario || await _emailService.EnviarCorreoSeguimientoRiesgo(new SeguimientoRiesgoCorreo { Destinatario = destinatarioResponsable, Proyecto = proyecto, TituloTarea = tituloTarea, Observacion = seguimiento.Observacion }));
+        bool correoPM = destinatarioPM is not null && !string.IsNullOrWhiteSpace(destinatarioPM.Usuario.Email) && await _emailService.EnviarCorreoSolicitudRevisionGestion(new SolicitudRevisionCorreo { Destinatario = destinatarioPM, Tipo = "riesgo de retraso", Proyecto = proyecto, Tarea = tareaSeguimiento, CausaPrincipal = solicitud.CausaPrincipal, AccionSugerida = solicitud.AccionSugerida });
+        bool correoResponsable = !seguimiento.ComunicarResponsable || (destinatarioResponsable!.Usuario.ID == destinatarioPM?.Usuario.ID || await _emailService.EnviarCorreoSeguimientoRiesgo(new SeguimientoRiesgoCorreo { Destinatario = destinatarioResponsable, Proyecto = proyecto, Tarea = tareaSeguimiento, Observacion = seguimiento.Observacion }));
         bool correosEnviados = correoPM && correoResponsable;
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "SeguimientoRiesgoRetraso", idSeguimiento, "RegistrarSeguimientoRiesgo", "Se registró un seguimiento y una revisión pendiente para el PM del proyecto '" + proyecto.Nombre + "'.", correosEnviados ? "Exitoso" : "Parcial", correosEnviados ? "Informacion" : "Advertencia", "Proyectos"));
         return correoPM
@@ -215,7 +215,7 @@ public class BLLRiesgoRetraso
         FiltroRiesgoRetraso filtroAplicado = filtro ?? new FiltroRiesgoRetraso();
         if (EsPMSinRolDueno(usuario))
         {
-            filtroAplicado.IdPM = _analiticaMPP.ConsultarIdPM(usuario);
+            filtroAplicado.PM = new PM { ID = _analiticaMPP.ConsultarIdPM(usuario) };
         }
         return filtroAplicado;
     }

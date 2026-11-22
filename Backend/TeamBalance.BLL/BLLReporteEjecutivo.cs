@@ -19,7 +19,12 @@ public class BLLReporteEjecutivo
         {
             ValidarAcceso(usuario);
             ValidarConfiguracion(configuracion);
-            FiltroRiesgoRetraso filtroRiesgo = new FiltroRiesgoRetraso(configuracion.Filtro.IdProyecto, configuracion.Filtro.IdCliente, configuracion.Filtro.IdResponsable, null, null);
+            FiltroRiesgoRetraso filtroRiesgo = new FiltroRiesgoRetraso
+            {
+                Proyecto = configuracion.Filtro.Proyecto,
+                Cliente = configuracion.Filtro.Cliente,
+                PM = configuracion.Filtro.Responsable
+            };
             ResultadoRiesgoRetraso resultadoRiesgo = _riesgoBLL.ConsultarRiesgo(filtroRiesgo, usuario);
             List<SeccionReporteEjecutivo> secciones = new List<SeccionReporteEjecutivo>();
 

@@ -63,7 +63,7 @@ public sealed partial class MPPSuscripcion
         DataRow fila = tabla.Rows[0];
         return new OperacionSuscripcionPendiente(Convert.ToInt32(fila["IdOperacion"]), Convert.ToInt32(fila["IdSuscripcion"]), Convert.ToInt32(fila["IdPlanNuevo"]), Convert.ToString(fila["ReferenciaInterna"]) ?? string.Empty, Convert.ToDecimal(fila["Importe"]), Convert.ToString(fila["Moneda"]) ?? string.Empty, Convert.ToString(fila["Proveedor"]) ?? string.Empty, Convert.ToString(fila["TipoOperacion"]) ?? string.Empty)
         {
-            IdAgencia = Convert.ToInt32(fila["IdAgencia"]),
+            Agencia = new Agencia { ID = Convert.ToInt32(fila["IdAgencia"]) },
             Estado = Convert.ToString(fila["Estado"]) ?? string.Empty,
             ReferenciaProveedor = Convert.ToString(fila["ReferenciaProveedor"]) ?? string.Empty,
         };

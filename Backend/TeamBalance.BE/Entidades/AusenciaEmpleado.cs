@@ -32,7 +32,6 @@ public partial class AusenciaEmpleado
     [System.Text.Json.Serialization.JsonIgnore]
     public Empleado Empleado { get; set; } = new() { Nombre = null! };
 
-    // Adaptador para el formato plano de entrada y salida.
     public int IdEmpleado
     {
         get => Empleado.ID;
@@ -49,7 +48,6 @@ public partial class AusenciaEmpleado
     [System.Text.Json.Serialization.JsonIgnore]
     public Usuario? UsuarioResolucion { get; set; }
 
-    // Adaptador para el formato plano de entrada y salida.
     public int? IdUsuarioResolucion
     {
         get => UsuarioResolucion?.ID;

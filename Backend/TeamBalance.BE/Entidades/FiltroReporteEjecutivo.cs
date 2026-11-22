@@ -12,9 +12,9 @@ public class FiltroReporteEjecutivo
     {
         FechaDesde = fechaDesde;
         FechaHasta = fechaHasta;
-        IdCliente = idCliente;
-        IdProyecto = idProyecto;
-        IdResponsable = idResponsable;
+        Cliente = idCliente is int valorCliente ? new Cliente { ID = valorCliente } : null;
+        Proyecto = idProyecto is int valorProyecto ? new Proyecto { ID = valorProyecto } : null;
+        Responsable = idResponsable is int valorResponsable ? new PM { ID = valorResponsable } : null;
         EstadoProyecto = estadoProyecto;
         AlcanceGeneral = alcanceGeneral;
     }
@@ -26,35 +26,11 @@ public class FiltroReporteEjecutivo
     [JsonIgnore, ReferenciaInterna]
     public Cliente? Cliente { get; set; }
 
-    public int? IdCliente
-    {
-        get => Cliente?.ID;
-        set => Cliente = value.HasValue
-            ? (Cliente?.ID == value.Value ? Cliente : new() { ID = value.Value })
-            : null;
-    }
-
     [JsonIgnore, ReferenciaInterna]
     public Proyecto? Proyecto { get; set; }
 
-    public int? IdProyecto
-    {
-        get => Proyecto?.ID;
-        set => Proyecto = value.HasValue
-            ? (Proyecto?.ID == value.Value ? Proyecto : new() { ID = value.Value })
-            : null;
-    }
-
     [JsonIgnore, ReferenciaInterna]
     public PM? Responsable { get; set; }
-
-    public int? IdResponsable
-    {
-        get => Responsable?.ID;
-        set => Responsable = value.HasValue
-            ? (Responsable?.ID == value.Value ? Responsable : new() { ID = value.Value })
-            : null;
-    }
 
     public string? EstadoProyecto { get; set; }
 

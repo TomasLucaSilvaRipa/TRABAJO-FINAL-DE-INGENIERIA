@@ -13,11 +13,6 @@ public class AsignacionTareaSincronizacion
     [JsonIgnore, ReferenciaInterna]
     public Empleado Empleado { get; set; }
 
-    public int IdEmpleado
-    {
-        get => Empleado.ID;
-        set => Empleado = Empleado.ID == value ? Empleado : new Empleado { ID = value };
-    }
     public decimal HorasAsignadas { get; set; }
     public string? Motivo { get; set; }
 }

@@ -381,7 +381,7 @@ public class BLLTarea
     private void ValidarSkill(Skill skill)
     {
         if (string.IsNullOrWhiteSpace(skill.Nombre)) { throw new ArgumentException("Ingresá el nombre de la skill."); }
-        if (!skill.IdAreaSkill.HasValue || !_recursosMPP.ConsultarAreasSkills().Any(area => area.ID == skill.IdAreaSkill.Value && area.Activo))
+        if (skill.Area is null || !_recursosMPP.ConsultarAreasSkills().Any(area => area.ID == skill.Area.ID && area.Activo))
         {
             throw new ArgumentException("Seleccioná un área válida para la skill.");
         }

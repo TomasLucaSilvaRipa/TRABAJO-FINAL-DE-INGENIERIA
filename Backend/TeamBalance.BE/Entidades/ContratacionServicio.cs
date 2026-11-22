@@ -44,7 +44,6 @@ public partial class ContratacionServicio
     [System.Text.Json.Serialization.JsonIgnore]
     public Agencia? Agencia { get; set; }
 
-    // Adaptador para el contrato plano.
     public int? IdAgencia
     {
         get => Agencia?.ID;
@@ -54,7 +53,6 @@ public partial class ContratacionServicio
     [System.Text.Json.Serialization.JsonIgnore]
     public PlanComercial PlanComercial { get; set; } = new();
 
-    // Adaptador para el contrato plano.
     public int IdPlanComercial
     {
         get => PlanComercial.ID;
@@ -64,7 +62,6 @@ public partial class ContratacionServicio
     [System.Text.Json.Serialization.JsonIgnore]
     public Usuario? Usuario { get; set; }
 
-    // Adaptador para el contrato plano.
     public int? IdUsuario
     {
         get => Usuario?.ID;

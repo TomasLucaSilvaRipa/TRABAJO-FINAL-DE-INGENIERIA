@@ -43,9 +43,9 @@ public class MPPAnaliticaOperativa
         foreach (DataRow fila in tabla.Rows)
         {
             DestinatarioDesvioHoras destinatario = new DestinatarioDesvioHoras();
-            destinatario.IdUsuario = Convert.ToInt32(fila["ID"]);
-            destinatario.Nombre = Convert.ToString(fila["Nombre"]) ?? string.Empty;
-            destinatario.Email = Convert.ToString(fila["Email"]) ?? string.Empty;
+            destinatario.Usuario.ID = Convert.ToInt32(fila["ID"]);
+            destinatario.Usuario.Nombre = Convert.ToString(fila["Nombre"]) ?? string.Empty;
+            destinatario.Usuario.Email = Convert.ToString(fila["Email"]) ?? string.Empty;
             destinatarios.Add(destinatario);
         }
         return destinatarios;
@@ -196,9 +196,9 @@ public class MPPAnaliticaOperativa
         DataTable tabla = _conexion.Leer("dbo.usp_Analitica_ConsultarDestinatarioPM", parametros);
         if (tabla.Rows.Count == 0) { return null; }
         DestinatarioDesvioHoras destinatario = new DestinatarioDesvioHoras();
-        destinatario.IdUsuario = Convert.ToInt32(tabla.Rows[0]["ID"]);
-        destinatario.Nombre = Convert.ToString(tabla.Rows[0]["Nombre"]) ?? string.Empty;
-        destinatario.Email = Convert.ToString(tabla.Rows[0]["Email"]) ?? string.Empty;
+        destinatario.Usuario.ID = Convert.ToInt32(tabla.Rows[0]["ID"]);
+        destinatario.Usuario.Nombre = Convert.ToString(tabla.Rows[0]["Nombre"]) ?? string.Empty;
+        destinatario.Usuario.Email = Convert.ToString(tabla.Rows[0]["Email"]) ?? string.Empty;
         return destinatario;
     }
 

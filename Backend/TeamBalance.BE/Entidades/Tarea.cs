@@ -138,8 +138,6 @@ public partial class Tarea
 
     public List<AsignacionTarea> AsignacionTareas { get; set; } = new List<AsignacionTarea>();
 
-    // La relación existe en la base desde el modelo original. No representa otro tipo de usuario:
-    // cada elemento vincula esta tarea con un Empleado y sus horas planificadas.
     [NotMapped]
     public List<AsignacionTarea>? Asignaciones { get; set; }
 }

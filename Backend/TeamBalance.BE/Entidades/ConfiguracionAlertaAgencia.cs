@@ -4,7 +4,6 @@ public class ConfiguracionAlertaAgencia
     [System.Text.Json.Serialization.JsonIgnore]
     public Agencia Agencia { get; set; } = new();
 
-    // Adaptador para el contrato plano.
     public int IdAgencia
     {
         get => Agencia.ID;

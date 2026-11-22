@@ -18,7 +18,7 @@ public class MPPRiesgoRetraso
     {
         try
         {
-            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@IdProyecto", (object?)filtro.IdProyecto ?? DBNull.Value), new SqlParameter("@IdCliente", (object?)filtro.IdCliente ?? DBNull.Value), new SqlParameter("@IdPM", (object?)filtro.IdPM ?? DBNull.Value) };
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia), new SqlParameter("@IdProyecto", (object?)filtro.Proyecto?.ID ?? DBNull.Value), new SqlParameter("@IdCliente", (object?)filtro.Cliente?.ID ?? DBNull.Value), new SqlParameter("@IdPM", (object?)filtro.PM?.ID ?? DBNull.Value) };
             DataTable tabla = _conexion.Leer("dbo.usp_RiesgoRetraso_ConsultarProyectosActivos", parametros);
             List<Proyecto> proyectos = CrearProyectos(tabla);
             return proyectos;

@@ -11,15 +11,5 @@ public class AlertaOperativaEnvio
     public required Proyecto Proyecto { get; init; }
     public decimal Consumo { get; set; }
     public decimal Avance { get; set; }
-    public string NombreDestinatario
-    {
-        get => Destinatario.Nombre;
-        set => Destinatario.Nombre = value;
-    }
-    public string Email
-    {
-        get => Destinatario.Email;
-        set => Destinatario.Email = value;
-    }
     public string? SlackUserId { get; set; }
 }

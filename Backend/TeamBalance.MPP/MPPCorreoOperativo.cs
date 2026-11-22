@@ -52,10 +52,16 @@ public class MPPCorreoOperativo
         DataTable tabla = _conexion.Leer("dbo.usp_CorreoOperativo_ConsultarTareasEmpleado", new() { new("@IdUsuario", destinatario.Usuario.ID) });
         return tabla.Rows.Cast<DataRow>().Select(fila => new TareaResumenCorreo
         {
-            IdTarea = Convert.ToInt32(fila["IdTarea"]), Titulo = Convert.ToString(fila["Titulo"]) ?? string.Empty,
-            Proyecto = Convert.ToString(fila["Proyecto"]) ?? string.Empty, Estado = Convert.ToString(fila["Estado"]) ?? "Pendiente",
-            Prioridad = Convert.ToString(fila["Prioridad"]), Deadline = fila["Deadline"] == DBNull.Value ? null : Convert.ToDateTime(fila["Deadline"]),
-            PorcentajeAvance = Convert.ToDecimal(fila["PorcentajeAvance"])
+            Tarea = new Tarea
+            {
+                ID = Convert.ToInt32(fila["IdTarea"]),
+                Titulo = Convert.ToString(fila["Titulo"]) ?? string.Empty,
+                Estado = Convert.ToString(fila["Estado"]) ?? "Pendiente",
+                Prioridad = Convert.ToString(fila["Prioridad"]),
+                Deadline = fila["Deadline"] == DBNull.Value ? null : Convert.ToDateTime(fila["Deadline"]),
+                PorcentajeAvance = Convert.ToDecimal(fila["PorcentajeAvance"])
+            },
+            ProyectoRelacionado = new Proyecto { Nombre = Convert.ToString(fila["Proyecto"]) ?? string.Empty }
         }).ToList();
     }
 

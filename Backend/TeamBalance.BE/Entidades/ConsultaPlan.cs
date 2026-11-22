@@ -24,7 +24,6 @@ public class ConsultaPlan
     [System.Text.Json.Serialization.JsonIgnore]
     public PlanComercial PlanComercial { get; set; } = new();
 
-    // Adaptador para el contrato plano.
     public int IdPlanComercial
     {
         get => PlanComercial.ID;
@@ -41,7 +40,6 @@ public class ConsultaPlan
     [System.Text.Json.Serialization.JsonIgnore]
     public Usuario? UsuarioSoporte { get; set; }
 
-    // Adaptador para el contrato plano.
     public int? IdUsuarioSoporte
     {
         get => UsuarioSoporte?.ID;

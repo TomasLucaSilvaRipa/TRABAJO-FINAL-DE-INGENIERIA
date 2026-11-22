@@ -33,7 +33,7 @@ public class MPPRecursos
     {
         try
         {
-            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@Nombre", skill.Nombre), new SqlParameter("@IdAreaSkill", (object?)skill.IdAreaSkill ?? DBNull.Value) };
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@Nombre", skill.Nombre), new SqlParameter("@IdAreaSkill", (object?)skill.Area?.ID ?? DBNull.Value) };
             DataTable tabla = _conexion.Leer("dbo.usp_Skill_Registrar", parametros);
             List<Skill> skills = CrearSkills(tabla);
             Skill resultado = skills.Single();
@@ -46,7 +46,7 @@ public class MPPRecursos
     {
         try
         {
-            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@ID", skill.ID), new SqlParameter("@Nombre", skill.Nombre), new SqlParameter("@IdAreaSkill", skill.IdAreaSkill!.Value) };
+            List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@ID", skill.ID), new SqlParameter("@Nombre", skill.Nombre), new SqlParameter("@IdAreaSkill", skill.Area!.ID) };
             DataTable tabla = _conexion.Leer("dbo.usp_Skill_Modificar", parametros);
             return CrearSkills(tabla).Single();
         }
@@ -194,8 +194,13 @@ public class MPPRecursos
             {
                 Skill skill = new Skill(Convert.ToInt32(fila["ID"]), Convert.ToString(fila["Nombre"]) ?? string.Empty, Convert.ToString(fila["Categoria"]), Convert.ToBoolean(fila["Activo"]))
                 {
-                    IdAreaSkill = fila.Table.Columns.Contains("IdAreaSkill") && fila["IdAreaSkill"] != DBNull.Value ? Convert.ToInt32(fila["IdAreaSkill"]) : null,
-                    NombreArea = fila.Table.Columns.Contains("NombreArea") && fila["NombreArea"] != DBNull.Value ? Convert.ToString(fila["NombreArea"]) : null,
+                    Area = fila.Table.Columns.Contains("IdAreaSkill") && fila["IdAreaSkill"] != DBNull.Value
+                        ? new AreaSkill
+                        {
+                            ID = Convert.ToInt32(fila["IdAreaSkill"]),
+                            Nombre = fila.Table.Columns.Contains("NombreArea") ? (fila["NombreArea"] as string)! : null!
+                        }
+                        : null,
                 };
                 skills.Add(skill);
             }

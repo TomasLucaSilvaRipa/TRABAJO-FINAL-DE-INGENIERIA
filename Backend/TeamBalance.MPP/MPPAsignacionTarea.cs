@@ -73,7 +73,12 @@ public class MPPAsignacionTarea
     public List<AsignacionTarea> Sincronizar(Tarea tarea, IEnumerable<AsignacionTarea> asignaciones, Usuario usuario)
     {
         List<AsignacionTareaSincronizacion> datosAsignaciones = asignaciones.Select(item => new AsignacionTareaSincronizacion(item)).ToList();
-        string json = JsonSerializer.Serialize(datosAsignaciones);
+        string json = JsonSerializer.Serialize(datosAsignaciones.Select(item => new
+        {
+            IdEmpleado = item.Empleado.ID,
+            item.HorasAsignadas,
+            item.Motivo
+        }));
 
         DataTable tabla = _conexion.Leer("dbo.usp_AsignacionTarea_Sincronizar", new List<SqlParameter>
         {

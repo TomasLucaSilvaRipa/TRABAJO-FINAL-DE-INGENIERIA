@@ -204,11 +204,11 @@ internal static class AnaliticaOperativaResponse
         ComposicionCosto = resultado.ComposicionCosto.Select(costo => new
         {
             IdTarea = costo.Tarea.ID,
-            IdEmpleado = costo.Empleado?.ID ?? costo.IdEmpleadoSinFicha!.Value,
+            IdEmpleado = costo.Empleado.ID,
             Tarea = costo.Tarea.Titulo,
-            Empleado = costo.Empleado?.Nombre ?? "Empleado sin costo configurado",
-            Seniority = costo.Empleado?.Seniority ?? "Sin datos",
-            CostoHora = costo.Empleado?.CostoHora ?? 0m,
+            Empleado = costo.Empleado.Nombre ?? "Empleado sin costo configurado",
+            Seniority = costo.Empleado.Seniority ?? "Sin datos",
+            CostoHora = costo.Empleado.CostoHora,
             costo.HorasPlanificadas,
             costo.HorasReales,
             costo.CostoPlanificado,

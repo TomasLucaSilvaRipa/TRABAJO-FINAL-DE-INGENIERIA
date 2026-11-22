@@ -30,14 +30,14 @@ public class CorreosOperativosController : ControllerBase
     [HttpGet("acciones/{token}")]
     public IActionResult ConsultarAccion(string token)
     {
-        try { return Ok(_correoBLL.ConsultarAccion(token)); }
+        try { return Ok(ProyectarAccion(_correoBLL.ConsultarAccion(token))); }
         catch (ArgumentException ex) { return NotFound(ex.Message); }
     }
 
     [HttpPost("acciones/{token}")]
     public IActionResult EjecutarAccion(string token)
     {
-        try { return Ok(_correoBLL.EjecutarAccion(token)); }
+        try { return Ok(ProyectarAccion(_correoBLL.EjecutarAccion(token))); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
@@ -49,4 +49,15 @@ public class CorreosOperativosController : ControllerBase
         string token = authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? authorization[7..].Trim() : string.Empty;
         return _usuarioBLL.ConsultarUsuarioSesion(token) ?? throw new UnauthorizedAccessException("Tu sesión ya no es válida. Volvé a iniciar sesión.");
     }
+    private static object ProyectarAccion(TeamBalance.BE.Entidades.AccionCorreoTarea accion) => new
+    {
+        accion.TokenHash,
+        IdUsuario = accion.Usuario.ID,
+        IdTarea = accion.Tarea.ID,
+        accion.Accion,
+        TituloTarea = accion.Tarea.Titulo,
+        proyecto = accion.ProyectoRelacionado?.Nombre ?? string.Empty,
+        accion.FechaExpiracion,
+        accion.Disponible,
+    };
 }

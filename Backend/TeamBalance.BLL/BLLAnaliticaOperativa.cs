@@ -185,7 +185,7 @@ public class BLLAnaliticaOperativa
         solicitud.AccionSugerida = detalle.Empleado.AccionSugerida;
         solicitud.ID = _analiticaMPP.RegistrarSolicitudRevision(solicitud);
         DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(new PM { ID = solicitud.IdPMResponsable });
-        bool correoEnviado = destinatario is not null && await _emailService.EnviarCorreoSolicitudRevisionOperativa(new SolicitudRevisionCorreo { Destinatario = destinatario, NombreEmpleado = detalle.Empleado.Empleado.Nombre, NombreProyecto = tarea.Proyecto.Nombre, CausaPrincipal = solicitud.CausaPrincipal, AccionSugerida = solicitud.AccionSugerida });
+        bool correoEnviado = destinatario is not null && await _emailService.EnviarCorreoSolicitudRevisionOperativa(new SolicitudRevisionCorreo { Destinatario = destinatario, Empleado = detalle.Empleado.Empleado, Proyecto = tarea.Proyecto, CausaPrincipal = solicitud.CausaPrincipal, AccionSugerida = solicitud.AccionSugerida });
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "SolicitudRevisionOperativa", solicitud.ID, "SolicitarRevisionOperativa", "Se derivó una revisión operativa del empleado '" + detalle.Empleado.Empleado.Nombre + "' al PM responsable.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia", "Proyectos"));
     }
 
@@ -324,7 +324,7 @@ public class BLLAnaliticaOperativa
         };
         solicitud.ID = _analiticaMPP.RegistrarSolicitudRevisionGestion(solicitud);
         DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(new PM { ID = solicitud.IdPMResponsable });
-        bool correoEnviado = destinatario is not null && !string.IsNullOrWhiteSpace(destinatario.Email) && await _emailService.EnviarCorreoSolicitudRevisionGestion(new SolicitudRevisionCorreo { Destinatario = destinatario, Tipo = "control de horas", NombreProyecto = contexto.Proyecto.Nombre, TituloTarea = tarea?.Titulo, CausaPrincipal = solicitud.CausaPrincipal, AccionSugerida = solicitud.AccionSugerida });
+        bool correoEnviado = destinatario is not null && !string.IsNullOrWhiteSpace(destinatario.Usuario.Email) && await _emailService.EnviarCorreoSolicitudRevisionGestion(new SolicitudRevisionCorreo { Destinatario = destinatario, Tipo = "control de horas", Proyecto = contexto.Proyecto, Tarea = tarea, CausaPrincipal = solicitud.CausaPrincipal, AccionSugerida = solicitud.AccionSugerida });
         string entidad = accion.IdTarea.HasValue ? "Tarea" : "Proyecto";
         int idEntidad = accion.IdTarea ?? accion.IdProyecto;
         string resultado = correoEnviado ? "Exitoso" : "Parcial";
@@ -540,7 +540,7 @@ public class BLLAnaliticaOperativa
         };
         solicitud.ID = _analiticaMPP.RegistrarSolicitudRevision(solicitud);
         DestinatarioDesvioHoras? destinatario = _analiticaMPP.ConsultarDestinatarioPM(new PM { ID = solicitud.IdPMResponsable });
-        bool correoEnviado = destinatario is not null && await _emailService.EnviarCorreoSolicitudRevisionOperativa(new SolicitudRevisionCorreo { Destinatario = destinatario, NombreEmpleado = detalle.Empleado.Nombre, NombreProyecto = detalle.Proyecto.Nombre, CausaPrincipal = solicitud.CausaPrincipal, AccionSugerida = solicitud.AccionSugerida });
+        bool correoEnviado = destinatario is not null && await _emailService.EnviarCorreoSolicitudRevisionOperativa(new SolicitudRevisionCorreo { Destinatario = destinatario, Empleado = detalle.Empleado, Proyecto = detalle.Proyecto, CausaPrincipal = solicitud.CausaPrincipal, AccionSugerida = solicitud.AccionSugerida });
         _bitacoraBLL.Add(new Bitacora(usuario.ID, usuario.IdAgencia, "SolicitudRevisionOperativa", solicitud.ID, "SolicitarRevisionSobrecalificacion", $"Se derivó al PM la revisión de una asignación sobrecalificada de '{detalle.Empleado.Nombre}' en la tarea '{detalle.Tarea.Titulo}'.", correoEnviado ? "Exitoso" : "Parcial", correoEnviado ? "Informacion" : "Advertencia", "Proyectos"));
     }
 
@@ -818,8 +818,7 @@ public class BLLAnaliticaOperativa
         ComposicionCostoOperativo componente = new ComposicionCostoOperativo
         {
             Tarea = tarea,
-            Empleado = empleado,
-            IdEmpleadoSinFicha = empleado is null ? idEmpleado : null,
+            Empleado = empleado ?? new Empleado { ID = idEmpleado },
             CostoNoConfigurado = empleado is null || empleado.CostoHora <= 0
         };
         componentes.Add(clave, componente);

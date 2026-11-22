@@ -33,38 +33,5 @@ public partial class Skill
     [JsonIgnore, ReferenciaInterna]
     public AreaSkill? Area { get; set; }
 
-    public int? IdAreaSkill
-    {
-        get => Area?.ID;
-        set
-        {
-            if (value is int id)
-            {
-                if (Area?.ID != id)
-                    Area = new() { ID = id, Nombre = NombreArea! };
-            }
-            else
-            {
-                _nombreAreaSinReferencia = NombreArea;
-                Area = null;
-            }
-        }
-    }
-
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    private string? _nombreAreaSinReferencia;
-
-    public string? NombreArea
-    {
-        get => Area is null ? _nombreAreaSinReferencia : Area.Nombre;
-        set
-        {
-            if (Area is null)
-                _nombreAreaSinReferencia = value;
-            else
-                Area.Nombre = value!;
-        }
-    }
-
     public bool Activo { get; set; }
 }

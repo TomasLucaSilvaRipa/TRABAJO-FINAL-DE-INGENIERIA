@@ -85,8 +85,8 @@ public class BLLCorreoOperativo
             if (tareas.Count == 0) { envio.Enviado = true; _correoMPP.CompletarEnvio(envio); return 0; }
             foreach (TareaResumenCorreo tarea in tareas)
             {
-                tarea.TokenEnProgreso = CrearToken(destinatario.Usuario.ID, tarea.IdTarea, "En progreso", ahora.AddHours(36));
-                tarea.TokenFinalizada = CrearToken(destinatario.Usuario.ID, tarea.IdTarea, "Finalizada", ahora.AddHours(36));
+                tarea.TokenEnProgreso = CrearToken(destinatario.Usuario.ID, tarea.Tarea.ID, "En progreso", ahora.AddHours(36));
+                tarea.TokenFinalizada = CrearToken(destinatario.Usuario.ID, tarea.Tarea.ID, "Finalizada", ahora.AddHours(36));
             }
             bool enviado = await _emailService.EnviarResumenDiarioTareas(destinatario, tareas);
             envio.Enviado = enviado;
@@ -100,7 +100,7 @@ public class BLLCorreoOperativo
     private async Task<int> EnviarAlertasDeadline(DestinatarioCorreoOperativo destinatario, DateTime ahora)
     {
         List<TareaResumenCorreo> tareas = _correoMPP.ConsultarTareas(destinatario)
-            .Where(tarea => tarea.Deadline.HasValue && tarea.Deadline.Value.Date >= ahora.Date && tarea.Deadline.Value.Date <= ahora.Date.AddDays(2)).ToList();
+            .Where(tarea => tarea.Tarea.Deadline.HasValue && tarea.Tarea.Deadline.Value.Date >= ahora.Date && tarea.Tarea.Deadline.Value.Date <= ahora.Date.AddDays(2)).ToList();
         if (tareas.Count == 0) return 0;
         string clave = $"alerta-deadline:{destinatario.Usuario.ID}:{ahora:yyyyMMdd}";
         EnvioCorreoOperativo envio = new() { Clave = clave, Destinatario = destinatario, Tipo = "AlertaDeadline" };

@@ -1,6 +1,5 @@
 namespace TeamBalance.BE.Entidades;
 
-// Resultado transitorio: se recalcula en cada consulta y no se persiste.
 public class CargaOperativaEmpleado
 {
     public CargaOperativaEmpleado(Empleado empleado)
