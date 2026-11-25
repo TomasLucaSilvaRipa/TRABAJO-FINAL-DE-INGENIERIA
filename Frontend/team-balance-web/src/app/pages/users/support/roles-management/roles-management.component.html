@@ -15,11 +15,11 @@
 </header>
 
   @if (error()) {
-    <p class="tb-roles-feedback tb-roles-feedback--error rounded-xl border p-4">{{ error() }}</p>
+    <p class="tb-roles-feedback tb-roles-feedback--error rounded-xl border p-4" role="alert" data-localization-ignore>{{ localization.traducir(error()) }}</p>
   }
 
   @if (mensaje()) {
-    <p class="tb-roles-feedback tb-roles-feedback--success rounded-xl border p-4">{{ mensaje() }}</p>
+    <p class="tb-roles-feedback tb-roles-feedback--success rounded-xl border p-4" role="status" data-localization-ignore>{{ localization.traducir(mensaje()) }}</p>
   }
 
   <section class="tb-roles-panel rounded-2xl border p-6">

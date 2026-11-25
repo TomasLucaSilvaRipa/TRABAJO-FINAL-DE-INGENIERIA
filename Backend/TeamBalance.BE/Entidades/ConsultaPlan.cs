@@ -21,7 +21,7 @@ public class ConsultaPlan
     }
 
     public int ID { get; set; }
-    [System.Text.Json.Serialization.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore, ReferenciaInterna]
     public PlanComercial PlanComercial { get; set; } = new();
 
     public int IdPlanComercial

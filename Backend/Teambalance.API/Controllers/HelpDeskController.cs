@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Teambalance.API.Models;
 using TeamBalance.BE.Entidades;
 using TeamBalance.BLL;
 
@@ -32,7 +33,7 @@ public sealed class HelpDeskController : ControllerBase
     }
 
     [HttpGet("consultas/{ID:int}")]
-    public IActionResult Detalle([FromRoute] ConsultaSoporteResumen consulta)
+    public IActionResult Detalle([ReferenciaHttp("ID")] ConsultaSoporteResumen consulta)
     {
         return Ejecutar(() =>
         {
@@ -42,7 +43,7 @@ public sealed class HelpDeskController : ControllerBase
     }
 
     [HttpPost("consultas/{ID:int}/mensajes")]
-    public async Task<IActionResult> Mensaje([FromRoute] ConsultaSoporteResumen consulta, [FromBody] EnviarMensajeSoporteRequest solicitud)
+    public async Task<IActionResult> Mensaje([ReferenciaHttp("ID")] ConsultaSoporteResumen consulta, [FromBody] EnviarMensajeSoporteRequest solicitud)
     {
         try
         {
@@ -54,7 +55,7 @@ public sealed class HelpDeskController : ControllerBase
     }
 
     [HttpPost("consultas/{ID:int}/cerrar")]
-    public IActionResult Cerrar([FromRoute] ConsultaSoporteResumen consulta)
+    public IActionResult Cerrar([ReferenciaHttp("ID")] ConsultaSoporteResumen consulta)
     {
         return Ejecutar(() =>
         {
@@ -64,7 +65,7 @@ public sealed class HelpDeskController : ControllerBase
     }
 
     [HttpPost("consultas/{ID:int}/estado")]
-    public IActionResult CambiarEstado([FromRoute] ConsultaSoporteResumen consulta, [FromBody] CambiarEstadoConsultaRequest solicitud)
+    public IActionResult CambiarEstado([ReferenciaHttp("ID")] ConsultaSoporteResumen consulta, [FromBody] CambiarEstadoConsultaRequest solicitud)
     {
         return Ejecutar(() =>
         {
@@ -75,7 +76,7 @@ public sealed class HelpDeskController : ControllerBase
     }
 
     [HttpGet("bandeja")]
-    public IActionResult Bandeja([FromQuery] ConsultaSoporteResumen filtro)
+    public IActionResult Bandeja([ReferenciaHttp("estado", nameof(ConsultaSoporteResumen.Estado), consulta: true)] ConsultaSoporteResumen filtro)
     {
         return Ejecutar(() =>
         {
@@ -88,7 +89,7 @@ public sealed class HelpDeskController : ControllerBase
     }
 
     [HttpPost("consultas-plan/{ID:int}/respuesta")]
-    public IActionResult ResponderConsultaPlan([FromRoute] ConsultaPlan consulta, [FromBody] ConsultaPlan solicitud)
+    public IActionResult ResponderConsultaPlan([ReferenciaHttp("ID")] ConsultaPlan consulta, [FromBody] ConsultaPlan solicitud)
     {
         return Ejecutar(() =>
         {

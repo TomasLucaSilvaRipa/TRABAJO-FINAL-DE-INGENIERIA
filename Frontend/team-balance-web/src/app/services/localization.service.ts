@@ -1378,7 +1378,9 @@ export class LocalizationService {
 
   traducir(key: string, language: LanguageCode = this.language(), fallback?: string): string {
     const remoto = this.idiomasRemotos().find((idioma) => idioma.codigo === language)?.traducciones?.[key];
-    return remoto || this.traduccionFrancesBase(key, language) || this.translations[language]?.[key] || managementTranslations[language as 'es' | 'en']?.[key] || legacyStaticTranslations[language as 'es' | 'en']?.[key] || publicPageTranslations[language]?.[key] || privatePageTranslations[language]?.[key]
+    if (typeof remoto === 'string' && remoto.trim() && remoto.trim() !== key) return remoto;
+
+    return this.traduccionFrancesBase(key, language) || this.translations[language]?.[key] || managementTranslations[language as 'es' | 'en']?.[key] || legacyStaticTranslations[language as 'es' | 'en']?.[key] || publicPageTranslations[language]?.[key] || privatePageTranslations[language]?.[key]
       || this.translations['en'][key] || managementTranslations.en[key] || legacyStaticTranslations.en[key] || publicPageTranslations['en']?.[key] || privatePageTranslations['en'][key] || privatePageTranslations['es'][key] || fallback || key;
   }
 

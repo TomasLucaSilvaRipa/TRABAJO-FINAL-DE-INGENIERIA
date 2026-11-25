@@ -111,14 +111,18 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
     }, duracion);
   }
 
-  protected etiquetaEscala(): string { return this.escala === 'adaptada' ? 'Usar escala completa' : 'Usar escala adaptada'; }
+  protected etiquetaEscala(): string {
+    return this.localization.traducir(this.escala === 'adaptada' ? 'reports.occupancy.fullScale' : 'reports.occupancy.adaptedScale');
+  }
   protected tituloNivel(): string { return this.proyecto ? this.localization.traducir('static.assignedEmployeesTitle') : this.localization.traducir('static.occupancyLandscapeTitle'); }
   protected descripcionNivel(): string {
     return this.proyecto
-      ? `${this.proyecto.nombreProyecto} · seleccioná un empleado para abrir sus tareas, diagnóstico y revisión.`
-      : 'Cada pico es el coeficiente ponderado de ocupación de los empleados asignados al proyecto. Ordenado por horas planificadas activas.';
+      ? `${this.proyecto.nombreProyecto} · ${this.localization.traducir('reports.occupancy.projectDescription')}`
+      : this.localization.traducir('reports.occupancy.overviewDescription');
   }
-  protected leyendaEscala(): string { return this.escala === 'adaptada' ? 'Escala adaptada: amplía diferencias reales del alcance actual.' : 'Escala completa: referencia desde 0% y umbrales operativos.'; }
+  protected leyendaEscala(): string {
+    return this.localization.traducir(this.escala === 'adaptada' ? 'reports.occupancy.adaptedScaleHelp' : 'reports.occupancy.fullScaleHelp');
+  }
   protected hayNodos(): boolean { return this.nodosActuales().some(nodo => nodo.valor !== null); }
 
   private inicializar(): void {
@@ -244,7 +248,7 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
     const lineaAlcance = this.proyecto ? `${this.localization.traducir('static.assignedHours')}: ${nodo.horas.toFixed(2)} h` : `${this.localization.traducir('static.activePlannedLoad')}: ${nodo.horas.toFixed(2)} h`;
     const contexto = this.proyecto ? `${this.localization.traducir('static.employeeCapacity')}: ${nodo.capacidad.toFixed(2)} h` : `${this.localization.traducir('static.employeesInvolved')}: ${nodo.participantes}`;
     const click = this.proyecto ? this.localization.traducir('static.clickTasksAction') : this.localization.traducir('static.clickProjectTeam');
-    const comparacion = nodo.simulado ? `<div style="margin:8px 0;color:#ffe7a6">Real: <b>${nodo.valorReal?.toFixed(2) ?? '—'}%</b> → Simulado: <b>${nodo.valor?.toFixed(2) ?? '—'}%</b></div>` : '';
+    const comparacion = nodo.simulado ? `<div style="margin:8px 0;color:#ffe7a6">${this.escaparHtml(this.localization.traducir('static.actual'))}: <b>${nodo.valorReal?.toFixed(2) ?? '—'}%</b> → ${this.escaparHtml(this.localization.traducir('reports.occupancy.simulated'))}: <b>${nodo.valor?.toFixed(2) ?? '—'}%</b></div>` : '';
     return `<div style="min-width:238px;line-height:1.55"><strong style="display:block;font-size:14px;margin-bottom:3px">${this.escaparHtml(nodo.nombre)}</strong><span style="display:block;color:#9fc5d2;margin-bottom:8px">${this.escaparHtml(nodo.cliente)}</span><b style="display:block;color:${this.colorEstado(nodo.estado)};margin-bottom:9px">${valor} · ${this.escaparHtml(this.localization.traducirTextoEstatico(nodo.estado))}</b>${comparacion}<div style="border-top:1px solid rgba(159,197,210,.35);padding-top:8px;margin-top:4px">${lineaAlcance}<br/>${contexto}</div><small style="display:block;margin-top:10px;color:#6ce5ff">${click}</small></div>`;
   }
 
@@ -277,7 +281,7 @@ export class OccupancyLandscapeComponent implements AfterViewInit, OnChanges, On
       dataZoom: nodos.length > 7 ? [{ type: 'inside', xAxisIndex: [0, 1], zoomOnMouseWheel: true, moveOnMouseMove: true }, { type: 'slider', xAxisIndex: [0, 1], height: 13, bottom: 19, borderColor: 'transparent', fillerColor: 'rgba(24,193,225,.27)', backgroundColor: 'rgba(129,194,212,.12)', handleStyle: { color: '#48d7ef', borderColor: '#baf7ff' } }] : [],
       series: [
         { id: 'paisaje-ocupacion', type: 'line', xAxisIndex: 1, data: datosLinea, silent: true, tooltip: { show: false }, smooth: .36, smoothMonotone: 'x', connectNulls: false, showSymbol: false, z: 3, lineStyle: { width: 5, color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: '#57a6ff' }, { offset: .34, color: '#35d39b' }, { offset: .67, color: '#ffb11b' }, { offset: 1, color: '#ff5b70' }]), shadowBlur: 16, shadowColor: 'rgba(49,207,235,.38)' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(255,104,108,.34)' }, { offset: .35, color: 'rgba(255,178,29,.22)' }, { offset: .62, color: 'rgba(53,211,155,.18)' }, { offset: 1, color: 'rgba(69,157,255,.025)' }]) }, markArea: { silent: true, itemStyle: { opacity: .14 }, data: [[{ yAxis: 0, itemStyle: { color: '#317cc4' } }, { yAxis: 50 }], [{ yAxis: 50, itemStyle: { color: '#249d75' } }, { yAxis: 86 }], [{ yAxis: 86, itemStyle: { color: '#dc8d1d' } }, { yAxis: 100 }], [{ yAxis: 100, itemStyle: { color: '#d64e60' } }, { yAxis: dominio.max }]] }, markLine: { silent: true, symbol: 'none', label: { color: '#b8dce5', fontSize: 11, formatter: (parametro: { value: number }) => `${parametro.value}%` }, lineStyle: { type: 'dashed', color: 'rgba(199,235,242,.45)' }, data: [{ yAxis: 50 }, { yAxis: 86 }, { yAxis: 100 }] } },
-        { id: 'nodos-ocupacion', type: 'scatter', xAxisIndex: 1, symbol: 'circle', z: 6, data: nodos.map((nodo, indice) => ({ value: nodo.valor === null ? [indice, dominio.min] : [indice, nodo.valor], symbolSize: nodo.simulado ? 31 : 25, itemStyle: { color: this.colorEstado(nodo.estadoReal ?? nodo.estado), borderColor: nodo.simulado ? this.colorEstado(nodo.estadoSimulado ?? nodo.estado) : '#effdff', borderWidth: nodo.simulado ? 7 : this.proyectoResaltadoId === nodo.id ? 4 : 2, shadowBlur: nodo.simulado ? 34 : this.proyectoResaltadoId === nodo.id ? 30 : 18, shadowColor: nodo.simulado ? `${this.colorEstado(nodo.estadoSimulado ?? nodo.estado)}ee` : `${this.colorEstado(nodo.estado)}c7`, opacity: nodo.valor === null ? .45 : 1 } })), symbolSize: 25, label: { show: true, position: 'top', distance: 11, formatter: (evento: { dataIndex: number }) => `{node|${nombres[evento.dataIndex]}}\n{value|${nodos[evento.dataIndex]?.valor?.toFixed(1) ?? '—'}%${nodos[evento.dataIndex]?.simulado ? ' · SIMULADO' : ''}}`, rich: { node: { color: '#f0feff', fontWeight: 800, backgroundColor: '#10364a', borderColor: '#3e89a5', borderWidth: 1, borderRadius: 8, padding: [4, 7] }, value: { color: '#8fc9d7', fontSize: 10, lineHeight: 17 } } }, emphasis: { scale: 1.48, focus: 'series', itemStyle: { shadowBlur: 32 }, label: { show: true } } },
+        { id: 'nodos-ocupacion', type: 'scatter', xAxisIndex: 1, symbol: 'circle', z: 6, data: nodos.map((nodo, indice) => ({ value: nodo.valor === null ? [indice, dominio.min] : [indice, nodo.valor], symbolSize: nodo.simulado ? 31 : 25, itemStyle: { color: this.colorEstado(nodo.estadoReal ?? nodo.estado), borderColor: nodo.simulado ? this.colorEstado(nodo.estadoSimulado ?? nodo.estado) : '#effdff', borderWidth: nodo.simulado ? 7 : this.proyectoResaltadoId === nodo.id ? 4 : 2, shadowBlur: nodo.simulado ? 34 : this.proyectoResaltadoId === nodo.id ? 30 : 18, shadowColor: nodo.simulado ? `${this.colorEstado(nodo.estadoSimulado ?? nodo.estado)}ee` : `${this.colorEstado(nodo.estado)}c7`, opacity: nodo.valor === null ? .45 : 1 } })), symbolSize: 25, label: { show: true, position: 'top', distance: 11, formatter: (evento: { dataIndex: number }) => `{node|${nombres[evento.dataIndex]}}\n{value|${nodos[evento.dataIndex]?.valor?.toFixed(1) ?? '—'}%${nodos[evento.dataIndex]?.simulado ? ' · ' + this.localization.traducir('reports.occupancy.simulated').toLocaleUpperCase() : ''}}`, rich: { node: { color: '#f0feff', fontWeight: 800, backgroundColor: '#10364a', borderColor: '#3e89a5', borderWidth: 1, borderRadius: 8, padding: [4, 7] }, value: { color: '#8fc9d7', fontSize: 10, lineHeight: 17 } } }, emphasis: { scale: 1.48, focus: 'series', itemStyle: { shadowBlur: 32 }, label: { show: true } } },
       ],
     }, { notMerge: true, lazyUpdate: false });
   }

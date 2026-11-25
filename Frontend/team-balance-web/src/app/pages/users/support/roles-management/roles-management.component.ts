@@ -17,6 +17,10 @@ export class RolManagement {
   readonly editando = signal<Rol | null>(null);
   readonly error = signal('');
   readonly mensaje = signal('');
+  private readonly permisosInternos = new Set([
+    'consultarbitacora', 'gestionarplanes', 'gestionarbandejasoporte', 'gestionarnovedades', 'gestionarfaqs',
+    'gestionarencuestas', 'gestionaroperadores', 'gestionarrespaldos', 'consultaringresosplataforma', 'gestionaridiomas',
+  ]);
   readonly form = this.formBuilder.group({ nombre: ['', Validators.required], descripcion: [''], tipoUsuario: ['', Validators.required] });
   readonly tiposUsuario: { value: TipoUsuarioRol; label: string; description: string }[] = [
     { value: 'Dueno', label: 'roles.owner', description: 'roles.ownerHelp' },
@@ -28,26 +32,36 @@ export class RolManagement {
 
   constructor() { this.cargar(); }
 
-  cargar(): void { forkJoin({ roles: this.rolesService.consultarRoles(), permisos: this.rolesService.consultarPermisos() }).subscribe({ next: ({ roles, permisos }) => { this.roles.set(roles); this.permisos.set(permisos); }, error: () => this.error.set('No fue posible cargar roles y permisos.') }); }
-  editar(rol: Rol): void { this.editando.set(rol); this.permisosSeleccionados.set(rol.permisos.filter(permiso => rol.tipoUsuario === 'Soporte' || !this.permisosInternosSoporte().includes(permiso.codigo)).map(permiso => permiso.id)); this.form.patchValue({ nombre: rol.nombre, descripcion: rol.descripcion ?? '', tipoUsuario: rol.tipoUsuario }); }
+  cargar(): void { forkJoin({ roles: this.rolesService.consultarRoles(), permisos: this.rolesService.consultarPermisos() }).subscribe({ next: ({ roles, permisos }) => { this.roles.set(roles); this.permisos.set(permisos); }, error: () => this.error.set('roles.loadFailed') }); }
+  editar(rol: Rol): void { this.editando.set(rol); this.form.patchValue({ nombre: rol.nombre, descripcion: rol.descripcion ?? '', tipoUsuario: rol.tipoUsuario }); this.permisosSeleccionados.set(rol.permisos.filter(permiso => this.puedeAsignarPermiso(permiso)).map(permiso => permiso.id)); }
   cancelar(): void { this.editando.set(null); this.permisosSeleccionados.set([]); this.form.reset({ tipoUsuario: '' }); }
   cambiarPermiso(idPermiso: number, seleccionado: boolean): void { this.permisosSeleccionados.update(permisos => seleccionado ? [...new Set([...permisos, idPermiso])] : permisos.filter(id => id !== idPermiso)); }
-  puedeAsignarPermiso(permiso: Permiso): boolean { return this.permisosInternosSoporte().indexOf(permiso.codigo) < 0 || this.form.controls.tipoUsuario.value === 'Soporte'; }
-  cambiarTipoUsuario(tipoUsuario: TipoUsuarioRol): void { this.form.controls.tipoUsuario.setValue(tipoUsuario); if (tipoUsuario !== 'Soporte') { for (const permiso of this.permisos().filter(item => this.permisosInternosSoporte().includes(item.codigo))) this.cambiarPermiso(permiso.id, false); } }
+  puedeAsignarPermiso(permiso: Permiso): boolean {
+    return !this.permisosInternos.has(permiso.codigo.toLowerCase()) ||
+      (this.authService.esSoporte() && this.form.controls.tipoUsuario.value === 'Soporte');
+  }
+  cambiarTipoUsuario(tipoUsuario: TipoUsuarioRol): void {
+    this.form.controls.tipoUsuario.setValue(tipoUsuario);
+    const visibles = new Set(this.permisos().filter(permiso => this.puedeAsignarPermiso(permiso)).map(permiso => permiso.id));
+    this.permisosSeleccionados.update(permisos => permisos.filter(id => visibles.has(id)));
+  }
   guardar(): void {
     this.error.set(''); this.mensaje.set('');
     const datos = this.form.getRawValue();
     const tipoUsuario = datos.tipoUsuario as TipoUsuarioRol;
-    const permisosValidos = this.permisos().filter(permiso => this.permisosSeleccionados().includes(permiso.id) && (tipoUsuario === 'Soporte' || !this.permisosInternosSoporte().includes(permiso.codigo)));
-    if (this.form.invalid || permisosValidos.length === 0) { this.error.set('Completá el nombre, el tipo de usuario y asigná al menos un permiso permitido para ese tipo de rol.'); return; }
+    const permisosValidos = this.permisos().filter(permiso => this.permisosSeleccionados().includes(permiso.id) && this.puedeAsignarPermiso(permiso));
+    if (this.form.invalid || permisosValidos.length === 0) { this.error.set('roles.invalidSelection'); return; }
     const rol: Rol = { id: this.editando()?.id ?? 0, idAgencia: this.editando()?.idAgencia ?? null, nombre: datos.nombre ?? '', descripcion: datos.descripcion, tipoUsuario, esRolBase: false, activo: true, permisos: permisosValidos };
     if (this.editando())
     {
-      this.rolesService.modificarRol(rol).subscribe({ next: () => { this.mensaje.set('Rol guardado correctamente.'); this.cancelar(); this.cargar(); }, error: (respuesta: { error?: string }) => this.error.set(respuesta.error || 'No fue posible guardar el rol.') });
+      this.rolesService.modificarRol(rol).subscribe({ next: () => { this.mensaje.set('roles.saved'); this.cancelar(); this.cargar(); }, error: (respuesta: { error?: unknown }) => this.mostrarErrorGuardado(respuesta) });
       return;
     }
-    this.rolesService.registrarRol(rol).subscribe({ next: () => { this.mensaje.set('Rol guardado correctamente.'); this.cancelar(); this.cargar(); }, error: (respuesta: { error?: string }) => this.error.set(respuesta.error || 'No fue posible guardar el rol.') });
+    this.rolesService.registrarRol(rol).subscribe({ next: () => { this.mensaje.set('roles.saved'); this.cancelar(); this.cargar(); }, error: (respuesta: { error?: unknown }) => this.mostrarErrorGuardado(respuesta) });
   }
-  cambiarEstado(rol: Rol): void { this.rolesService.cambiarEstado({ ...rol, activo: !rol.activo }).subscribe({ next: () => this.cargar(), error: (respuesta: { error?: string }) => this.error.set(respuesta.error || 'No fue posible actualizar el rol.') }); }
-  private permisosInternosSoporte(): string[] { return ['ConsultarBitacora', 'GestionarPlanes', 'GestionarBandejaSoporte', 'GestionarNovedades', 'GestionarFaqs', 'GestionarEncuestas', 'GestionarOperadores', 'GestionarRespaldos']; }
+  cambiarEstado(rol: Rol): void { this.rolesService.cambiarEstado({ ...rol, activo: !rol.activo }).subscribe({ next: () => this.cargar(), error: () => this.error.set('roles.updateFailed') }); }
+  private mostrarErrorGuardado(respuesta: { error?: unknown }): void {
+    const esPermisoInterno = typeof respuesta.error === 'string' && /permisos internos de backoffice/i.test(respuesta.error);
+    this.error.set(esPermisoInterno ? 'roles.internalPermissionsOnly' : 'roles.saveFailed');
+  }
 }

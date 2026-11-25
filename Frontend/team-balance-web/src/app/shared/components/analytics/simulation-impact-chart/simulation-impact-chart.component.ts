@@ -1,8 +1,9 @@
-import { AfterViewInit, Component, ElementRef, Input, OnChanges, OnDestroy, SimpleChanges, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, inject, Input, OnChanges, OnDestroy, SimpleChanges, ViewChild } from '@angular/core';
 import { LineChart, ScatterChart } from 'echarts/charts';
 import { AriaComponent, DataZoomComponent, GridComponent, MarkAreaComponent, MarkLineComponent, TooltipComponent } from 'echarts/components';
 import * as echarts from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
+import { LocalizationService } from '../../../../services/localization.service';
 
 echarts.use([LineChart, ScatterChart, AriaComponent, DataZoomComponent, GridComponent, MarkAreaComponent, MarkLineComponent, TooltipComponent, CanvasRenderer]);
 
@@ -27,6 +28,7 @@ export interface EscenarioVisualSimulacion {
   styleUrl: './simulation-impact-chart.component.css',
 })
 export class SimulationImpactChartComponent implements AfterViewInit, OnChanges, OnDestroy {
+  private readonly localization = inject(LocalizationService);
   @Input({ required: true }) escenarios: EscenarioVisualSimulacion[] = [];
   @ViewChild('chart') private readonly chartElement?: ElementRef<HTMLDivElement>;
 
@@ -36,6 +38,10 @@ export class SimulationImpactChartComponent implements AfterViewInit, OnChanges,
   ngAfterViewInit(): void { this.inicializar(); }
   ngOnChanges(changes: SimpleChanges): void { if (changes['escenarios'] && this.chart) { this.dibujar(); } }
   ngOnDestroy(): void { this.resizeObserver?.disconnect(); this.chart?.dispose(); }
+
+  texto(clave: string): string {
+    return this.localization.traducir(`private.impactSimulation.${clave}`);
+  }
 
   private inicializar(): void {
     if (!this.chartElement) { return; }
@@ -67,7 +73,7 @@ export class SimulationImpactChartComponent implements AfterViewInit, OnChanges,
       animationDurationUpdate: 760,
       animationEasing: 'cubicOut',
       animationEasingUpdate: 'cubicInOut',
-      aria: { enabled: true, description: 'Comparación de ocupación actual y proyectada de los candidatos simulados.' },
+      aria: { enabled: true, description: this.texto('chartAccessible') },
       grid: { left: 55, right: 42, top: 62, bottom: nombres.length > 6 ? 98 : 78, containLabel: true },
       tooltip: { trigger: 'item', backgroundColor: '#061a2c', borderColor: '#3d8ca9', borderWidth: 1, padding: 14, textStyle: { color: '#effdff' }, extraCssText: 'border-radius:14px;box-shadow:0 22px 52px rgba(0,0,0,.46);min-width:250px;', formatter: (evento: { dataIndex: number; seriesId?: string }) => this.tooltip(evento.dataIndex, evento.seriesId ?? '') },
       xAxis: {
@@ -82,7 +88,7 @@ export class SimulationImpactChartComponent implements AfterViewInit, OnChanges,
         type: 'value',
         min: 0,
         max: limite,
-        name: 'Ocupación semanal (%)',
+        name: this.texto('chartAxis'),
         nameTextStyle: { color: '#a6cad6', fontWeight: 700, padding: [0, 0, 6, 8] },
         axisLabel: { color: '#9fc6d1', formatter: '{value}%' },
         axisLine: { lineStyle: { color: '#4b7889' } },
@@ -99,13 +105,13 @@ export class SimulationImpactChartComponent implements AfterViewInit, OnChanges,
         {
           id: 'ocupacion-actual', type: 'scatter', symbol: 'circle', symbolSize: 19, z: 7,
           data: this.escenarios.map((escenario, indice) => ({ value: [indice, escenario.ocupacionActual], itemStyle: { color: '#6ed8ee', borderColor: '#e9fdff', borderWidth: 2, shadowBlur: 14, shadowColor: 'rgba(74,211,235,.65)' } })),
-          label: { show: true, position: 'left', distance: 10, formatter: (evento: { dataIndex: number }) => `{actual|Actual}\n{value|${this.escenarios[evento.dataIndex]?.ocupacionActual.toFixed(1)}%}`, rich: { actual: { color: '#bcebf2', fontSize: 10, fontWeight: 700 }, value: { color: '#ecfeff', fontSize: 11, fontWeight: 800, lineHeight: 17 } } },
+          label: { show: true, position: 'left', distance: 10, formatter: (evento: { dataIndex: number }) => `{actual|${this.texto('current')}}\n{value|${this.escenarios[evento.dataIndex]?.ocupacionActual.toFixed(1)}%}`, rich: { actual: { color: '#bcebf2', fontSize: 10, fontWeight: 700 }, value: { color: '#ecfeff', fontSize: 11, fontWeight: 800, lineHeight: 17 } } },
           emphasis: { scale: 1.35 },
         },
         {
           id: 'ocupacion-proyectada', type: 'scatter', symbol: 'circle', symbolSize: 29, z: 8,
           data: this.escenarios.map((escenario, indice) => ({ value: [indice, escenario.ocupacionProyectada], itemStyle: { color: 'rgba(7,31,48,.76)', borderColor: this.colorPorcentaje(escenario.ocupacionProyectada), borderWidth: 5, shadowBlur: 28, shadowColor: `${this.colorPorcentaje(escenario.ocupacionProyectada)}cc` } })),
-          label: { show: true, position: 'top', distance: 12, formatter: (evento: { dataIndex: number }) => `{projected|Proyectada ${this.escenarios[evento.dataIndex]?.ocupacionProyectada.toFixed(1)}%}${this.escenarios[evento.dataIndex]?.conservado ? '\n{saved|ESCENARIO CONSERVADO}' : ''}`, rich: { projected: { color: '#f0feff', fontWeight: 850, backgroundColor: '#10364a', borderColor: '#3e89a5', borderWidth: 1, borderRadius: 8, padding: [5, 8] }, saved: { color: '#62f0bd', fontSize: 9, fontWeight: 800, lineHeight: 22 } } },
+          label: { show: true, position: 'top', distance: 12, formatter: (evento: { dataIndex: number }) => `{projected|${this.texto('proyectada')} ${this.escenarios[evento.dataIndex]?.ocupacionProyectada.toFixed(1)}%}${this.escenarios[evento.dataIndex]?.conservado ? `\n{saved|${this.texto('savedScenario').toLocaleUpperCase()}}` : ''}`, rich: { projected: { color: '#f0feff', fontWeight: 850, backgroundColor: '#10364a', borderColor: '#3e89a5', borderWidth: 1, borderRadius: 8, padding: [5, 8] }, saved: { color: '#62f0bd', fontSize: 9, fontWeight: 800, lineHeight: 22 } } },
           emphasis: { scale: 1.42, itemStyle: { shadowBlur: 38 } },
         },
       ],
@@ -123,7 +129,7 @@ export class SimulationImpactChartComponent implements AfterViewInit, OnChanges,
     const escenario = this.escenarios[indice];
     if (!escenario) { return ''; }
     const escapar = (valor: string) => valor.replace(/[&<>"']/g, caracter => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[caracter] ?? caracter);
-    const foco = serie === 'ocupacion-actual' ? 'Carga actual' : 'Carga proyectada';
-    return `<div style="line-height:1.55"><strong style="display:block;font-size:15px;margin-bottom:3px">${escapar(escenario.nombreEmpleado)}</strong><span style="display:block;color:#9fc5d2;margin-bottom:8px">${escapar(escenario.nombreProyecto)} · ${escapar(escenario.nombreTarea)}</span><b style="display:block;color:${this.colorPorcentaje(escenario.ocupacionProyectada)};margin-bottom:9px">${escapar(foco)} · ${escapar(escenario.impacto)}</b><div style="border-top:1px solid rgba(159,197,210,.35);padding-top:8px">Actual: <b>${escenario.ocupacionActual.toFixed(2)}%</b> (${escenario.cargaActual.toFixed(2)} h)<br/>Proyectada: <b>${escenario.ocupacionProyectada.toFixed(2)}%</b> (${escenario.cargaProyectada.toFixed(2)} h)<br/>Disponibilidad restante: <b>${escenario.disponibilidadRestante.toFixed(2)} h</b></div></div>`;
+    const foco = this.texto(serie === 'ocupacion-actual' ? 'cargaActual' : 'projectedLoad');
+    return `<div style="line-height:1.55"><strong style="display:block;font-size:15px;margin-bottom:3px">${escapar(escenario.nombreEmpleado)}</strong><span style="display:block;color:#9fc5d2;margin-bottom:8px">${escapar(escenario.nombreProyecto)} · ${escapar(escenario.nombreTarea)}</span><b style="display:block;color:${this.colorPorcentaje(escenario.ocupacionProyectada)};margin-bottom:9px">${escapar(foco)} · ${escapar(escenario.impacto)}</b><div style="border-top:1px solid rgba(159,197,210,.35);padding-top:8px">${escapar(this.texto('current'))}: <b>${escenario.ocupacionActual.toFixed(2)}%</b> (${escenario.cargaActual.toFixed(2)} h)<br/>${escapar(this.texto('proyectada'))}: <b>${escenario.ocupacionProyectada.toFixed(2)}%</b> (${escenario.cargaProyectada.toFixed(2)} h)<br/>${escapar(this.texto('remainingCapacity'))}: <b>${escenario.disponibilidadRestante.toFixed(2)} h</b></div></div>`;
   }
 }

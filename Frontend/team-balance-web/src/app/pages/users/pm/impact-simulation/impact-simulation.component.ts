@@ -1,9 +1,11 @@
 import { DatePipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { BestFitService, RecomendacionBestFit } from '../../../../services/best-fit.service';
 import { ImpactSimulationService, SimulacionImpacto } from '../../../../services/impact-simulation.service';
+import { LocalizationService } from '../../../../services/localization.service';
 import { Tarea, TareaOpciones, TasksService } from '../../../../services/tasks.service';
 import { EscenarioVisualSimulacion, SimulationImpactChartComponent } from '../../../../shared/components/analytics/simulation-impact-chart/simulation-impact-chart.component';
 
@@ -18,6 +20,7 @@ export class ImpactSimulationComponent {
   private readonly tasksService = inject(TasksService);
   private readonly bestFitService = inject(BestFitService);
   private readonly route = inject(ActivatedRoute);
+  readonly localization = inject(LocalizationService);
 
   readonly tareas = signal<Tarea[]>([]);
   readonly empleados = signal<TareaOpciones['empleados']>([]);
@@ -33,14 +36,14 @@ export class ImpactSimulationComponent {
   readonly escenariosVisuales = computed<EscenarioVisualSimulacion[]>(() => this.escenarios().map(escenario => ({
     idEmpleado: escenario.idEmpleadoCandidato,
     nombreEmpleado: this.nombreEmpleado(escenario.idEmpleadoCandidato, escenario.nombreEmpleado),
-    nombreTarea: escenario.nombreTarea ?? this.tareas().find(tarea => tarea.id === escenario.idTarea)?.titulo ?? 'Tarea seleccionada',
-    nombreProyecto: escenario.nombreProyecto ?? 'Proyecto del PM',
+    nombreTarea: escenario.nombreTarea ?? this.tareas().find(tarea => tarea.id === escenario.idTarea)?.titulo ?? this.texto('selectedTask'),
+    nombreProyecto: escenario.nombreProyecto ?? this.texto('project'),
     ocupacionActual: Number(escenario.porcentajeOcupacionActual ?? 0),
     ocupacionProyectada: Number(escenario.porcentajeOcupacionProyectado ?? 0),
     cargaActual: Number(escenario.cargaActual ?? 0),
     cargaProyectada: Number(escenario.cargaProyectada ?? 0),
     disponibilidadRestante: Number(escenario.disponibilidadRestante ?? 0),
-    impacto: escenario.impactoOperativo ?? 'Sin clasificar',
+    impacto: this.impactoTraducido(escenario.impactoOperativo),
     conservado: escenario.id > 0,
   })));
 
@@ -60,7 +63,7 @@ export class ImpactSimulationComponent {
 
   simular(): void {
     if (!this.idTarea() || !this.idEmpleado()) {
-      this.error.set('Seleccioná una tarea pendiente y un recurso candidato.');
+      this.error.set('private.impactSimulation.selectTaskAndCandidate');
       return;
     }
 
@@ -69,7 +72,7 @@ export class ImpactSimulationComponent {
 
   usarRecursoBestFit(): void {
     if (!this.idTarea()) {
-      this.error.set('Seleccioná una tarea antes de consultar Best Fit.');
+      this.error.set('private.impactSimulation.selectTaskForBestFit');
       return;
     }
 
@@ -82,7 +85,7 @@ export class ImpactSimulationComponent {
         this.cargando.set(false);
 
         if (!recomendaciones.length) {
-          this.error.set('Best Fit no encontró recursos compatibles para esta tarea.');
+          this.error.set('private.impactSimulation.noBestFitCandidates');
           return;
         }
 
@@ -91,7 +94,7 @@ export class ImpactSimulationComponent {
       },
       error: (respuesta) => {
         this.cargando.set(false);
-        this.error.set(this.obtenerMensajeError(respuesta, 'No se pudieron obtener las sugerencias de Best Fit.'));
+        this.error.set(this.obtenerMensajeError(respuesta, 'bestFitError'));
       },
     });
   }
@@ -104,11 +107,11 @@ export class ImpactSimulationComponent {
       next: (resultado: SimulacionImpacto) => {
         this.reemplazarEscenario(resultado);
         this.cargando.set(false);
-        this.mensaje.set('Simulación generada correctamente. La tarea no fue asignada ni modificada.');
+        this.mensaje.set('private.impactSimulation.saveSuccess');
       },
       error: (respuesta) => {
         this.cargando.set(false);
-        this.error.set(this.obtenerMensajeError(respuesta, 'No se pudo conservar la simulación.'));
+        this.error.set(this.obtenerMensajeError(respuesta, 'saveError'));
       },
     });
   }
@@ -121,26 +124,67 @@ export class ImpactSimulationComponent {
       next: () => {
         this.escenarios.update((escenarios: SimulacionImpacto[]) => escenarios.filter((item: SimulacionImpacto) => item.idEmpleadoCandidato !== escenario.idEmpleadoCandidato));
         this.cargando.set(false);
-        this.mensaje.set('El escenario fue descartado. La tarea y las cargas reales permanecen sin cambios.');
+        this.mensaje.set('private.impactSimulation.discardSuccess');
       },
       error: (respuesta) => {
         this.cargando.set(false);
-        this.error.set(this.obtenerMensajeError(respuesta, 'No se pudo descartar la simulación.'));
+        this.error.set(this.obtenerMensajeError(respuesta, 'discardError'));
       },
     });
   }
 
   nombreEmpleado(idEmpleado: number, nombreGuardado?: string): string {
     const empleado = this.empleados().find((item) => item.id === idEmpleado);
-    return empleado ? `${empleado.nombre} ${empleado.apellido}` : nombreGuardado || 'Recurso seleccionado';
+    return empleado ? `${empleado.nombre} ${empleado.apellido}` : nombreGuardado || this.texto('selectedCandidate');
   }
 
   horasEstimadasTarea(escenario: SimulacionImpacto): number { return Number(this.tareas().find(tarea => tarea.id === escenario.idTarea)?.horasEstimadas ?? 0); }
 
+  texto(clave: string): string {
+    return this.localization.traducir(`private.impactSimulation.${clave}`);
+  }
+
+  impactoTraducido(valor?: string | null): string {
+    const claves: Record<string, string> = {
+      'sobrecarga': 'overload',
+      'capacidad comprometida': 'capacityAtRisk',
+      'viable': 'viable'
+    };
+    return this.texto(claves[valor?.trim().toLowerCase() ?? ''] ?? 'unclassified');
+  }
+
+  prioridadTraducida(valor?: string | null): string {
+    const claves: Record<string, string> = { baja: 'low', media: 'medium', alta: 'high' };
+    const clave = claves[valor?.trim().toLowerCase() ?? ''];
+    return clave ? this.localization.traducir(`taskManager.${clave}`) : valor || this.texto('undefined');
+  }
+
+  nivelCandidato(escenario: SimulacionImpacto): string {
+    if (!escenario.tieneSkillRequerida) return this.texto('skillMissing');
+    const nivel = escenario.nivelSkillCandidato?.trim();
+    const claves: Record<string, string> = {
+      'básico': 'levelBasic', basico: 'levelBasic', medio: 'levelIntermediate',
+      intermedio: 'levelIntermediate', avanzado: 'levelAdvanced'
+    };
+    const clave = claves[nivel?.toLowerCase() ?? ''];
+    return clave ? this.texto(clave) : nivel || this.texto('noSkillLevel');
+  }
+
   advertencias(escenario: SimulacionImpacto): string[] {
     try {
-      const advertencias = JSON.parse(escenario.advertenciasJson || '[]');
-      return Array.isArray(advertencias) ? advertencias : [];
+      const advertencias: unknown = JSON.parse(escenario.advertenciasJson || '[]');
+      if (!Array.isArray(advertencias)) return [];
+      return advertencias.filter((item): item is string => typeof item === 'string').map(item => {
+        const ausencia = /^El empleado tiene (\d+) día\(s\) de ausencia aprobada/i.exec(item);
+        if (ausencia) return this.texto('warningAbsence').replace('{days}', ausencia[1]);
+        const skill = /^El empleado no tiene registrada la skill requerida:\s*(.*)\.$/i.exec(item);
+        if (skill) return this.texto('warningSkill').replace('{skill}', () => skill[1]);
+        if (item.startsWith('La asignación supera')) return this.texto('warningOverload');
+        if (item.startsWith('La asignación deja')) return this.texto('warningCapacity');
+        if (item.startsWith('El deadline')) return this.texto('warningDeadline');
+        if (item.startsWith('Las horas estimadas')) return this.texto('warningDeadlineCapacity');
+        return item;
+      });
     }
     catch {
       return [];
@@ -162,14 +206,14 @@ export class ImpactSimulationComponent {
           this.cargarConservadas(idTareaRuta);
         }
       },
-      error: (respuesta) => this.error.set(this.obtenerMensajeError(respuesta, 'No se pudieron cargar las tareas pendientes del PM.')),
+      error: (respuesta) => this.error.set(this.obtenerMensajeError(respuesta, 'loadTasksError')),
     });
   }
 
   private cargarEmpleados(): void {
     this.tasksService.opciones().subscribe({
       next: (opciones: TareaOpciones) => this.empleados.set(opciones.empleados),
-      error: (respuesta) => this.error.set(this.obtenerMensajeError(respuesta, 'No se pudieron cargar los recursos.')),
+      error: (respuesta) => this.error.set(this.obtenerMensajeError(respuesta, 'loadCandidatesError')),
     });
   }
 
@@ -177,7 +221,7 @@ export class ImpactSimulationComponent {
     this.cargandoConservadas.set(true);
     this.simulationService.consultarConservadas(idTarea).subscribe({
       next: escenarios => { this.escenarios.set(escenarios); this.cargandoConservadas.set(false); },
-      error: respuesta => { this.cargandoConservadas.set(false); this.error.set(this.obtenerMensajeError(respuesta, 'No se pudieron recuperar los escenarios conservados.')); },
+      error: respuesta => { this.cargandoConservadas.set(false); this.error.set(this.obtenerMensajeError(respuesta, 'loadSavedError')); },
     });
   }
 
@@ -192,7 +236,7 @@ export class ImpactSimulationComponent {
       },
       error: (respuesta) => {
         this.cargando.set(false);
-        this.error.set(this.obtenerMensajeError(respuesta, 'No se pudo calcular el impacto.'));
+        this.error.set(this.obtenerMensajeError(respuesta, 'calculateError'));
       },
     });
   }
@@ -209,7 +253,21 @@ export class ImpactSimulationComponent {
     this.mensaje.set('');
   }
 
-  private obtenerMensajeError(respuesta: any, mensajePredeterminado: string): string {
-    return typeof respuesta?.error === 'string' ? respuesta.error : mensajePredeterminado;
+  private obtenerMensajeError(respuesta: HttpErrorResponse, alternativa: string): string {
+    const detalle = typeof respuesta.error === 'string' ? respuesta.error : '';
+    if (respuesta.status === 0) return 'projectForm.connection';
+    if (/sesi[oó]n ya no es v[aá]lida/i.test(detalle) || (respuesta.status === 401 && !detalle)) return 'projectForm.invalidSession';
+    if (/tarea no est[aá] disponible|no pertenece a uno de tus proyectos/i.test(detalle)) return 'private.impactSimulation.taskUnavailable';
+    if (respuesta.status === 401 || respuesta.status === 403) return 'projectForm.notAllowed';
+    if (/seleccion[aá] una tarea pendiente/i.test(detalle)) return 'private.impactSimulation.selectTaskAndCandidate';
+    if (/tarea seleccionada no es v[aá]lida/i.test(detalle)) return 'private.impactSimulation.invalidTask';
+    if (/no se encontr[oó] (el escenario|una simulaci[oó]n activa)/i.test(detalle)) return 'private.impactSimulation.scenarioNotFound';
+    if (/skill requerida/i.test(detalle)) return 'private.impactSimulation.bestFitSkillRequired';
+    if (/seniority requerido/i.test(detalle)) return 'private.impactSimulation.bestFitSeniorityRequired';
+    if (/fecha de inicio/i.test(detalle)) return 'private.impactSimulation.bestFitStartRequired';
+    if (/horas estimadas/i.test(detalle)) return 'private.impactSimulation.bestFitHoursRequired';
+    if (/deadline.*venci[oó]/i.test(detalle)) return 'private.impactSimulation.warningDeadline';
+    if (/debe tener un deadline/i.test(detalle)) return 'private.impactSimulation.bestFitDeadlineRequired';
+    return `private.impactSimulation.${alternativa}`;
   }
 }

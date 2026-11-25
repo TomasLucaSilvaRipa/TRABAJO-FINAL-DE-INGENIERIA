@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../../services/auth.service';
 import { AuthPageLayoutComponent } from '../../../shared/layout/auth-page-layout/auth-page-layout.component';
+import { LocalizationService } from '../../../services/localization.service';
 
 @Component({
   selector: 'app-forgot-password',
@@ -15,23 +16,25 @@ import { AuthPageLayoutComponent } from '../../../shared/layout/auth-page-layout
 export class ForgotPasswordComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  readonly localization = inject(LocalizationService);
 
   readonly submitting = signal(false);
   readonly requestError = signal('');
-  readonly responseMessage = signal('');
+  readonly enviado = signal(false);
 
   readonly forgotPasswordForm = this.formBuilder.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
   });
 
   onSubmit(): void {
+    if (this.submitting()) return;
     this.requestError.set('');
-    this.responseMessage.set('');
+    this.enviado.set(false);
     this.forgotPasswordForm.markAllAsTouched();
 
     if (this.forgotPasswordForm.invalid)
     {
-      this.requestError.set('Ingresá un email válido.');
+      this.requestError.set('forgotPassword.invalidEmail');
       return;
     }
 
@@ -40,8 +43,8 @@ export class ForgotPasswordComponent {
     this.authService.solicitarRecuperoPassword(this.forgotPasswordForm.getRawValue().email)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
-        next: (respuesta) => this.responseMessage.set(respuesta.mensaje),
-        error: (error) => this.requestError.set(typeof error.error === 'string' ? error.error : 'No fue posible procesar la solicitud. Intentá nuevamente.'),
+        next: () => this.enviado.set(true),
+        error: () => this.requestError.set('forgotPassword.error'),
       });
   }
 }

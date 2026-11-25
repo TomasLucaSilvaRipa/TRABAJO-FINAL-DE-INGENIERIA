@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, viewChild, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ArchivoAdjuntoTarea, EstadoTarea, Tarea, TasksService } from '../../../../services/tasks.service';
@@ -7,6 +7,7 @@ import { forkJoin, map } from 'rxjs';
 import { LocalizationService } from '../../../../services/localization.service';
 import { FocusTimerService } from '../../../../services/focus-timer.service';
 import { KanbanPaletteService } from '../../../../services/kanban-palette.service';
+import { WeeklyAchievementComponent } from '../../../../shared/components/weekly-achievement/weekly-achievement.component';
 
 interface ChecklistItem {
   texto: string;
@@ -21,12 +22,13 @@ interface ComentarioTarea {
 
 @Component({
   selector: 'app-kanban-board',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, WeeklyAchievementComponent],
   templateUrl: './KanbanBoard.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class KanbanBoard {
   @ViewChild('tablero') private tablero?: ElementRef<HTMLElement>;
+  private readonly logroSemanal = viewChild(WeeklyAchievementComponent);
   readonly paleta = inject(KanbanPaletteService);
   moverTablero(direccion: -1 | 1): void {
     const elemento = this.tablero?.nativeElement;
@@ -302,7 +304,9 @@ export class KanbanBoard {
     this.tasksService.actualizarAvancePropio({ ...tarea, idEstadoTarea: estadoConfigurado?.id ?? tarea.idEstadoTarea, estado, checklistJson: JSON.stringify(checklist), porcentajeAvance, motivoBloqueo: motivoBloqueo || null }).subscribe({
       next: resultado => {
         this.guardando.set(false);
+        const tareasAnteriores = this.tareasPropias();
         this.actualizarListaLocal(resultado);
+        this.logroSemanal()?.comprobarGuardado(tareasAnteriores, this.tareasPropias());
         this.tareaSeleccionada.set(resultado);
         this.checklist.set(this.leerChecklist(resultado.checklistJson));
         if (cerrar) {

@@ -8,25 +8,87 @@
     <button class="tb-action-button" type="button" (click)="nuevo()">{{localization.traducir('projects.new')}}</button>
   </header>
 
+  @if(error()){
+    <p class="rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert" data-localization-ignore>{{ localization.traducir(error()) }}</p>
+  }
+
   @if (mostrarFormulario()) {
     <section class="tb-panel tb-project-editor">
       <div class="tb-panel-heading"><h2>{{ form.controls.id.value ? localization.traducir('projects.edit') : localization.traducir('projects.new') }}</h2><button class="tb-link-button" type="button" (click)="mostrarFormulario.set(false)">{{localization.traducir('projects.close')}}</button></div>
       <form class="grid gap-4 md:grid-cols-2" [formGroup]="form" (ngSubmit)="guardar()">
-        <label class="tb-field-label">{{localization.traducir('common.name')}}<input formControlName="nombre" /></label>
-        <label class="tb-field-label">{{localization.traducir('projects.client')}}<div class="flex gap-2"><select formControlName="idCliente"><option [ngValue]="0">{{localization.traducir('projects.selectClient')}}</option>@for(c of opciones().clientes;track c.id){@if(c.activo){<option [ngValue]="c.id">{{c.nombre}}</option>}}</select><button class="tb-link-button" type="button" (click)="abrirCliente()">+ {{localization.traducir('projects.client')}}</button></div></label>
-        <label class="tb-field-label">{{localization.traducir('projects.pm')}}<select formControlName="idPMResponsable"><option [ngValue]="0">{{localization.traducir('projects.selectManager')}}</option>@for(r of opciones().responsables;track r.id){<option [ngValue]="r.id">{{r.nombre}} {{r.apellido}}</option>}</select></label>
-        <label class="tb-field-label">{{localization.traducir('projects.status')}}<select formControlName="estado"><option>{{localization.traducir('projects.planned')}}</option><option>{{localization.traducir('projects.inProgress')}}</option><option>{{localization.traducir('projects.completed')}}</option></select></label>
-        <label class="tb-field-label">{{localization.traducir('common.start')}}<input type="date" formControlName="fechaInicio" /></label>
-        <label class="tb-field-label">{{localization.traducir('common.deadline')}}<input type="date" formControlName="deadline" /></label>
-        <label class="tb-field-label">{{localization.traducir('common.hoursEstimated')}}<input type="number" formControlName="horasEstimadasTotales" /></label>
+        <label class="tb-field-label">{{localization.traducir('common.name')}}<input formControlName="nombre" maxlength="200" />
+          @if(form.controls.nombre.touched && form.controls.nombre.invalid) {
+            <span class="tb-project-field-error" data-localization-ignore>{{ localization.traducir(form.controls.nombre.hasError('maxlength') ? 'projectForm.fieldLength' : 'projectForm.nameRequired').replace('{max}', '200') }}</span>
+          }
+        </label>
+        <label class="tb-field-label">{{localization.traducir('projects.client')}}
+          <div class="flex gap-2"><select formControlName="idCliente"><option [ngValue]="0">{{localization.traducir('projects.selectClient')}}</option>@for(c of opciones().clientes;track c.id){@if(c.activo || c.id === form.controls.idCliente.value){<option [ngValue]="c.id">{{c.nombre}}</option>}}</select><button class="tb-link-button" type="button" (click)="abrirCliente()">+ {{localization.traducir('projects.client')}}</button></div>
+          @if(form.controls.idCliente.touched && form.controls.idCliente.invalid) {
+            <span class="tb-project-field-error" data-localization-ignore>{{ localization.traducir('projectForm.clientRequired') }}</span>
+          }
+        </label>
+        <label class="tb-field-label">{{localization.traducir('projects.pm')}}<select formControlName="idPMResponsable"><option [ngValue]="0">{{localization.traducir('projects.selectManager')}}</option>@for(r of opciones().responsables;track r.id){<option [ngValue]="r.id">{{r.nombre}} {{r.apellido}}</option>}</select>
+          @if(form.controls.idPMResponsable.touched && form.controls.idPMResponsable.invalid) {
+            <span class="tb-project-field-error" data-localization-ignore>{{ localization.traducir('projectForm.managerRequired', localization.language(), localization.traducir('projects.selectManager')) }}</span>
+          }
+        </label>
+        <label class="tb-field-label">{{localization.traducir('projects.status')}}
+          <select formControlName="estado">
+            <option value="Planificado">{{localization.traducir('projects.planned')}}</option>
+            <option value="En curso">{{localization.traducir('projects.inProgress')}}</option>
+            <option value="Finalizado">{{localization.traducir('projects.completed')}}</option>
+            @if(form.controls.estado.value === 'Cerrado') { <option value="Cerrado">{{localization.traducirEstado('Cerrado')}}</option> }
+          </select>
+        </label>
+        <label class="tb-field-label">{{localization.traducir('common.start')}}<input type="date" formControlName="fechaInicio" [attr.min]="fechaMinimaInicio()" /></label>
+        <label class="tb-field-label">{{localization.traducir('common.deadline')}}<input type="date" formControlName="deadline" [attr.min]="fechaMinimaLimite()" /></label>
+        <label class="tb-field-label">{{localization.traducir('common.hoursEstimated')}}<input type="number" formControlName="horasEstimadasTotales" min="0" step="0.01" />
+          @if(form.controls.horasEstimadasTotales.touched && form.controls.horasEstimadasTotales.invalid) {
+            <span class="tb-project-field-error" data-localization-ignore>{{ localization.traducir('projectForm.invalidHours') }}</span>
+          }
+        </label>
         <label class="tb-field-label">{{localization.traducir('projects.description')}}<textarea rows="2" formControlName="descripcion"></textarea></label>
-        <div class="md:col-span-2"><button class="tb-action-button" type="submit">{{localization.traducir('projects.save')}}</button></div>
+        @if(errorProyecto()) {
+          <p class="tb-project-field-error md:col-span-2" role="alert" data-localization-ignore>{{ localization.traducir(errorProyecto()) }}</p>
+        }
+        <div class="md:col-span-2"><button class="tb-action-button" type="submit" [disabled]="guardandoProyecto()">{{localization.traducir('projects.save')}}</button></div>
       </form>
     </section>
   }
 
   @if(mostrarCliente()){
-    <div class="tb-dialog-backdrop"><section class="tb-dialog" role="dialog" aria-modal="true" [attr.aria-label]="localization.traducir('projects.client')"><button class="tb-dialog__close" type="button" [attr.aria-label]="localization.traducir('common.close')" (click)="mostrarCliente.set(false)">×</button><h2>{{clienteEditando() ? localization.traducir('projects.editClient') : localization.traducir('projects.newClient')}}</h2><form [formGroup]="clienteForm" class="space-y-3" (ngSubmit)="guardarCliente()"><label class="tb-field-label">{{localization.traducir('common.name')}}<input formControlName="nombre" /></label><label class="tb-field-label">{{localization.traducir('agency.businessName')}}<input formControlName="razonSocial" /></label><label class="tb-field-label">{{localization.traducir('common.email')}}<input type="email" formControlName="email" /></label><label class="tb-field-label">{{localization.traducir('common.phone')}}<input formControlName="telefono" /></label><button class="tb-action-button" type="submit">{{localization.traducir('common.save')}}</button></form></section></div>
+    <div class="tb-dialog-backdrop">
+      <section class="tb-dialog" role="dialog" aria-modal="true" aria-labelledby="project-client-title">
+        <button class="tb-dialog__close" type="button" [attr.aria-label]="localization.traducir('common.close')" [disabled]="guardandoCliente()" (click)="mostrarCliente.set(false)">×</button>
+        <h2 id="project-client-title">{{clienteEditando() ? localization.traducir('projects.editClient') : localization.traducir('projects.newClient')}}</h2>
+        <form [formGroup]="clienteForm" class="space-y-3" (ngSubmit)="guardarCliente()">
+          <label class="tb-field-label">{{localization.traducir('common.name')}}<input formControlName="nombre" maxlength="150" />
+            @if(clienteForm.controls.nombre.touched && clienteForm.controls.nombre.invalid) {
+              <span class="tb-project-field-error" data-localization-ignore>{{ localization.traducir(clienteForm.controls.nombre.hasError('maxlength') ? 'projectForm.fieldLength' : 'projectForm.nameRequired').replace('{max}', '150') }}</span>
+            }
+          </label>
+          <label class="tb-field-label">{{localization.traducir('agency.businessName')}}<input formControlName="razonSocial" maxlength="200" />
+            @if(clienteForm.controls.razonSocial.touched && clienteForm.controls.razonSocial.invalid) {
+              <span class="tb-project-field-error" data-localization-ignore>{{ localization.traducir('projectForm.fieldLength').replace('{max}', '200') }}</span>
+            }
+          </label>
+          <label class="tb-field-label">{{localization.traducir('common.email')}}<input type="email" formControlName="email" maxlength="200" />
+            @if(clienteForm.controls.email.touched && clienteForm.controls.email.invalid) {
+              <span class="tb-project-field-error" data-localization-ignore>{{ localization.traducir(clienteForm.controls.email.hasError('maxlength') ? 'projectForm.fieldLength' : 'projectForm.invalidEmail').replace('{max}', '200') }}</span>
+            }
+          </label>
+          <label class="tb-field-label">{{localization.traducir('common.phone')}}<input type="tel" formControlName="telefono" maxlength="50" />
+            @if(clienteForm.controls.telefono.touched && clienteForm.controls.telefono.invalid) {
+              <span class="tb-project-field-error" data-localization-ignore>{{ localization.traducir('projectForm.fieldLength').replace('{max}', '50') }}</span>
+            }
+          </label>
+          @if(errorCliente()) {
+            <p class="tb-project-field-error" role="alert" data-localization-ignore>{{ localization.traducir(errorCliente()) }}</p>
+          }
+          <button class="tb-action-button" type="submit" [disabled]="guardandoCliente()">{{localization.traducir('common.save')}}</button>
+        </form>
+      </section>
+    </div>
   }
 
   <section class="tb-panel tb-project-clients">
@@ -37,7 +99,7 @@
         <div class="tb-client-info"><h3>{{c.nombre}}</h3><p>{{c.razonSocial || c.email || localization.traducir('common.noAdditionalData')}}</p><span class="tb-project-state" [class.is-inactive]="!c.activo">{{c.activo ? localization.traducir('common.active') : localization.traducir('common.inactive')}}</span></div>
         <div class="tb-project-icon-actions">
           <button class="tb-project-icon" type="button" [attr.aria-label]="localization.traducir('common.edit') + ': ' + c.nombre" [title]="localization.traducir('common.edit')" (click)="abrirCliente(c)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m16 3 5 5-12 12-6 1 1-6L16 3Z"/><path d="m14 5 5 5"/></svg></button>
-          <button class="tb-project-icon" [class.is-deactivate]="c.activo" type="button" [attr.aria-label]="(c.activo ? localization.traducir('projects.deactivate') : localization.traducir('common.reactivate')) + ': ' + c.nombre" [title]="c.activo ? localization.traducir('projects.deactivate') : localization.traducir('common.reactivate')" (click)="cambiarEstadoCliente(c)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 2v10M6 5a9 9 0 1 0 12 0"/></svg></button>
+          <button class="tb-project-icon" [class.is-deactivate]="c.activo" type="button" [disabled]="clienteActualizando() !== null" [attr.aria-label]="(c.activo ? localization.traducir('projects.deactivate') : localization.traducir('common.reactivate')) + ': ' + c.nombre" [title]="c.activo ? localization.traducir('projects.deactivate') : localization.traducir('common.reactivate')" (click)="cambiarEstadoCliente(c)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 2v10M6 5a9 9 0 1 0 12 0"/></svg></button>
         </div>
       </article>
     }</div>
@@ -50,7 +112,7 @@
       <label class="tb-field-label">{{localization.traducir('static.projectManager')}}<select formControlName="idPMResponsable"><option [ngValue]="null">{{localization.traducir('static.all')}}</option>@for(responsable of opciones().responsables; track responsable.id){<option [ngValue]="responsable.id">{{responsable.nombre}} {{responsable.apellido}}</option>}</select></label>
       <label class="tb-field-label">{{localization.traducir('common.status')}}<select formControlName="estado"><option value="">{{localization.traducir('static.all')}}</option><option value="Planificado">{{localization.traducirEstado('Planificado')}}</option><option value="En curso">{{localization.traducirEstado('En curso')}}</option><option value="Finalizado">{{localization.traducirEstado('Finalizado')}}</option><option value="Cerrado">{{localization.traducirEstado('Cerrado')}}</option></select></label>
       <label class="tb-field-label">{{localization.traducir('static.from')}}<input type="date" formControlName="fechaDesde" /></label>
-      <label class="tb-field-label">{{localization.traducir('static.to')}}<input type="date" formControlName="fechaHasta" /></label>
+      <label class="tb-field-label">{{localization.traducir('static.to')}}<input type="date" formControlName="fechaHasta" [attr.min]="filtroForm.controls.fechaDesde.value || null" /></label>
       <div class="flex gap-2 md:col-span-5"><button class="tb-button" type="submit">{{localization.traducir('static.applyFilters')}}</button><button class="tb-link-button" type="button" (click)="limpiarFiltro()">{{localization.traducir('static.clear')}}</button></div>
     </form>
   </section>
@@ -74,5 +136,4 @@
     </div>
   }
 
-  @if(error()){<p class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{error()}}</p>}
 </section>

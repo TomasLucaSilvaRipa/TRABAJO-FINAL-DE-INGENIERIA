@@ -9,6 +9,7 @@
   </header>
 
   @if (error()) { <p class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{error()}}</p> }
+  @if (!vistaProyecto()) { <app-weekly-achievement [tareas]="tareasPropias()" /> }
 
   @if (cargando()) {
     <p class="text-sm text-slate-500">{{localization.traducir('kanban.loading')}}</p>

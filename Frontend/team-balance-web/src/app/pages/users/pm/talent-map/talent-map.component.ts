@@ -2,6 +2,7 @@ import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestro
 import * as echarts from 'echarts';
 import { forkJoin } from 'rxjs';
 import { AnaliticaOperativaService, OcupacionEmpleado } from '../../../../services/analitica-operativa.service';
+import { LocalizationService } from '../../../../services/localization.service';
 import { Tarea, TareaOpciones, TasksService } from '../../../../services/tasks.service';
 
 interface NodoTalento {
@@ -24,6 +25,7 @@ interface EnlaceTalento { source: number; target: number; proyectos: string[]; }
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TalentMapComponent implements AfterViewInit, OnDestroy {
+  private readonly localization = inject(LocalizationService);
   private readonly tasksService = inject(TasksService);
   private readonly analytics = inject(AnaliticaOperativaService);
   @ViewChild('chart') private readonly chartElement?: ElementRef<HTMLDivElement>;
@@ -50,10 +52,16 @@ export class TalentMapComponent implements AfterViewInit, OnDestroy {
   private resizeObserver?: ResizeObserver;
 
   constructor() {
-    effect(() => { this.skillFiltro(); this.proyectoFiltro(); this.seniorityFiltro(); this.empleadoSeleccionado(); this.tareas(); this.ocupacion(); queueMicrotask(() => this.dibujar()); });
+    effect(() => {
+      this.nodos();
+      this.enlaces();
+      this.empleadoSeleccionado();
+      this.localization.language();
+      queueMicrotask(() => this.dibujar());
+    });
     forkJoin({ tareas: this.tasksService.consultarPorPM(), opciones: this.tasksService.opciones(), ocupacion: this.analytics.consultarOcupacion() }).subscribe({
       next: ({ tareas, opciones, ocupacion }) => { this.tareas.set(tareas); this.opciones.set(opciones); this.ocupacion.set(ocupacion.empleados); this.cargando.set(false); },
-      error: respuesta => { this.cargando.set(false); this.error.set(this.mensajeError(respuesta, 'No fue posible construir el mapa con tus proyectos autorizados.')); }
+      error: respuesta => { this.cargando.set(false); this.error.set(this.claveError(respuesta)); }
     });
   }
 
@@ -69,9 +77,21 @@ export class TalentMapComponent implements AfterViewInit, OnDestroy {
     this.dibujar();
   }
 
-  ngOnDestroy(): void { this.resizeObserver?.disconnect(); this.chart?.dispose(); }
+  ngOnDestroy(): void { this.resizeObserver?.disconnect(); this.chart?.dispose(); this.chart = undefined; }
 
   limpiarFiltros(): void { this.skillFiltro.set(0); this.proyectoFiltro.set(0); this.seniorityFiltro.set(''); this.empleadoSeleccionado.set(null); }
+
+  texto(clave: string): string { return this.localization.traducir(`private.talentMap.${clave}`); }
+  textoError(): string { return this.localization.traducir(this.error()); }
+
+  seniority(valor: string): string {
+    if (!valor) return this.texto('unspecified');
+    return valor.toLowerCase() === 'semisenior' ? this.localization.traducir('taskTemplates.seniorityMiddle') : valor;
+  }
+
+  conteo(clave: 'projects' | 'connections', total: number): string {
+    return this.texto(`${clave}${total === 1 ? 'One' : 'Other'}`).replace('{count}', this.localization.formatearNumero(total));
+  }
 
   private construirRed(): { nodos: NodoTalento[]; enlaces: EnlaceTalento[] } {
     const opciones = this.opciones();
@@ -114,7 +134,7 @@ export class TalentMapComponent implements AfterViewInit, OnDestroy {
       for (let i = 0; i < ids.length; i++) {
         for (let j = i + 1; j < ids.length; j++) {
           const clave = `${ids[i]}-${ids[j]}`;
-          const proyecto = proyectos.get(idProyecto)?.nombre ?? `Proyecto #${idProyecto}`;
+          const proyecto = proyectos.get(idProyecto)?.nombre ?? `${this.texto('project')} #${idProyecto}`;
           const enlace = enlacesMap.get(clave) ?? { source: ids[i], target: ids[j], proyectos: [] };
           if (!enlace.proyectos.includes(proyecto)) { enlace.proyectos.push(proyecto); }
           enlacesMap.set(clave, enlace);
@@ -125,13 +145,13 @@ export class TalentMapComponent implements AfterViewInit, OnDestroy {
     const nodos = [...idsPermitidos].map(id => {
       const usuario = empleados.get(id); const empleado = ocupacion.get(id);
       const conteos = [...(skillsPorEmpleado.get(id)?.entries() ?? [])].sort((a, b) => b[1] - a[1]);
-      const nombresSkills = conteos.map(([idSkill]) => skills.get(idSkill)?.nombre ?? `Skill #${idSkill}`);
-      const nombresProyectos = [...empleadosPorProyecto.entries()].filter(([, ids]) => ids.has(id)).map(([idProyecto]) => proyectos.get(idProyecto)?.nombre ?? `Proyecto #${idProyecto}`);
+      const nombresSkills = conteos.map(([idSkill]) => skills.get(idSkill)?.nombre ?? `${this.texto('skill')} #${idSkill}`);
+      const nombresProyectos = [...empleadosPorProyecto.entries()].filter(([, ids]) => ids.has(id)).map(([idProyecto]) => proyectos.get(idProyecto)?.nombre ?? `${this.texto('project')} #${idProyecto}`);
       return {
         id,
-        nombre: empleado?.nombre || `${usuario?.nombre ?? ''} ${usuario?.apellido ?? ''}`.trim() || `Empleado #${id}`,
-        seniority: empleado?.seniority || 'Sin definir',
-        skillPrincipal: nombresSkills[0] ?? 'Sin skill observada',
+        nombre: empleado?.nombre || `${usuario?.nombre ?? ''} ${usuario?.apellido ?? ''}`.trim() || `${this.texto('employee')} #${id}`,
+        seniority: empleado?.seniority || '',
+        skillPrincipal: nombresSkills[0] ?? this.texto('noObservedSkill'),
         skills: nombresSkills,
         proyectos: nombresProyectos,
         relaciones: enlaces.filter(enlace => enlace.source === id || enlace.target === id).length,
@@ -151,8 +171,15 @@ export class TalentMapComponent implements AfterViewInit, OnDestroy {
       animationDuration: 850, animationEasingUpdate: 'cubicInOut',
       tooltip: { backgroundColor: '#061a2c', borderColor: '#2c9fbd', textStyle: { color: '#effdff' }, formatter: (parametro: unknown) => {
         const dato = parametro as { dataType: string; data: { employeeId?: number; sharedProjects?: string[] } };
-        if (dato.dataType === 'edge') { return `<strong>Colaboración observada</strong><br/>${dato.data.sharedProjects?.join('<br/>') || 'Proyecto compartido'}`; }
-        const nodo = nodos.find(item => item.id === dato.data.employeeId); return nodo ? `<strong>${nodo.nombre}</strong><br/>${nodo.seniority}<br/>Skill destacada: ${nodo.skillPrincipal}<br/>${nodo.proyectos.length} proyecto(s) del alcance` : '';
+        const escapar = (valor: string) => valor.replace(/[&<>]/g, caracter => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[caracter] ?? caracter);
+        if (dato.dataType === 'edge') {
+          const proyectos = dato.data.sharedProjects?.map(escapar).join('<br/>') || escapar(this.texto('sharedProject'));
+          return `<strong>${escapar(this.texto('observedCollaboration'))}</strong><br/>${proyectos}`;
+        }
+        const nodo = nodos.find(item => item.id === dato.data.employeeId);
+        if (!nodo) return '';
+        const skill = this.texto('featuredSkillValue').replace('{skill}', () => nodo.skillPrincipal);
+        return `<strong>${escapar(nodo.nombre)}</strong><br/>${escapar(this.seniority(nodo.seniority))}<br/>${escapar(skill)}<br/>${escapar(this.conteo('projects', nodo.proyectos.length))}`;
       } },
       legend: { type: 'scroll', bottom: 6, textStyle: { color: '#a9ced6' }, data: categorias },
       series: [{
@@ -185,5 +212,10 @@ export class TalentMapComponent implements AfterViewInit, OnDestroy {
     return (!fin || fin >= desde) && (!inicio || inicio <= new Date());
   }
 
-  private mensajeError(respuesta: unknown, predeterminado: string): string { const error = (respuesta as { error?: unknown })?.error; return typeof error === 'string' && error.trim() ? error : predeterminado; }
+  private claveError(respuesta: { status?: number; error?: unknown }): string {
+    if (respuesta.status === 0) return 'projectForm.connection';
+    if (respuesta.status === 401) return 'projectForm.invalidSession';
+    if (respuesta.status === 403) return 'projectForm.notAllowed';
+    return 'private.talentMap.loadError';
+  }
 }

@@ -1,7 +1,7 @@
 namespace TeamBalance.BE.Entidades;
 public class ConfiguracionAlertaAgencia
 {
-    [System.Text.Json.Serialization.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore, ReferenciaInterna]
     public Agencia Agencia { get; set; } = new();
 
     public int IdAgencia

@@ -22,7 +22,7 @@
                 <label class="tb-field-label">
                     <span>Título <span class="text-amber-400" aria-label="Obligatorio">*</span></span>
                     <input formControlName="titulo" />
-                    @if(form.controls.titulo.touched && form.controls.titulo.invalid){<span class="mt-1 block text-xs text-red-500">El título es obligatorio.</span>}
+                    @if(form.controls.titulo.touched && form.controls.titulo.invalid){<span class="mt-1 block text-xs text-red-700 dark:text-red-300" data-localization-ignore>{{ localization.traducir('taskManager.titleRequired') }}</span>}
                 </label>
 
                 @if(!form.controls.id.value){
@@ -45,7 +45,7 @@
                             <option [ngValue]="p.id">{{p.nombre}}</option>
                         }
                     </select>
-                    @if(form.controls.idProyecto.touched && form.controls.idProyecto.invalid){<span class="mt-1 block text-xs text-red-500">Seleccioná un proyecto.</span>}
+                    @if(form.controls.idProyecto.touched && form.controls.idProyecto.invalid){<span class="mt-1 block text-xs text-red-700 dark:text-red-300" data-localization-ignore>{{ localization.traducir('taskManager.selectProjectError') }}</span>}
                 </label>
 
                 <label class="tb-field-label">
@@ -61,7 +61,7 @@
                         </select>
                         <button class="tb-button tb-button--secondary shrink-0" type="button" (click)="abrirSkills()">+ Skill</button>
                     </div>
-                    @if(form.controls.idSkillRequerido.touched && form.controls.idSkillRequerido.invalid){<span class="mt-1 block text-xs text-red-500">Seleccioná una skill.</span>}
+                    @if(form.controls.idSkillRequerido.touched && form.controls.idSkillRequerido.invalid){<span class="mt-1 block text-xs text-red-700 dark:text-red-300" data-localization-ignore>{{ localization.traducir('taskManager.selectSkillError') }}</span>}
                 </label>
 
                 <label class="tb-field-label">
@@ -72,7 +72,7 @@
                             <option [ngValue]="e.id">{{localization.traducirEstado(e.nombre)}}</option>
                         }
                     </select>
-                    @if(form.controls.idEstadoTarea.touched && form.controls.idEstadoTarea.invalid){<span class="mt-1 block text-xs text-red-500">Seleccioná un estado.</span>}
+                    @if(form.controls.idEstadoTarea.touched && form.controls.idEstadoTarea.invalid){<span class="mt-1 block text-xs text-red-700 dark:text-red-300" data-localization-ignore>{{ localization.traducir('taskManager.selectStatusError') }}</span>}
                 </label>
 
                 <label class="tb-field-label">
@@ -137,27 +137,34 @@
                 </label>
 
                 <label class="tb-field-label">
-                    Seniority requerido
+                    {{ localization.traducir('taskTemplates.text10') }}
                     <select formControlName="seniorityRequerido">
-                        <option>Junior</option>
-                        <option>Semisenior</option>
-                        <option>Senior</option>
+                        <option value="Junior">{{ localization.traducir('taskTemplates.seniorityJunior') }}</option>
+                        <option value="Semisenior">{{ localization.traducir('taskTemplates.seniorityMiddle') }}</option>
+                        <option value="Senior">{{ localization.traducir('taskTemplates.senioritySenior') }}</option>
                     </select>
                 </label>
 
                 <label class="tb-field-label">
                     <span>Inicio <span class="text-cyan-300" aria-label="Necesario para Best Fit">*</span></span>
-                    <input type="date" formControlName="fechaInicio" />
+                    <input type="date" formControlName="fechaInicio" [attr.min]="fechaMinimaTarea()" />
                 </label>
 
                 <label class="tb-field-label">
                     <span>Deadline <span class="text-cyan-300" aria-label="Necesario para Best Fit">*</span></span>
-                    <input type="date" formControlName="deadline" />
+                    <input type="date" formControlName="deadline" [attr.min]="fechaMinimaDeadline()" />
                 </label>
 
                 <label class="tb-field-label">
                     <span>Horas estimadas <span class="text-cyan-300" aria-label="Necesario para Best Fit">*</span></span>
                     <input type="number" formControlName="horasEstimadas" />
+                    @if (sugerenciaHoras(); as sugerencia) {
+                        <span class="mt-2 block text-sm" data-localization-ignore>
+                            {{ localization.traducir('taskHoursReference.suggestion').replace('{hours}', horasDeReferencia(sugerencia.horas)).replace('{count}', '' + sugerencia.cantidad) }}
+                        </span>
+                    } @else if (!form.controls.id.value && historialHoras.claveSesion() && !historialHoras.horasConsultadas()) {
+                        <span class="mt-2 block text-xs" data-localization-ignore>{{ localization.traducir('taskHoursReference.loadHint') }}</span>
+                    }
                 </label>
 
                 <label class="tb-field-label">
@@ -207,16 +214,16 @@
                         <button class="tb-button tb-button--secondary" type="button" (click)="sugerirRecurso()" [disabled]="buscandoRecurso()">{{ localization.traducir(buscandoRecurso() ? 'taskManager.analyzing' : 'taskManager.suggestResource') }}</button>
                     </div>
                     @if(recomendaciones().length){<div class="mt-4 space-y-2">@for(recomendacion of recomendaciones();track recomendacion.idEmpleadoSugerido){<article class="flex items-center justify-between gap-3 rounded-lg border border-slate-700 p-3"><div><strong>{{recomendacion.nombreEmpleado}}</strong><p class="text-xs text-slate-400">{{recomendacion.seniorityEmpleado}} · {{recomendacion.horasDisponibles}} {{ localization.traducir('taskManager.availableHours') }} · {{recomendacion.puntajeCompatibilidad}}% {{ localization.traducir('taskManager.compatible') }}</p></div><button class="tb-link-button" type="button" (click)="conservarRecurso(recomendacion)" [disabled]="esRecomendacionConservada(recomendacion.idEmpleadoSugerido)">{{esRecomendacionConservada(recomendacion.idEmpleadoSugerido) ? localization.traducir('taskManager.kept') : localization.traducir('taskManager.keep')}}</button></article>}</div>}
-                    @if(mensajeSugerencias()){<p class="mt-3 text-sm text-amber-300">{{mensajeSugerencias()}}</p>}
+                    @if(mensajeSugerencias()){<p class="mt-3 text-sm text-amber-300" data-localization-ignore>{{localization.traducir(mensajeSugerencias())}}</p>}
                 </section>
 
+                @if(textoError() && !mostrarSkill()){
+                    <p class="text-sm text-red-700 dark:text-red-300 md:col-span-2" role="alert" data-localization-ignore>{{textoError()}}</p>
+                }
                 <div class="flex items-center gap-3 md:col-span-2">
                     <button class="tb-action-button" type="submit">Guardar tarea</button>
                     <button class="tb-button tb-button--secondary" type="button" (click)="guardar(true)">Guardar y sugerir</button>
                     <button class="tb-button tb-button--secondary" type="button" (click)="mostrar.set(false)">Cancelar</button>
-                    @if(error()){
-                        <p class="text-sm text-red-600">{{error()}}</p>
-                    }
                 </div>
             </form>
         </section>
@@ -229,6 +236,9 @@
                 <p class="tb-page-kicker">CATÁLOGO</p>
                 <h2>Skills para tareas</h2>
                 <p class="tb-muted-text">Creá o editá una skill y definí el área a la que pertenece.</p>
+                @if(textoError()){
+                    <p class="mt-3 text-sm text-red-700 dark:text-red-300" role="alert" data-localization-ignore>{{textoError()}}</p>
+                }
 
                 <form [formGroup]="skillForm" (ngSubmit)="crearSkill()" class="mt-5 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
                     <label class="tb-field-label">
@@ -266,6 +276,9 @@
             </div>
             <span class="tb-count-chip">{{tareas().length}}</span>
         </div>
+        @if(!mostrar() && !mostrarSkill() && textoError()){
+            <p class="mb-4 text-sm text-red-700 dark:text-red-300" role="alert" data-localization-ignore>{{textoError()}}</p>
+        }
 
         <form class="mb-5 grid items-end gap-3 md:grid-cols-4" [formGroup]="filtroForm" (ngSubmit)="aplicarFiltro()">
             <label class="tb-field-label">Proyecto<select formControlName="idProyecto"><option [ngValue]="null">Todos</option>@for(proyecto of opciones().proyectos;track proyecto.id){<option [ngValue]="proyecto.id">{{proyecto.nombre}}</option>}</select></label>

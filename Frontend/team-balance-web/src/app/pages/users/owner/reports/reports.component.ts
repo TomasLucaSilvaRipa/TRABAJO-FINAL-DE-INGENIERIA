@@ -3,7 +3,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Cliente, ProjectsService, Proyecto, UsuarioOpcion } from '../../../../services/projects.service';
 import { ConfiguracionReporteEjecutivo, ReporteEjecutivo, ReporteEjecutivoService } from '../../../../services/reporte-ejecutivo.service';
-import { DetalleRiesgoProyecto, FiltroRiesgoRetraso, NuevoSeguimientoRiesgoRetraso, RiesgoRetrasoService, TareaRiesgoRetraso } from '../../../../services/riesgo-retraso.service';
+import { DetalleRiesgoProyecto, FiltroRiesgoRetraso, NuevoSeguimientoRiesgoRetraso, RiesgoRetrasoService, TareaRiesgoRetraso, traducirCausaRiesgo } from '../../../../services/riesgo-retraso.service';
 import { AccionAjusteDesvioHoras, AnalisisConvenienciaOperativa, AnalisisDesvioHoras, AnalisisOcupacionOperativa, AnalisisSobrecalificacionPerfiles, AnaliticaOperativaService, ConvenienciaOperativaCliente, ConvenienciaOperativaProyecto, DesvioHorasProyecto, DesvioHorasTarea, DetalleConvenienciaOperativa, DetalleDesvioHorasTarea, DetalleOcupacionEmpleado, DetalleOcupacionTarea, FiltroConvenienciaOperativa, FiltroDesvioHoras, FiltroOcupacionOperativa, NuevoSeguimientoConvenienciaOperativa, OcupacionEmpleado, OcupacionProyecto, RevisionOperativaPendiente, SobrecalificacionTarea } from '../../../../services/analitica-operativa.service';
 import { AuthService } from '../../../../services/auth.service';
 import { ImpactSimulationService, SimulacionImpacto } from '../../../../services/impact-simulation.service';
@@ -14,6 +14,8 @@ import { OccupancyLandscapeComponent, SimulacionOcupacionVisual } from '../../..
 import { OverqualificationMapComponent } from '../../../../shared/components/analytics/overqualification-map/overqualification-map.component';
 import { RiesgoTareaSeleccionada, RiskObservatoryComponent } from '../../../../shared/components/analytics/risk-observatory/risk-observatory.component';
 import { ConvenienceMapComponent } from '../../../../shared/components/analytics/convenience-map/convenience-map.component';
+import { analizarSeguimientoTarea } from './seguimiento-tarea';
+import { HistorialHorasTareaService } from '../../../../services/historial-horas-tarea.service';
 
 type VistaAnalisis = 'riesgo' | 'ocupacion' | 'desvio' | 'conveniencia' | 'sobrecalificacion' | 'revisiones';
 type EstadoVisualOcupacion = 'subutilizada' | 'balanceada' | 'sobrecargada' | 'critica';
@@ -24,10 +26,12 @@ export class Reports {
   private readonly riesgoService = inject(RiesgoRetrasoService);
   private readonly reporteService = inject(ReporteEjecutivoService);
   private readonly analiticaService = inject(AnaliticaOperativaService);
+  private readonly historialHoras = inject(HistorialHorasTareaService);
   private readonly authService = inject(AuthService);
   private readonly simulationService = inject(ImpactSimulationService);
   private readonly tasksService = inject(TasksService);
   protected readonly localization = inject(LocalizationService);
+  protected readonly descripcionCausa = (descripcion: string) => traducirCausaRiesgo(descripcion, this.localization);
   protected readonly proyectos = signal<Proyecto[]>([]);
   protected readonly clientes = signal<Cliente[]>([]);
   protected readonly responsables = signal<UsuarioOpcion[]>([]);
@@ -60,7 +64,7 @@ export class Reports {
       const reduccion = actual?.horasDisponibles ? horasImpacto * proporcion / actual.horasDisponibles * 100 : 0;
       return { idEmpleado: asignacion.idEmpleado, porcentajeProyectado: Math.max(0, Number(actual?.porcentajeOcupacion ?? 0) - reduccion) };
     });
-    return { idProyecto: tarea.idProyecto, idEmpleado: escenario.idEmpleadoCandidato, nombreEmpleado: escenario.nombreEmpleado || (empleado ? `${empleado.nombre} ${empleado.apellido}` : 'Recurso simulado'), porcentajeProyectado: Number(escenario.porcentajeOcupacionProyectado ?? 0), horasImpacto, afectados };
+    return { idProyecto: tarea.idProyecto, idEmpleado: escenario.idEmpleadoCandidato, nombreEmpleado: escenario.nombreEmpleado || (empleado ? `${empleado.nombre} ${empleado.apellido}` : this.localization.traducir('reports.occupancy.simulatedEmployee')), porcentajeProyectado: Number(escenario.porcentajeOcupacionProyectado ?? 0), horasImpacto, afectados };
   });
   protected readonly detalleOcupacion = signal<DetalleOcupacionEmpleado | null>(null);
   protected readonly cerrandoDetalleOcupacion = signal(false);
@@ -69,6 +73,20 @@ export class Reports {
   protected readonly solicitudesRevision = signal<RevisionOperativaPendiente[]>([]);
   protected readonly desvioHoras = signal<AnalisisDesvioHoras | null>(null);
   protected readonly detalleDesvio = signal<DetalleDesvioHorasTarea | null>(null);
+  private readonly detalleDesvioSinFiltroDeFechas = signal(false);
+  protected readonly seguimientoDesvio = computed(() => {
+    const detalle = this.detalleDesvio();
+    if (!detalle || !this.detalleDesvioSinFiltroDeFechas()) return null;
+
+    const riesgo = this.riesgos().find(proyecto => proyecto.idProyecto === detalle.idProyecto);
+    const hito = riesgo?.hitosTareas.find(tarea => tarea.idTarea === detalle.idTarea);
+    if (!hito) return null;
+
+    const tarea = this.desvioHoras()?.proyectos.find(proyecto => proyecto.idProyecto === detalle.idProyecto)
+      ?.tareas.find(item => item.idTarea === detalle.idTarea);
+    const seguimiento = analizarSeguimientoTarea(detalle, hito, tarea?.idEmpleadoResponsable);
+    return seguimiento?.posibleEstancamiento || seguimiento?.proyeccion ? seguimiento : null;
+  });
   protected readonly cerrandoDetalleDesvio = signal(false);
   protected readonly proyectoAComunicar = signal<DesvioHorasProyecto | null>(null);
   protected readonly proyectoDesvioSeleccionado = signal<DesvioHorasProyecto | null>(null);
@@ -84,6 +102,7 @@ export class Reports {
   protected readonly observacionSobrecalificacion = signal('');
   protected readonly mensajeSobrecalificacion = signal('');
   protected readonly mensajeRiesgo = signal('');
+  protected readonly errorSeguimientoRiesgo = signal('');
   protected readonly vista = signal<VistaAnalisis>('riesgo');
   protected readonly cargando = signal(false);
   protected readonly error = signal('');
@@ -155,18 +174,18 @@ export class Reports {
   }
 
   protected simularEnOcupacion(): void {
-    if (!this.idTareaSimulacion() || !this.idEmpleadoSimulacion()) { this.error.set('Seleccioná una tarea y un empleado para simular.'); return; }
+    if (!this.idTareaSimulacion() || !this.idEmpleadoSimulacion()) { this.error.set('private.impactSimulation.selectTaskAndCandidate'); return; }
     this.error.set(''); this.cargandoSimulacion.set(true);
     this.simulationService.calcular({ idTarea: this.idTareaSimulacion(), idEmpleadoCandidato: this.idEmpleadoSimulacion() }).subscribe({
       next: escenario => { this.aplicarEscenarioOcupacion(escenario); this.idEscenarioConservado.set(0); this.cargandoSimulacion.set(false); },
-      error: respuesta => { this.error.set(typeof respuesta?.error === 'string' ? respuesta.error : 'No se pudo calcular la simulación.'); this.cargandoSimulacion.set(false); },
+      error: () => { this.error.set('private.impactSimulation.calculateError'); this.cargandoSimulacion.set(false); },
     });
   }
 
   protected conservarSimulacionOcupacion(): void {
     const escenario = this.escenarioOcupacion(); if (!escenario || escenario.id > 0) { return; }
     this.cargandoSimulacion.set(true);
-    this.simulationService.conservar(escenario).subscribe({ next: guardado => { this.escenarioOcupacion.set(guardado); this.escenariosConservados.update(items => [guardado, ...items.filter(item => item.id !== guardado.id)]); this.idEscenarioConservado.set(guardado.id); this.cargandoSimulacion.set(false); }, error: respuesta => { this.error.set(typeof respuesta?.error === 'string' ? respuesta.error : 'No se pudo conservar la simulación.'); this.cargandoSimulacion.set(false); } });
+    this.simulationService.conservar(escenario).subscribe({ next: guardado => { this.escenarioOcupacion.set(guardado); this.escenariosConservados.update(items => [guardado, ...items.filter(item => item.id !== guardado.id)]); this.idEscenarioConservado.set(guardado.id); this.cargandoSimulacion.set(false); }, error: () => { this.error.set('private.impactSimulation.saveError'); this.cargandoSimulacion.set(false); } });
   }
 
   protected revisarEscenarioConservado(id: number): void {
@@ -193,9 +212,9 @@ export class Reports {
 
   private cargarOpcionesSimulacion(): void {
     if (!this.esPM || this.esDueno || this.tareasSimulacion().length) { return; }
-    this.simulationService.consultarTareasDisponibles().subscribe({ next: tareas => this.tareasSimulacion.set(tareas), error: () => this.error.set('No se pudieron cargar las tareas disponibles para simular.') });
-    this.tasksService.opciones().subscribe({ next: opciones => this.empleadosSimulacion.set(opciones.empleados), error: () => this.error.set('No se pudieron cargar los empleados disponibles para simular.') });
-    this.simulationService.consultarConservadas().subscribe({ next: escenarios => this.escenariosConservados.set(escenarios), error: () => this.error.set('No se pudieron cargar las simulaciones conservadas.') });
+    this.simulationService.consultarTareasDisponibles().subscribe({ next: tareas => this.tareasSimulacion.set(tareas), error: () => this.error.set('private.impactSimulation.loadTasksError') });
+    this.tasksService.opciones().subscribe({ next: opciones => this.empleadosSimulacion.set(opciones.empleados), error: () => this.error.set('private.impactSimulation.loadCandidatesError') });
+    this.simulationService.consultarConservadas().subscribe({ next: escenarios => this.escenariosConservados.set(escenarios), error: () => this.error.set('private.impactSimulation.loadSavedError') });
   }
 
   protected estiloEstadoOcupacion(estado: string): EstadoVisualOcupacion {
@@ -203,6 +222,12 @@ export class Reports {
     if (estado === 'Sobrecargado') { return 'sobrecargada'; }
     if (estado === 'Balanceado') { return 'balanceada'; }
     return 'subutilizada';
+  }
+
+  protected estadoOcupacionTraducido(estado: string): string {
+    const claves: Record<string, string> = { Subutilizado: 'underutilized', Balanceado: 'balanced', Sobrecargado: 'overloaded', Crítico: 'critical' };
+    const clave = claves[estado];
+    return clave ? this.localization.traducir(`private.workload.state.${clave}`) : this.localization.traducirEstado(estado);
   }
 
   protected textoBalanceHoras(horasRestantes: number, horasExcedidas: number): string {
@@ -287,9 +312,35 @@ export class Reports {
     return 'Asignación';
   }
 
+  protected causaRevision(solicitud: RevisionOperativaPendiente): string {
+    const causa = solicitud.causaPrincipal;
+    if (solicitud.tipo === 'RiesgoRetraso' && causa === 'Se registró un seguimiento por riesgo de retraso.') {
+      return this.localization.traducir('reports.review.delayRiskCause');
+    }
+    if (solicitud.tipo === 'ControlHoras' && causa === 'Se registró un ajuste para el control de horas.') {
+      return this.localization.traducir('reports.review.hoursCause');
+    }
+    if (solicitud.tipo === 'ConvenienciaCliente') {
+      const cliente = /^El cliente '(.+)' fue marcado para una revisión de conveniencia operativa\.$/.exec(causa)?.[1];
+      if (cliente) return this.localization.traducir('reports.review.suitabilityCause').replace('{client}', () => cliente);
+    }
+    return this.traducirCausaOcupacion(causa);
+  }
+
   protected consultarDesvioHoras(): void {
     this.cargando.set(true); this.error.set('');
-    this.analiticaService.consultarDesvioHoras(this.filtroDesvio).subscribe({ next: resultado => { this.desvioHoras.set(resultado); this.proyectoDesvioSeleccionado.set(null); this.detalleDesvio.set(null); this.cerrandoDetalleDesvio.set(false); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar el desvío de horas.'); this.cargando.set(false); } });
+    const sesion = this.hayFiltrosDesvioAplicados() ? null : this.historialHoras.claveSesion();
+    this.analiticaService.consultarDesvioHoras(this.filtroDesvio).subscribe({
+      next: resultado => {
+        this.historialHoras.guardarConsulta(sesion, resultado);
+        this.desvioHoras.set(resultado);
+        this.proyectoDesvioSeleccionado.set(null);
+        this.detalleDesvio.set(null);
+        this.cerrandoDetalleDesvio.set(false);
+        this.cargando.set(false);
+      },
+      error: error => { this.error.set(error?.error || 'No se pudo analizar el desvío de horas.'); this.cargando.set(false); },
+    });
   }
 
   protected hayFiltrosDesvioAplicados(): boolean {
@@ -305,7 +356,15 @@ export class Reports {
 
   protected abrirDetalleDesvio(proyecto: DesvioHorasProyecto, tarea: DesvioHorasTarea): void {
     this.error.set(''); this.mensajeDesvio.set('');
-    this.analiticaService.consultarDetalleDesvioHorasTarea(proyecto.idProyecto, tarea.idTarea, this.filtroDesvio.desde, this.filtroDesvio.hasta).subscribe({ next: detalle => { this.cerrandoDetalleDesvio.set(false); this.detalleDesvio.set(detalle); }, error: error => this.error.set(error?.error || 'No se pudo consultar el detalle del desvío.') });
+    const { desde, hasta } = this.filtroDesvio;
+    this.analiticaService.consultarDetalleDesvioHorasTarea(proyecto.idProyecto, tarea.idTarea, desde, hasta).subscribe({
+      next: detalle => {
+        this.detalleDesvioSinFiltroDeFechas.set(!desde && !hasta);
+        this.cerrandoDetalleDesvio.set(false);
+        this.detalleDesvio.set(detalle);
+      },
+      error: error => this.error.set(error?.error || 'No se pudo consultar el detalle del desvío.'),
+    });
   }
 
   protected abrirAjusteDesdeDetalleDesvio(detalle: DetalleDesvioHorasTarea): void {
@@ -339,7 +398,7 @@ export class Reports {
     const proyecto = this.proyectoAComunicar();
     if (!proyecto) { return; }
     this.procesandoDesvio.set(true); this.error.set('');
-    this.analiticaService.comunicarDesvioADueno(proyecto.idProyecto, this.filtroDesvio).subscribe({ next: mensaje => { this.mensajeDesvio.set(mensaje); this.proyectoAComunicar.set(null); this.procesandoDesvio.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo comunicar el desvío al Dueño.'); this.procesandoDesvio.set(false); } });
+    this.analiticaService.comunicarDesvioADueno(proyecto, this.filtroDesvio).subscribe({ next: mensaje => { this.mensajeDesvio.set(mensaje); this.proyectoAComunicar.set(null); this.procesandoDesvio.set(false); }, error: () => { this.error.set(this.localization.traducir('private.reports.ownerNotificationError')); this.procesandoDesvio.set(false); } });
   }
 
   protected tareasDisponiblesDesvio(): DesvioHorasTarea[] { return this.desvioHoras()?.proyectos.flatMap(proyecto => proyecto.tareas) ?? []; }
@@ -448,19 +507,44 @@ export class Reports {
   }
 
   protected abrirSeguimientoRiesgo(riesgo: DetalleRiesgoProyecto, tarea?: TareaRiesgoRetraso): void {
-    this.error.set(''); this.mensajeRiesgo.set('');
+    this.error.set(''); this.mensajeRiesgo.set(''); this.errorSeguimientoRiesgo.set('');
     this.seguimientoRiesgo = { idProyecto: riesgo.idProyecto, idTarea: tarea?.idTarea ?? null, observacion: '', comunicarResponsable: true };
   }
 
   protected cerrarSeguimientoRiesgo(): void { this.seguimientoRiesgo = { idProyecto: 0, idTarea: null, observacion: '', comunicarResponsable: true }; }
 
   protected guardarSeguimientoRiesgo(): void {
-    if (!this.seguimientoRiesgo.idProyecto || !this.seguimientoRiesgo.observacion.trim()) { this.error.set('Describí la acción de seguimiento antes de confirmarla.'); return; }
-    this.procesandoDesvio.set(true); this.error.set('');
+    if (!this.seguimientoRiesgo.idProyecto) { this.errorSeguimientoRiesgo.set('reports.riskFollowUp.projectRequired'); return; }
+    if (!this.seguimientoRiesgo.observacion.trim()) { this.errorSeguimientoRiesgo.set('reports.riskFollowUp.actionRequired'); return; }
+    this.procesandoDesvio.set(true);
+    this.errorSeguimientoRiesgo.set('');
     this.riesgoService.registrarSeguimiento({ ...this.seguimientoRiesgo, observacion: this.seguimientoRiesgo.observacion.trim() }).subscribe({
-      next: mensaje => { this.mensajeRiesgo.set(mensaje); this.cerrarSeguimientoRiesgo(); this.procesandoDesvio.set(false); },
-      error: error => { this.error.set(error?.error || 'No se pudo registrar el seguimiento de riesgo.'); this.procesandoDesvio.set(false); }
+      next: mensaje => {
+        const clave = mensaje.includes('no se pudo enviar el correo al PM') ? 'savedWithoutEmail'
+          : mensaje.includes('enviado al PM') ? 'savedAndSent' : 'saved';
+        this.mensajeRiesgo.set(`reports.riskFollowUp.${clave}`);
+        this.cerrarSeguimientoRiesgo();
+        this.procesandoDesvio.set(false);
+      },
+      error: respuesta => {
+        this.errorSeguimientoRiesgo.set(this.claveErrorSeguimientoRiesgo(respuesta));
+        this.procesandoDesvio.set(false);
+      }
     });
+  }
+
+  private claveErrorSeguimientoRiesgo(respuesta: { status?: number; error?: unknown }): string {
+    const detalle = typeof respuesta.error === 'string' ? respuesta.error : '';
+    if (respuesta.status === 0) return 'projectForm.connection';
+    if (/sesi[oó]n ya no es v[aá]lida/i.test(detalle)) return 'projectForm.invalidSession';
+    if (respuesta.status === 401 || respuesta.status === 403) return 'projectForm.notAllowed';
+    if (respuesta.status === 404) return 'reports.riskFollowUp.projectUnavailable';
+    if (/seleccion[aá] un proyecto/i.test(detalle)) return 'reports.riskFollowUp.projectRequired';
+    if (/describ[ií] la acci[oó]n/i.test(detalle)) return 'reports.riskFollowUp.actionRequired';
+    if (/1500 caracteres/i.test(detalle)) return 'reports.riskFollowUp.noteTooLong';
+    if (/tarea seleccionada no pertenece/i.test(detalle)) return 'reports.riskFollowUp.taskUnavailable';
+    if (/correo activo/i.test(detalle)) return 'reports.riskFollowUp.noActiveEmail';
+    return 'reports.riskFollowUp.saveError';
   }
 
   protected generarReporte(): void {

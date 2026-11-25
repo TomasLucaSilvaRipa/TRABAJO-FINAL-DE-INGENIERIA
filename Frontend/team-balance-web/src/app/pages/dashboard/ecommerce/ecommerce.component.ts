@@ -5,10 +5,11 @@ import { AuthService, UsuarioSesion } from '../../../services/auth.service';
 import { Proyecto, ProjectsService } from '../../../services/projects.service';
 import { LocalizationService } from '../../../services/localization.service';
 import { AnalisisCoberturaSkill, SkillsDesiertosService } from '../../../services/skills-desiertos.service';
+import { AgencySetupComponent } from '../../../shared/components/agency-setup/agency-setup.component';
 
 interface AccesoDashboard { permiso: string; titulo?: string; tituloClave?: string; descripcion?: string; descripcionClave?: string; ruta: string; accion?: string; accionClave?: string; ocultarDueno?: boolean; }
 
-@Component({ selector: 'app-ecommerce', standalone: true, imports: [CommonModule, RouterModule], templateUrl: './ecommerce.component.html' })
+@Component({ selector: 'app-ecommerce', standalone: true, imports: [CommonModule, RouterModule, AgencySetupComponent], templateUrl: './ecommerce.component.html' })
 export class EcommerceComponent {
   readonly authService = inject(AuthService); private readonly projectsService = inject(ProjectsService); private readonly skillsService = inject(SkillsDesiertosService);
   readonly localization = inject(LocalizationService);

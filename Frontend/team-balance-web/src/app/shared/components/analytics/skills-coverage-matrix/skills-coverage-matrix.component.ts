@@ -1,10 +1,11 @@
-import { AfterViewInit, Component, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
+import { AfterViewInit, Component, effect, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 import { HeatmapChart } from 'echarts/charts';
 import { AriaComponent, DataZoomComponent, GridComponent, TooltipComponent, VisualMapComponent } from 'echarts/components';
 import * as echarts from 'echarts/core';
 import { LegacyGridContainLabel } from 'echarts/features';
 import { CanvasRenderer } from 'echarts/renderers';
-import { AnalisisCoberturaSkill } from '../../../../services/skills-desiertos.service';
+import { LocalizationService } from '../../../../services/localization.service';
+import { AnalisisCoberturaSkill, claveClasificacionCobertura } from '../../../../services/skills-desiertos.service';
 
 echarts.use([HeatmapChart, AriaComponent, DataZoomComponent, GridComponent, TooltipComponent, VisualMapComponent, LegacyGridContainLabel, CanvasRenderer]);
 
@@ -27,8 +28,19 @@ export class SkillsCoverageMatrixComponent implements AfterViewInit, OnChanges, 
   @ViewChild('chart') private readonly chartElement?: ElementRef<HTMLDivElement>;
 
   private readonly zone = inject(NgZone);
+  private readonly localization = inject(LocalizationService);
   private chart?: echarts.ECharts;
   private resizeObserver?: ResizeObserver;
+
+  constructor() {
+    effect(() => {
+      const filas = ['demanda', 'availableCapacity', 'coverage'].map(clave => this.texto(clave));
+      const descripcion = this.texto('matrixAria');
+      this.chart?.setOption({ yAxis: { data: filas }, aria: { description: descripcion } });
+    });
+  }
+
+  texto(clave: string): string { return this.localization.traducir(`private.skillsCoverage.${clave}`); }
 
   ngAfterViewInit(): void { this.inicializar(); }
 
@@ -78,9 +90,9 @@ export class SkillsCoverageMatrixComponent implements AfterViewInit, OnChanges, 
       animationDurationUpdate: 650,
       animationEasing: 'cubicOut',
       animationEasingUpdate: 'cubicInOut',
-      aria: { enabled: true, description: 'Matriz de demanda, capacidad disponible y cobertura de skills del alcance seleccionado.' },
+      aria: { enabled: true, description: this.texto('matrixAria') },
       visualMap: { show: false, min: 0, max: Math.max(maximoDemanda, maximoCapacidad, 100), dimension: 2, inRange: { color: ['#153f55', '#1bbecf', '#f3bf4c', '#ff5b70'] } },
-      grid: { left: 108, right: 26, top: 24, bottom: this.resultados.length > 7 ? 94 : 70, containLabel: false },
+      grid: { left: 20, right: 26, top: 24, bottom: this.resultados.length > 7 ? 72 : 48, containLabel: true },
       tooltip: {
         trigger: 'item',
         backgroundColor: '#061a2c',
@@ -101,7 +113,7 @@ export class SkillsCoverageMatrixComponent implements AfterViewInit, OnChanges, 
       },
       yAxis: {
         type: 'category',
-        data: ['Demanda', 'Capacidad disponible', 'Cobertura'],
+        data: ['demanda', 'availableCapacity', 'coverage'].map(clave => this.texto(clave)),
         axisTick: { show: false },
         axisLine: { lineStyle: { color: '#477688' } },
         axisLabel: { color: '#bfe4ec', fontWeight: 700, margin: 18 },
@@ -135,6 +147,11 @@ export class SkillsCoverageMatrixComponent implements AfterViewInit, OnChanges, 
     if (!resultado) { return '';
     }
     const escapar = (valor: string) => valor.replace(/[&<>"']/g, caracter => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[caracter] ?? caracter);
-    return `<div style="line-height:1.55"><strong style="display:block;font-size:15px;margin-bottom:7px">${escapar(resultado.nombreSkill)}</strong><b style="display:block;color:${this.colorCriticidad(resultado, 1)};margin-bottom:9px">${escapar(resultado.criticidad)} · ${escapar(resultado.tipoBrecha)}</b><div style="border-top:1px solid rgba(159,197,210,.32);padding-top:8px">Demanda: <b>${resultado.demandaHoras.toFixed(1)} h</b><br/>Capacidad disponible: <b>${resultado.capacidadDisponibleHoras.toFixed(1)} h</b><br/>Cobertura: <b>${resultado.porcentajeCobertura.toFixed(1)}%</b><br/>Afecta ${resultado.cantidadTareasAfectadas} tarea(s) en ${resultado.cantidadProyectosAfectados} proyecto(s).</div><small style="display:block;margin-top:10px;color:#6ce5ff">Seleccioná para abrir el detalle operativo</small></div>`;
+    const criticidad = this.texto(claveClasificacionCobertura(resultado.criticidad));
+    const brecha = this.texto(claveClasificacionCobertura(resultado.tipoBrecha));
+    const alcance = this.texto('affectedCounts')
+      .replace('{tasks}', String(resultado.cantidadTareasAfectadas))
+      .replace('{projects}', String(resultado.cantidadProyectosAfectados));
+    return `<div style="line-height:1.55"><strong style="display:block;font-size:15px;margin-bottom:7px">${escapar(resultado.nombreSkill)}</strong><b style="display:block;color:${this.colorCriticidad(resultado, 1)};margin-bottom:9px">${escapar(criticidad)} · ${escapar(brecha)}</b><div style="border-top:1px solid rgba(159,197,210,.32);padding-top:8px">${escapar(this.texto('demanda'))}: <b>${resultado.demandaHoras.toFixed(1)} h</b><br/>${escapar(this.texto('availableCapacity'))}: <b>${resultado.capacidadDisponibleHoras.toFixed(1)} h</b><br/>${escapar(this.texto('coverage'))}: <b>${resultado.porcentajeCobertura.toFixed(1)}%</b><br/>${escapar(alcance)}</div><small style="display:block;margin-top:10px;color:#6ce5ff">${escapar(this.texto('matrixOpenDetail'))}</small></div>`;
   }
 }

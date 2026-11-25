@@ -1,5 +1,6 @@
 <section class="tb-workspace tb-home-dashboard space-y-8">
   <header class="tb-dashboard-hero"><div><p class="tb-page-kicker">{{localization.traducir('dashboard.eyebrow')}}</p><h1>{{localization.traducir('dashboard.greeting')}}{{usuario ? ', ' + usuario.nombre : ''}}.</h1><p>{{localization.traducir('dashboard.summary')}}</p></div><div class="tb-dashboard-hero__meta"><span>TeamBalance</span><strong>{{localization.traducirTextoEstatico(usuario?.rol?.nombre || '') || localization.traducir('dashboard.session')}}</strong></div></header>
+  <app-agency-setup vista="bienvenida" />
   <section class="tb-dashboard-pulse" [attr.aria-label]="localization.traducir('dashboard.eyebrow')">
     <div class="tb-dashboard-pulse__item">
       <strong class="tb-dashboard-pulse__number">{{totalAccesos()}}</strong>

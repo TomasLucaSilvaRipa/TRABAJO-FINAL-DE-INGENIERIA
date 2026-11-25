@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 export interface Cliente { id: number; nombre: string; razonSocial?: string; email?: string; telefono?: string; activo: boolean; }
 export interface UsuarioOpcion { id: number; nombre: string; apellido: string; email: string; }
 export interface TareaProyecto { id: number; titulo: string; estado?: string; deadline?: string; activo: boolean; bloqueada: boolean; }
-export interface Proyecto { id: number; idCliente: number; idPMResponsable: number; nombre: string; descripcion?: string; fechaInicio?: string; deadline?: string; horasEstimadasTotales: number; estado: string; activo: boolean; tareas?: TareaProyecto[]; }
+export interface Proyecto { id: number; idCliente: number; idPMResponsable: number; nombre: string; descripcion?: string; fechaInicio?: string | null; deadline?: string | null; horasEstimadasTotales: number; estado: string; activo: boolean; tareas?: TareaProyecto[]; }
 export interface FiltroProyecto { idCliente?: number | null; idPMResponsable?: number | null; estado?: string | null; fechaDesde?: string | null; fechaHasta?: string | null; }
 export interface ProyectoOpciones { clientes: Cliente[]; responsables: UsuarioOpcion[]; }
 @Injectable({ providedIn: 'root' })
@@ -20,6 +20,10 @@ export class ProjectsService {
   cambiarEstado(proyecto: Partial<Proyecto>): Observable<boolean> { return this.http.patch<boolean>(`${this.url}/estado`, proyecto); }
   cerrar(proyecto: Proyecto): Observable<boolean> { return this.http.patch<boolean>(`${this.url}/cerrar`, proyecto); }
   crearCliente(cliente: Partial<Cliente>): Observable<Cliente> { return this.http.post<Cliente>(`${this.url}/clientes`, cliente); }
-  modificarCliente(cliente: Cliente): Observable<Cliente> { return this.http.put<Cliente>(`${this.url}/clientes`, cliente); }
-  cambiarEstadoCliente(cliente: Partial<Cliente>): Observable<boolean> { return this.http.patch<boolean>(`${this.url}/clientes/estado`, cliente); }
+  modificarCliente({ id, nombre, razonSocial, email, telefono }: Cliente): Observable<Cliente> {
+    return this.http.put<Cliente>(`${this.url}/clientes`, { id, nombre, razonSocial, email, telefono });
+  }
+  cambiarEstadoCliente({ id, activo }: Pick<Cliente, 'id' | 'activo'>): Observable<boolean> {
+    return this.http.patch<boolean>(`${this.url}/clientes/estado`, { id, activo });
+  }
 }

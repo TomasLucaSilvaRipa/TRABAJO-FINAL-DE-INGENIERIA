@@ -1,10 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { LocalizationService } from '../../../../services/localization.service';
 import { RegistroHora, RegistroHorasService } from '../../../../services/registro-horas.service';
 import { Tarea, TasksService } from '../../../../services/tasks.service';
+import { AuthService } from '../../../../services/auth.service';
+import { correspondeRecordatorioPausa } from './recordatorio-pausa';
 
 @Component({
   selector: 'app-register-hours',
@@ -14,6 +17,7 @@ import { Tarea, TasksService } from '../../../../services/tasks.service';
 })
 export class RegisterHoursComponent {
   readonly localization = inject(LocalizationService);
+  private readonly authService = inject(AuthService);
   private readonly tasksService = inject(TasksService);
   private readonly registroHorasService = inject(RegistroHorasService);
   private readonly route = inject(ActivatedRoute);
@@ -24,6 +28,7 @@ export class RegisterHoursComponent {
   readonly previsualizacion = signal<RegistroHora[]>([]);
   readonly requiereConfirmacion = signal(false);
   readonly aviso = signal('');
+  readonly mostrarRecordatorioPausa = signal(false);
   readonly fechaMinima = this.obtenerFechaMinima();
   readonly fechaActual = this.obtenerFechaActual();
   readonly form = this.formBuilder.nonNullable.group({
@@ -46,7 +51,7 @@ export class RegisterHoursComponent {
     if (aviso) { this.aviso.set(aviso); }
     this.tasksService.consultarMias().subscribe({
       next: tareas => this.tareas.set(tareas.filter(tarea => tarea.activo)),
-      error: () => this.error.set('No se pudieron cargar tus tareas asignadas.'),
+      error: error => this.error.set(this.obtenerMensajeError(error, 'loadTasksError')),
     });
   }
 
@@ -60,6 +65,13 @@ export class RegisterHoursComponent {
 
   totalHoras(): number { return this.registros.getRawValue().reduce((total, registro) => total + Number(registro.cantidadHoras || 0), 0); }
 
+  texto(clave: string): string { return this.localization.traducir(`private.hours.${clave}`); }
+
+  textoAviso(): string {
+    const aviso = this.aviso();
+    return aviso.startsWith('La sesión de foco fue menor a 15 minutos') ? this.texto('shortFocusSession') : aviso;
+  }
+
   registrar(): void {
     if (this.requiereConfirmacion()) {
       this.guardarRegistros();
@@ -70,16 +82,16 @@ export class RegisterHoursComponent {
       return;
     }
     if (this.registros.getRawValue().some(registro => Number(registro.cantidadHoras) > 24)) {
-      this.error.set('Cada registro diario puede tener como máximo 24 horas.');
+      this.error.set('private.hours.entryLimit');
       return;
     }
     if (this.totalHoras() > 24) {
-      this.error.set('El total de horas de una jornada no puede superar 24 horas.');
+      this.error.set('private.hours.dailyLimit');
       return;
     }
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.error.set('Completá la fecha, una tarea, las horas y la descripción del avance en cada registro.');
+      this.error.set('private.hours.invalidFields');
       return;
     }
     this.previsualizarRegistros();
@@ -113,17 +125,18 @@ export class RegisterHoursComponent {
       },
       error: error => {
         this.guardando.set(false);
-        this.error.set(this.obtenerMensajeError(error));
+        this.error.set(this.obtenerMensajeError(error, 'reviewError'));
       },
     });
   }
 
   private guardarRegistros(): void {
     const registros = this.obtenerRegistros();
+    const usuario = this.authService.usuarioActual();
     this.guardando.set(true);
     this.error.set('');
     this.registroHorasService.registrarImputaciones(registros).subscribe({
-      next: () => {
+      next: confirmados => {
         this.guardando.set(false);
         this.enviado = true;
         this.requiereConfirmacion.set(false);
@@ -131,10 +144,13 @@ export class RegisterHoursComponent {
         this.registros.clear();
         this.registros.push(this.crearRegistro());
         this.form.controls.fecha.setValue(this.fechaActual);
+        if (usuario?.idAgencia && correspondeRecordatorioPausa(usuario.idAgencia, usuario.id, this.obtenerFechaActual(), confirmados)) {
+          this.mostrarRecordatorioPausa.set(true);
+        }
       },
       error: error => {
         this.guardando.set(false);
-        this.error.set(this.obtenerMensajeError(error));
+        this.error.set(this.obtenerMensajeError(error, 'saveError'));
       },
     });
   }
@@ -144,10 +160,20 @@ export class RegisterHoursComponent {
     return this.registros.getRawValue().map(registro => ({ idTarea: Number(registro.idTarea), fecha, cantidadHoras: Number(registro.cantidadHoras), descripcion: registro.descripcion.trim() }));
   }
 
-  private obtenerMensajeError(error: any): string {
-    if (typeof error?.error === 'string') { return error.error; }
-    if (error?.error?.title) { return error.error.title; }
-    return 'No se pudo registrar el tiempo trabajado.';
+  private obtenerMensajeError(respuesta: HttpErrorResponse, alternativa: string): string {
+    const detalle = typeof respuesta.error === 'string' ? respuesta.error : respuesta.error?.detail;
+    const mensaje = typeof detalle === 'string' ? detalle : '';
+    if (respuesta.status === 0) return 'projectForm.connection';
+    if (/sesi[oó]n.*(v[aá]lida|venci)/i.test(mensaje) || (respuesta.status === 401 && !mensaje)) return 'projectForm.invalidSession';
+    if (/perfil de empleado activo/i.test(mensaje)) return 'private.workload.noActiveEmployee';
+    if (respuesta.status === 401 || respuesta.status === 403) return 'projectForm.notAllowed';
+    if (/horas futuras|horas de los [uú]ltimos/i.test(mensaje)) return 'private.hours.dateRange';
+    if (/fecha de inicio de la tarea/i.test(mensaje)) return 'private.hours.beforeTaskStart';
+    if (/no est[aá] asignada a tu usuario/i.test(mensaje)) return 'private.hours.taskNotAssigned';
+    if (/misma fecha/i.test(mensaje)) return 'private.hours.sameDate';
+    if (/total de horas.*24/i.test(mensaje)) return 'private.hours.dailyLimit';
+    if (/al menos una tarea|no se recibieron horas|horas v[aá]lidas/i.test(mensaje)) return 'private.hours.invalidFields';
+    return `private.hours.${alternativa}`;
   }
 
   fechaMinimaPermitida(): string {
@@ -171,8 +197,9 @@ export class RegisterHoursComponent {
   }
 
   private mensajeFechaInvalida(): string {
-    if (this.form.controls.fecha.value < this.fechaMinimaPermitida()) { return 'La fecha de trabajo no puede ser anterior a la fecha de inicio de las tareas seleccionadas.'; }
-    return 'Podés registrar horas únicamente desde los últimos 30 días hasta la fecha actual.';
+    const fecha = this.form.controls.fecha.value;
+    if (fecha && fecha >= this.fechaMinima && fecha <= this.fechaActual) return 'private.hours.beforeTaskStart';
+    return 'private.hours.dateRange';
   }
 
   private obtenerFechaActual(): string { return this.formatearFechaLocal(new Date()); }

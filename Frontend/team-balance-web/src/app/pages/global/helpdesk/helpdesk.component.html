@@ -5,7 +5,7 @@
     <p class="tb-page-description">{{ auth.esSoporte() ? t('helpdesk.inboxDescription') : t('helpdesk.description') }}</p>
   </header>
   @if (mensaje()) { <p class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300">{{ mensaje() }}</p> }
-  @if (error()) { <p class="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300">{{ error() }}</p> }
+  @if (error()) { <p class="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300" role="alert" data-localization-ignore>{{ error() }}</p> }
 
   @if (!auth.esSoporte()) {
     <section class="tb-panel"><p class="tb-page-kicker">{{ t('helpdesk.newTicket') }}</p><h2 class="mt-1 text-xl font-bold">{{ t('helpdesk.question') }}</h2>
@@ -17,7 +17,9 @@
     </section>
   }
 
-  @if (cargando()) { <section class="tb-panel">{{ t('common.loading') }}</section> } @else {
+  @if (cargando()) { <section class="tb-panel">{{ t('common.loading') }}</section> } @else if (errorDeCarga()) {
+    <button class="tb-secondary-button" type="button" (click)="recargar()" data-localization-ignore>{{ t('helpdesk.reload') }}</button>
+  } @else {
     <section class="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
       <div class="tb-panel"><p class="tb-page-kicker">{{ auth.esSoporte() ? t('helpdesk.inbox') : t('helpdesk.followUp') }}</p><h2 class="mt-1 text-xl font-bold">{{ auth.esSoporte() ? t('helpdesk.customerTickets') : t('helpdesk.myTickets') }}</h2><div class="mt-5 space-y-3">
         @if (auth.esSoporte()) { @for (ticket of bandeja(); track ticket.origen + '-' + ticket.id) {

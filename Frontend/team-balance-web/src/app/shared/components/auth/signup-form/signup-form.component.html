@@ -14,10 +14,10 @@
     </div>
   } @else if (registrationCompleted()) {
     <div class="tb-auth-status tb-auth-status--success" role="status">
-      <p class="tb-auth-form__eyebrow">{{localization.traducir('signup.started')}}</p>
+      <p class="tb-auth-form__eyebrow" data-localization-ignore>{{localization.traducir(validacionCompletada() ? 'signup.validatedKicker' : 'signup.started')}}</p>
       @if (validacionCompletada()) {
-        <h1 id="signup-title">Cuenta validada</h1>
-        <p>La cuenta de tu agencia quedó habilitada. Ya podés iniciar sesión.</p>
+        <h1 id="signup-title" data-localization-ignore>{{localization.traducir('signup.accountValidated')}}</h1>
+        <p data-localization-ignore>{{localization.traducir('signup.accountValidatedText')}}</p>
         <a class="tb-auth-submit tb-auth-submit--link" routerLink="/signin">{{localization.traducir('signup.goSignin')}}</a>
       } @else if (!metodoValidacion()) {
         <h1 id="signup-title">Elegí cómo validar tu cuenta</h1>

@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { EMPTY, finalize, switchMap } from 'rxjs';
 import { AuthService, EstadoDosFactoresResponse, EstadoTelegramResponse, PreparacionTelegramResponse, PreparacionTotpResponse } from '../../../services/auth.service';
 import { PageBreadcrumbComponent } from '../../../shared/components/common/page-breadcrumb/page-breadcrumb.component';
@@ -17,10 +17,14 @@ import QRCode from 'qrcode';
 export class ChangePasswordComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
   private readonly passwordSecurityService = inject(PasswordSecurityService);
+  private readonly campoPasswordActual = viewChild<ElementRef<HTMLInputElement>>('campoPasswordActual');
   readonly localization = inject(LocalizationService);
 
   readonly submitting = signal(false);
+  readonly cerrandoSesion = signal(false);
+  readonly errorCierreSesion = signal(false);
   readonly requestError = signal('');
   readonly responseMessage = signal('');
   readonly estadoDosFactores = signal<EstadoDosFactoresResponse | null>(null);
@@ -52,6 +56,29 @@ export class ChangePasswordComponent {
   }
 
   constructor() { this.consultarDosFactores(); this.consultarTelegram(); }
+
+  vencimientoSesionActual(): string | null {
+    const vencimiento = this.authService.obtenerVencimientoToken();
+    return vencimiento && Number.isFinite(Date.parse(vencimiento)) ? vencimiento : null;
+  }
+
+  cerrarSesionActual(): void {
+    if (this.cerrandoSesion() || this.submitting()) return;
+
+    this.cerrandoSesion.set(true);
+    this.errorCierreSesion.set(false);
+    this.authService.cerrarSesion().pipe(finalize(() => this.cerrandoSesion.set(false))).subscribe({
+      next: () => {
+        this.authService.logOut();
+        void this.router.navigate(['/signin']);
+      },
+      error: () => this.errorCierreSesion.set(true),
+    });
+  }
+
+  irACambioDePassword(): void {
+    this.campoPasswordActual()?.nativeElement.focus();
+  }
 
   consultarDosFactores(): void {
     this.authService.consultarDosFactores().subscribe({ next: estado => this.estadoDosFactores.set(estado), error: error => this.errorTotp.set(this.mensajeError(error, 'private.security.error.consultTotp')) });
@@ -131,6 +158,8 @@ export class ChangePasswordComponent {
   }
 
   onSubmit(): void {
+    if (this.cerrandoSesion() || this.submitting()) return;
+
     this.requestError.set('');
     this.responseMessage.set('');
     this.changePasswordForm.markAllAsTouched();

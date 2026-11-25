@@ -2,6 +2,23 @@
 @import "tailwindcss" source(none);
 @source "./app";
 
+@supports not selector(::-webkit-scrollbar) {
+  :where(*) {
+    scrollbar-width: thin;
+    scrollbar-color: #387185 transparent;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb { border-radius: 999px; background: #387185; }
+::-webkit-scrollbar-thumb:hover { background: #5bb5ba; }
+
 /* Navegación privada: identidad TeamBalance y contraste consistente. */
 .team-balance-app-header {
   background-color: #063d5b;
@@ -44,11 +61,7 @@
 .team-balance-app-sidebar .sidebar-brand__logo { display: block; width: 9.25rem; height: 3.8rem; object-fit: contain; }
 .team-balance-app-sidebar .sidebar-brand-row--compact .sidebar-brand { min-width: 3.4rem; min-height: 3.4rem; padding: .25rem; }
 .team-balance-app-sidebar .sidebar-brand:focus-visible { outline: 3px solid #5fe3df; outline-offset: 3px; }
-.team-balance-app-sidebar .sidebar-navigation { min-height: 0; scrollbar-width: thin; scrollbar-color: #387185 transparent; }
-.team-balance-app-sidebar .sidebar-navigation::-webkit-scrollbar { width: 6px; }
-.team-balance-app-sidebar .sidebar-navigation::-webkit-scrollbar-track { background: transparent; }
-.team-balance-app-sidebar .sidebar-navigation::-webkit-scrollbar-thumb { border-radius: 999px; background: #387185; }
-.team-balance-app-sidebar .sidebar-navigation::-webkit-scrollbar-thumb:hover { background: #5bb5ba; }
+.team-balance-app-sidebar .sidebar-navigation { min-height: 0; }
 .team-balance-app-sidebar .sidebar-navigation--compact { scrollbar-width: none; }
 .team-balance-app-sidebar .sidebar-navigation--compact::-webkit-scrollbar { display: none; }
 .dark .team-balance-app-sidebar .sidebar-brand { background: #fff9e9; border-color: rgba(195, 235, 222, .55); }
@@ -449,6 +462,24 @@
 .tb-kanban-drawer { border-radius: 1.15rem; opacity: .98; transform: translateX(calc(100% + 1.5rem)); transition: transform 180ms cubic-bezier(.2, .8, .2, 1), opacity 180ms ease; will-change: transform, opacity; }
 .tb-kanban-drawer--open { opacity: 1; transform: translateX(0); }
 @media (prefers-reduced-motion: reduce) { .tb-kanban-backdrop, .tb-kanban-drawer { transition: none; } }
+
+.tb-skill-detail {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(100%, 38rem);
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  overscroll-behavior: contain;
+}
+
+.tb-skill-detail::backdrop { background: rgb(2 6 23 / 55%); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .tb-skill-detail[open] { animation: tb-skill-detail-in 180ms ease-out; }
+  @keyframes tb-skill-detail-in { from { transform: translateX(100%); } }
+}
 
 /* Detalle de ocupación: panel lateral contenido debajo del encabezado global. */
 .tb-occupancy-detail-backdrop { background: rgba(2, 18, 31, .54); backdrop-filter: blur(2px); animation: tb-occupancy-backdrop-in 180ms ease both; }

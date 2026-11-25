@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AnaliticaOperativaService, OcupacionEmpleado } from '../../../../services/analitica-operativa.service';
 import { LocalizationService } from '../../../../services/localization.service';
 
@@ -21,7 +22,7 @@ export class MyWorkload {
     const sobrecarga = texto.match(/^La tarea '(.*)' concentra una sobrecarga en al menos un día hábil\.$/);
     const principal = texto.match(/^La tarea '(.*)' concentra la mayor parte de tu carga semanal\.$/);
     const coincidencia = sobrecarga || principal;
-    return coincidencia ? this.localization.traducir(sobrecarga ? 'private.workload.dailyOverload' : 'private.workload.mainTask').replace('{task}', coincidencia[1]) : texto;
+    return coincidencia ? this.localization.traducir(sobrecarga ? 'private.workload.dailyOverload' : 'private.workload.mainTask').replace('{task}', () => coincidencia[1]) : texto;
   }
   traducirAccion(texto: string): string {
     if (texto === 'Revisá tus prioridades con tu responsable si necesitás redistribuir trabajo.') return this.localization.traducir('private.workload.reviewPriorities');
@@ -61,10 +62,21 @@ export class MyWorkload {
         this.carga.set(carga);
         this.cargando.set(false);
       },
-      error: error => {
-        this.error.set(error?.error || 'No pudimos cargar tu información operativa. Intentá nuevamente.');
+      error: respuesta => {
+        this.error.set(this.claveError(respuesta));
         this.cargando.set(false);
       }
     });
+  }
+
+  private claveError(respuesta: HttpErrorResponse): string {
+    const detalle = typeof respuesta.error === 'string' ? respuesta.error : respuesta.error?.detail;
+    const mensaje = typeof detalle === 'string' ? detalle : '';
+    if (respuesta.status === 0) return 'projectForm.connection';
+    if (/sesi[oó]n.*(v[aá]lida|venci)/i.test(mensaje) || (respuesta.status === 401 && !mensaje)) return 'projectForm.invalidSession';
+    if (/empleado activo de la agencia/i.test(mensaje)) return 'private.workload.noActiveEmployee';
+    if (/no pertenece a una agencia/i.test(mensaje)) return 'private.workload.noAgency';
+    if (respuesta.status === 401 || respuesta.status === 403) return 'projectForm.notAllowed';
+    return 'private.workload.error';
   }
 }

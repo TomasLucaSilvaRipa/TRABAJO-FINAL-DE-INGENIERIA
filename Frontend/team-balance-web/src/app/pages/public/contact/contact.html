@@ -17,7 +17,7 @@
         <li>{{ localization.traducir('contact.point3') }}</li>
       </ul>
     </aside>
-    <form class="tb-form" [formGroup]="form" (ngSubmit)="enviar()">
+    <form class="tb-form" [formGroup]="form" (ngSubmit)="enviar()" data-localization-ignore>
       <div class="tb-form__row">
         <div class="tb-field">
           <label for="contact-name">{{ localization.traducir('contact.name') }}</label>
@@ -37,13 +37,13 @@
         <textarea id="contact-message" formControlName="mensaje"></textarea>
       </div>
       @if(error()){
-        <p class="mt-3 text-sm font-semibold text-red-700">{{error()}}</p>
+        <p class="mt-3 text-sm font-semibold text-red-700" role="alert">{{localization.traducir(error())}}</p>
       }
-      @if(mensaje()){
-        <p class="mt-3 text-sm font-semibold text-emerald-700">{{mensaje()}}</p>
+      @if(enviado()){
+        <p class="mt-3 text-sm font-semibold text-emerald-700" role="status">{{localization.traducir('contact.sent')}}</p>
       }
       <button type="submit" class="tb-button tb-button--primary" style="margin-top: 1.4rem" [disabled]="enviando()">
-        {{enviando() ? 'Enviando…' : localization.traducir('contact.send')}}
+        {{localization.traducir(enviando() ? 'contact.sending' : 'contact.send')}}
       </button>
       <p class="tb-form__note">{{ localization.traducir('contact.note') }}</p>
     </form>

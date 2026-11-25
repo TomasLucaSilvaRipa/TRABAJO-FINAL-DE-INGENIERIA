@@ -1,5 +1,5 @@
 
-<section class="tb-workspace mx-auto max-w-5xl space-y-6">
+<section class="tb-workspace mx-auto max-w-5xl space-y-6" data-localization-ignore>
   <header>
     <p class="tb-page-kicker">{{localization.traducir('private.employeeKanban.miOperacion')}}</p>
     <h1 class="tb-page-title">{{ localization.traducir('private.workload.title') }}</h1>
@@ -27,7 +27,7 @@
     } @else if (error(); as mensajeError) {
       <div class="mt-8 rounded-2xl border border-rose-300/60 bg-rose-50 p-5 text-rose-800 dark:border-rose-900/70 dark:bg-rose-950/30 dark:text-rose-200">
         <p class="font-semibold">{{ localization.traducir('private.workload.noPudimosConsultarTuCargaOperativa') }}</p>
-        <p class="mt-1 text-sm">{{ mensajeError }}</p>
+        <p class="mt-1 text-sm" role="alert">{{ localization.traducir(mensajeError) }}</p>
         <button type="button" class="tb-button tb-button--secondary mt-4" (click)="consultarCarga()">{{localization.traducir('common.retry')}}</button>
       </div>
     } @else if (carga(); as cargaActual) {

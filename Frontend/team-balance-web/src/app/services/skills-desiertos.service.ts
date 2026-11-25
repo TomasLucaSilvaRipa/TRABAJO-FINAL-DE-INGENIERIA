@@ -71,6 +71,21 @@ export interface SugerenciaEmpleadoSkill {
   motivo: string;
 }
 
+const clavesClasificacionCobertura: Readonly<Record<string, string>> = {
+  Baja: 'low',
+  Media: 'medium',
+  Alta: 'high',
+  Crítica: 'critical',
+  'Skill desierto': 'noSkillCapacity',
+  'Cobertura insuficiente': 'insufficientCoverage',
+  'Skill saturado': 'saturatedSkill',
+  'Cobertura suficiente': 'sufficientCoverage',
+};
+
+export function claveClasificacionCobertura(valor: string): string {
+  return clavesClasificacionCobertura[valor] ?? 'unclassified';
+}
+
 @Injectable({ providedIn: 'root' })
 export class SkillsDesiertosService {
   private readonly http = inject(HttpClient);

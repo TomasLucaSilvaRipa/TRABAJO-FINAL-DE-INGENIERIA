@@ -361,8 +361,12 @@ export class AnaliticaOperativaService {
     return this.http.post(`${this.url}/desvio-horas/acciones-ajuste`, accion, { responseType: 'text' });
   }
 
-  comunicarDesvioADueno(idProyecto: number, filtro: FiltroDesvioHoras): Observable<string> {
-    return this.http.post(`${this.url}/desvio-horas/comunicar-dueno`, { idProyecto, filtro }, { responseType: 'text' });
+  comunicarDesvioADueno(proyecto: Pick<DesvioHorasProyecto, 'idProyecto' | 'nombreProyecto' | 'estado'>, filtro: FiltroDesvioHoras): Observable<string> {
+    return this.http.post(`${this.url}/desvio-horas/comunicar-dueno`, {
+      idProyecto: proyecto.idProyecto,
+      filtro,
+      proyecto: { id: proyecto.idProyecto, idProyecto: proyecto.idProyecto, nombre: proyecto.nombreProyecto, estado: proyecto.estado },
+    }, { responseType: 'text' });
   }
 
   consultarConveniencia(filtro: FiltroConvenienciaOperativa = {}): Observable<AnalisisConvenienciaOperativa> {

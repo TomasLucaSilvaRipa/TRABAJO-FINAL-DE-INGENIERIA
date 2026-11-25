@@ -3,7 +3,7 @@ import * as echarts from 'echarts/core';
 import { BarChart, LineChart, ScatterChart } from 'echarts/charts';
 import { GridComponent, MarkAreaComponent, MarkLineComponent, MarkPointComponent, TooltipComponent } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
-import { DetalleRiesgoProyecto, TareaRiesgoRetraso } from '../../../../services/riesgo-retraso.service';
+import { DetalleRiesgoProyecto, TareaRiesgoRetraso, traducirCausaRiesgo } from '../../../../services/riesgo-retraso.service';
 import { LocalizationService } from '../../../../services/localization.service';
 
 echarts.use([BarChart, LineChart, ScatterChart, GridComponent, MarkAreaComponent, MarkLineComponent, MarkPointComponent, TooltipComponent, CanvasRenderer]);
@@ -15,6 +15,7 @@ export class RiskObservatoryComponent implements AfterViewInit, OnChanges, OnDes
   private readonly zone = inject(NgZone);
   private readonly changeDetector = inject(ChangeDetectorRef);
   protected readonly localization = inject(LocalizationService);
+  protected readonly descripcionCausa = (descripcion: string) => traducirCausaRiesgo(descripcion, this.localization);
   @Input({ required: true }) riesgos: DetalleRiesgoProyecto[] = [];
   @Output() tareaSeleccionada = new EventEmitter<RiesgoTareaSeleccionada>();
   @Output() detalleProyecto = new EventEmitter<DetalleRiesgoProyecto>();
@@ -186,7 +187,7 @@ export class RiskObservatoryComponent implements AfterViewInit, OnChanges, OnDes
     const simboloHito = 'path://M0,-12 L3.2,-3.2 L12,0 L3.2,3.2 L0,12 L-3.2,3.2 L-12,0 L-3.2,-3.2 Z';
     const seriesHitos = hitosVisuales.map(hito => ({ name: hito.tarea.titulo, type: 'line' as const, silent: true, symbol: 'none', data: [[hito.deadline, 0], [hito.deadline, hito.finLinea]], lineStyle: { color: hito.color, type: 'dotted' as const, width: 2, opacity: 0.82 }, z: 4 }));
     const serieEstrellas = {
-      name: 'Hitos de tareas', type: 'scatter' as const, symbol: simboloHito, symbolSize: 20, z: 10,
+      name: this.t('reports.taskMilestones'), type: 'scatter' as const, symbol: simboloHito, symbolSize: 20, z: 10,
       data: hitosVisuales.map((hito, indice) => ({ value: [hito.deadline, hito.altura], itemStyle: { color: hito.color, borderColor: '#eaffff', borderWidth: 1.5, shadowBlur: 14, shadowColor: `${hito.color}99` }, label: { show: true, position: indice % 2 === 0 ? 'top' : 'right', distance: 8, color: '#dff8ff', fontSize: 10, fontWeight: 700, formatter: this.acortarTitulo(hito.tarea.titulo), backgroundColor: 'rgba(5, 28, 44, .82)', borderRadius: 4, padding: [3, 5] } })),
       labelLayout: { hideOverlap: true, moveOverlap: 'shiftY' },
       emphasis: { scale: 1.35, focus: 'self' as const },
@@ -204,7 +205,7 @@ export class RiskObservatoryComponent implements AfterViewInit, OnChanges, OnDes
     this.timelineChart.setOption({
       animation: !reduccionMovimiento, animationDuration: 1000, animationDurationUpdate: 520, animationEasing: 'cubicOut',
       grid: { left: 82, right: 72, top: 88, bottom: 78, containLabel: true },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'cross', snap: false, label: { backgroundColor: '#12364a', formatter: (parametro: { axisDimension?: string; value?: string | number }) => parametro.axisDimension === 'x' ? this.formatearFechaCompleta(Number(parametro.value)) : `${Math.round(Number(parametro.value))} h` } }, backgroundColor: '#061a2c', borderColor: '#327d99', borderWidth: 1, padding: 14, textStyle: { color: '#effcff' }, extraCssText: 'border-radius:12px;box-shadow:0 18px 42px rgba(0,0,0,.38);', formatter: () => `<strong>${this.t('static.operationalProjection')}</strong><br/>${this.t('static.currentPending')}: ${riesgo.horasRestantes} h<br/>${this.t('static.capacityUsed')}: ${capacidadEfectiva} h/sem<br/>${this.etiquetaDeadlineProyecto()}: ${deadline ? this.formatearFechaCompleta(deadline) : '—'}<br/>${this.t('static.estimatedDate')}: ${this.formatearFechaCompleta(estimada)}<br/><span style="color:#8fc5d4">${this.t('static.noHistory')}</span>` },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'cross', snap: false, label: { backgroundColor: '#12364a', formatter: (parametro: { axisDimension?: string; value?: string | number }) => parametro.axisDimension === 'x' ? this.formatearFechaCompleta(Number(parametro.value)) : `${Math.round(Number(parametro.value))} h` } }, backgroundColor: '#061a2c', borderColor: '#327d99', borderWidth: 1, padding: 14, textStyle: { color: '#effcff' }, extraCssText: 'border-radius:12px;box-shadow:0 18px 42px rgba(0,0,0,.38);', formatter: () => `<strong>${this.t('static.operationalProjection')}</strong><br/>${this.t('static.currentPending')}: ${riesgo.horasRestantes} h<br/>${this.t('static.capacityUsed')}: ${capacidadEfectiva} ${this.t('private.reports.hSem')}<br/>${this.etiquetaDeadlineProyecto()}: ${deadline ? this.formatearFechaCompleta(deadline) : '—'}<br/>${this.t('static.estimatedDate')}: ${this.formatearFechaCompleta(estimada)}<br/><span style="color:#8fc5d4">${this.t('static.noHistory')}</span>` },
       xAxis: { type: 'time', min: inicioEje, max: finEje, splitNumber: 12, minInterval: dia, axisLabel: { color: '#9bc2ce', hideOverlap: true, margin: 15, formatter: (valor: number) => this.formatearFechaEje(valor, alcance) }, axisLine: { lineStyle: { color: '#3b7083' } }, axisTick: { show: true, length: 7, lineStyle: { color: '#4d8497' } }, splitLine: { show: true, lineStyle: { color: 'rgba(122,184,203,.13)', type: 'dashed' } }, minorTick: { show: true, splitNumber: 4, length: 3 }, minorSplitLine: { show: true, lineStyle: { color: 'rgba(122,184,203,.05)' } } },
       yAxis: { type: 'value', min: 0, splitNumber: 6, minInterval: 1, name: this.t('static.hoursPending'), nameGap: 18, nameTextStyle: { color: '#9bc2ce', padding: [0, 0, 0, 4] }, axisLabel: { color: '#9bc2ce', formatter: (valor: number) => `${Math.round(valor)} h` }, splitLine: { lineStyle: { color: 'rgba(122,184,203,.14)', type: 'dashed' } }, minorTick: { show: true }, minorSplitLine: { show: true, lineStyle: { color: 'rgba(122,184,203,.05)' } }, axisLine: { lineStyle: { color: '#3b7083' } } },
       series: [serieHorizonte, ...seriesHitos, serieHoy, serieEstrellas],
@@ -220,10 +221,10 @@ export class RiskObservatoryComponent implements AfterViewInit, OnChanges, OnDes
     this.capacityChart.setOption({
       animation: !reduccionMovimiento, animationDuration: 760, animationDurationUpdate: 420, animationEasing: 'cubicOut',
       grid: { left: 20, right: 16, top: 26, bottom: 32, containLabel: true },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: '#061a2c', borderColor: '#327d99', borderWidth: 1, padding: 12, textStyle: { color: '#effcff' }, extraCssText: 'border-radius:12px;', formatter: () => `<strong>${this.t('reports.hoursPerWeek')}</strong><br/>${this.t('reports.availableCapacity')}: ${capacidad} h<br/>${this.t('reports.recentPace')}: ${ritmo} h/sem` },
-      xAxis: { type: 'category', data: ['Equipo'], axisLabel: { color: '#dff7fb', fontWeight: 700 }, axisTick: { show: false }, axisLine: { lineStyle: { color: '#3b7083' } } },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: '#061a2c', borderColor: '#327d99', borderWidth: 1, padding: 12, textStyle: { color: '#effcff' }, extraCssText: 'border-radius:12px;', formatter: () => `<strong>${this.t('reports.hoursPerWeek')}</strong><br/>${this.t('reports.availableCapacity')}: ${capacidad} h<br/>${this.t('reports.recentPace')}: ${ritmo} ${this.t('private.reports.hSem')}` },
+      xAxis: { type: 'category', data: [this.t('reports.riskTeam')], axisLabel: { color: '#dff7fb', fontWeight: 700 }, axisTick: { show: false }, axisLine: { lineStyle: { color: '#3b7083' } } },
       yAxis: { type: 'value', axisLabel: { color: '#9bc2ce', formatter: '{value} h' }, splitLine: { lineStyle: { color: 'rgba(122,184,203,.14)', type: 'dashed' } } },
-      series: [{ name: 'Capacidad disponible', type: 'bar', data: [capacidad], barMaxWidth: 42, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#3a9dff' }, { offset: 1, color: '#195095' }]), borderRadius: [8, 8, 2, 2] }, emphasis: { focus: 'series' } }, { name: 'Ritmo reciente', type: 'bar', data: [ritmo], barMaxWidth: 42, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#45d99a' }, { offset: 1, color: '#1c713f' }]), borderRadius: [8, 8, 2, 2] }, emphasis: { focus: 'series' } }],
+      series: [{ name: this.t('reports.availableCapacity'), type: 'bar', data: [capacidad], barMaxWidth: 42, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#3a9dff' }, { offset: 1, color: '#195095' }]), borderRadius: [8, 8, 2, 2] }, emphasis: { focus: 'series' } }, { name: this.t('reports.recentPace'), type: 'bar', data: [ritmo], barMaxWidth: 42, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#45d99a' }, { offset: 1, color: '#1c713f' }]), borderRadius: [8, 8, 2, 2] }, emphasis: { focus: 'series' } }],
     }, { notMerge: true });
   }
 

@@ -1,5 +1,6 @@
 <section class="tb-workspace tb-agency-page space-y-6">
   <header class="tb-agency-header"><p class="tb-page-kicker">{{localization.traducir('agency.eyebrow')}}</p><h1 class="tb-page-title">{{localization.traducir('agency.title')}}</h1><p class="tb-page-description">{{localization.traducir('agency.subtitle')}}</p></header>
+  <app-agency-setup vista="avance" />
   <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
     <form class="tb-panel grid gap-5 md:grid-cols-2" [attr.aria-label]="localization.traducir('agency.title')" [formGroup]="form" (ngSubmit)="guardar()">
       @if(cargando()){<p class="md:col-span-2 text-sm text-slate-500">{{localization.traducir('agency.loading')}}</p>}@else{<div class="md:col-span-2"><label class="tb-field-label" for="nombre-comercial">{{localization.traducir('agency.commercialName')}}</label><input id="nombre-comercial" type="text" formControlName="nombreComercial" /></div>
@@ -9,7 +10,9 @@
       <div><label class="tb-field-label" for="email-facturacion">{{localization.traducir('agency.billingEmail')}}</label><input id="email-facturacion" type="email" formControlName="emailContacto" /></div>
       <div><label class="tb-field-label" for="telefono-contacto">{{localization.traducir('agency.contactPhone')}}</label><input id="telefono-contacto" type="tel" formControlName="telefonoContacto" /></div>
       <div><span id="fecha-registro-label" class="tb-field-label">{{localization.traducir('agency.createdAt')}}</span><output class="tb-readonly-field" aria-labelledby="fecha-registro-label">{{form.controls.fechaAlta.value ? (form.controls.fechaAlta.value | date:'dd/MM/yyyy, HH:mm') : '—'}}</output></div>
-      @if(error()){<p class="text-sm text-red-600 md:col-span-2">{{error()}}</p>}@if(mensaje()){<p class="text-sm text-emerald-700 md:col-span-2">{{mensaje()}}</p>}<div class="flex items-end md:col-span-2"><button class="tb-action-button" type="submit">{{localization.traducir('agency.saveChanges')}}</button></div>}
+      @if (error()) { <p class="text-sm text-red-600 md:col-span-2" role="alert">{{localization.traducir(error())}}</p> }
+      @if (mensaje()) { <p class="text-sm text-emerald-700 md:col-span-2" role="status">{{localization.traducir(mensaje())}}</p> }
+      <div class="flex items-end md:col-span-2"><button class="tb-action-button" type="submit">{{localization.traducir('agency.saveChanges')}}</button></div>}
     </form>
     <aside class="tb-panel--navy tb-agency-aside"><p class="tb-page-kicker text-cyan-200">{{localization.traducir('agency.organization')}}</p><h2 class="mt-2 text-xl font-semibold text-white">{{localization.traducir('agency.asideTitle')}}</h2><p class="mt-3 text-sm leading-6 text-slate-200">{{localization.traducir('agency.asideText')}}</p></aside>
   </div>
@@ -17,6 +20,8 @@
     <div class="flex flex-wrap items-start justify-between gap-4"><div><p class="tb-page-kicker">{{localization.traducir('agency.workflowKicker')}}</p><h2 class="mt-2 text-xl font-semibold">{{localization.traducir('agency.workflowTitle')}}</h2><p class="mt-2 text-sm text-slate-500">{{localization.traducir('agency.workflowDescription')}}</p></div><span class="tb-count-chip">{{personalizadosActivos()}} / 3 {{localization.traducir('agency.customCount')}}</span></div>
     <div class="tb-agency-states mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">@for(estado of estados(); track estado.id){<article class="tb-agency-state rounded-xl border p-4" [class.tb-agency-state--custom]="!estado.esBase" [class.tb-agency-state--final]="estado.esFinal"><div class="flex items-center justify-between gap-2"><strong>{{localization.traducirEstado(estado.nombre)}}</strong><span class="tb-status-badge">{{localization.traducir(estado.esBase ? 'agency.base' : 'agency.custom')}}</span></div><p class="mt-2 text-xs text-slate-500">{{localization.traducir(estado.esFinal ? 'agency.finalNote' : 'agency.activeNote')}}</p>@if(!estado.esBase){<div class="mt-4 flex gap-2"><button class="tb-secondary-button" type="button" (click)="editarEstado(estado)">{{localization.traducir('agency.edit')}}</button><button class="tb-agency-deactivate text-sm" type="button" (click)="desactivarEstado(estado)">{{localization.traducir('agency.deactivate')}}</button></div>}</article>}</div>
     @if(personalizadosActivos() < 3 || estadoEditando()){<form class="tb-agency-state-editor mt-5 flex flex-wrap items-end gap-3 rounded-xl border p-4" [formGroup]="estadoForm" (ngSubmit)="guardarEstado()"><label class="tb-field-label min-w-0 flex-1">{{localization.traducir(estadoEditando() ? 'agency.editState' : 'agency.newState')}}<input formControlName="nombre" maxlength="80" [placeholder]="localization.traducir('agency.statePlaceholder')" /></label><button class="tb-action-button" type="submit" [disabled]="estadoForm.invalid || guardandoEstado()">{{localization.traducir(guardandoEstado() ? 'agency.savingState' : (estadoEditando() ? 'agency.saveState' : 'agency.addState'))}}</button>@if(estadoEditando()){<button class="tb-secondary-button" type="button" (click)="cancelarEstado()">{{localization.traducir('agency.cancel')}}</button>}</form>}
+    @if (errorEstado()) { <p class="mt-4 text-sm text-red-600" role="alert">{{localization.traducir(errorEstado())}}</p> }
+    @if (mensajeEstado()) { <p class="mt-4 text-sm text-emerald-700" role="status">{{localization.traducir(mensajeEstado())}}</p> }
   </section>
   <section class="tb-panel">
     <div><p class="tb-page-kicker">{{localization.traducir('agency.alertsKicker')}}</p><h2 class="mt-2 text-xl font-semibold">{{localization.traducir('agency.alertsTitle')}}</h2><p class="mt-2 text-sm text-slate-500">{{localization.traducir('agency.alertsDescription')}}</p></div>
@@ -28,7 +33,11 @@
         <label class="tb-agency-check"><input type="checkbox" formControlName="emailActivo" /><span>{{localization.traducir('agency.channelEmail')}}</span></label>
         <label class="tb-agency-check"><input type="checkbox" formControlName="slackActivo" /><span>{{localization.traducir('agency.channelSlack')}}</span></label>
       </fieldset>
-      <div class="tb-agency-alert-actions"><button class="tb-action-button" type="submit" [disabled]="alertasForm.invalid">{{localization.traducir('agency.saveAlerts')}}</button></div>
+      <div class="tb-agency-alert-actions">
+        @if (errorAlertas()) { <p class="mb-3 text-sm text-red-600" role="alert">{{localization.traducir(errorAlertas())}}</p> }
+        @if (mensajeAlertas()) { <p class="mb-3 text-sm text-emerald-700" role="status">{{localization.traducir(mensajeAlertas())}}</p> }
+        <button class="tb-action-button" type="submit">{{localization.traducir('agency.saveAlerts')}}</button>
+      </div>
     </form>
   </section>
 </section>

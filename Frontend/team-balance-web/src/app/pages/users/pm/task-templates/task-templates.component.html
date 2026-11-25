@@ -28,7 +28,14 @@
         <label class="tb-field-label">{{ localization.traducir('taskTemplates.text6') }}<input formControlName="nombre" [placeholder]="localization.traducir('taskTemplates.text35')" /></label>
         <label class="tb-field-label">{{ localization.traducir('taskTemplates.text7') }}<input formControlName="tituloSugerido" [placeholder]="localization.traducir('taskTemplates.text36')" /></label>
         <label class="tb-field-label">{{ localization.traducir('taskTemplates.text8') }}<select formControlName="idSkillRequerido"><option [ngValue]="0">{{ localization.traducir('taskTemplates.text9') }}</option>@for (skill of skills(); track skill.id) { <option [ngValue]="skill.id">{{ skill.nombre }}</option> }</select></label>
-        <label class="tb-field-label">{{ localization.traducir('taskTemplates.text10') }}<select formControlName="seniorityRecomendado"><option value="Junior">Junior</option><option value="Semisenior">{{ localization.traducir('taskTemplates.seniorityMiddle') }}</option><option value="Senior">Senior</option></select></label>
+        <label class="tb-field-label">
+          {{ localization.traducir('taskTemplates.text10') }}
+          <select formControlName="seniorityRecomendado">
+            <option value="Junior">{{ localization.traducir('taskTemplates.seniorityJunior') }}</option>
+            <option value="Semisenior">{{ localization.traducir('taskTemplates.seniorityMiddle') }}</option>
+            <option value="Senior">{{ localization.traducir('taskTemplates.senioritySenior') }}</option>
+          </select>
+        </label>
         <label class="tb-field-label">{{ localization.traducir('taskTemplates.text11') }}<select formControlName="prioridadSugerida"><option value="Baja">{{ localization.traducir('taskTemplates.low') }}</option><option value="Media">{{ localization.traducir('taskTemplates.medium') }}</option><option value="Alta">{{ localization.traducir('taskTemplates.high') }}</option></select></label>
         <label class="tb-field-label">{{ localization.traducir('taskTemplates.text12') }}<select formControlName="complejidad"><option value="Baja">{{ localization.traducir('taskTemplates.low') }}</option><option value="Media">{{ localization.traducir('taskTemplates.medium') }}</option><option value="Alta">{{ localization.traducir('taskTemplates.high') }}</option></select></label>
         <label class="tb-field-label">{{ localization.traducir('taskTemplates.text13') }}<input type="number" min="0.25" step="0.25" formControlName="horasEstimadas" /></label>

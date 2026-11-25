@@ -12,6 +12,7 @@ export class HelpdeskComponent {
   readonly auth = inject(AuthService); readonly localization = inject(LocalizationService);
   readonly tickets = signal<TicketSoporte[]>([]); readonly bandeja = signal<BandejaSoporteItem[]>([]); readonly detalle = signal<DetalleTicket | null>(null); readonly consultaPlanSeleccionada = signal<BandejaSoporteItem | null>(null);
   readonly cargando = signal(true); readonly error = signal(''); readonly mensaje = signal(''); readonly enviando = signal(false); readonly actualizandoEstado = signal(false);
+  readonly errorDeCarga = signal(false);
   readonly crearForm = this.fb.nonNullable.group({ categoria: ['Funcionalidad', Validators.required], asunto: ['', [Validators.required, Validators.maxLength(200)]], descripcion: ['', [Validators.required, Validators.maxLength(4000)]] });
   readonly mensajeForm = this.fb.nonNullable.group({ mensaje: ['', [Validators.required, Validators.maxLength(4000)]] });
   readonly categorias = ['Acceso', 'Usuarios', 'Funcionalidad', 'Suscripción y pagos', 'Otro']; readonly estados: EstadoTicket[] = ['Pendiente', 'En revisión', 'Respondida', 'Resuelta'];
@@ -30,33 +31,42 @@ export class HelpdeskComponent {
   }
   recargar(): void {
     this.cargando.set(true); this.error.set('');
+    this.errorDeCarga.set(false);
+    const mostrarErrorDeCarga = (respuesta: { error?: unknown } | null) => {
+      this.errorDeCarga.set(true);
+      this.error.set(this.textoError(respuesta, 'helpdesk.loadError'));
+    };
     if (this.auth.esSoporte()) {
-      this.service.bandeja().pipe(finalize(() => this.cargando.set(false))).subscribe({ next: items => this.bandeja.set(items), error: e => this.error.set(e?.error ?? this.t('helpdesk.loadError')) });
+      this.service.bandeja().pipe(finalize(() => this.cargando.set(false))).subscribe({ next: items => this.bandeja.set(items), error: mostrarErrorDeCarga });
       return;
     }
-    this.service.misConsultas().pipe(finalize(() => this.cargando.set(false))).subscribe({ next: items => this.tickets.set(items), error: e => this.error.set(e?.error ?? this.t('helpdesk.loadError')) });
+    this.service.misConsultas().pipe(finalize(() => this.cargando.set(false))).subscribe({ next: items => this.tickets.set(items), error: mostrarErrorDeCarga });
+  }
+  private textoError(respuesta: { error?: unknown } | null, clave: string): string {
+    const texto = respuesta?.error;
+    return this.localization.language() === 'es' && typeof texto === 'string' && texto.trim() ? texto : this.t(clave);
   }
   crear(): void {
     this.crearForm.markAllAsTouched(); if (this.crearForm.invalid) return; const v = this.crearForm.getRawValue(); this.enviando.set(true);
-    this.service.crear(v.categoria, v.asunto, v.descripcion).pipe(finalize(() => this.enviando.set(false))).subscribe({ next: t => { this.mensaje.set(this.t('helpdesk.created')); this.crearForm.reset({ categoria: 'Funcionalidad', asunto: '', descripcion: '' }); this.tickets.update(x => [t, ...x]); this.abrir(t.id); }, error: e => this.error.set(e?.error ?? this.t('helpdesk.createError')) });
+    this.service.crear(v.categoria, v.asunto, v.descripcion).pipe(finalize(() => this.enviando.set(false))).subscribe({ next: t => { this.mensaje.set(this.t('helpdesk.created')); this.crearForm.reset({ categoria: 'Funcionalidad', asunto: '', descripcion: '' }); this.tickets.update(x => [t, ...x]); this.abrir(t.id); }, error: e => this.error.set(this.textoError(e, '')) });
   }
-  abrir(id: number): void { this.consultaPlanSeleccionada.set(null); this.detalle.set(null); this.service.detalle(id).subscribe({ next: d => this.detalle.set(d), error: e => this.error.set(e?.error ?? this.t('helpdesk.detailError')) }); }
+  abrir(id: number): void { this.consultaPlanSeleccionada.set(null); this.detalle.set(null); this.service.detalle(id).subscribe({ next: d => this.detalle.set(d), error: e => this.error.set(this.textoError(e, '')) }); }
   abrirElemento(item: BandejaSoporteItem): void { if (this.esConsultaPlan(item)) { this.detalle.set(null); this.consultaPlanSeleccionada.set(item); return; } this.abrir(item.id); }
   enviar(): void {
     const d = this.detalle(); const consultaPlan = this.consultaPlanSeleccionada(); this.mensajeForm.markAllAsTouched(); if ((!d && !consultaPlan) || this.mensajeForm.invalid) return; const mensaje = this.mensajeForm.controls.mensaje.value; this.enviando.set(true);
     if (consultaPlan) {
-      this.service.responderConsultaPlan(consultaPlan.id, mensaje).pipe(finalize(() => this.enviando.set(false))).subscribe({ next: resultado => { this.consultaPlanSeleccionada.set(resultado); this.mensajeForm.reset({ mensaje: '' }); this.mensaje.set(this.t('helpdesk.planAnswered')); this.recargar(); }, error: e => this.error.set(e?.error ?? this.t('helpdesk.sendError')) });
+      this.service.responderConsultaPlan(consultaPlan.id, mensaje).pipe(finalize(() => this.enviando.set(false))).subscribe({ next: resultado => { this.consultaPlanSeleccionada.set(resultado); this.mensajeForm.reset({ mensaje: '' }); this.mensaje.set(this.t('helpdesk.planAnswered')); this.recargar(); }, error: e => this.error.set(this.textoError(e, '')) });
       return;
     }
     if (!d) return;
-    this.service.enviarMensaje(d.consulta.id, mensaje).pipe(finalize(() => this.enviando.set(false))).subscribe({ next: () => { this.mensajeForm.reset({ mensaje: '' }); this.abrir(d.consulta.id); this.recargar(); }, error: e => this.error.set(e?.error ?? this.t('helpdesk.sendError')) });
+    this.service.enviarMensaje(d.consulta.id, mensaje).pipe(finalize(() => this.enviando.set(false))).subscribe({ next: () => { this.mensajeForm.reset({ mensaje: '' }); this.abrir(d.consulta.id); this.recargar(); }, error: e => this.error.set(this.textoError(e, '')) });
   }
   cambiarEstado(estado: string): void {
     const d = this.detalle(); if (!d) return; this.actualizandoEstado.set(true);
-    this.service.cambiarEstado(d.consulta.id, estado as EstadoTicket).pipe(finalize(() => this.actualizandoEstado.set(false))).subscribe({ next: () => { this.mensaje.set(this.t('helpdesk.statusSaved')); this.abrir(d.consulta.id); this.recargar(); }, error: e => this.error.set(e?.error ?? this.t('helpdesk.statusError')) });
+    this.service.cambiarEstado(d.consulta.id, estado as EstadoTicket).pipe(finalize(() => this.actualizandoEstado.set(false))).subscribe({ next: () => { this.mensaje.set(this.t('helpdesk.statusSaved')); this.abrir(d.consulta.id); this.recargar(); }, error: e => this.error.set(this.textoError(e, '')) });
   }
   resolver(): void {
     const d = this.detalle(); if (!d) return; this.actualizandoEstado.set(true);
-    this.service.resolver(d.consulta.id).pipe(finalize(() => this.actualizandoEstado.set(false))).subscribe({ next: () => { this.mensaje.set(this.t('helpdesk.resolved')); this.abrir(d.consulta.id); this.recargar(); }, error: e => this.error.set(e?.error ?? this.t('helpdesk.statusError')) });
+    this.service.resolver(d.consulta.id).pipe(finalize(() => this.actualizandoEstado.set(false))).subscribe({ next: () => { this.mensaje.set(this.t('helpdesk.resolved')); this.abrir(d.consulta.id); this.recargar(); }, error: e => this.error.set(this.textoError(e, '')) });
   }
 }

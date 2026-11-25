@@ -30,7 +30,7 @@ public partial class AsignacionTarea
 
     public int ID { get; set; }
 
-    [System.Text.Json.Serialization.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore, ReferenciaInterna]
     public Tarea Tarea { get; set; } = new();
 
     public int IdTarea
@@ -39,7 +39,7 @@ public partial class AsignacionTarea
         set => Tarea = Tarea.ID == value ? Tarea : new() { ID = value };
     }
 
-    [System.Text.Json.Serialization.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore, ReferenciaInterna]
     public Empleado Empleado { get; set; } = new();
 
     public int IdEmpleado
@@ -48,7 +48,7 @@ public partial class AsignacionTarea
         set => Empleado = Empleado.ID == value ? Empleado : new() { ID = value };
     }
 
-    [System.Text.Json.Serialization.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore, ReferenciaInterna]
     public Usuario UsuarioAsignador { get; set; } = new();
 
     public int IdUsuarioAsignador
