@@ -20,7 +20,7 @@
 
             <form class="grid gap-4 md:grid-cols-2" [formGroup]="form" (ngSubmit)="guardar()">
                 <label class="tb-field-label">
-                    <span>Título <span class="text-amber-400" aria-label="Obligatorio">*</span></span>
+                    <span>Título <span class="text-amber-400" [attr.aria-label]="localization.traducir('review.tasks.requiredTitle')">*</span></span>
                     <input formControlName="titulo" />
                     @if(form.controls.titulo.touched && form.controls.titulo.invalid){<span class="mt-1 block text-xs text-red-700 dark:text-red-300" data-localization-ignore>{{ localization.traducir('taskManager.titleRequired') }}</span>}
                 </label>
@@ -38,7 +38,7 @@
                 }
 
                 <label class="tb-field-label">
-                    <span>Proyecto <span class="text-amber-400" aria-label="Obligatorio">*</span></span>
+                    <span>Proyecto <span class="text-amber-400" [attr.aria-label]="localization.traducir('review.tasks.requiredTitle')">*</span></span>
                     <select formControlName="idProyecto">
                         <option [ngValue]="0">Seleccioná un proyecto</option>
                         @for(p of opciones().proyectos;track p.id){
@@ -49,7 +49,7 @@
                 </label>
 
                 <label class="tb-field-label">
-                    <span>Skill requerida <span class="text-amber-400" aria-label="Obligatorio">*</span></span>
+                    <span>Skill requerida <span class="text-amber-400" [attr.aria-label]="localization.traducir('review.tasks.requiredTitle')">*</span></span>
                     <div class="flex gap-2">
                         <select formControlName="idSkillRequerido">
                             <option [ngValue]="0">Seleccioná una skill</option>
@@ -65,7 +65,7 @@
                 </label>
 
                 <label class="tb-field-label">
-                    <span>Estado <span class="text-amber-400" aria-label="Obligatorio">*</span></span>
+                    <span>Estado <span class="text-amber-400" [attr.aria-label]="localization.traducir('review.tasks.requiredTitle')">*</span></span>
                     <select formControlName="idEstadoTarea">
                         <option [ngValue]="0">Seleccioná un estado</option>
                         @for(e of opciones().estados;track e.id){
@@ -221,7 +221,7 @@
                     <p class="text-sm text-red-700 dark:text-red-300 md:col-span-2" role="alert" data-localization-ignore>{{textoError()}}</p>
                 }
                 <div class="flex items-center gap-3 md:col-span-2">
-                    <button class="tb-action-button" type="submit">Guardar tarea</button>
+                    <button class="tb-action-button" type="submit">{{ localization.traducir('tasks.save') }}</button>
                     <button class="tb-button tb-button--secondary" type="button" (click)="guardar(true)">Guardar y sugerir</button>
                     <button class="tb-button tb-button--secondary" type="button" (click)="mostrar.set(false)">Cancelar</button>
                 </div>

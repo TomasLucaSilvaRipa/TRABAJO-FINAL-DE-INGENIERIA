@@ -1,8 +1,11 @@
-import { Component, HostListener, inject, signal } from '@angular/core';
+import { Component, computed, HostListener, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Cliente, FiltroProyecto, ProjectsService, Proyecto, ProyectoOpciones } from '../../../../services/projects.service';
 import { LocalizationService } from '../../../../services/localization.service';
-import { finalize } from 'rxjs';
+import { finalize, forkJoin } from 'rxjs';
+import { AnaliticaOperativaService } from '../../../../services/analitica-operativa.service';
+import { AuthService } from '../../../../services/auth.service';
+import { TasksService } from '../../../../services/tasks.service';
 
 @Component({
   selector: 'app-proyect-management',
@@ -15,6 +18,24 @@ export class ProyectManagement {
   private readonly fb = inject(FormBuilder);
   readonly localization = inject(LocalizationService);
   readonly proyectos = signal<Proyecto[]>([]);
+  private readonly auth = inject(AuthService);
+  private readonly analitica = inject(AnaliticaOperativaService);
+  private readonly tareas = inject(TasksService);
+  private readonly proyectosConActividad = signal<Set<number> | null>(null);
+  readonly revisandoActividad = signal(false);
+  readonly errorActividad = signal(false);
+  readonly puedeRevisarActividad = computed(() =>
+    this.auth.tienePermiso('ConsultarTableroEjecutivo') &&
+    (this.auth.usuarioActual()?.roles.some(rol => rol.tipoUsuario === 'Dueno' || rol.tipoUsuario === 'PM') ?? false)
+  );
+  readonly planificadosConActividad = computed(() => {
+    const idsConActividad = this.proyectosConActividad();
+    return idsConActividad === null
+      ? null
+      : this.proyectos().filter(proyecto =>
+          proyecto.activo && proyecto.estado === 'Planificado' && idsConActividad.has(proyecto.id)
+        );
+  });
   readonly opciones = signal<ProyectoOpciones>({ clientes: [], responsables: [] });
   readonly mostrarFormulario = signal(false);
   readonly mostrarCliente = signal(false);
@@ -33,6 +54,30 @@ export class ProyectManagement {
   readonly filtroForm = this.fb.group({ idCliente: [null as number | null], idPMResponsable: [null as number | null], estado: [''], fechaDesde: [''], fechaHasta: [''] });
 
   constructor() { this.cargar(); }
+
+  revisarActividadProyectos(): void {
+    if (!this.puedeRevisarActividad() || this.revisandoActividad()) { return; }
+    this.revisandoActividad.set(true);
+    this.errorActividad.set(false);
+    this.proyectosConActividad.set(null);
+
+    forkJoin({
+      horas: this.analitica.consultarDesvioHoras(),
+      tareas: this.tareas.consultarTableroProyectos({}),
+    }).pipe(finalize(() => this.revisandoActividad.set(false))).subscribe({
+      next: ({ horas, tareas }) => {
+        const ids = new Set<number>();
+        for (const proyecto of horas.proyectos) {
+          if (proyecto.horasReales > 0) { ids.add(proyecto.idProyecto); }
+        }
+        for (const tarea of tareas) {
+          if (tarea.activo && tarea.porcentajeAvance > 0) { ids.add(tarea.idProyecto); }
+        }
+        this.proyectosConActividad.set(ids);
+      },
+      error: () => this.errorActividad.set(true),
+    });
+  }
 
   cargar(): void {
     this.service.consultar().subscribe({ next: (proyectos: Proyecto[]) => this.proyectos.set(proyectos), error: () => this.error.set('projectForm.loadProjects') });

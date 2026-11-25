@@ -257,6 +257,7 @@ export class ImpactSimulationComponent {
     const detalle = typeof respuesta.error === 'string' ? respuesta.error : '';
     if (respuesta.status === 0) return 'projectForm.connection';
     if (/sesi[oó]n ya no es v[aá]lida/i.test(detalle) || (respuesta.status === 401 && !detalle)) return 'projectForm.invalidSession';
+    if (alternativa === 'bestFitError' && respuesta.status === 403 && /no pertenece a uno de tus proyectos/i.test(detalle)) return 'bestFit.taskUnavailable';
     if (/tarea no est[aá] disponible|no pertenece a uno de tus proyectos/i.test(detalle)) return 'private.impactSimulation.taskUnavailable';
     if (respuesta.status === 401 || respuesta.status === 403) return 'projectForm.notAllowed';
     if (/seleccion[aá] una tarea pendiente/i.test(detalle)) return 'private.impactSimulation.selectTaskAndCandidate';

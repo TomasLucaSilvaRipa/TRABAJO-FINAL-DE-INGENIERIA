@@ -14,5 +14,5 @@ export class MyTasksComponent {
   private readonly tasksService = inject(TasksService);
   readonly localization = inject(LocalizationService);
   readonly tareas = signal<Tarea[]>([]); readonly cargando = signal(true); readonly error = signal('');
-  constructor() { this.tasksService.consultarMias().subscribe({ next: (tareas: Tarea[]) => { this.tareas.set(tareas); this.cargando.set(false); }, error: () => { this.error.set('No se pudieron cargar tus tareas asignadas.'); this.cargando.set(false); } }); }
+  constructor() { this.tasksService.consultarMias().subscribe({ next: (tareas: Tarea[]) => { this.tareas.set(tareas); this.cargando.set(false); }, error: () => { this.error.set('review.tasks.loadMine'); this.cargando.set(false); } }); }
 }

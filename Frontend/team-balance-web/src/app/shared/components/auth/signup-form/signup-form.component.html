@@ -20,28 +20,28 @@
         <p data-localization-ignore>{{localization.traducir('signup.accountValidatedText')}}</p>
         <a class="tb-auth-submit tb-auth-submit--link" routerLink="/signin">{{localization.traducir('signup.goSignin')}}</a>
       } @else if (!metodoValidacion()) {
-        <h1 id="signup-title">Elegí cómo validar tu cuenta</h1>
-        <p>Seleccioná un método. Hasta completar la validación no vas a poder iniciar sesión.</p>
-        <div class="mt-6 grid gap-3"><button class="tb-auth-submit" type="button" [disabled]="preparandoValidacion()" (click)="elegirEmail()">Validar por correo electrónico</button><button class="tb-auth-submit tb-auth-submit--secondary" type="button" [disabled]="preparandoValidacion()" (click)="elegirTelegram()">Validar por Telegram</button></div>
+        <h1 id="signup-title">{{ localization.traducir('review.auth.chooseVerification') }}</h1>
+        <p>{{ localization.traducir('review.auth.chooseHint') }}</p>
+        <div class="mt-6 grid gap-3"><button class="tb-auth-submit" type="button" [disabled]="preparandoValidacion()" (click)="elegirEmail()">{{ localization.traducir('review.auth.verifyByEmail') }}</button><button class="tb-auth-submit tb-auth-submit--secondary" type="button" [disabled]="preparandoValidacion()" (click)="elegirTelegram()">{{ localization.traducir('review.auth.verifyByTelegram') }}</button></div>
       } @else if (metodoValidacion() === 'email') {
-        <h1 id="signup-title">Revisá tu correo</h1>
-        <p>Enviamos un enlace de validación a tu correo laboral. Abrilo para habilitar la cuenta.</p>
-        <div class="mt-5 flex flex-wrap gap-3"><button class="tb-auth-submit tb-auth-submit--secondary" type="button" [disabled]="preparandoValidacion()" (click)="elegirEmail()">Reenviar enlace</button><button class="tb-auth-submit tb-auth-submit--secondary" type="button" [disabled]="preparandoValidacion()" (click)="elegirTelegram()">Usar Telegram</button></div>
+        <h1 id="signup-title">{{ localization.traducir('review.auth.emailSent') }}</h1>
+        <p>{{ localization.traducir('review.auth.emailLink') }}</p>
+        <div class="mt-5 flex flex-wrap gap-3"><button class="tb-auth-submit tb-auth-submit--secondary" type="button" [disabled]="preparandoValidacion()" (click)="elegirEmail()">Reenviar enlace</button><button class="tb-auth-submit tb-auth-submit--secondary" type="button" [disabled]="preparandoValidacion()" (click)="elegirTelegram()">{{ localization.traducir('review.auth.useTelegram') }}</button></div>
         <a class="tb-auth-submit tb-auth-submit--link" routerLink="/signin">{{localization.traducir('signup.goSignin')}}</a>
       } @else {
-        <h1 id="signup-title">Validá mediante Telegram</h1>
-        <p>Abrimos @TeamBalanceVerifyBot. Pulsá <strong>Iniciar</strong>, volvé a esta pantalla y actualizá el estado.</p>
+        <h1 id="signup-title">{{ localization.traducir('review.auth.telegramTitle') }}</h1>
+        <p>{{ localization.traducir('review.auth.telegramStart') }} <strong>Iniciar</strong>{{ localization.traducir('review.auth.telegramReturn') }}</p>
         @if (preparacionTelegram()) {
           <div class="mt-5 rounded-lg border border-sky-200 bg-sky-50 p-4 text-left text-sm text-slate-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-slate-200">
-            <p>Si Telegram sólo abre el chat y no responde, copiá este comando temporal y pegalo en el bot. Vence en 10 minutos.</p>
-            <div class="mt-3 flex flex-wrap items-center gap-3"><code class="rounded bg-slate-950 px-3 py-2 text-xs text-sky-200 break-all">{{ preparacionTelegram()?.comandoInicio }}</code><button class="tb-auth-submit tb-auth-submit--secondary" type="button" (click)="copiarComandoTelegram()">{{ comandoTelegramCopiado() ? 'Comando copiado' : 'Copiar comando' }}</button></div>
+            <p>{{ localization.traducir('review.auth.telegramCommand') }}</p>
+            <div class="mt-3 flex flex-wrap items-center gap-3"><code class="rounded bg-slate-950 px-3 py-2 text-xs text-sky-200 break-all">{{ preparacionTelegram()?.comandoInicio }}</code><button class="tb-auth-submit tb-auth-submit--secondary" type="button" (click)="copiarComandoTelegram()">{{ localization.traducir(comandoTelegramCopiado() ? 'review.auth.copiedCommand' : 'review.auth.copyCommand') }}</button></div>
           </div>
         }
         @if (estadoTelegram()?.estadoSolicitud === 'CodigoEnviado') {
           <label class="tb-auth-field mt-5">Código de seis dígitos<input type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" [value]="codigoTelegram()" (input)="codigoTelegram.set($any($event.target).value)" placeholder="000000" /></label>
           <div class="mt-4 flex flex-wrap gap-3"><button class="tb-auth-submit" type="button" [disabled]="preparandoValidacion()" (click)="confirmarTelegram()">Confirmar código</button><button class="tb-auth-submit tb-auth-submit--secondary" type="button" [disabled]="preparandoValidacion()" (click)="reenviarTelegram()">Reenviar código</button></div>
         } @else { <button class="tb-auth-submit tb-auth-submit--secondary mt-5" type="button" (click)="actualizarEstadoTelegram()">Actualizar estado</button> }
-        <button class="tb-auth-submit tb-auth-submit--link mt-5" type="button" (click)="volverAMetodosValidacion()">Elegir otro método</button>
+        <button class="tb-auth-submit tb-auth-submit--link mt-5" type="button" (click)="volverAMetodosValidacion()">{{ localization.traducir('review.auth.anotherMethod') }}</button>
       }
       @if (validacionError()) { <p class="tb-auth-request-error mt-4" role="alert">{{ validacionError() }}</p> }
     </div>
@@ -151,7 +151,7 @@
       }
 
       @if (requestError()) {
-        <p class="tb-auth-request-error" role="alert">{{ requestError() }}</p>
+        <p class="tb-auth-request-error" role="alert">{{ localization.traducir(requestError(), localization.language(), requestError()) }}</p>
       }
 
       <button class="tb-auth-submit" type="submit" [disabled]="submitting()">

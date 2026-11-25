@@ -1,3 +1,4 @@
+import { LocalizationService } from '../../../../services/localization.service';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { UsuariosService, UsuarioGestion } from '../../../../services/usuarios.service';
@@ -6,9 +7,11 @@ import { UsuariosService, UsuarioGestion } from '../../../../services/usuarios.s
   selector: 'app-slack-linking',
   imports: [ReactiveFormsModule],
   templateUrl: './slack-linking.component.html',
+  styleUrl: './slack-linking.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SlackLinkingComponent {
+  readonly localization = inject(LocalizationService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly usuariosService = inject(UsuariosService);
   readonly usuarios = signal<UsuarioGestion[]>([]);
@@ -34,7 +37,7 @@ export class SlackLinkingComponent {
         this.cargando.set(false);
       },
       error: (respuesta: { error?: string }) => {
-        this.error.set(this.mensajeError(respuesta, 'No pudimos cargar los usuarios disponibles.'));
+        this.error.set(this.mensajeError(respuesta, 'review.slack.loadError'));
         this.cargando.set(false);
       },
     });
@@ -49,23 +52,27 @@ export class SlackLinkingComponent {
     const valores = this.form.getRawValue();
     const idUsuario = valores.idUsuario;
     const slackUserId = valores.slackUserId?.trim().toUpperCase() ?? '';
-    if (idUsuario === null) {
-      return;
-    }
+    const usuario = this.usuarios().find(item => item.id === idUsuario);
+    if (!usuario) return;
+
+    const confirmacion = this.localization.traducir('review.slack.confirmLink')
+      .replace('{account}', () => [usuario.nombre, usuario.apellido, usuario.email].join(' '))
+      .replace('{memberId}', () => slackUserId);
+    if (!window.confirm(confirmacion)) return;
 
     this.guardando.set(true);
     this.error.set('');
     this.mensaje.set('');
-    this.usuariosService.vincularUsuarioSlack(idUsuario, slackUserId).subscribe({
+    this.usuariosService.vincularUsuarioSlack(usuario.id, slackUserId).subscribe({
       next: () => {
         this.guardando.set(false);
-        this.mensaje.set('Usuario vinculado correctamente. Ya puede usar /balance desde su cuenta de Slack.');
+        this.mensaje.set('review.slack.linked');
         this.form.reset({ idUsuario: null, slackUserId: '' });
         this.cargar();
       },
       error: (respuesta: { error?: string }) => {
         this.guardando.set(false);
-        this.error.set(this.mensajeError(respuesta, 'No pudimos vincular el usuario con Slack.'));
+        this.error.set(this.mensajeError(respuesta, 'review.slack.linkError'));
       },
     });
   }

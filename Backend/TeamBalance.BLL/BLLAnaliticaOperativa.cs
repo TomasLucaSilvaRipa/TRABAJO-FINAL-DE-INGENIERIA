@@ -98,8 +98,8 @@ public class BLLAnaliticaOperativa
         if (!usuario.IdAgencia.HasValue) { throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia."); }
         if (!_rolBLL.TienePermiso(usuario, "VerCargaOperativa")) { throw new UnauthorizedAccessException("No tenés permiso para consultar tu carga operativa."); }
 
-        Empleado empleado = _analiticaMPP.ConsultarEmpleadosActivos(usuario)
-            .FirstOrDefault(item => item.ID == usuario.ID)
+        Empleado empleado = _analiticaMPP.ConsultarEmpleadosActivos(usuario, soloSolicitante: true)
+            .FirstOrDefault()
             ?? throw new UnauthorizedAccessException("Tu cuenta no está asociada a un empleado activo de la agencia.");
 
         // Esta consulta se realiza sobre los proyectos de la agencia; el motor sólo incorpora

@@ -1,7 +1,7 @@
 namespace TeamBalance.BE.Entidades;
 public class ComunicacionDesvioHoras
 {
-    [System.Text.Json.Serialization.JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore, ReferenciaInterna]
     public Proyecto Proyecto { get; set; } = new();
 
     public int IdProyecto

@@ -27,5 +27,9 @@ export class UsuariosService {
   cambiarEstadoOperador(operador: Partial<UsuarioGestion>): Observable<void> { return this.http.patch<void>(`/api/usuarios/operadores/${operador.id}/estado`, operador); }
 
   consultarUsuariosSinVincularSlack(): Observable<UsuarioGestion[]> { return this.http.get<UsuarioGestion[]>('/api/slack/usuarios-sin-vincular'); }
-  vincularUsuarioSlack(idUsuario: number, slackUserId: string): Observable<void> { return this.http.post<void>(`/api/slack/usuarios/${idUsuario}/vinculacion`, slackUserId); }
+  vincularUsuarioSlack(idUsuario: number, slackUserId: string): Observable<void> {
+    return this.http.post<void>(`/api/slack/usuarios/${idUsuario}/vinculacion`, JSON.stringify(slackUserId), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 }

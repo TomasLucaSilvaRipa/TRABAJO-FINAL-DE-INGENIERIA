@@ -6,6 +6,8 @@ namespace TeamBalance.BLL;
 public class BLLRegistroHora
 {
     private const int DiasMaximosRetroactivos = 30;
+    private const decimal HorasMaximasJornada = 15;
+    private const string MensajeLimiteJornada = "El total de horas de la jornada no puede superar 15 horas.";
     private readonly MPPRegistroHora _registroHoraMPP;
     private readonly BLLRol _rolBLL;
     private readonly BLLBitacora _bitacoraBLL;
@@ -53,6 +55,7 @@ public class BLLRegistroHora
         }
         catch (UnauthorizedAccessException ex) { throw new UnauthorizedAccessException(ex.Message); }
         catch (ArgumentException ex) { throw new ArgumentException(ex.Message); }
+        catch (Exception ex) when (ex.Message == MensajeLimiteJornada) { throw new ArgumentException(MensajeLimiteJornada, ex); }
         catch (Exception ex) { throw new Exception(ex.Message); }
     }
 
@@ -80,7 +83,7 @@ public class BLLRegistroHora
         if (fecha > DateTime.Today) { throw new ArgumentException("No podés registrar horas futuras."); }
         if (fecha < DateTime.Today.AddDays(-DiasMaximosRetroactivos)) { throw new ArgumentException($"Solo podés registrar horas de los últimos {DiasMaximosRetroactivos} días."); }
         if (registros.Any(registro => registro.Fecha.Date != fecha)) { throw new ArgumentException("Todas las horas de una misma carga deben corresponder a la misma fecha."); }
-        if (registros.Any(registro => registro.IdTarea <= 0 || registro.CantidadHoras < 0.25m || registro.CantidadHoras > 24 || string.IsNullOrWhiteSpace(registro.Descripcion))) { throw new ArgumentException("Completá una tarea, horas válidas y la descripción del avance para cada registro."); }
-        if (registros.Sum(registro => registro.CantidadHoras) > 24) { throw new ArgumentException("El total de horas de la jornada no puede superar 24 horas."); }
+        if (registros.Any(registro => registro.IdTarea <= 0 || registro.CantidadHoras < 0.25m || string.IsNullOrWhiteSpace(registro.Descripcion))) { throw new ArgumentException("Completá una tarea, horas válidas y la descripción del avance para cada registro."); }
+        if (registros.Sum(registro => registro.CantidadHoras) > HorasMaximasJornada) { throw new ArgumentException(MensajeLimiteJornada); }
     }
 }

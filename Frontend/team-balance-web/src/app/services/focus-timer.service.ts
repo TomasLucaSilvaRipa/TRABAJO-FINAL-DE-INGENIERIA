@@ -1,5 +1,8 @@
 import { Injectable, signal } from '@angular/core';
 import { Tarea } from './tasks.service';
+import { HORAS_MAXIMAS_JORNADA } from './registro-horas.service';
+
+export const SEGUNDOS_MAXIMOS_FOCO = HORAS_MAXIMAS_JORNADA * 3600;
 
 @Injectable({ providedIn: 'root' })
 export class FocusTimerService {
@@ -7,22 +10,32 @@ export class FocusTimerService {
   readonly segundos = signal(0);
   readonly activo = signal(false);
   private intervalo: ReturnType<typeof setInterval> | null = null;
+  private inicio = 0;
 
   iniciar(tarea: Tarea): void {
     this.detenerIntervalo();
     this.tarea.set(tarea);
     this.segundos.set(0);
+    this.inicio = Date.now();
     this.activo.set(true);
-    this.intervalo = setInterval(() => this.segundos.update(segundos => segundos + 1), 1000);
+    this.intervalo = setInterval(() => {
+      const segundos = this.duracionActual();
+      this.segundos.set(segundos);
+      if (segundos >= SEGUNDOS_MAXIMOS_FOCO) { this.detenerIntervalo(); }
+    }, 1000);
   }
 
   detener(): { tarea: Tarea | null; segundos: number } {
-    const resultado = { tarea: this.tarea(), segundos: this.segundos() };
+    const resultado = { tarea: this.tarea(), segundos: this.activo() ? this.duracionActual() : 0 };
     this.detenerIntervalo();
     this.tarea.set(null);
     this.segundos.set(0);
     this.activo.set(false);
     return resultado;
+  }
+
+  private duracionActual(): number {
+    return Math.min(SEGUNDOS_MAXIMOS_FOCO, Math.max(this.segundos(), Math.floor((Date.now() - this.inicio) / 1000)));
   }
 
   formatoDuracion(): string {

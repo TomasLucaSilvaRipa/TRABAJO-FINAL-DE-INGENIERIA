@@ -32,7 +32,7 @@
     </p>
   </section>
   @if (error()) {
-    <p class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ error() }}</p>
+    <p class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ localization.traducir(error(), localization.language(), error()) }}</p>
   }
   <div class="tb-kanban-navigation">
   <button class="tb-kanban-navigation__arrow" type="button" aria-label="Ver columnas anteriores" (click)="moverTablero(-1)"><span aria-hidden="true">‹</span></button>
@@ -42,7 +42,7 @@
         <div class="tb-kanban-column__heading">
           <h2>{{ estadoTraducido(estado) }}</h2>
           <span class="tb-count-chip">{{ porEstado(estado).length }}</span>
-          @if (esDueno && paleta.esPersonalizado(estado)) { <label class="tb-kanban-color" title="Elegir color de esta columna"><span class="sr-only">Elegir color de {{ estadoTraducido(estado) }}</span><input type="color" [value]="paleta.color(estado)" (input)="paleta.guardar(estado, $any($event.target).value)" /></label> }
+          @if (esDueno && paleta.esPersonalizado(estado)) { <label class="tb-kanban-color" [attr.title]="localization.traducir('review.tasks.columnColor')"><span class="sr-only">Elegir color de {{ estadoTraducido(estado) }}</span><input type="color" [value]="paleta.color(estado)" (input)="paleta.guardar(estado, $any($event.target).value)" /></label> }
         </div>
         <div class="mt-4 space-y-3">
           @for (tarea of porEstado(estado); track tarea.id) {

@@ -2,6 +2,9 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
+export const HORAS_ADVERTENCIA_JORNADA = 12;
+export const HORAS_MAXIMAS_JORNADA = 15;
+
 export interface RegistroHora { id?: number; idTarea: number; idEmpleado?: number; fecha: string; cantidadHoras: number; descripcion?: string; activo?: boolean; horasEstimadas?: number; horasRealesResultantes?: number; porcentajeConsumo?: number; requiereAdvertencia?: boolean; }
 
 @Injectable({ providedIn: 'root' })

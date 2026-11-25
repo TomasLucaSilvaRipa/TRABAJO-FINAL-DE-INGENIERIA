@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
+import { LocalizationService } from '../../../../services/localization.service';
 import { AuthService } from '../../../../services/auth.service';
 import { Tarea, TasksService } from '../../../../services/tasks.service';
 
@@ -14,10 +15,11 @@ interface ComentarioTarea { autor: string; fecha: string; texto: string; }
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TaskDetailComponent {
+  readonly localization = inject(LocalizationService);
   private readonly tasksService = inject(TasksService); private readonly route = inject(ActivatedRoute); private readonly authService = inject(AuthService); private readonly formBuilder = inject(FormBuilder);
   readonly tarea = signal<Tarea | null>(null); readonly comentarios = signal<ComentarioTarea[]>([]); readonly adjuntos = signal<string[]>([]); readonly cargando = signal(true); readonly error = signal(''); readonly guardando = signal(false);
   readonly comentarioForm = this.formBuilder.group({ texto: ['', [Validators.required, Validators.maxLength(1000)]] });
-  constructor() { const id = Number(this.route.snapshot.queryParamMap.get('id')); this.tasksService.consultarMias().subscribe({ next: (tareas: Tarea[]) => { const tarea = tareas.find((item: Tarea) => item.id === id) ?? null; this.tarea.set(tarea); this.comentarios.set(this.leerComentarios(tarea?.comentariosJson)); this.adjuntos.set(this.leerAdjuntos(tarea?.archivosAdjuntosJson)); this.cargando.set(false); }, error: () => { this.error.set('No se pudo cargar el detalle de la tarea.'); this.cargando.set(false); } }); }
+  constructor() { const id = Number(this.route.snapshot.queryParamMap.get('id')); this.tasksService.consultarMias().subscribe({ next: (tareas: Tarea[]) => { const tarea = tareas.find((item: Tarea) => item.id === id) ?? null; this.tarea.set(tarea); this.comentarios.set(this.leerComentarios(tarea?.comentariosJson)); this.adjuntos.set(this.leerAdjuntos(tarea?.archivosAdjuntosJson)); this.cargando.set(false); }, error: () => { this.error.set('private.taskDetail.loadError'); this.cargando.set(false); } }); }
   guardarComentario(): void {
     const tarea = this.tarea(); if (!tarea || this.comentarioForm.invalid) { return; } const texto = this.comentarioForm.controls.texto.value?.trim() ?? ''; const usuario = this.authService.usuarioActual();
     const comentario: ComentarioTarea = { autor: usuario ? `${usuario.nombre} ${usuario.apellido}` : 'Usuario TeamBalance', fecha: new Date().toISOString(), texto };
@@ -27,7 +29,7 @@ export class TaskDetailComponent {
       this.comentarioForm.reset();
       this.guardando.set(false); },
       error: () => {
-        this.error.set('No se pudo guardar el comentario.');
+        this.error.set('private.taskDetail.saveError');
         this.guardando.set(false);
       }
     });

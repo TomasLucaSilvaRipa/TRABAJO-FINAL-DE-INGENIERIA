@@ -109,6 +109,10 @@ export class LogService {
   }
 
   generarInforme(filtros: FiltroBitacora): Observable<void> {
-    return this.http.post<void>(`${this.logApiUrl}/informe`, filtros);
+    return this.http.post<void>(`${this.logApiUrl}/informe`, {
+      ...filtros,
+      desde: filtros.desde || null,
+      hasta: filtros.hasta || null,
+    });
   }
 }

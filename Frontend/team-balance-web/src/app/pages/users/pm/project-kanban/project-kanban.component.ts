@@ -25,7 +25,7 @@ export class ProjectKanbanComponent {
 
   constructor() {
     this.tasksService.consultarEstados().subscribe({ next: estados => this.estados.set(estados), error: () => this.estados.set([]) });
-    this.projectsService.consultar().subscribe({ next: (proyectos: Proyecto[]) => this.proyectos.set(proyectos), error: () => this.error.set('No se pudieron cargar los proyectos disponibles.') });
+    this.projectsService.consultar().subscribe({ next: (proyectos: Proyecto[]) => this.proyectos.set(proyectos), error: () => this.error.set('review.tasks.loadProjects') });
     this.cargarTareas();
   }
 

@@ -1,7 +1,7 @@
 <div class="tb-workspace tb-employees-page space-y-7">
   <header><p class="tb-page-kicker">{{localization.traducir('employees.eyebrow')}}</p><h1 class="tb-page-title mt-2">{{localization.traducir('employees.title')}}</h1><p class="tb-page-description mt-2">{{localization.traducir('employees.subtitle')}}</p></header>
-  @if (error()) { <p class="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{{ error() }}</p> }
-  @if (mensaje()) { <p class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">{{ mensaje() }}</p> }
+  @if (error()) { <p class="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{{ localization.traducir(error(), localization.language(), error()) }}</p> }
+  @if (mensaje()) { <p class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">{{ localization.traducir(mensaje()) }}</p> }
   <div class="tb-employees-top">
   <section class="tb-panel tb-employees-form"><p class="tb-page-kicker">{{localization.traducir('employees.eyebrow')}}</p><h2 class="tb-panel-title mt-1">{{ editandoId() === null ? localization.traducir('employees.new') : localization.traducir('employees.edit') }}</h2>@if (soporteInicialDisponible()) { <p class="mt-2 text-sm text-amber-700 dark:text-amber-300">{{localization.traducir('employees.supportNote')}}</p> }
     <form class="mt-5 grid gap-4 md:grid-cols-2" [formGroup]="form" (ngSubmit)="guardar()">

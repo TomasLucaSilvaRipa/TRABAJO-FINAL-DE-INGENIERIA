@@ -1,3 +1,4 @@
+import { LocalizationService } from '../../../services/localization.service';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -12,6 +13,7 @@ import { AuthService } from '../../../services/auth.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ResendValidationComponent {
+  readonly localization = inject(LocalizationService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly authService = inject(AuthService);
 
@@ -29,7 +31,7 @@ export class ResendValidationComponent {
 
     if (this.resendForm.invalid)
     {
-      this.requestError.set('Ingresá un email laboral válido.');
+      this.requestError.set('review.auth.invalidEmail');
       return;
     }
 
@@ -42,7 +44,7 @@ export class ResendValidationComponent {
       },
       error: () => {
         this.submitting.set(false);
-        this.requestError.set('No pudimos procesar el reenvío. Intentá nuevamente en unos minutos.');
+        this.requestError.set('review.auth.resendFailed');
       },
     });
   }

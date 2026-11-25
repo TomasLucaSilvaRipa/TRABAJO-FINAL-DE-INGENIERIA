@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { afterNextRender, ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, Injector, signal, viewChild } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, inject, Injector, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -9,6 +9,9 @@ import { LocalizationService } from '../../../../services/localization.service';
 import { Cliente, Proyecto, ProjectsService } from '../../../../services/projects.service';
 import { AnalisisCoberturaSkill, claveClasificacionCobertura, FiltroCoberturaSkill, SkillsDesiertosService, SugerenciaEmpleadoSkill } from '../../../../services/skills-desiertos.service';
 import { SkillsCoverageMatrixComponent } from '../../../../shared/components/analytics/skills-coverage-matrix/skills-coverage-matrix.component';
+
+import { AuthService } from '../../../../services/auth.service';
+import { leerRecomendacionLocal } from '../../../../interceptors/recomendacion-local.interceptor';
 
 type OrdenRanking = 'criticidad' | 'demanda' | 'cobertura' | 'proyectos' | 'tipo';
 
@@ -39,6 +42,11 @@ export class SkillsDesiertosComponent {
   readonly clientes = signal<Cliente[]>([]);
   readonly resultados = signal<AnalisisCoberturaSkill[]>([]);
   readonly detalle = signal<AnalisisCoberturaSkill | null>(null);
+  private readonly auth = inject(AuthService);
+  readonly ultimaRecomendacion = computed(() => {
+    const detalle = this.detalle();
+    return detalle ? leerRecomendacionLocal(this.auth.usuarioActual(), detalle.idSkill) : null;
+  });
   readonly cargando = signal(false);
   readonly cargandoDetalle = signal(false);
   readonly guardandoRecomendacion = signal(false);

@@ -123,6 +123,36 @@
     @else{<div class="tb-project-register">@for(p of proyectos();track p.id){<article class="tb-project-row" [class.is-inactive]="!p.activo"><div class="tb-project-info"><h3>{{p.nombre}}</h3><p><span class="tb-project-state" [class.is-inactive]="!p.activo">{{localization.traducirEstado(p.estado)}}</span><span>{{p.horasEstimadasTotales}} {{localization.traducir('tasks.hours')}}</span></p></div><div class="tb-project-row-actions"><button class="tb-link-button" type="button" (click)="verDetalle(p)">{{localization.traducir('static.viewDetail')}} <span aria-hidden="true">↗</span></button><button class="tb-link-button" type="button" (click)="editar(p)">{{localization.traducir('common.edit')}}</button>@if(p.estado !== 'Cerrado' && p.activo){<button class="tb-link-button" type="button" (click)="cerrarProyecto(p)">{{localization.traducir('static.closeProject')}}</button>}<button class="tb-link-button" type="button" (click)="cambiar(p)">{{p.activo ? localization.traducir('projects.deactivate') : localization.traducir('projects.activate')}}</button></div></article>}</div>}
   </section>
 
+  @if (puedeRevisarActividad()) {
+    <section class="tb-panel" data-localization-ignore aria-labelledby="project-activity-title">
+      <div class="tb-panel-heading">
+        <div>
+          <h2 id="project-activity-title">{{ localization.traducir('projectActivity.title') }}</h2>
+          <p class="tb-muted-text">{{ localization.traducir('projectActivity.description') }}</p>
+        </div>
+        <button class="tb-secondary-button" type="button" [disabled]="revisandoActividad()" (click)="revisarActividadProyectos()">
+          {{ localization.traducir(revisandoActividad() ? 'static.updating' : 'projectActivity.review') }}
+        </button>
+      </div>
+      @if (errorActividad()) {
+        <p class="mt-3 text-sm text-rose-500" role="alert">{{ localization.traducir('projectActivity.error') }}</p>
+      } @else if (planificadosConActividad(); as proyectosConActividad) {
+        <div class="mt-3 text-sm" role="status">
+          @if (proyectosConActividad.length) {
+            <p>{{ localization.traducir('projectActivity.suggestion') }}</p>
+            <ul class="mt-2 list-disc space-y-1 ps-5">
+              @for (proyecto of proyectosConActividad; track proyecto.id) {
+                <li>{{ proyecto.nombre }}</li>
+              }
+            </ul>
+          } @else {
+            <p class="tb-muted-text">{{ localization.traducir('projectActivity.empty') }}</p>
+          }
+        </div>
+      }
+    </section>
+  }
+
   @if(proyectoSeleccionado(); as proyecto){
     <div class="tb-project-detail-backdrop" (click)="proyectoSeleccionado.set(null)">
       <aside class="tb-project-detail" role="dialog" aria-modal="true" aria-labelledby="project-detail-title" (click)="$event.stopPropagation()" (keydown.escape)="proyectoSeleccionado.set(null)">

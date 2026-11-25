@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { LocalizationService } from '../../../../services/localization.service';
-import { RegistroHora, RegistroHorasService } from '../../../../services/registro-horas.service';
+import { HORAS_ADVERTENCIA_JORNADA, HORAS_MAXIMAS_JORNADA, RegistroHora, RegistroHorasService } from '../../../../services/registro-horas.service';
 import { Tarea, TasksService } from '../../../../services/tasks.service';
 import { AuthService } from '../../../../services/auth.service';
 import { correspondeRecordatorioPausa } from './recordatorio-pausa';
@@ -26,7 +27,10 @@ export class RegisterHoursComponent {
   readonly guardando = signal(false);
   readonly error = signal('');
   readonly previsualizacion = signal<RegistroHora[]>([]);
+  readonly requiereAvisoTarea = computed(() => this.previsualizacion().some(registro => registro.requiereAdvertencia));
   readonly requiereConfirmacion = signal(false);
+  readonly totalJornadaAdvertencia = signal<number | null>(null);
+  readonly horasMaximasJornada = HORAS_MAXIMAS_JORNADA;
   readonly aviso = signal('');
   readonly mostrarRecordatorioPausa = signal(false);
   readonly fechaMinima = this.obtenerFechaMinima();
@@ -46,7 +50,7 @@ export class RegisterHoursComponent {
     const descripcion = this.route.snapshot.queryParamMap.get('descripcion');
     const aviso = this.route.snapshot.queryParamMap.get('aviso');
     if (idTarea > 0) { this.registros.at(0).controls.idTarea.setValue(idTarea); }
-    if (horas >= 0.25 && horas <= 24) { this.registros.at(0).controls.cantidadHoras.setValue(horas); }
+    if (horas >= 0.25 && horas <= this.horasMaximasJornada) { this.registros.at(0).controls.cantidadHoras.setValue(horas); }
     if (descripcion) { this.registros.at(0).controls.descripcion.setValue(descripcion); }
     if (aviso) { this.aviso.set(aviso); }
     this.tasksService.consultarMias().subscribe({
@@ -69,23 +73,21 @@ export class RegisterHoursComponent {
 
   textoAviso(): string {
     const aviso = this.aviso();
+    if (aviso === 'focusLimitReached') { return this.texto(aviso); }
     return aviso.startsWith('La sesión de foco fue menor a 15 minutos') ? this.texto('shortFocusSession') : aviso;
   }
 
   registrar(): void {
-    if (this.requiereConfirmacion()) {
-      this.guardarRegistros();
-      return;
-    }
+    if (this.guardando()) { return; }
     if (!this.fechaDentroDelLimite()) {
       this.error.set(this.mensajeFechaInvalida());
       return;
     }
-    if (this.registros.getRawValue().some(registro => Number(registro.cantidadHoras) > 24)) {
+    if (this.registros.getRawValue().some(registro => Number(registro.cantidadHoras) > this.horasMaximasJornada)) {
       this.error.set('private.hours.entryLimit');
       return;
     }
-    if (this.totalHoras() > 24) {
+    if (this.totalHoras() > this.horasMaximasJornada) {
       this.error.set('private.hours.dailyLimit');
       return;
     }
@@ -94,33 +96,53 @@ export class RegisterHoursComponent {
       this.error.set('private.hours.invalidFields');
       return;
     }
-    this.previsualizarRegistros();
+    if (this.requiereConfirmacion()) { this.guardarRegistros(); }
+    else { this.previsualizarRegistros(); }
   }
 
   limpiarPrevisualizacion(): void {
     this.previsualizacion.set([]);
     this.requiereConfirmacion.set(false);
+    this.totalJornadaAdvertencia.set(null);
     this.enviado = false;
   }
 
   private crearRegistro(idTarea = 0) {
     return this.formBuilder.nonNullable.group({
       idTarea: [idTarea, [Validators.required, Validators.min(1)]],
-      cantidadHoras: [0, [Validators.required, Validators.min(0.25), Validators.max(24)]],
+      cantidadHoras: [0, [Validators.required, Validators.min(0.25), Validators.max(this.horasMaximasJornada)]],
       descripcion: ['', [Validators.required, Validators.maxLength(500)]],
     });
   }
 
   private previsualizarRegistros(): void {
     const registros = this.obtenerRegistros();
+    const fecha = this.form.controls.fecha.value;
+    const totalNuevo = registros.reduce((total, registro) => total + Math.round(registro.cantidadHoras * 100), 0);
     this.guardando.set(true);
     this.error.set('');
     this.previsualizacion.set([]);
-    this.registroHorasService.previsualizar(registros).subscribe({
-      next: resultado => {
+    forkJoin({
+      resultado: this.registroHorasService.previsualizar(registros),
+      propios: this.registroHorasService.consultarPropios(),
+    }).subscribe({
+      next: ({ resultado, propios }) => {
         this.guardando.set(false);
+        if (JSON.stringify(registros) !== JSON.stringify(this.obtenerRegistros())) { return; }
+        const totalPrevio = propios.reduce((total, registro) => (
+          registro.activo !== false && registro.fecha.slice(0, 10) === fecha
+            ? total + Math.round(registro.cantidadHoras * 100)
+            : total
+        ), 0);
+        const totalJornada = (totalPrevio + totalNuevo) / 100;
+        if (totalJornada > this.horasMaximasJornada) {
+          this.error.set('private.hours.dailyLimit');
+          return;
+        }
+
         this.previsualizacion.set(resultado);
-        if (resultado.some(registro => registro.requiereAdvertencia)) { this.requiereConfirmacion.set(true); }
+        if (totalJornada > HORAS_ADVERTENCIA_JORNADA) { this.totalJornadaAdvertencia.set(totalJornada); }
+        if (this.totalJornadaAdvertencia() !== null || this.requiereAvisoTarea()) { this.requiereConfirmacion.set(true); }
         else { this.guardarRegistros(); }
       },
       error: error => {
@@ -140,6 +162,7 @@ export class RegisterHoursComponent {
         this.guardando.set(false);
         this.enviado = true;
         this.requiereConfirmacion.set(false);
+        this.totalJornadaAdvertencia.set(null);
         this.previsualizacion.set([]);
         this.registros.clear();
         this.registros.push(this.crearRegistro());
@@ -171,7 +194,7 @@ export class RegisterHoursComponent {
     if (/fecha de inicio de la tarea/i.test(mensaje)) return 'private.hours.beforeTaskStart';
     if (/no est[aá] asignada a tu usuario/i.test(mensaje)) return 'private.hours.taskNotAssigned';
     if (/misma fecha/i.test(mensaje)) return 'private.hours.sameDate';
-    if (/total de horas.*24/i.test(mensaje)) return 'private.hours.dailyLimit';
+    if (/total de horas.*(?:15|24)/i.test(mensaje)) return 'private.hours.dailyLimit';
     if (/al menos una tarea|no se recibieron horas|horas v[aá]lidas/i.test(mensaje)) return 'private.hours.invalidFields';
     return `private.hours.${alternativa}`;
   }

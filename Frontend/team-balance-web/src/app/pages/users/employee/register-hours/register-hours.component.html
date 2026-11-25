@@ -24,7 +24,7 @@
             </select>
           </label>
           <label class="tb-navy-field-label">{{texto('hours')}}
-            <input type="number" min="0.25" max="24" step="0.25" formControlName="cantidadHoras" (input)="limpiarPrevisualizacion()" />
+            <input type="number" min="0.25" [max]="horasMaximasJornada" step="0.25" formControlName="cantidadHoras" (input)="limpiarPrevisualizacion()" />
           </label>
           <label class="tb-navy-field-label">{{texto('descripcionDelAvance')}}
             <input formControlName="descripcion" maxlength="500" [placeholder]="texto('progressPlaceholder')" (input)="limpiarPrevisualizacion()" />
@@ -39,7 +39,13 @@
       <p class="text-sm font-semibold text-cyan-100">{{texto('dailyTotal').replace('{hours}', localization.formatearNumero(totalHoras()))}}</p>
     </div>
 
-    @if (requiereConfirmacion()) {
+    @if (totalJornadaAdvertencia(); as total) {
+      <p class="mt-5 rounded-xl border border-amber-400/50 bg-amber-100/10 p-4 text-sm text-amber-100" role="status">
+        {{texto('longWorkdayWarning').replace('{hours}', localization.formatearNumero(total))}}
+      </p>
+    }
+
+    @if (requiereAvisoTarea()) {
       <section class="mt-5 rounded-xl border border-amber-400/50 bg-amber-100/10 p-4 text-sm text-amber-100">
         <h2 class="font-bold">{{texto('advertenciaDeConsumoDeHoras')}}</h2>
         <p class="mt-1">{{texto('lasSiguientesTareasAlcanzanOSuperanEl80De')}}</p>

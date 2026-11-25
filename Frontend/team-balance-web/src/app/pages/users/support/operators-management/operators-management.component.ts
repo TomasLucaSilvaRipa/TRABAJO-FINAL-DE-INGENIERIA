@@ -91,7 +91,21 @@ export class OperatorsManagementComponent {
     });
   }
 
-  nombresRoles(operador: UsuarioGestion): string { return operador.roles.map((rol) => rol.nombre).join(', '); }
+  nombreRol(rol: Rol): string {
+    return rol.esRolBase && rol.tipoUsuario === 'Soporte'
+      ? this.localization.traducir('operators.baseSupport.name')
+      : rol.nombre;
+  }
+
+  descripcionRol(rol: Rol): string | null {
+    return rol.esRolBase && rol.tipoUsuario === 'Soporte'
+      ? this.localization.traducir('operators.baseSupport.description')
+      : rol.descripcion;
+  }
+
+  nombresRoles(operador: UsuarioGestion): string {
+    return operador.roles.map(rol => this.nombreRol(rol)).join(', ');
+  }
 
   private mensajeError(respuesta: { error?: string }, clave: string): string { return typeof respuesta?.error === 'string' ? respuesta.error : this.localization.traducir(clave); }
 }

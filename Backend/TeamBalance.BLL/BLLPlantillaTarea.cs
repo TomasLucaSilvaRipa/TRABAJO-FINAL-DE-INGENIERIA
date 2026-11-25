@@ -127,7 +127,9 @@ public class BLLPlantillaTarea
 
     private void ValidarGestion(Usuario usuario)
     {
-        if (!string.Equals(usuario.Rol.TipoUsuario, "PM", StringComparison.OrdinalIgnoreCase) || !_rolBLL.TienePermiso(usuario, "GestionarTareas"))
+        if (usuario.Roles.Any(rol => string.Equals(rol.TipoUsuario, "Dueno", StringComparison.OrdinalIgnoreCase)) ||
+            !usuario.Roles.Any(rol => string.Equals(rol.TipoUsuario, "PM", StringComparison.OrdinalIgnoreCase)) ||
+            !_rolBLL.TienePermiso(usuario, "GestionarTareas"))
         {
             throw new UnauthorizedAccessException("Sólo un PM con permiso de gestión de tareas puede administrar plantillas.");
         }

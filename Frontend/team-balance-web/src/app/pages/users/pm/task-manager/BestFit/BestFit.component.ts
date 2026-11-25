@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { timeout } from 'rxjs';
 import { Tarea, TasksService } from '../../../../../services/tasks.service';
+import { LocalizationService } from '../../../../../services/localization.service';
 import { BestFitService, RecomendacionBestFit } from '../../../../../services/best-fit.service';
 
 @Component({
@@ -15,6 +16,7 @@ import { BestFitService, RecomendacionBestFit } from '../../../../../services/be
 export class BestFit {
   private readonly tasksService = inject(TasksService);
   private readonly bestFitService = inject(BestFitService);
+  readonly localization = inject(LocalizationService);
   readonly tareas = signal<Tarea[]>([]);
   readonly recomendaciones = signal<RecomendacionBestFit[]>([]);
   readonly tareaSeleccionada = signal(0);
@@ -30,7 +32,8 @@ export class BestFit {
   readonly tareaActual = computed(() => this.tareas().find((tarea: Tarea) => tarea.id === this.tareaSeleccionada()) ?? null);
   readonly recomendacionesVisibles = computed(() => {
     let resultado = this.recomendaciones().filter((recomendacion: RecomendacionBestFit) => {
-      const coincideSeniority = !this.seniorityFiltro() || recomendacion.seniorityEmpleado === this.seniorityFiltro();
+      const seniority = recomendacion.seniorityEmpleado?.replace(/\s+/g, '').toLowerCase();
+      const coincideSeniority = !this.seniorityFiltro() || seniority === this.seniorityFiltro().toLowerCase();
       const coincideDisponibilidad = this.disponibilidadMinima() === null || recomendacion.horasDisponibles >= this.disponibilidadMinima()!;
       const coincideCarga = this.cargaMaxima() === null || recomendacion.cargaActualPorcentaje <= this.cargaMaxima()!;
       return coincideSeniority && coincideDisponibilidad && coincideCarga;
@@ -43,13 +46,13 @@ export class BestFit {
   constructor() {
     this.tasksService.consultarPorPM().subscribe({
       next: (tareas: Tarea[]) => this.tareas.set(tareas.filter((tarea: Tarea) => this.esElegibleParaBestFit(tarea))),
-      error: () => this.error.set('No se pudieron cargar las tareas disponibles de tus proyectos.'),
+      error: () => this.error.set(this.texto('loadError')),
     });
   }
 
   buscar(): void {
     const idTarea = this.tareaSeleccionada();
-    if (!idTarea) { this.error.set('Seleccioná una tarea.'); return; }
+    if (!idTarea) { this.error.set(this.texto('selectTask')); return; }
     this.cargando.set(true);
     this.error.set('');
     this.mensaje.set('');
@@ -59,9 +62,23 @@ export class BestFit {
         if (this.tareaSeleccionada() !== idTarea) { return; }
         this.recomendaciones.set(recomendaciones);
         this.cargando.set(false);
-        if (!recomendaciones.length) { this.mensaje.set('No hay empleados que puedan asumir esta tarea sin comprometer el deadline.'); }
+        if (!recomendaciones.length) { this.mensaje.set(this.texto('empty')); }
       },
-      error: error => { if (this.tareaSeleccionada() === idTarea) { this.error.set(error?.name === 'TimeoutError' ? 'La búsqueda demoró demasiado. Verificá que la API esté iniciada e intentá nuevamente.' : typeof error?.error === 'string' ? error.error : error?.error?.message || error?.error?.title || 'No se pudieron generar sugerencias.'); this.cargando.set(false); } },
+      error: error => {
+        if (this.tareaSeleccionada() !== idTarea) return;
+        this.cargando.set(false);
+        const detalle = typeof error?.error === 'string' ? error.error : '';
+        if (error?.status === 403) {
+          const clave = /no pertenece a uno de tus proyectos/i.test(detalle)
+            ? 'bestFit.taskUnavailable'
+            : 'projectForm.notAllowed';
+          this.error.set(this.localization.traducir(clave));
+          return;
+        }
+        this.error.set(error?.name === 'TimeoutError'
+          ? this.texto('searchTimeout')
+          : detalle || error?.error?.message || error?.error?.title || this.texto('searchError'));
+      },
     });
   }
 
@@ -73,10 +90,10 @@ export class BestFit {
       next: () => {
         if (this.tareaSeleccionada() !== idTarea) { return; }
         this.guardando.set(0);
-        this.mensaje.set(`${recomendacion.nombreEmpleado} quedó registrado como recurso recomendado. La tarea todavía no fue asignada.`);
+        this.mensaje.set(this.texto('savedCandidate').replace('{name}', () => recomendacion.nombreEmpleado));
         this.recomendaciones.set(this.recomendaciones().map((item: RecomendacionBestFit) => ({ ...item, seleccionadaPorPM: item.seleccionadaPorPM || item.idEmpleadoSugerido === recomendacion.idEmpleadoSugerido, estado: item.idEmpleadoSugerido === recomendacion.idEmpleadoSugerido ? 'Recomendada' : item.estado })));
       },
-      error: error => { if (this.tareaSeleccionada() === idTarea) { this.guardando.set(0); this.error.set(error?.name === 'TimeoutError' ? 'La operación demoró demasiado. Verificá que la API esté iniciada e intentá nuevamente.' : typeof error?.error === 'string' ? error.error : error?.error?.message || 'No se pudo conservar la recomendación.'); } },
+      error: error => { if (this.tareaSeleccionada() === idTarea) { this.guardando.set(0); this.error.set(error?.name === 'TimeoutError' ? this.texto('saveTimeout') : typeof error?.error === 'string' ? error.error : error?.error?.message || this.texto('saveError')); } },
     });
   }
 
@@ -112,7 +129,31 @@ export class BestFit {
 
   colorCompatibilidad(puntaje: number): string { return puntaje >= 80 ? '#39d7b0' : puntaje >= 60 ? '#f2bd4b' : '#ff6b82'; }
 
-  estadoCompatibilidad(puntaje: number): string { return puntaje >= 80 ? 'Alta afinidad' : puntaje >= 60 ? 'Afinidad moderada' : 'Requiere revisión'; }
+  estadoCompatibilidad(puntaje: number): string { return puntaje >= 80 ? this.texto('highMatch') : puntaje >= 60 ? this.texto('moderateMatch') : this.texto('needsReview'); }
+
+  texto(clave: string): string {
+    return this.localization.traducir(`bestFit.${clave}`);
+  }
+
+  seniorityTexto(seniority: string): string {
+    return /^semi\s*senior$/i.test(seniority) ? this.texto('midLevel') : seniority;
+  }
+
+  textoMotor(valor: string | null | undefined, alternativa: string): string {
+    if (!valor) return this.texto(alternativa);
+    const frases = {
+      'Cuenta con la skill requerida.': 'hasSkill',
+      'Tiene margen operativo holgado para cumplir el deadline.': 'ampleCapacity',
+      'Su historial comparable se mantuvo dentro de las horas estimadas.': 'historyOnBudget',
+      'El margen operativo es limitado para absorber imprevistos.': 'limitedMargin',
+      'Hay poca evidencia histórica comparable; se aplica un valor neutral.': 'limitedHistory',
+      'En tareas comparables registró más horas que las estimadas.': 'historyOverBudget',
+    };
+    for (const [frase, clave] of Object.entries(frases)) {
+      valor = valor.replace(frase, () => this.texto(clave));
+    }
+    return valor;
+  }
 
   private esElegibleParaBestFit(tarea: Tarea): boolean {
     if (!tarea.fechaInicio || !tarea.deadline) { return false; }

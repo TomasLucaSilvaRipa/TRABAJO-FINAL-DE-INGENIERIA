@@ -1,3 +1,4 @@
+using System.Security.Authentication;
 using Teambalance.API.Models;
 using Microsoft.AspNetCore.Mvc;
 using TeamBalance.BE.Entidades;
@@ -26,7 +27,8 @@ public class BestFitController : ControllerBase
             List<RecomendacionBestFit> resultados = _bestFitBLL.Sugerir(recomendacion, ValidarSesion());
             return Ok(resultados);
         }
-        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (AuthenticationException ex) { return Unauthorized(ex.Message); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
@@ -35,7 +37,8 @@ public class BestFitController : ControllerBase
     public IActionResult GuardarRecomendacion([FromBody] RecomendacionBestFit recomendacion)
     {
         try { bool resultado = _bestFitBLL.GuardarRecomendacion(recomendacion, ValidarSesion()); return Ok(resultado); }
-        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (AuthenticationException ex) { return Unauthorized(ex.Message); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
@@ -44,7 +47,8 @@ public class BestFitController : ControllerBase
     public IActionResult ConsultarRecomendaciones([ReferenciaHttp("idTarea")] Tarea tarea)
     {
         try { return Ok(_bestFitBLL.ConsultarRecomendaciones(tarea, ValidarSesion())); }
-        catch (UnauthorizedAccessException ex) { return Unauthorized(ex.Message); }
+        catch (AuthenticationException ex) { return Unauthorized(ex.Message); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, ex.Message); }
         catch (ArgumentException ex) { return BadRequest(ex.Message); }
         catch (Exception ex) { return StatusCode(500, ex.Message); }
     }
@@ -55,7 +59,7 @@ public class BestFitController : ControllerBase
         Usuario? usuario = _usuarioBLL.ConsultarUsuarioSesion(token);
         if (usuario is null)
         {
-            throw new UnauthorizedAccessException("Tu sesión ya no es válida.");
+            throw new AuthenticationException("Tu sesión ya no es válida.");
         }
 
         return usuario;

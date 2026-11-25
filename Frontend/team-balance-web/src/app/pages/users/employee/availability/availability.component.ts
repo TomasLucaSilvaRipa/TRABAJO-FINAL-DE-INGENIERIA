@@ -39,7 +39,7 @@ export class AvailabilityComponent {
         if (disponibilidad) { this.form.patchValue({ horaInicio: disponibilidad.horaInicio, horaFin: disponibilidad.horaFin, horasSemanales: disponibilidad.horasSemanales, observacion: disponibilidad.observacion ?? '' }); }
         this.cargando.set(false);
       },
-      error: () => { this.error.set('No fue posible cargar tu disponibilidad.'); this.cargando.set(false); },
+      error: () => { this.error.set('review.availability.load'); this.cargando.set(false); },
     });
   }
 
@@ -50,8 +50,8 @@ export class AvailabilityComponent {
     this.error.set('');
     this.mensaje.set('');
     this.resourcesService.guardarMiDisponibilidad({ horaInicio: datos.horaInicio ?? '09:00', horaFin: datos.horaFin ?? '18:00', horasSemanales: Number(datos.horasSemanales ?? 0), observacion: datos.observacion ?? '', activo: true }).subscribe({
-      next: () => { this.guardando.set(false); this.mensaje.set('Tu disponibilidad fue actualizada.'); },
-      error: error => { this.guardando.set(false); this.error.set(typeof error?.error === 'string' ? error.error : error?.error?.message || error?.error?.title || 'No fue posible actualizar tu disponibilidad.'); },
+      next: () => { this.guardando.set(false); this.mensaje.set('review.availability.updated'); },
+      error: error => { this.guardando.set(false); this.error.set(typeof error?.error === 'string' ? error.error : error?.error?.message || error?.error?.title || 'review.availability.save'); },
     });
   }
 
@@ -64,20 +64,20 @@ export class AvailabilityComponent {
     this.procesandoSolicitud.set(true); this.error.set(''); this.mensaje.set('');
     const resolucion: ResolucionAusenciaEmpleado = { fechaInicioAprobada: this.fechaInicioAprobada, fechaFinAprobada: this.fechaFinAprobada, horasNoDisponiblesAprobadas: this.horasAprobadas, motivoResolucion: this.motivoResolucion };
     const operacion = parcial ? this.resourcesService.aprobarParcialmenteAusencia(solicitud.id, resolucion) : this.resourcesService.aprobarAusencia(solicitud.id, resolucion);
-    operacion.subscribe({ next: resultado => { this.procesandoSolicitud.set(false); this.pendientes.update(items => items.filter(item => item.id !== solicitud.id)); this.tareasAfectadas.set(resultado.tareasAfectadas); this.solicitudSeleccionada.set(null); this.mensaje.set(parcial ? 'Solicitud aprobada parcialmente y disponibilidad actualizada.' : 'Solicitud aprobada y disponibilidad actualizada.'); }, error: error => { this.procesandoSolicitud.set(false); this.error.set(this.mensajeError(error)); } });
+    operacion.subscribe({ next: resultado => { this.procesandoSolicitud.set(false); this.pendientes.update(items => items.filter(item => item.id !== solicitud.id)); this.tareasAfectadas.set(resultado.tareasAfectadas); this.solicitudSeleccionada.set(null); this.mensaje.set(parcial ? 'review.availability.partial' : 'review.availability.approved'); }, error: error => { this.procesandoSolicitud.set(false); this.error.set(this.mensajeError(error)); } });
   }
 
   protected rechazar(): void {
     const solicitud = this.solicitudSeleccionada(); if (!solicitud?.id) { return; }
-    this.procesandoSolicitud.set(true); this.error.set(''); this.resourcesService.rechazarAusencia(solicitud.id, { motivoResolucion: this.motivoResolucion }).subscribe({ next: () => { this.procesandoSolicitud.set(false); this.pendientes.update(items => items.filter(item => item.id !== solicitud.id)); this.solicitudSeleccionada.set(null); this.mensaje.set('Solicitud rechazada. La disponibilidad no fue modificada.'); }, error: error => { this.procesandoSolicitud.set(false); this.error.set(this.mensajeError(error)); } });
+    this.procesandoSolicitud.set(true); this.error.set(''); this.resourcesService.rechazarAusencia(solicitud.id, { motivoResolucion: this.motivoResolucion }).subscribe({ next: () => { this.procesandoSolicitud.set(false); this.pendientes.update(items => items.filter(item => item.id !== solicitud.id)); this.solicitudSeleccionada.set(null); this.mensaje.set('review.availability.denied'); }, error: error => { this.procesandoSolicitud.set(false); this.error.set(this.mensajeError(error)); } });
   }
 
   protected registrarDirecta(): void {
     if (this.directaForm.invalid) { this.directaForm.markAllAsTouched(); return; }
     this.procesandoSolicitud.set(true); this.error.set(''); this.mensaje.set(''); const datos = this.directaForm.getRawValue();
-    this.resourcesService.registrarAusenciaDirecta({ idEmpleado: Number(datos.idEmpleado), tipoPeriodo: datos.tipoPeriodo ?? '', fechaInicioSolicitada: datos.fechaInicioSolicitada ?? '', fechaFinSolicitada: datos.fechaFinSolicitada ?? '', horasNoDisponiblesSolicitadas: datos.horasNoDisponiblesSolicitadas, motivo: datos.motivo ?? '', comprobanteUrl: datos.comprobanteUrl ?? '' }).subscribe({ next: resultado => { this.procesandoSolicitud.set(false); this.tareasAfectadas.set(resultado.tareasAfectadas); this.directaForm.reset({ idEmpleado: 0, tipoPeriodo: 'Licencia', fechaInicioSolicitada: '', fechaFinSolicitada: '', horasNoDisponiblesSolicitadas: null, motivo: '', comprobanteUrl: '' }); this.mensaje.set('Período registrado directamente como aprobado.'); }, error: error => { this.procesandoSolicitud.set(false); this.error.set(this.mensajeError(error)); } });
+    this.resourcesService.registrarAusenciaDirecta({ idEmpleado: Number(datos.idEmpleado), tipoPeriodo: datos.tipoPeriodo ?? '', fechaInicioSolicitada: datos.fechaInicioSolicitada ?? '', fechaFinSolicitada: datos.fechaFinSolicitada ?? '', horasNoDisponiblesSolicitadas: datos.horasNoDisponiblesSolicitadas, motivo: datos.motivo ?? '', comprobanteUrl: datos.comprobanteUrl ?? '' }).subscribe({ next: resultado => { this.procesandoSolicitud.set(false); this.tareasAfectadas.set(resultado.tareasAfectadas); this.directaForm.reset({ idEmpleado: 0, tipoPeriodo: 'Licencia', fechaInicioSolicitada: '', fechaFinSolicitada: '', horasNoDisponiblesSolicitadas: null, motivo: '', comprobanteUrl: '' }); this.mensaje.set('review.availability.direct'); }, error: error => { this.procesandoSolicitud.set(false); this.error.set(this.mensajeError(error)); } });
   }
 
   private cargarGestion(): void { this.cargando.set(true); this.resourcesService.consultarSolicitudesPendientes().subscribe({ next: solicitudes => { this.pendientes.set(solicitudes); this.cargando.set(false); }, error: error => { this.error.set(this.mensajeError(error)); this.cargando.set(false); } }); this.resourcesService.consultarEmpleadosDisponibilidad().subscribe({ next: empleados => this.empleados.set(empleados), error: error => this.error.set(this.mensajeError(error)) }); }
-  private mensajeError(error: any): string { return typeof error?.error === 'string' ? error.error : error?.error?.message || error?.error?.title || 'No fue posible completar la operación.'; }
+  private mensajeError(error: any): string { return typeof error?.error === 'string' ? error.error : error?.error?.message || error?.error?.title || 'review.availability.error'; }
 }

@@ -83,7 +83,7 @@ export class SignupFormComponent {
     }
 
     if (this.registryForm.controls.password.value !== this.registryForm.controls.confirmPassword.value) {
-      this.requestError.set('Las contraseñas no coinciden.');
+      this.requestError.set('review.auth.passwordMismatch');
       return;
     }
 
@@ -96,7 +96,7 @@ export class SignupFormComponent {
     const referenciaContratacion = this.referenciaContratacion();
 
     if (!referenciaContratacion) {
-      this.requestError.set('No pudimos validar la contratación asociada a este registro.');
+      this.requestError.set('review.auth.contractError');
       return;
     }
 
@@ -120,7 +120,7 @@ export class SignupFormComponent {
         tap((evaluacion) => this.passwordEvaluation.set(evaluacion)),
         switchMap((evaluacion) => {
           if (!evaluacion.valida) {
-            this.requestError.set('La contraseña no cumple los requisitos de seguridad.');
+            this.requestError.set('review.auth.passwordSecurity');
             return EMPTY;
           }
 

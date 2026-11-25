@@ -1,4 +1,4 @@
-<div class="min-h-screen xl:flex" appLocalizedStaticContent>
+<div class="min-h-screen xl:flex" [style.display]="foco.activo() ? 'none' : null" appLocalizedStaticContent>
   @if (!authService.suscripcionRestringida()) {
   <div>
     <app-sidebar></app-sidebar>
@@ -31,14 +31,14 @@
 </div>
 
 @if (foco.activo()) {
-  <section class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950 p-6 text-center text-white">
-    <div class="w-full max-w-xl rounded-3xl border border-cyan-500/50 bg-slate-900 p-8 shadow-2xl">
-      <p class="tb-page-kicker">MODO FOCO ACTIVO</p>
-      <h2 class="mt-2 text-2xl font-bold">{{foco.tarea()?.titulo}}</h2>
-      <p class="mt-3 text-sm text-slate-300">La navegación queda pausada mientras trabajás en esta tarea.</p>
-      <p class="my-8 font-mono text-6xl font-bold tracking-wider text-cyan-300">{{foco.formatoDuracion()}}</p>
-      <button class="tb-action-button" type="button" (click)="detenerFoco()">Detener y preparar carga de horas</button>
-      <p class="mt-4 text-xs text-slate-400">La duración se precarga en el registro de horas para que la revises y confirmes.</p>
+  <section class="fixed inset-0 z-[100] grid overflow-y-auto bg-slate-950 p-4 text-center text-white sm:p-6" role="dialog" aria-modal="true" aria-labelledby="focus-mode-title">
+    <div class="m-auto w-full max-w-xl min-w-0 rounded-3xl border border-cyan-500/50 bg-slate-900 p-5 shadow-2xl sm:p-8">
+      <p id="focus-mode-title" class="tb-page-kicker">{{ localization.traducir('focusMode.active') }}</p>
+      <h2 class="mt-2 break-words text-2xl font-bold">{{ foco.tarea()?.titulo }}</h2>
+      <p class="mt-3 text-sm text-slate-300">{{ localization.traducir('focusMode.navigationPaused') }}</p>
+      <p class="my-8 font-mono text-4xl font-bold tracking-wider text-cyan-300 sm:text-6xl" role="timer" [attr.aria-label]="localization.traducir('focusMode.elapsed')">{{ foco.formatoDuracion() }}</p>
+      <button class="tb-action-button" type="button" (click)="detenerFoco()">{{ localization.traducir('focusMode.stop') }}</button>
+      <p class="mt-4 text-xs text-slate-400">{{ localization.traducir('focusMode.reviewHours') }}</p>
     </div>
   </section>
 }

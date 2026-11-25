@@ -14,14 +14,29 @@ public class MPPAnaliticaOperativa
         _conexion = conexion;
     }
 
-    public List<Empleado> ConsultarEmpleadosActivos(Usuario usuario)
+    public List<Empleado> ConsultarEmpleadosActivos(Usuario usuario, bool soloSolicitante = false)
     {
         List<SqlParameter> parametros = new List<SqlParameter>() { new SqlParameter("@IdAgencia", usuario.IdAgencia ?? throw new UnauthorizedAccessException("Tu usuario no pertenece a una agencia.")) };
+        int? idEmpleadoSolicitante = null;
+        if (soloSolicitante)
+        {
+            List<SqlParameter> parametrosSolicitante = new List<SqlParameter>()
+            {
+                new SqlParameter("@IdUsuario", usuario.ID),
+                new SqlParameter("@IdAgencia", usuario.IdAgencia.Value),
+            };
+            DataTable ficha = _conexion.Leer("dbo.usp_Empleado_ConsultarIdPorUsuarioAgencia", parametrosSolicitante);
+            if (ficha.Rows.Count == 0) { return new List<Empleado>(); }
+            idEmpleadoSolicitante = Convert.ToInt32(ficha.Rows[0]["ID"]);
+        }
+
         DataTable tabla = _conexion.Leer("dbo.usp_Analitica_ConsultarEmpleadosActivos", parametros);
         List<Empleado> empleados = new List<Empleado>();
         foreach (DataRow fila in tabla.Rows)
         {
-            Empleado empleado = new Empleado(Convert.ToInt32(fila["ID"]), Convert.ToString(fila["Nombre"]) ?? string.Empty, Convert.ToString(fila["Email"]) ?? string.Empty, Convert.ToBoolean(fila["Activo"]), Convert.ToDecimal(fila["CostoHora"]), Convert.ToDecimal(fila["HorasDisponiblesSemanales"]), Convert.ToString(fila["Seniority"]) ?? string.Empty, Convert.ToString(fila["EstadoLaboral"]) ?? string.Empty, fila["FechaIngreso"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaIngreso"]), new List<Skill>());
+            int idEmpleado = Convert.ToInt32(fila["ID"]);
+            if (idEmpleadoSolicitante.HasValue && idEmpleado != idEmpleadoSolicitante.Value) { continue; }
+            Empleado empleado = new Empleado(idEmpleado, Convert.ToString(fila["Nombre"]) ?? string.Empty, Convert.ToString(fila["Email"]) ?? string.Empty, Convert.ToBoolean(fila["Activo"]), Convert.ToDecimal(fila["CostoHora"]), Convert.ToDecimal(fila["HorasDisponiblesSemanales"]), Convert.ToString(fila["Seniority"]) ?? string.Empty, Convert.ToString(fila["EstadoLaboral"]) ?? string.Empty, fila["FechaIngreso"] == DBNull.Value ? null : Convert.ToDateTime(fila["FechaIngreso"]), new List<Skill>());
             empleados.Add(empleado);
         }
         return empleados;

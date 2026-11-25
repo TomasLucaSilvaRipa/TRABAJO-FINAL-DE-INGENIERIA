@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, effect, inject, untracked } from '@angular/core';
 import { SidebarService } from '../../services/sidebar.service';
 import { CommonModule } from '@angular/common';
 import { AppSidebarComponent } from '../app-sidebar/app-sidebar.component';
@@ -6,7 +6,8 @@ import { BackdropComponent } from '../backdrop/backdrop.component';
 import { Router, RouterModule } from '@angular/router';
 import { AppHeaderComponent } from '../app-header/app-header.component';
 import { AuthService } from '../../../services/auth.service';
-import { FocusTimerService } from '../../../services/focus-timer.service';
+import { FocusTimerService, SEGUNDOS_MAXIMOS_FOCO } from '../../../services/focus-timer.service';
+import { LocalizationService } from '../../../services/localization.service';
 import { LocalizedStaticContentDirective } from '../../directives/localized-static-content.directive';
 import { ThemeToggleButtonComponent } from '../../components/common/theme-toggle/theme-toggle-button.component';
 
@@ -27,6 +28,7 @@ import { ThemeToggleButtonComponent } from '../../components/common/theme-toggle
 export class AppLayoutComponent {
   private readonly router = inject(Router);
   readonly foco = inject(FocusTimerService);
+  readonly localization = inject(LocalizationService);
   readonly isExpanded$;
   readonly isHovered$;
   readonly isMobileOpen$;
@@ -35,6 +37,11 @@ export class AppLayoutComponent {
     this.isExpanded$ = this.sidebarService.isExpanded$;
     this.isHovered$ = this.sidebarService.isHovered$;
     this.isMobileOpen$ = this.sidebarService.isMobileOpen$;
+    effect(() => {
+      if (this.foco.activo() && this.foco.segundos() >= SEGUNDOS_MAXIMOS_FOCO) {
+        untracked(() => this.detenerFoco());
+      }
+    });
   }
 
   cerrarSesion(): void {
@@ -77,6 +84,9 @@ export class AppLayoutComponent {
     if (sesion.segundos >= 15 * 60)
     {
       queryParams.horas = Math.ceil((sesion.segundos / 3600) * 4) / 4;
+      if (sesion.segundos === SEGUNDOS_MAXIMOS_FOCO) {
+        queryParams.aviso = 'focusLimitReached';
+      }
     }
     else
     {

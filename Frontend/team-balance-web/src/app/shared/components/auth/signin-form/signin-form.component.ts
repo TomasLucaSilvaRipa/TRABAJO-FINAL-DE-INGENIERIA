@@ -38,7 +38,7 @@ export class SigninFormComponent {
   constructor() {
     if (this.route.snapshot.queryParamMap.get('motivo') === 'agencia-inactiva')
     {
-      this.requestError.set('La agencia no tiene una suscripción activa. Contactá al dueño para reactivar el servicio.');
+      this.requestError.set('review.auth.agencyInactive');
     }
   }
 
@@ -78,11 +78,17 @@ export class SigninFormComponent {
   confirmarDosFactores(): void {
     const desafio = this.desafioDosFactores();
     const codigo = this.codigoDosFactores().replace(/\s/g, '');
-    if (!desafio || !/^\d{6}$/.test(codigo)) { this.requestError.set('Ingresá el código de seis dígitos de Google Authenticator.'); return; }
+    if (!desafio || !/^\d{6}$/.test(codigo)) { this.requestError.set(this.localization.traducir('login.twoFactor.invalidFormat')); return; }
     this.submitting.set(true); this.requestError.set('');
     this.authService.confirmarInicioSesionDosFactores(desafio.tokenDesafio, codigo).pipe(finalize(() => this.submitting.set(false))).subscribe({
       next: respuesta => this.completarInicioSesion(respuesta, this.signInForm.controls.mantenerSesion.value),
-      error: error => this.requestError.set(typeof error.error === 'string' ? error.error : 'No fue posible verificar el código.'),
+      error: (respuesta: HttpErrorResponse) => {
+        const detalle = typeof respuesta.error === 'string' ? respuesta.error : '';
+        let clave = 'login.twoFactor.error';
+        if (/desafío de verificación ya no está vigente/i.test(detalle)) clave = 'login.twoFactor.expired';
+        else if (respuesta.status === 401) clave = 'login.twoFactor.invalidCode';
+        this.requestError.set(this.localization.traducir(clave));
+      },
     });
   }
 
@@ -106,12 +112,12 @@ export class SigninFormComponent {
           }
 
           this.authService.logOut();
-          this.requestError.set('La agencia no tiene una suscripción activa. Contactá al dueño para reactivar el servicio.');
+          this.requestError.set('review.auth.agencyInactive');
           return;
         }
 
         this.authService.logOut();
-        this.requestError.set('No fue posible comprobar el acceso de la agencia. Intentá nuevamente.');
+        this.requestError.set('review.auth.agencyAccessError');
       },
     });
   }

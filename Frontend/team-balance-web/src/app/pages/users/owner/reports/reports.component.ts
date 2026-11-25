@@ -127,8 +127,8 @@ export class Reports {
   };
 
   constructor() {
-    this.projectsService.consultar().subscribe({ next: proyectos => this.proyectos.set(proyectos.filter(proyecto => proyecto.activo)), error: () => this.error.set('No se pudieron cargar los proyectos para aplicar filtros.') });
-    this.projectsService.opciones().subscribe({ next: opciones => { this.clientes.set(opciones.clientes.filter(cliente => cliente.activo)); this.responsables.set(opciones.responsables); }, error: () => this.error.set('No se pudieron cargar los clientes para aplicar filtros.') });
+    this.projectsService.consultar().subscribe({ next: proyectos => this.proyectos.set(proyectos.filter(proyecto => proyecto.activo)), error: () => this.error.set('review.reports.projectsError') });
+    this.projectsService.opciones().subscribe({ next: opciones => { this.clientes.set(opciones.clientes.filter(cliente => cliente.activo)); this.responsables.set(opciones.responsables); }, error: () => this.error.set('review.reports.clientsError') });
     this.consultarRiesgos();
   }
 
@@ -265,7 +265,7 @@ export class Reports {
       idProyecto: proyecto?.idProyecto ?? this.filtroOcupacion.idProyecto,
     };
     this.error.set('');
-    this.analiticaService.consultarDetalleOcupacionEmpleado(filtroDetalle).subscribe({ next: detalle => { this.cerrandoDetalleOcupacion.set(false); this.detalleOcupacion.set(detalle); }, error: error => this.error.set(error?.error || 'No se pudo consultar el detalle del empleado.') });
+    this.analiticaService.consultarDetalleOcupacionEmpleado(filtroDetalle).subscribe({ next: detalle => { this.cerrandoDetalleOcupacion.set(false); this.detalleOcupacion.set(detalle); }, error: error => this.error.set(error?.error || 'review.reports.employeeError') });
   }
 
   protected cerrarDetalleOcupacion(): void {
@@ -285,12 +285,12 @@ export class Reports {
     const tarea = this.tareaARevisar();
     if (!detalle || !tarea) { return; }
     this.procesandoDesvio.set(true); this.error.set('');
-    this.analiticaService.solicitarRevisionOperativa(detalle.empleado.idEmpleado, tarea.idProyecto, tarea.idTarea).subscribe({ next: mensaje => { this.mensajeDesvio.set(mensaje); this.situacionARevisar.set(null); this.tareaARevisar.set(null); this.cerrarDetalleOcupacion(); this.procesandoDesvio.set(false); }, error: error => { this.error.set(error?.error || 'No fue posible enviar la solicitud de revisión.'); this.procesandoDesvio.set(false); } });
+    this.analiticaService.solicitarRevisionOperativa(detalle.empleado.idEmpleado, tarea.idProyecto, tarea.idTarea).subscribe({ next: mensaje => { this.mensajeDesvio.set(mensaje); this.situacionARevisar.set(null); this.tareaARevisar.set(null); this.cerrarDetalleOcupacion(); this.procesandoDesvio.set(false); }, error: error => { this.error.set(error?.error || 'review.reports.reviewError'); this.procesandoDesvio.set(false); } });
   }
 
   protected consultarSolicitudesRevision(): void {
     this.cargando.set(true); this.error.set('');
-    this.analiticaService.consultarSolicitudesRevisionPendientes().subscribe({ next: solicitudes => { this.solicitudesRevision.set(solicitudes); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudieron consultar las revisiones pendientes.'); this.cargando.set(false); } });
+    this.analiticaService.consultarSolicitudesRevisionPendientes().subscribe({ next: solicitudes => { this.solicitudesRevision.set(solicitudes); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'review.reports.pendingError'); this.cargando.set(false); } });
   }
 
   protected resolverSolicitudRevision(solicitud: RevisionOperativaPendiente): void {
@@ -301,7 +301,7 @@ export class Reports {
         this.solicitudesRevision.update(solicitudes => solicitudes.filter(item => item.id !== solicitud.id || item.tipo !== solicitud.tipo));
         this.procesandoDesvio.set(false);
       },
-      error: error => { this.error.set(error?.error || 'No fue posible marcar la revisión como resuelta.'); this.procesandoDesvio.set(false); }
+      error: error => { this.error.set(error?.error || 'review.reports.resolveError'); this.procesandoDesvio.set(false); }
     });
   }
 
@@ -339,7 +339,7 @@ export class Reports {
         this.cerrandoDetalleDesvio.set(false);
         this.cargando.set(false);
       },
-      error: error => { this.error.set(error?.error || 'No se pudo analizar el desvío de horas.'); this.cargando.set(false); },
+      error: error => { this.error.set(error?.error || 'review.reports.hoursError'); this.cargando.set(false); },
     });
   }
 
@@ -363,7 +363,7 @@ export class Reports {
         this.cerrandoDetalleDesvio.set(false);
         this.detalleDesvio.set(detalle);
       },
-      error: error => this.error.set(error?.error || 'No se pudo consultar el detalle del desvío.'),
+      error: error => this.error.set(error?.error || 'review.reports.hoursDetailError'),
     });
   }
 
@@ -387,18 +387,42 @@ export class Reports {
   protected cerrarAccionAjuste(): void { this.accionAjuste = { idProyecto: 0, idTarea: null, observacion: '' }; }
 
   protected registrarAccionAjuste(): void {
-    if (!this.accionAjuste.idProyecto || !this.accionAjuste.observacion.trim()) { this.error.set('Describí la acción de ajuste antes de confirmarla.'); return; }
+    if (!this.accionAjuste.idProyecto || !this.accionAjuste.observacion.trim()) { this.error.set('review.reports.describeAdjustment'); return; }
     this.procesandoDesvio.set(true); this.error.set('');
-    this.analiticaService.registrarAccionAjuste(this.accionAjuste).subscribe({ next: mensaje => { this.mensajeDesvio.set(mensaje); this.cerrarAccionAjuste(); this.procesandoDesvio.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo registrar la acción de ajuste.'); this.procesandoDesvio.set(false); } });
+    this.analiticaService.registrarAccionAjuste(this.accionAjuste).subscribe({ next: mensaje => { this.mensajeDesvio.set(mensaje.includes('no se pudo enviar el correo') ? 'review.reports.adjustmentMailFailed' : 'review.reports.adjustmentSent'); this.cerrarAccionAjuste(); this.procesandoDesvio.set(false); }, error: error => { this.error.set(error?.error || 'review.reports.adjustmentError'); this.procesandoDesvio.set(false); } });
   }
 
-  protected prepararComunicacion(proyecto: DesvioHorasProyecto): void { this.proyectoAComunicar.set(proyecto); this.mensajeDesvio.set(''); }
+  protected readonly errorComunicacion = signal('');
+
+  protected prepararComunicacion(proyecto: DesvioHorasProyecto): void {
+    this.errorComunicacion.set('');
+    this.mensajeDesvio.set('');
+    this.proyectoAComunicar.set(proyecto);
+  }
 
   protected comunicarDesvioADueno(): void {
     const proyecto = this.proyectoAComunicar();
-    if (!proyecto) { return; }
-    this.procesandoDesvio.set(true); this.error.set('');
-    this.analiticaService.comunicarDesvioADueno(proyecto, this.filtroDesvio).subscribe({ next: mensaje => { this.mensajeDesvio.set(mensaje); this.proyectoAComunicar.set(null); this.procesandoDesvio.set(false); }, error: () => { this.error.set(this.localization.traducir('private.reports.ownerNotificationError')); this.procesandoDesvio.set(false); } });
+    if (!proyecto) return;
+    this.procesandoDesvio.set(true);
+    this.error.set('');
+    this.errorComunicacion.set('');
+    this.analiticaService.comunicarDesvioADueno(proyecto, this.filtroDesvio).subscribe({
+      next: () => {
+        this.mensajeDesvio.set('private.reports.ownerNotificationSent');
+        this.proyectoAComunicar.set(null);
+        this.procesandoDesvio.set(false);
+      },
+      error: respuesta => {
+        const detalle = typeof respuesta.error === 'string' ? respuesta.error : '';
+        let clave = 'ownerNotificationError';
+        if (detalle.includes('No hay información de desvío')) clave = 'ownerNotificationNoData';
+        else if (detalle.includes('No se encontró un Dueño activo')) clave = 'ownerNotificationNoOwner';
+        else if (detalle.includes('Revisá la configuración de correo')) clave = 'ownerNotificationMailError';
+        else if (respuesta.status === 400 && /Proyecto\.(Nombre|Estado)|Seleccioná el proyecto/.test(detalle)) clave = 'ownerNotificationInvalidProject';
+        this.errorComunicacion.set(clave);
+        this.procesandoDesvio.set(false);
+      },
+    });
   }
 
   protected tareasDisponiblesDesvio(): DesvioHorasTarea[] { return this.desvioHoras()?.proyectos.flatMap(proyecto => proyecto.tareas) ?? []; }
@@ -418,7 +442,7 @@ export class Reports {
   protected consultarConveniencia(): void {
     const filtroAplicado: FiltroConvenienciaOperativa = { ...this.filtroConveniencia };
     this.cargando.set(true); this.error.set('');
-    this.analiticaService.consultarConveniencia(filtroAplicado).subscribe({ next: resultado => { this.conveniencia.set(resultado); this.detalleConveniencia.set(null); this.cerrandoDetalleConveniencia.set(false); this.hayFiltrosConvenienciaAplicados.set(this.tieneFiltrosConveniencia(filtroAplicado)); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar la conveniencia operativa.'); this.cargando.set(false); } });
+    this.analiticaService.consultarConveniencia(filtroAplicado).subscribe({ next: resultado => { this.conveniencia.set(resultado); this.detalleConveniencia.set(null); this.cerrandoDetalleConveniencia.set(false); this.hayFiltrosConvenienciaAplicados.set(this.tieneFiltrosConveniencia(filtroAplicado)); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'review.reports.convenienceError'); this.cargando.set(false); } });
   }
 
   protected limpiarFiltrosConveniencia(): void {
@@ -434,7 +458,7 @@ export class Reports {
 
   protected abrirDetalleConveniencia(proyecto: ConvenienciaOperativaProyecto): void {
     this.error.set('');
-    this.analiticaService.consultarDetalleConveniencia(proyecto.idProyecto, this.filtroConveniencia).subscribe({ next: detalle => { this.cerrandoDetalleConveniencia.set(false); this.detalleConveniencia.set(detalle); }, error: error => this.error.set(error?.error || 'No se pudo consultar la composición del costo operativo.') });
+    this.analiticaService.consultarDetalleConveniencia(proyecto.idProyecto, this.filtroConveniencia).subscribe({ next: detalle => { this.cerrandoDetalleConveniencia.set(false); this.detalleConveniencia.set(detalle); }, error: error => this.error.set(error?.error || 'review.reports.costError') });
   }
 
   protected cerrarDetalleConveniencia(): void {
@@ -450,16 +474,16 @@ export class Reports {
   protected cerrarSeguimientoConveniencia(): void { this.seguimientoConveniencia = { idCliente: 0, idProyecto: null, observacion: '', accionSugerida: '' }; }
 
   protected guardarSeguimientoConveniencia(): void {
-    if (!this.seguimientoConveniencia.idCliente || !this.seguimientoConveniencia.observacion.trim() || !this.seguimientoConveniencia.accionSugerida.trim()) { this.error.set('Completá la observación y la acción sugerida.'); return; }
+    if (!this.seguimientoConveniencia.idCliente || !this.seguimientoConveniencia.observacion.trim() || !this.seguimientoConveniencia.accionSugerida.trim()) { this.error.set('review.reports.requiredFollowUp'); return; }
     this.procesandoDesvio.set(true); this.error.set('');
-    this.analiticaService.registrarSeguimientoConveniencia(this.seguimientoConveniencia).subscribe({ next: mensaje => { this.mensajeConveniencia.set(mensaje); this.cerrarSeguimientoConveniencia(); this.procesandoDesvio.set(false); const detalle = this.detalleConveniencia(); if (detalle) { this.abrirDetalleConveniencia(detalle.proyecto); } }, error: error => { this.error.set(error?.error || 'No se pudo registrar el seguimiento.'); this.procesandoDesvio.set(false); } });
+    this.analiticaService.registrarSeguimientoConveniencia(this.seguimientoConveniencia).subscribe({ next: mensaje => { this.mensajeConveniencia.set(mensaje); this.cerrarSeguimientoConveniencia(); this.procesandoDesvio.set(false); const detalle = this.detalleConveniencia(); if (detalle) { this.abrirDetalleConveniencia(detalle.proyecto); } }, error: error => { this.error.set(error?.error || 'review.reports.followUpError'); this.procesandoDesvio.set(false); } });
   }
 
   protected marcarClienteRevisionConveniencia(): void {
     const cliente = this.clienteConvenienciaARevisar();
     if (!cliente) { return; }
     this.procesandoDesvio.set(true); this.error.set('');
-    this.analiticaService.marcarClienteRevisionConveniencia(cliente.idCliente).subscribe({ next: mensaje => { this.mensajeConveniencia.set(mensaje); this.clienteConvenienciaARevisar.set(null); this.procesandoDesvio.set(false); this.consultarConveniencia(); }, error: error => { this.error.set(error?.error || 'No se pudo marcar el cliente para revisión.'); this.procesandoDesvio.set(false); } });
+    this.analiticaService.marcarClienteRevisionConveniencia(cliente.idCliente).subscribe({ next: mensaje => { this.mensajeConveniencia.set(mensaje); this.clienteConvenienciaARevisar.set(null); this.procesandoDesvio.set(false); this.consultarConveniencia(); }, error: error => { this.error.set(error?.error || 'review.reports.clientReviewError'); this.procesandoDesvio.set(false); } });
   }
 
   protected verProyectosClienteConveniencia(idCliente: number): void {
@@ -470,7 +494,7 @@ export class Reports {
 
   protected consultarSobrecalificacion(): void {
     this.cargando.set(true); this.error.set('');
-    this.analiticaService.consultarSobrecalificacion({ idProyecto: this.filtro.idProyecto ?? null }).subscribe({ next: resultado => { this.sobrecalificacion.set(resultado); this.detalleSobrecalificacion.set(null); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo analizar la sobrecalificación de perfiles.'); this.cargando.set(false); } });
+    this.analiticaService.consultarSobrecalificacion({ idProyecto: this.filtro.idProyecto ?? null }).subscribe({ next: resultado => { this.sobrecalificacion.set(resultado); this.detalleSobrecalificacion.set(null); this.cargando.set(false); }, error: error => { this.error.set(error?.error || 'review.reports.overqualificationError'); this.cargando.set(false); } });
   }
 
   protected abrirDetalleSobrecalificacion(tarea: SobrecalificacionTarea): void { this.detalleSobrecalificacion.set(tarea); }
@@ -489,11 +513,11 @@ export class Reports {
   protected enviarSolicitudSobrecalificacion(): void {
     const tarea = this.sobrecalificacionARevisar();
     const observacion = this.observacionSobrecalificacion().trim();
-    if (!tarea || !observacion) { this.error.set('Describí el criterio de asignación que debe revisar el PM.'); return; }
+    if (!tarea || !observacion) { this.error.set('review.reports.describeAssignment'); return; }
     this.procesandoDesvio.set(true); this.error.set('');
     this.analiticaService.solicitarRevisionSobrecalificacion({ idEmpleado: tarea.idEmpleado, idProyecto: tarea.idProyecto, idTarea: tarea.idTarea, observacion }).subscribe({
       next: mensaje => { this.mensajeSobrecalificacion.set(mensaje); this.sobrecalificacionARevisar.set(null); this.procesandoDesvio.set(false); },
-      error: error => { this.error.set(error?.error || 'No fue posible enviar la solicitud de revisión.'); this.procesandoDesvio.set(false); }
+      error: error => { this.error.set(error?.error || 'review.reports.reviewError'); this.procesandoDesvio.set(false); }
     });
   }
 
@@ -549,7 +573,7 @@ export class Reports {
 
   protected generarReporte(): void {
     this.generandoReporte.set(true); this.error.set('');
-    this.reporteService.previsualizar(this.configuracionReporte).subscribe({ next: reporte => { this.reporte.set(reporte); this.editandoReporte.set(false); this.generandoReporte.set(false); }, error: error => { this.error.set(error?.error || 'No se pudo generar el reporte ejecutivo.'); this.generandoReporte.set(false); } });
+    this.reporteService.previsualizar(this.configuracionReporte).subscribe({ next: reporte => { this.reporte.set(reporte); this.editandoReporte.set(false); this.generandoReporte.set(false); }, error: error => { this.error.set(error?.error || 'review.reports.executiveError'); this.generandoReporte.set(false); } });
   }
 
   protected editarConfiguracionReporte(): void {

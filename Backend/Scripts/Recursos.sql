@@ -68,7 +68,8 @@ BEGIN
     IF @EsDueno = 0 AND NOT EXISTS
     (
         SELECT 1 FROM dbo.Tarea T INNER JOIN dbo.Proyecto P ON P.ID = T.IdProyecto
-        WHERE P.IdAgencia = @IdAgencia AND P.IdPMResponsable = @IdUsuarioSolicitante
+        WHERE P.IdAgencia = @IdAgencia
+          AND EXISTS (SELECT 1 FROM dbo.PM PM WHERE PM.ID = P.IdPMResponsable AND PM.IdUsuario = @IdUsuarioSolicitante AND PM.Activo = 1)
           AND (T.IdEmpleadoAsignado = @IdEmpleado OR EXISTS (SELECT 1 FROM dbo.AsignacionTarea A WHERE A.IdTarea = T.ID AND A.IdEmpleado = @IdEmpleado))
     ) THROW 51031, 'No tenés autorización para consultar el rendimiento de este empleado.', 1;
 

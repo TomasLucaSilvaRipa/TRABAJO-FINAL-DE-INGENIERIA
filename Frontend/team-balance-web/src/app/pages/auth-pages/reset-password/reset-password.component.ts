@@ -1,3 +1,4 @@
+import { LocalizationService } from '../../../services/localization.service';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -13,6 +14,7 @@ import { AuthPageLayoutComponent } from '../../../shared/layout/auth-page-layout
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ResetPasswordComponent {
+  readonly localization = inject(LocalizationService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly authService = inject(AuthService);
@@ -36,13 +38,13 @@ export class ResetPasswordComponent {
 
     if (!this.token)
     {
-      this.requestError.set('El enlace de recuperación no es válido. Solicitá uno nuevo.');
+      this.requestError.set('review.auth.resetInvalid');
       return;
     }
 
     if (this.resetPasswordForm.invalid || form.password !== form.repetirPassword)
     {
-      this.requestError.set('La nueva contraseña debe tener al menos 8 caracteres y ambas contraseñas deben coincidir.');
+      this.requestError.set('review.auth.resetRules');
       return;
     }
 
@@ -51,8 +53,8 @@ export class ResetPasswordComponent {
     this.authService.restablecerPassword(this.token, form.password)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
-        next: (respuesta) => this.responseMessage.set(respuesta.mensaje),
-        error: (error) => this.requestError.set(typeof error.error === 'string' ? error.error : 'No fue posible restablecer la contraseña. Solicitá un nuevo enlace.'),
+        next: () => this.responseMessage.set('review.auth.resetDone'),
+        error: () => this.requestError.set('review.auth.resetFailed'),
       });
   }
 }

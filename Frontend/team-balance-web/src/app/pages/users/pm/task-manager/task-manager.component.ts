@@ -662,6 +662,8 @@ export class TaskManagerComponent {
         if (typeof cuerpo === 'string')
         {
             if (/sesi[oó]n ya no es v[aá]lida/i.test(cuerpo)) return 'projectForm.invalidSession';
+            if (respuesta.status === 403 && /no ten[eé]s acceso a los adjuntos de esta tarea/i.test(cuerpo)) return 'taskErrors.attachmentAccess';
+            if (respuesta.status === 403 && /no pertenece a uno de tus proyectos/i.test(cuerpo)) return 'bestFit.taskUnavailable';
             if (/no ten[eé]s (permiso|acceso)|no pertenece a (una agencia|uno de tus proyectos)/i.test(cuerpo)) return 'projectForm.notAllowed';
             if (/t[ií]tulo de la tarea/i.test(cuerpo)) return 'taskManager.titleRequired';
             if (/seleccion[aá] (el proyecto|el estado)|skill requerida para la tarea/i.test(cuerpo))

@@ -1,7 +1,9 @@
 CREATE OR ALTER PROCEDURE dbo.usp_RegistroHora_Registrar @IdTarea INT, @IdUsuario INT, @Fecha DATETIME2, @CantidadHoras DECIMAL(18,2), @Descripcion NVARCHAR(500) = NULL AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @IdEmpleado INT = (SELECT E.ID FROM dbo.Empleado E WHERE E.IdUsuario = @IdUsuario AND E.Activo = 1);
+    SET XACT_ABORT ON;
+    BEGIN TRANSACTION;
+    DECLARE @IdEmpleado INT = (SELECT E.ID FROM dbo.Empleado E WITH (UPDLOCK, HOLDLOCK) WHERE E.IdUsuario = @IdUsuario AND E.Activo = 1);
     IF @IdEmpleado IS NULL THROW 50020, 'Tu usuario no tiene un perfil de empleado activo.', 1;
     IF NOT EXISTS
     (
@@ -15,8 +17,17 @@ BEGIN
                   AND T.IdEmpleadoAsignado = @IdEmpleado)
           )
     ) THROW 50021, 'La tarea seleccionada no está asignada a tu usuario.', 1;
+    DECLARE @Dia DATE = CONVERT(DATE, @Fecha);
+    DECLARE @HorasPrevias DECIMAL(18,2);
+    SELECT @HorasPrevias = COALESCE(SUM(RH.CantidadHoras), 0)
+    FROM dbo.RegistroHora RH
+    WHERE RH.IdEmpleado = @IdEmpleado AND RH.Activo = 1
+      AND RH.Fecha >= @Dia AND RH.Fecha < DATEADD(DAY, 1, @Dia);
+    IF @HorasPrevias + @CantidadHoras > 15 THROW 50026, 'El total de horas de la jornada no puede superar 15 horas.', 1;
     INSERT INTO dbo.RegistroHora(IdTarea, IdEmpleado, Fecha, CantidadHoras, Descripcion, Activo) VALUES(@IdTarea, @IdEmpleado, @Fecha, @CantidadHoras, @Descripcion, 1);
-    SELECT ID, IdTarea, IdEmpleado, Fecha, CantidadHoras, Descripcion, Activo FROM dbo.RegistroHora WHERE ID = SCOPE_IDENTITY();
+    DECLARE @IdRegistro INT = CONVERT(INT, SCOPE_IDENTITY());
+    COMMIT TRANSACTION;
+    SELECT ID, IdTarea, IdEmpleado, Fecha, CantidadHoras, Descripcion, Activo FROM dbo.RegistroHora WHERE ID = @IdRegistro;
 END
 GO
 
@@ -79,7 +90,8 @@ CREATE OR ALTER PROCEDURE dbo.usp_RegistroHora_RegistrarImputaciones @IdUsuario 
 BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
-    DECLARE @IdEmpleado INT = (SELECT E.ID FROM dbo.Empleado E WHERE E.IdUsuario = @IdUsuario AND E.Activo = 1);
+    BEGIN TRANSACTION;
+    DECLARE @IdEmpleado INT = (SELECT E.ID FROM dbo.Empleado E WITH (UPDLOCK, HOLDLOCK) WHERE E.IdUsuario = @IdUsuario AND E.Activo = 1);
     IF @IdEmpleado IS NULL THROW 50020, 'Tu usuario no tiene un perfil de empleado activo.', 1;
 
     DECLARE @Registros TABLE(Orden INT IDENTITY(1,1), IdTarea INT, Fecha DATETIME2, CantidadHoras DECIMAL(18,2), Descripcion NVARCHAR(500));
@@ -106,7 +118,17 @@ BEGIN
     ) THROW 50021, 'Una de las tareas seleccionadas no está asignada a tu usuario.', 1;
     IF EXISTS (SELECT 1 FROM @Registros R INNER JOIN dbo.Tarea T ON T.ID = R.IdTarea WHERE T.FechaInicio IS NOT NULL AND CONVERT(DATE, R.Fecha) < CONVERT(DATE, T.FechaInicio)) THROW 50025, 'La fecha de trabajo no puede ser anterior a la fecha de inicio de la tarea.', 1;
 
-    BEGIN TRANSACTION;
+    DECLARE @Dia DATE = (SELECT MIN(CONVERT(DATE, Fecha)) FROM @Registros);
+    IF EXISTS (SELECT 1 FROM @Registros WHERE CONVERT(DATE, Fecha) <> @Dia)
+        THROW 50027, 'Todas las horas de una misma carga deben corresponder a la misma fecha.', 1;
+
+    DECLARE @HorasPrevias DECIMAL(18,2);
+    SELECT @HorasPrevias = COALESCE(SUM(RH.CantidadHoras), 0)
+    FROM dbo.RegistroHora RH
+    WHERE RH.IdEmpleado = @IdEmpleado AND RH.Activo = 1
+      AND RH.Fecha >= @Dia AND RH.Fecha < DATEADD(DAY, 1, @Dia);
+    IF @HorasPrevias + (SELECT CONVERT(DECIMAL(18,2), SUM(CantidadHoras)) FROM @Registros) > 15 THROW 50026, 'El total de horas de la jornada no puede superar 15 horas.', 1;
+
     DECLARE @Resultado TABLE(ID INT, IdTarea INT, IdEmpleado INT, Fecha DATETIME2, CantidadHoras DECIMAL(18,2), Descripcion NVARCHAR(500), Activo BIT);
     INSERT INTO dbo.RegistroHora(IdTarea, IdEmpleado, Fecha, CantidadHoras, Descripcion, Activo)
     OUTPUT inserted.ID, inserted.IdTarea, inserted.IdEmpleado, inserted.Fecha, inserted.CantidadHoras, inserted.Descripcion, inserted.Activo INTO @Resultado

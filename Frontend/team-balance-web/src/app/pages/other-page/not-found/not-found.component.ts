@@ -1,3 +1,5 @@
+import { inject } from '@angular/core';
+import { LocalizationService } from '../../../services/localization.service';
 import { Component } from '@angular/core';
 import { GridShapeComponent } from '../../../shared/components/common/grid-shape/grid-shape.component';
 import { RouterModule } from '@angular/router';
@@ -12,6 +14,7 @@ import { RouterModule } from '@angular/router';
   styles: ``
 })
 export class NotFoundComponent {
+  readonly localization = inject(LocalizationService);
 
   currentYear: number = new Date().getFullYear();
 }

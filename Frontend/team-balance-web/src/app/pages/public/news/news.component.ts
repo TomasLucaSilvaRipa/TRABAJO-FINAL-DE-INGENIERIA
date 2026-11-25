@@ -8,6 +8,12 @@ export class NewsComponent {
   private readonly service = inject(NovedadesService); readonly localization = inject(LocalizationService); readonly noticias = signal<Noticia[]>([]); readonly cargando = signal(true);
   constructor() { this.service.publicas().subscribe({ next: n => { this.noticias.set(n); this.cargando.set(false); }, error: () => this.cargando.set(false) }); }
 
+  readonly portadasNoDisponibles = signal<ReadonlySet<string>>(new Set());
+
+  marcarPortadaNoDisponible(url: string): void {
+    this.portadasNoDisponibles.update(portadas => new Set([...portadas, url]));
+  }
+
   categoryLabel(category: string): string {
     const normalized = category.trim().toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const keys: Record<string, string> = {

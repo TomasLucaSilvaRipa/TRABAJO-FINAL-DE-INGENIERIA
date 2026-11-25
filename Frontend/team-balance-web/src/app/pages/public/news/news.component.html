@@ -12,11 +12,15 @@
       <div class="tb-news-grid">
         @for (noticia of noticias(); track noticia.id) {
           <article class="tb-news-card">
-            @if (noticia.imagenUrl) {
-              <div class="tb-news-card__image">
-                <img [src]="noticia.imagenUrl" [alt]="noticia.titulo" />
-              </div>
-            }
+            @let portada = noticia.imagenUrl?.trim();
+            <div class="tb-news-card__image">
+              @if (portada && !portadasNoDisponibles().has(portada)) {
+                <img [src]="portada" [alt]="noticia.titulo" loading="lazy" (error)="marcarPortadaNoDisponible(portada)" />
+              } @else {
+                <img class="tb-news-card__default-image" src="brand/teambalance-logo-header.png"
+                  [alt]="localization.traducir('public.news.defaultImageAlt')" loading="lazy" />
+              }
+            </div>
             <div class="tb-news-card__body">
               <p class="tb-news-card__category">{{ categoryLabel(noticia.categoria) }}</p>
               <h2>{{ noticia.titulo }}</h2>

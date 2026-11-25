@@ -1,8 +1,8 @@
 <div class="space-y-6">
   <header>
-    <p class="text-sm font-bold uppercase tracking-widest text-cyan-700 dark:text-cyan-300">{{ localization.traducir('planManager.eyebrow') }}</p>
-    <h1 class="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{{ localization.traducir('planManager.title') }}</h1>
-    <p class="mt-2 max-w-3xl text-slate-600 dark:text-slate-300">{{ localization.traducir('planManager.subtitle') }}</p>
+    <p class="tb-page-kicker uppercase">{{ localization.traducir('planManager.eyebrow') }}</p>
+    <h1 class="tb-page-title">{{ localization.traducir('planManager.title') }}</h1>
+    <p class="tb-page-description max-w-3xl">{{ localization.traducir('planManager.subtitle') }}</p>
   </header>
 
   <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
@@ -35,7 +35,7 @@
       <div class="grid gap-4 lg:grid-cols-3">
         @for (plan of plans(); track plan.id) {
           <article class="relative rounded-xl border border-slate-200 p-4 dark:border-slate-700" [class.ring-2]="planSeleccionado(plan.id)" [class.ring-cyan-500]="planSeleccionado(plan.id)"><button class="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-full border border-cyan-600 text-sm font-bold text-cyan-700 dark:text-cyan-300" type="button" [class.bg-cyan-600]="planSeleccionado(plan.id)" [class.text-white]="planSeleccionado(plan.id)" (click)="togglePlanSelection(plan.id)">{{planSeleccionado(plan.id) ? '✓' : ''}}</button>
-            <div class="flex items-start justify-between gap-3 pr-10"><div><h3 class="text-lg font-bold text-slate-900 dark:text-white">{{ plan.nombre }}</h3><p class="text-sm text-slate-500">{{ plan.moneda }} {{ plan.precioVigente }} / {{ plan.periodicidad }}</p></div><span class="rounded-full px-2 py-1 text-xs font-bold" [class.bg-emerald-100]="plan.activo" [class.text-emerald-700]="plan.activo" [class.bg-slate-100]="!plan.activo">{{ localization.traducir(plan.activo ? 'common.active' : 'common.inactive') }}</span></div>
+            <div class="flex items-start justify-between gap-3 pr-10"><div><h3 class="text-lg font-bold text-slate-900 dark:text-white">{{ plan.nombre }}</h3><p class="text-sm text-slate-500">{{ plan.moneda }} {{ plan.precioVigente }} / {{ plan.periodicidad }}</p></div><span class="rounded-full px-2 py-1 text-xs font-bold" [class.bg-emerald-100]="plan.activo" [class.text-emerald-700]="plan.activo" [class.bg-slate-100]="!plan.activo" [class.text-slate-900]="!plan.activo">{{ localization.traducir(plan.activo ? 'common.active' : 'common.inactive') }}</span></div>
             <p class="mt-3 min-h-12 text-sm text-slate-600 dark:text-slate-300">{{ plan.descripcion }}</p>
             <div class="mt-4 flex gap-2"><button class="rounded-lg bg-cyan-600 px-3 py-2 text-sm font-bold text-white" type="button" (click)="edit(plan)">{{ localization.traducir('common.edit') }}</button><button class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold dark:border-slate-600 dark:text-white" type="button" (click)="changeStatus(plan)">{{ localization.traducir(plan.activo ? 'common.deactivate' : 'common.activate') }}</button></div>
           </article>
