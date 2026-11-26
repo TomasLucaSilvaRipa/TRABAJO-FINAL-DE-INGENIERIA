@@ -967,3 +967,59 @@
 .dark .tb-task-pages .tb-dialog .border-slate-700 { border-color: #47777b; }
 .dark .tb-task-pages .tb-dialog .text-slate-400 { color: #bed5d5; }
 @media (prefers-reduced-motion: reduce) { .tb-task-pages .tb-template-item, .tb-task-pages .tb-data-row { transition: none; } }
+
+@media (max-width: 767px) {
+  :root { --tb-mobile-app-header-height: 4rem; }
+
+  .team-balance-app-header > div > div:first-child {
+    min-height: var(--tb-mobile-app-header-height);
+    padding-block: .65rem;
+  }
+
+  .team-balance-app-sidebar {
+    top: var(--tb-mobile-app-header-height);
+    bottom: 0;
+    width: min(290px, calc(100vw - 3rem));
+    height: auto;
+  }
+
+  .team-balance-sidebar-backdrop { top: var(--tb-mobile-app-header-height); }
+  .team-balance-app-sidebar .sidebar-brand-row { flex-shrink: 0; padding-block: .85rem .5rem; }
+  .team-balance-app-sidebar .sidebar-brand { min-height: auto; padding: .45rem .7rem; }
+  .team-balance-app-sidebar .sidebar-brand__logo { max-width: 100%; height: 3.15rem; }
+
+  .team-balance-app-header .tb-notifications { position: static; }
+  .team-balance-app-header .tb-notifications__menu {
+    inset-inline: .65rem;
+    top: calc(100% + .4rem);
+    width: auto;
+    max-height: min(32rem, calc(100vh - 10rem));
+    max-height: min(32rem, calc(100dvh - 10rem));
+  }
+  .dark .team-balance-app-header .tb-notifications__menu {
+    --tb-surface: #102638;
+    --tb-ink: #edfaff;
+    --tb-muted: #b4cbd7;
+    --tb-line: #345364;
+    --tb-blue: #72d8eb;
+  }
+  .team-balance-app-header .tb-notifications__read-all { color: var(--tb-ink); }
+  .team-balance-app-header .tb-notifications__list { overscroll-behavior: contain; }
+  .team-balance-app-header .tb-notifications__item { overflow-wrap: anywhere; }
+
+  .team-balance-workspace { padding: .65rem; min-width: 0; }
+  .team-balance-workspace .tb-workspace { padding: .65rem; min-width: 0; }
+}
+
+.tb-mobile-chart-axis { display: none; }
+@media (max-width: 767px) {
+  .tb-mobile-chart-axis {
+    display: block;
+    position: relative;
+    margin: 0;
+    padding: .6rem .65rem 0;
+    color: #b5d6e0;
+    font-size: .75rem;
+    font-weight: 700;
+  }
+}

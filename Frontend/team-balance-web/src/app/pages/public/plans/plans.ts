@@ -5,6 +5,7 @@ import { LocalizationService } from '../../../services/localization.service';
 import { PlanComercial, PlanComercialService } from '../../../services/plan-comercial.service';
 import { PlanComparisonComponent } from '../../../shared/components/plans/plan-comparison/plan-comparison.component';
 import { ConsultaPlan, PlanConsultasService } from '../../../services/plan-consultas.service';
+import { finalize } from 'rxjs';
 @Component({
   selector: 'app-plans',
   imports: [RouterLink, PlanComparisonComponent, ReactiveFormsModule],
@@ -61,12 +62,11 @@ export class PlansComponent {
     const consulta = { id: 0, idPlanComercial: plan.id, nombre: valores.nombre, email: valores.email, consulta: valores.consulta, fechaAlta: new Date().toISOString(), activo: true } as ConsultaPlan;
     this.guardandoConsulta.set(true);
     this.consultaError.set('');
-    this.consultasService.registrar(consulta).subscribe({ next: (resultado) => {
+    this.consultasService.registrar(consulta).pipe(finalize(() => this.guardandoConsulta.set(false))).subscribe({ next: (resultado) => {
       this.consultas.update((consultas) => [resultado, ...consultas]);
       this.consultaForm.reset({ nombre: '', email: '', consulta: '' });
-      this.guardandoConsulta.set(false); }, error: (error) => {
+       }, error: (error) => {
         this.consultaError.set(typeof error.error === 'string' ? error.error : this.localization.traducir('plans.questions.saveError'));
-        this.guardandoConsulta.set(false);
       }
     });
   }

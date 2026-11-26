@@ -14,3 +14,8 @@
 .tb-skills-matrix footer { border-top: 1px solid rgba(70, 145, 166, .25); padding: .75rem 1.55rem 1rem; color: #82b8c6; font-size: .72rem; }
 @media (max-width: 760px) { .tb-skills-matrix__header { flex-direction: column; }.tb-skills-matrix__legend { justify-content: flex-start; min-width: 0; }.tb-skills-matrix__chart { height: 410px; } }
 @media (prefers-reduced-motion: reduce) { .tb-skills-matrix * { scroll-behavior: auto !important; } }
+
+@media (max-width: 767px) {
+  .tb-skills-matrix__scene { min-height: 0; }
+  .tb-skills-matrix__chart { height: 285px; }
+}

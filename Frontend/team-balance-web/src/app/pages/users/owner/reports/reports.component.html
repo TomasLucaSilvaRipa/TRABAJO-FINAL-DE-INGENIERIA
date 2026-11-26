@@ -297,5 +297,36 @@
   @if (mensajeRiesgo()) { <p role="status" data-localization-ignore class="fixed bottom-5 right-5 z-[70] rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800 shadow-lg dark:bg-emerald-950/80 dark:text-emerald-200">{{ localization.traducir(mensajeRiesgo()) }}</p> }
 
   @if (esDueno && (editandoReporte() || !reporte())) { <section id="configuracion-reporte" class="tb-panel space-y-4 print:hidden"><div><p class="tb-page-kicker">{{ localization.traducir('static.executiveReport') }}</p><h2 class="text-xl font-semibold">{{ localization.traducir('static.consolidateIndicators') }}</h2><p class="mt-1 text-sm text-slate-500">{{ localization.traducir('static.reportPreviewHint') }}</p></div><div class="grid gap-4 md:grid-cols-[1fr_1fr_auto]"><label class="tb-field-label">{{ localization.traducir('reports.projectScope') }}<select [(ngModel)]="configuracionReporte.filtro.idProyecto"><option [ngValue]="null">{{ localization.traducir('static.allProjects') }}</option>@for (proyecto of proyectos(); track proyecto.id) { <option [ngValue]="proyecto.id">{{ proyecto.nombre }}</option> }</select></label><label class="tb-field-label">{{ localization.traducir('static.reportTitle') }}<input [(ngModel)]="configuracionReporte.titulo" /></label><div class="flex items-end"><button class="tb-action-button" type="button" (click)="generarReporte()" [disabled]="generandoReporte()">{{ localization.traducir(generandoReporte() ? 'static.generating' : (reporte() ? 'reports.updatePreview' : 'static.generateReport')) }}</button></div></div><div class="tb-report-sections"><label class="tb-report-section-option"><input type="checkbox" [(ngModel)]="configuracionReporte.incluirTodasLasSecciones" /><span>{{ localization.traducir('static.allSections') }}</span></label><label class="tb-report-section-option"><input type="checkbox" [(ngModel)]="configuracionReporte.incluirOcupacionOperativa" (change)="configuracionReporte.incluirTodasLasSecciones = false" /><span>{{ localization.traducir('static.utilization') }}</span></label><label class="tb-report-section-option"><input type="checkbox" [(ngModel)]="configuracionReporte.incluirRiesgoRetraso" (change)="configuracionReporte.incluirTodasLasSecciones = false" /><span>{{ localization.traducir('static.risk') }}</span></label><label class="tb-report-section-option"><input type="checkbox" [(ngModel)]="configuracionReporte.incluirDesvioHoras" (change)="configuracionReporte.incluirTodasLasSecciones = false" /><span>{{ localization.traducir('static.hourDeviation') }}</span></label><label class="tb-report-section-option"><input type="checkbox" [(ngModel)]="configuracionReporte.incluirEficienciaPerfiles" (change)="configuracionReporte.incluirTodasLasSecciones = false" /><span>{{ localization.traducir('static.profiles') }}</span></label><label class="tb-report-section-option"><input type="checkbox" [(ngModel)]="configuracionReporte.incluirConvenienciaOperativa" (change)="configuracionReporte.incluirTodasLasSecciones = false" /><span>{{ localization.traducir('static.convenience') }}</span></label></div></section> }
-  @if (reporte(); as reporteGenerado) { <section class="tb-panel space-y-5 print:shadow-none"><div class="flex flex-wrap items-start justify-between gap-4"><div><p class="tb-page-kicker">{{ localization.traducir('reports.preview') }}</p><h2 class="text-2xl font-semibold">{{ reporteGenerado.titulo }}</h2><p class="mt-1 text-sm text-slate-500">{{ localization.traducir('reports.generatedOn') }} {{ reporteGenerado.fechaGeneracion | date:'dd/MM/yyyy HH:mm' }}</p></div><div class="flex flex-wrap gap-2 print:hidden"><button type="button" class="tb-secondary-button" (click)="editarConfiguracionReporte()">{{ localization.traducir('reports.editConfiguration') }}</button><button type="button" class="tb-secondary-button" (click)="imprimirReporte()">Imprimir / guardar PDF</button></div></div><div class="grid gap-4 md:grid-cols-2">@for (seccion of reporteGenerado.secciones; track seccion.orden) { <article class="rounded-xl border border-slate-200 p-4 dark:border-slate-700"><h3 class="font-semibold">{{ localization.traducirTextoEstatico(seccion.titulo) }}</h3><p class="mt-1 text-sm text-slate-500">{{ localization.traducirTextoEstatico(seccion.descripcion) }}</p><dl class="mt-4 space-y-3">@for (indicador of seccion.indicadores; track indicador.nombre) { <div><dt class="text-sm text-slate-500">{{ localization.traducirTextoEstatico(indicador.nombre) }}</dt><dd class="font-semibold">{{ indicador.valor }} {{ localization.traducirTextoEstatico(indicador.unidad) }}</dd><p class="text-xs text-slate-500">{{ localization.traducirTextoEstatico(indicador.descripcion) }}</p></div> }</dl></article> }</div></section> }
+  @if (reporte(); as reporteGenerado) {
+    <section class="tb-panel space-y-5 print:shadow-none" data-localization-ignore>
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p class="tb-page-kicker">{{ localization.traducir('reports.preview') }}</p>
+          <h2 class="text-2xl font-semibold">{{ reporteGenerado.titulo }}</h2>
+          <p class="mt-1 text-sm text-slate-500">{{ localization.traducir('reports.generatedOn') }} {{ localization.formatearFechaHora(reporteGenerado.fechaGeneracion) }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2 print:hidden">
+          <button type="button" class="tb-secondary-button" (click)="editarConfiguracionReporte()">{{ localization.traducir('reports.editConfiguration') }}</button>
+          <button type="button" class="tb-secondary-button" (click)="imprimirReporte()">{{ localization.traducir('reports.printPdf') }}</button>
+        </div>
+      </div>
+      <div class="grid gap-4 md:grid-cols-2">
+        @for (seccion of reporteGenerado.secciones; track seccion.orden) {
+          <article class="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+            <h3 class="font-semibold">{{ localization.traducirTextoEstatico(seccion.titulo) }}</h3>
+            <p class="mt-1 text-sm text-slate-500">{{ localization.traducirTextoEstatico(seccion.descripcion) }}</p>
+            <dl class="mt-4 space-y-3">
+              @for (indicador of seccion.indicadores; track indicador.nombre) {
+                <div>
+                  <dt class="text-sm text-slate-500">{{ localization.traducirTextoEstatico(indicador.nombre) }}</dt>
+                  <dd class="mt-1 font-semibold">{{ localization.formatearNumero(indicador.valor) }} {{ localization.traducirTextoEstatico(indicador.unidad) }}</dd>
+                  <dd class="mt-1 text-xs text-slate-400">{{ localization.traducirTextoEstatico(indicador.descripcion) }}</dd>
+                </div>
+              }
+            </dl>
+          </article>
+        }
+      </div>
+    </section>
+  }
 </section>

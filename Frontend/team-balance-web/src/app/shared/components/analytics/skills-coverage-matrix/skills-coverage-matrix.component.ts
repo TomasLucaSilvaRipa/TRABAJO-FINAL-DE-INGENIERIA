@@ -1,3 +1,4 @@
+import { isMobileChartLayout, observeChartLayout } from '../mobile-chart-layout';
 import { AfterViewInit, Component, effect, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 import { HeatmapChart } from 'echarts/charts';
 import { AriaComponent, DataZoomComponent, GridComponent, TooltipComponent, VisualMapComponent } from 'echarts/components';
@@ -62,13 +63,14 @@ export class SkillsCoverageMatrixComponent implements AfterViewInit, OnChanges, 
       if (indice === undefined || !this.resultados[indice]) { return; }
       this.zone.run(() => this.skillSeleccionado.emit(this.resultados[indice]));
     });
-    this.resizeObserver = new ResizeObserver(() => this.chart?.resize());
+    this.resizeObserver = observeChartLayout(() => this.chart?.resize(), () => this.dibujar());
     this.resizeObserver.observe(this.chartElement.nativeElement);
     this.dibujar();
   }
 
   private dibujar(): void {
     if (!this.chart) { return; }
+    const movil = isMobileChartLayout();
     const reducido = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     const nombres = this.resultados.map(resultado => resultado.nombreSkill);
     const maximoDemanda = Math.max(...this.resultados.map(resultado => resultado.demandaHoras), 1);
@@ -92,9 +94,9 @@ export class SkillsCoverageMatrixComponent implements AfterViewInit, OnChanges, 
       animationEasingUpdate: 'cubicInOut',
       aria: { enabled: true, description: this.texto('matrixAria') },
       visualMap: { show: false, min: 0, max: Math.max(maximoDemanda, maximoCapacidad, 100), dimension: 2, inRange: { color: ['#153f55', '#1bbecf', '#f3bf4c', '#ff5b70'] } },
-      grid: { left: 20, right: 26, top: 24, bottom: this.resultados.length > 7 ? 72 : 48, containLabel: true },
+      grid: movil ? { left: 5, right: 9, top: 20, bottom: 45, containLabel: true } : { left: 20, right: 26, top: 24, bottom: this.resultados.length > 7 ? 72 : 48, containLabel: true },
       tooltip: {
-        trigger: 'item',
+        trigger: 'item', confine: movil,
         backgroundColor: '#061a2c',
         borderColor: '#3d8ca9',
         borderWidth: 1,
@@ -109,14 +111,14 @@ export class SkillsCoverageMatrixComponent implements AfterViewInit, OnChanges, 
         splitArea: { show: true, areaStyle: { color: ['rgba(8,37,55,.28)', 'rgba(8,50,66,.22)'] } },
         axisTick: { show: false },
         axisLine: { lineStyle: { color: '#477688' } },
-        axisLabel: { color: '#d9f4fa', interval: 0, rotate: nombres.length > 6 ? 24 : 0, width: 116, overflow: 'truncate', fontWeight: 700, margin: 14 },
+        axisLabel: { color: '#d9f4fa', interval: 0, rotate: movil ? 28 : nombres.length > 6 ? 24 : 0, hideOverlap: movil, width: movil ? 56 : 116, overflow: 'truncate', fontWeight: 700, margin: 14 },
       },
       yAxis: {
         type: 'category',
         data: ['demanda', 'availableCapacity', 'coverage'].map(clave => this.texto(clave)),
         axisTick: { show: false },
         axisLine: { lineStyle: { color: '#477688' } },
-        axisLabel: { color: '#bfe4ec', fontWeight: 700, margin: 18 },
+        axisLabel: { color: '#bfe4ec', fontWeight: 700, margin: movil ? 5 : 18, width: movil ? 78 : undefined, overflow: movil ? 'break' : undefined, fontSize: movil ? 10 : undefined },
         splitArea: { show: true, areaStyle: { color: ['rgba(4,30,46,.45)', 'rgba(7,42,59,.45)'] } },
       },
       dataZoom: nombres.length > 8 ? [{ type: 'inside', xAxisIndex: 0, zoomOnMouseWheel: true, moveOnMouseMove: true }, { type: 'slider', xAxisIndex: 0, height: 13, bottom: 18, borderColor: 'transparent', fillerColor: 'rgba(24,193,225,.27)', backgroundColor: 'rgba(129,194,212,.12)', handleStyle: { color: '#48d7ef', borderColor: '#baf7ff' } }] : [],

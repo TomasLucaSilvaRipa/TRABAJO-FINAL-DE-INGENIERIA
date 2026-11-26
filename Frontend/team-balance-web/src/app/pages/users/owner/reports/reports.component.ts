@@ -573,7 +573,19 @@ export class Reports {
 
   protected generarReporte(): void {
     this.generandoReporte.set(true); this.error.set('');
-    this.reporteService.previsualizar(this.configuracionReporte).subscribe({ next: reporte => { this.reporte.set(reporte); this.editandoReporte.set(false); this.generandoReporte.set(false); }, error: error => { this.error.set(error?.error || 'review.reports.executiveError'); this.generandoReporte.set(false); } });
+    this.reporteService.previsualizar(this.configuracionReporte).subscribe({
+      next: reporte => {
+        this.reporte.set(reporte);
+        this.editandoReporte.set(false);
+        this.generandoReporte.set(false);
+      },
+      error: respuesta => {
+        const detalle = respuesta?.error?.mensaje ?? respuesta?.error;
+        const clave = typeof detalle === 'string' ? this.localization.claveTextoEstatico(detalle) : null;
+        this.error.set(clave ?? 'review.reports.executiveError');
+        this.generandoReporte.set(false);
+      },
+    });
   }
 
   protected editarConfiguracionReporte(): void {

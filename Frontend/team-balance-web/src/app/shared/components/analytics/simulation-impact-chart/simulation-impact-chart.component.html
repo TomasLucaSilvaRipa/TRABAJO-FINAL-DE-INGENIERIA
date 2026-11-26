@@ -3,6 +3,6 @@
     <div><p class="tb-page-kicker">{{ texto('chartKicker') }}</p><h2 id="simulation-chart-title">{{ texto('chartTitle') }}</h2><p>{{ texto('chartDescription') }}</p></div>
     <div class="tb-simulation-chart__legend"><span><i class="is-current"></i>{{ texto('current') }}</span><span><i class="is-projected"></i>{{ texto('proyectada') }}</span><span><i class="is-critical"></i>{{ texto('criticalZone') }}</span></div>
   </header>
-  <div class="tb-simulation-chart__scene"><div #chart class="tb-simulation-chart__canvas" role="img" [attr.aria-label]="texto('chartAccessible')"></div></div>
+  <div class="tb-simulation-chart__scene"><p class="tb-mobile-chart-axis">{{ texto('chartAxis') }}</p><div #chart class="tb-simulation-chart__canvas" role="img" [attr.aria-label]="texto('chartAccessible')"></div></div>
   <footer>{{ texto('chartNote') }}</footer>
 </section>

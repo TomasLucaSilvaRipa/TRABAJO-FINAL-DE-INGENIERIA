@@ -127,6 +127,10 @@ builder.Services.AddHttpClient<PasswordSecurityWebService>( client => { client.B
 
 builder.Services.AddScoped<BLLPasswordSecurity>();
 
+builder.Services.AddScoped<SesionesRemotasService>();
+builder.Services.AddScoped<ObservacionAccesoService>();
+builder.Services.AddScoped<CorreoRespaldoService>();
+
 WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -142,6 +146,9 @@ app.UseMiddleware<SubscriptionAccessMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
+SesionesRemotasService.Registrar(app);
+ObservacionAccesoService.Registrar(app);
+CorreoRespaldoService.Registrar(app);
 
 
 app.Run();

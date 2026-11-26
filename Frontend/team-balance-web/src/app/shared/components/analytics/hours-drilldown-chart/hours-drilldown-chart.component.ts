@@ -1,3 +1,4 @@
+import { isMobileChartLayout, observeChartLayout } from '../mobile-chart-layout';
 import { AfterViewInit, Component, effect, ElementRef, EventEmitter, inject, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
 import * as echarts from 'echarts/core';
 import { BarChart, ScatterChart } from 'echarts/charts';
@@ -77,7 +78,7 @@ export class HoursDrilldownChartComponent implements AfterViewInit, OnChanges, O
     if (!this.chartElement) return;
     this.chart = echarts.init(this.chartElement.nativeElement, undefined, { renderer: 'canvas' });
     this.chart.on('click', (evento: { dataIndex?: number }) => this.seleccionarBarra(evento.dataIndex));
-    this.resizeObserver = new ResizeObserver(() => this.chart?.resize());
+    this.resizeObserver = observeChartLayout(() => this.chart?.resize(), () => this.dibujar());
     this.resizeObserver.observe(this.chartElement.nativeElement);
     this.dibujar();
   }
@@ -96,6 +97,7 @@ export class HoursDrilldownChartComponent implements AfterViewInit, OnChanges, O
 
   private dibujar(): void {
     if (!this.chart) return;
+    const movil = isMobileChartLayout();
     const nivelTareas = !!this.proyecto;
     const elementos = nivelTareas ? this.proyecto!.tareas : this.proyectos;
     const nombres = elementos.map((elemento) => nivelTareas ? (elemento as DesvioHorasTarea).titulo : (elemento as DesvioHorasProyecto).nombreProyecto);
@@ -104,12 +106,12 @@ export class HoursDrilldownChartComponent implements AfterViewInit, OnChanges, O
     const porcentajes = elementos.map((elemento) => elemento.porcentajeConsumo);
     const maximo = Math.max(1, ...estimadas, ...reales);
     const limiteSuperior = Math.max(5, Math.ceil(maximo * 1.24));
-    const alto = Math.max(430, elementos.length * 78 + 150);
+    const alto = movil ? Math.max(260, elementos.length * 48 + 100) : Math.max(430, elementos.length * 78 + 150);
     this.chart.resize({ height: alto });
     this.chart.setOption({
       animationDuration: 760, animationDurationUpdate: 480, animationEasing: 'cubicOut',
       backgroundColor: 'transparent',
-      grid: { left: 34, right: 70, top: 44, bottom: elementos.length > 8 ? 62 : 42, containLabel: true },
+      grid: movil ? { left: 6, right: 98, top: 24, bottom: 30, containLabel: true } : { left: 34, right: 70, top: 44, bottom: elementos.length > 8 ? 62 : 42, containLabel: true },
       legend: { show: false },
       tooltip: {
         trigger: 'axis', axisPointer: { type: 'line', lineStyle: { color: 'rgba(114, 218, 239, .42)', type: 'dashed' } }, backgroundColor: '#061c2e', borderColor: '#2b7692', textStyle: { color: '#effcff' }, extraCssText: 'border-radius:12px;padding:14px 16px;line-height:1.6;min-width:210px;box-shadow:0 18px 38px rgba(0,0,0,.32);',
@@ -121,12 +123,12 @@ export class HoursDrilldownChartComponent implements AfterViewInit, OnChanges, O
           return `<div><strong style="display:block;margin-bottom:8px;font-size:14px">${nombres[indice]}</strong><div style="display:grid;grid-template-columns:1fr auto;gap:3px 18px;margin:7px 0 9px;color:#c8e7ee"><span>${this.t('static.estimated')}</span><b>${estimadas[indice]} h</b><span>${this.t('static.actual')}</span><b>${reales[indice]} h</b><span>${this.t('static.consumption')}</span><b style="color:${this.colorConsumo(porcentaje)}">${porcentaje.toFixed(2)}%</b><span>${this.t('static.deviation')}</span><b>${diferencia > 0 ? '+' : ''}${diferencia} h</b></div>${responsable}<small style="display:block;margin-top:9px;color:#70e5ff">${this.t('static.clickDrillDown')}</small></div>`;
         },
       },
-      xAxis: { type: 'value', min: 0, max: limiteSuperior, splitNumber: 10, minInterval: maximo <= 20 ? 0.25 : 1, name: this.t('static.hours'), nameLocation: 'end', nameGap: 12, nameTextStyle: { color: '#91b9c8', padding: [0, 0, 0, 6] }, axisLabel: { color: '#9fc3cf', formatter: (valor: number) => maximo <= 20 ? Number(valor.toFixed(2)) : Math.round(valor) }, axisTick: { show: true, length: 6, lineStyle: { color: '#4d8497' } }, splitLine: { lineStyle: { color: 'rgba(111, 169, 188, .16)', type: 'dashed' } }, minorTick: { show: true, splitNumber: 4, length: 3 }, minorSplitLine: { show: true, lineStyle: { color: 'rgba(111, 169, 188, .055)' } }, axisLine: { lineStyle: { color: '#34667a' } } },
-      yAxis: { type: 'category', inverse: true, boundaryGap: true, data: nombres, axisLabel: { color: '#d8f3f7', width: 205, overflow: 'truncate', margin: 16, fontWeight: 700 }, axisTick: { show: false }, axisLine: { show: false }, splitLine: { show: true, lineStyle: { color: 'rgba(111, 169, 188, .075)' } } },
+      xAxis: { type: 'value', min: 0, max: limiteSuperior, splitNumber: movil ? 3 : 10, minInterval: maximo <= 20 ? 0.25 : 1, name: this.t('static.hours'), nameLocation: movil ? 'middle' : 'end', nameGap: movil ? 27 : 12, nameTextStyle: { color: '#91b9c8', padding: [0, 0, 0, 6] }, axisLabel: { color: '#9fc3cf', hideOverlap: movil, fontSize: movil ? 10 : undefined, formatter: (valor: number) => maximo <= 20 ? Number(valor.toFixed(2)) : Math.round(valor) }, axisTick: { show: true, length: 6, lineStyle: { color: '#4d8497' } }, splitLine: { lineStyle: { color: 'rgba(111, 169, 188, .16)', type: 'dashed' } }, minorTick: { show: !movil, splitNumber: 4, length: 3 }, minorSplitLine: { show: !movil, lineStyle: { color: 'rgba(111, 169, 188, .055)' } }, axisLine: { lineStyle: { color: '#34667a' } } },
+      yAxis: { type: 'category', inverse: true, boundaryGap: true, data: nombres, axisLabel: { color: '#d8f3f7', width: movil ? 84 : 205, overflow: 'truncate', margin: movil ? 6 : 16, fontSize: movil ? 10 : undefined, fontWeight: 700 }, axisTick: { show: false }, axisLine: { show: false }, splitLine: { show: true, lineStyle: { color: 'rgba(111, 169, 188, .075)' } } },
       dataZoom: elementos.length > 8 ? [{ type: 'inside', yAxisIndex: 0 }, { type: 'slider', yAxisIndex: 0, right: 4, width: 12, borderColor: 'transparent', fillerColor: 'rgba(17, 178, 217, .28)', handleStyle: { color: '#11b2d9' } }] : [],
       series: [
         { name: this.t('static.estimated'), type: 'bar', data: estimadas, barWidth: 22, silent: false, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: 'rgba(26, 112, 139, .38)' }, { offset: 1, color: 'rgba(65, 155, 184, .62)' }]), borderColor: 'rgba(103, 197, 222, .28)', borderWidth: 1, borderRadius: [0, 8, 8, 0] }, emphasis: { focus: 'series', itemStyle: { borderColor: '#70dff6', borderWidth: 1.5 } }, z: 2 },
-        { name: this.t('static.actual'), type: 'bar', data: reales.map((valor, indice) => ({ value: valor, itemStyle: { color: this.colorConsumo(porcentajes[indice]), shadowColor: `${this.colorConsumo(porcentajes[indice])}80` } })), barWidth: 11, barGap: '-75%', itemStyle: { borderRadius: [0, 7, 7, 0], shadowBlur: 10 }, label: { show: true, position: 'right', distance: 9, color: '#e9fbff', fontSize: 10, fontWeight: 700, formatter: (item: { dataIndex: number }) => `${reales[item.dataIndex]} / ${estimadas[item.dataIndex]} h · ${porcentajes[item.dataIndex].toFixed(2)}%` }, labelLayout: { hideOverlap: true, moveOverlap: 'shiftY' }, emphasis: { focus: 'series' }, z: 4 },
+        { name: this.t('static.actual'), type: 'bar', data: reales.map((valor, indice) => ({ value: valor, itemStyle: { color: this.colorConsumo(porcentajes[indice]), shadowColor: `${this.colorConsumo(porcentajes[indice])}80` } })), barWidth: 11, barGap: '-75%', itemStyle: { borderRadius: [0, 7, 7, 0], shadowBlur: 10 }, label: { show: true, position: 'right', distance: 9, color: '#e9fbff', fontSize: 10, fontWeight: 700, formatter: (item: { dataIndex: number }) => `${reales[item.dataIndex]} / ${estimadas[item.dataIndex]} h${movil ? '\n' : ' · '}${porcentajes[item.dataIndex].toFixed(2)}%` }, labelLayout: { hideOverlap: true, moveOverlap: 'shiftY' }, emphasis: { focus: 'series' }, z: 4 },
         { name: this.t('static.estimated'), type: 'scatter', data: estimadas.map((valor, indice) => [valor, indice]), symbol: simboloRelojArena, symbolSize: [22, 28], symbolOffset: [0, 0], emphasis: { scale: 1.3, focus: 'self' }, z: 7 },
       ],
     }, { notMerge: true, lazyUpdate: false });

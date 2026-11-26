@@ -37,6 +37,15 @@
       <h2 class="mt-2 break-words text-2xl font-bold">{{ foco.tarea()?.titulo }}</h2>
       <p class="mt-3 text-sm text-slate-300">{{ localization.traducir('focusMode.navigationPaused') }}</p>
       <p class="my-8 font-mono text-4xl font-bold tracking-wider text-cyan-300 sm:text-6xl" role="timer" [attr.aria-label]="localization.traducir('focusMode.elapsed')">{{ foco.formatoDuracion() }}</p>
+      @if (foco.mostrarAvisoPausa()) {
+        <div class="mb-5 rounded-xl border border-amber-300/40 bg-amber-300/10 p-3 text-sm text-amber-100" data-localization-ignore>
+          <div role="status">
+            <p class="font-semibold">{{ localization.traducir('breakReminder.title') }}</p>
+            <p class="mt-1">{{ localization.traducir('breakReminder.focusDescription') }}</p>
+          </div>
+          <button type="button" class="mt-2 min-h-8 underline underline-offset-4" (click)="foco.avisoPausaDescartado.set(true)">{{ localization.traducir('breakReminder.dismiss') }}</button>
+        </div>
+      }
       <button class="tb-action-button" type="button" (click)="detenerFoco()">{{ localization.traducir('focusMode.stop') }}</button>
       <p class="mt-4 text-xs text-slate-400">{{ localization.traducir('focusMode.reviewHours') }}</p>
     </div>

@@ -1,9 +1,12 @@
 
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { LocalizationService } from '../../services/localization.service';
+import { TasksService } from '../../services/tasks.service';
+import { consultarLogrosRecientes } from '../../shared/components/weekly-achievement/weekly-achievement-history';
 
 @Component({
   selector: 'app-profile',
@@ -18,6 +21,24 @@ export class ProfileComponent {
   readonly cargandoFoto = signal(false);
   readonly errorFoto = signal<string | null>(null);
   readonly exitoFoto = signal<string | null>(null);
+  readonly logrosSemanales = signal<Date[] | null>(null);
+  readonly errorLogros = signal(false);
+  readonly puedeVerLogros = this.authService.tieneTipoUsuario('Empleado') &&
+    !this.authService.esDueno() && this.authService.tienePermiso('VerMisTareas');
+
+  constructor() {
+    const tareas = inject(TasksService);
+    const usuario = this.usuario;
+    if (this.puedeVerLogros && usuario?.idAgencia) {
+      tareas.consultarMias().pipe(takeUntilDestroyed()).subscribe({
+        next: asignadas => this.logrosSemanales.set(consultarLogrosRecientes(usuario, asignadas)),
+        error: () => {
+          this.logrosSemanales.set(consultarLogrosRecientes(usuario, []));
+          this.errorLogros.set(true);
+        },
+      });
+    }
+  }
 
   get usuario() {
     return this.authService.usuarioActual();

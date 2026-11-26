@@ -1,14 +1,19 @@
-import { Injectable, signal } from '@angular/core';
+import { computed, Injectable, signal } from '@angular/core';
 import { Tarea } from './tasks.service';
 import { HORAS_MAXIMAS_JORNADA } from './registro-horas.service';
 
 export const SEGUNDOS_MAXIMOS_FOCO = HORAS_MAXIMAS_JORNADA * 3600;
+const SEGUNDOS_PARA_PAUSA = 3600;
 
 @Injectable({ providedIn: 'root' })
 export class FocusTimerService {
   readonly tarea = signal<Tarea | null>(null);
   readonly segundos = signal(0);
   readonly activo = signal(false);
+  readonly avisoPausaDescartado = signal(false);
+  readonly mostrarAvisoPausa = computed(() =>
+    this.activo() && this.segundos() >= SEGUNDOS_PARA_PAUSA && !this.avisoPausaDescartado()
+  );
   private intervalo: ReturnType<typeof setInterval> | null = null;
   private inicio = 0;
 
@@ -16,6 +21,7 @@ export class FocusTimerService {
     this.detenerIntervalo();
     this.tarea.set(tarea);
     this.segundos.set(0);
+    this.avisoPausaDescartado.set(false);
     this.inicio = Date.now();
     this.activo.set(true);
     this.intervalo = setInterval(() => {

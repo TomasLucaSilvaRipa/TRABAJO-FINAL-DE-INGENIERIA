@@ -1,4 +1,5 @@
 import { Component, effect, inject, untracked } from '@angular/core';
+import { HttpBackend, HttpClient } from '@angular/common/http';
 import { SidebarService } from '../../services/sidebar.service';
 import { CommonModule } from '@angular/common';
 import { AppSidebarComponent } from '../app-sidebar/app-sidebar.component';
@@ -27,6 +28,7 @@ import { ThemeToggleButtonComponent } from '../../components/common/theme-toggle
 
 export class AppLayoutComponent {
   private readonly router = inject(Router);
+  private readonly accessObservationHttp = new HttpClient(inject(HttpBackend));
   readonly foco = inject(FocusTimerService);
   readonly localization = inject(LocalizationService);
   readonly isExpanded$;
@@ -60,6 +62,23 @@ export class AppLayoutComponent {
     if (!this.authService.suscripcionRestringida())
     {
       this.authService.actualizarAutorizacionSesion();
+      this.observarNavegador();
+    }
+  }
+
+  private observarNavegador(): void {
+    try {
+      const token = this.authService.obtenerToken();
+      if (!token || !globalThis.crypto?.randomUUID) return;
+
+      const key = 'teamBalance.accessObservation.browser';
+      const navegador = localStorage.getItem(key) ?? crypto.randomUUID();
+      localStorage.setItem(key, navegador);
+      this.accessObservationHttp.post('/api/seguridad/observacion-acceso', null, {
+        headers: { Authorization: `Bearer ${token}`, 'X-TeamBalance-Browser': navegador },
+      }).subscribe({ error: () => {} });
+    } catch {
+      // Browser storage can be disabled. Navigation still works.
     }
   }
 

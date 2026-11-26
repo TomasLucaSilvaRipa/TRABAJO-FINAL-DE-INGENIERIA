@@ -1,3 +1,4 @@
+import { isMobileChartLayout, observeChartLayout } from '../mobile-chart-layout';
 import { AfterViewInit, ChangeDetectorRef, Component, effect, ElementRef, EventEmitter, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 import * as echarts from 'echarts/core';
 import { BarChart, ScatterChart } from 'echarts/charts';
@@ -81,7 +82,7 @@ export class ConvenienceMapComponent implements AfterViewInit, OnChanges, OnDest
       if (evento.dataIndex === undefined || (evento.seriesType !== 'bar' && evento.seriesType !== 'scatter')) return;
       this.zone.run(() => this.seleccionarElemento(evento.dataIndex!));
     });
-    this.resizeObserver = new ResizeObserver(() => this.chart?.resize());
+    this.resizeObserver = observeChartLayout(() => this.chart?.resize(), () => this.dibujar());
     this.resizeObserver.observe(this.chartElement.nativeElement);
     this.dibujar();
   }
@@ -155,13 +156,14 @@ export class ConvenienceMapComponent implements AfterViewInit, OnChanges, OnDest
 
   private dibujar(): void {
     if (!this.chart) return;
+    const movil = isMobileChartLayout();
     const elementos = this.elementosActuales();
     const nombres = elementos.map(elemento => this.etiqueta(elemento));
     const valores = elementos.map(elemento => this.indiceSaldo(elemento));
     const valorAbsolutoMayor = Math.max(25, ...valores.map(valor => Math.abs(valor)));
     const intervaloVertical = valorAbsolutoMayor <= 100 ? 25 : valorAbsolutoMayor <= 250 ? 50 : Math.ceil(valorAbsolutoMayor / 5 / 25) * 25;
     const extremo = Math.max(50, Math.ceil((valorAbsolutoMayor * 1.12) / intervaloVertical) * intervaloVertical);
-    const alto = Math.max(440, 350 + (nombres.length > 7 ? 55 : 0));
+    const alto = movil ? 330 : Math.max(440, 350 + (nombres.length > 7 ? 55 : 0));
     this.chart.resize({ height: alto });
     this.chart.setOption({
       animation: true,
@@ -169,9 +171,9 @@ export class ConvenienceMapComponent implements AfterViewInit, OnChanges, OnDest
       animationDurationUpdate: 540,
       animationEasing: 'cubicOut',
       animationEasingUpdate: 'cubicInOut',
-      grid: { left: 58, right: 46, top: 62, bottom: 94, containLabel: true },
+      grid: movil ? { left: 9, right: 14, top: 44, bottom: 46, containLabel: true } : { left: 58, right: 46, top: 62, bottom: 94, containLabel: true },
       tooltip: {
-        trigger: 'item',
+        trigger: 'item', confine: movil,
         backgroundColor: '#061b2e', borderColor: '#3285a3', borderWidth: 1, padding: 14,
         textStyle: { color: '#ecfbff' },
         extraCssText: 'border-radius:14px;box-shadow:0 18px 42px rgba(0,0,0,.38);min-width:220px;',
@@ -179,12 +181,12 @@ export class ConvenienceMapComponent implements AfterViewInit, OnChanges, OnDest
       },
       xAxis: {
         type: 'category', data: nombres,
-        axisLabel: { color: '#d9f5fa', interval: 0, width: 132, overflow: 'truncate', rotate: nombres.length > 5 ? 18 : 0, fontWeight: 700, margin: 18 },
+        axisLabel: { color: '#d9f5fa', interval: 0, hideOverlap: movil, fontSize: movil ? 10 : undefined, width: movil ? 66 : 132, overflow: 'truncate', rotate: movil ? 28 : nombres.length > 5 ? 18 : 0, fontWeight: 700, margin: 18 },
         axisTick: { show: false }, axisLine: { lineStyle: { color: '#4c8293', width: 2 } },
       },
       yAxis: {
         type: 'value', min: -extremo, max: extremo, interval: intervaloVertical,
-        name: this.localization.traducir('static.relativePlannedCost'), nameGap: 20, nameTextStyle: { color: '#b5d5de', fontWeight: 700, padding: [0, 0, 0, 20] },
+        name: movil ? '' : this.localization.traducir('static.relativePlannedCost'), nameGap: 20, nameTextStyle: { color: '#b5d5de', fontWeight: 700, padding: [0, 0, 0, 20] },
         axisLabel: { color: '#a9ced7', margin: 13, formatter: (valor: number) => `${valor > 0 ? '+' : ''}${valor}%` },
         axisTick: { show: false }, axisLine: { show: true, lineStyle: { color: '#4c8293' } },
         splitLine: { lineStyle: { color: 'rgba(118,181,201,.2)', type: 'dashed' } },
@@ -205,8 +207,9 @@ export class ConvenienceMapComponent implements AfterViewInit, OnChanges, OnDest
         {
           type: 'scatter', symbol: 'circle', z: 3,
           data: elementos.map((elemento, indice) => ({ value: [indice, valores[indice]], label: { position: valores[indice] >= 0 ? 'top' : 'bottom' }, itemStyle: { color: this.colorEstado(elemento.estadoConveniencia), borderColor: '#e8fcff', borderWidth: 2, shadowBlur: 22, shadowColor: `${this.colorEstado(elemento.estadoConveniencia)}b8` } })),
-          symbolSize: 28,
-          label: { show: true, distance: 11, formatter: (evento: { dataIndex: number }) => `{node|${nombres[evento.dataIndex]}}\n{value|${valores[evento.dataIndex] > 0 ? '+' : ''}${valores[evento.dataIndex].toFixed(1)}%}`, rich: { node: { color: '#effdff', backgroundColor: '#12384a', borderColor: '#3d829a', borderWidth: 1, borderRadius: 8, padding: [4, 7], fontWeight: 700 }, value: { color: '#aad4de', fontSize: 11, fontWeight: 700, lineHeight: 19 } } },
+          symbolSize: movil ? 18 : 28,
+          labelLayout: movil ? { hideOverlap: true } : undefined,
+          label: { show: true, distance: 11, formatter: (evento: { dataIndex: number }) => `${movil ? "" : `{node|${nombres[evento.dataIndex]}}\n`}{value|${valores[evento.dataIndex] > 0 ? '+' : ''}${valores[evento.dataIndex].toFixed(1)}%}`, rich: { node: { color: '#effdff', backgroundColor: '#12384a', borderColor: '#3d829a', borderWidth: 1, borderRadius: 8, padding: [4, 7], fontWeight: 700 }, value: { color: '#aad4de', fontSize: 11, fontWeight: 700, lineHeight: 19 } } },
           emphasis: { scale: 1.4, focus: 'series', itemStyle: { shadowBlur: 32 } },
         },
       ],

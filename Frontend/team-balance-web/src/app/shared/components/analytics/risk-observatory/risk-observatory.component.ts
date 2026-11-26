@@ -1,3 +1,4 @@
+import { isMobileChartLayout, observeChartLayout } from '../mobile-chart-layout';
 import { AfterViewInit, ChangeDetectorRef, Component, effect, ElementRef, EventEmitter, inject, Input, NgZone, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild } from '@angular/core';
 import * as echarts from 'echarts/core';
 import { BarChart, LineChart, ScatterChart } from 'echarts/charts';
@@ -129,14 +130,17 @@ export class RiskObservatoryComponent implements AfterViewInit, OnChanges, OnDes
 
   private configurarResizeObserver(...elementos: HTMLElement[]): void {
     this.resizeObserver?.disconnect();
-    this.resizeObserver = new ResizeObserver(() => {
+    this.resizeObserver = observeChartLayout(() => {
       this.overviewChart?.resize(); this.timelineChart?.resize(); this.capacityChart?.resize();
+    }, () => {
+      this.dibujarPanorama(); this.dibujarTemporal();
     });
     elementos.forEach(elemento => this.resizeObserver?.observe(elemento));
   }
 
   private dibujarPanorama(): void {
     if (!this.overviewChart) return;
+    const movil = isMobileChartLayout();
     const reduccionMovimiento = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     const proyectos = this.riesgos;
     const nombres = proyectos.map(proyecto => proyecto.nombreProyecto);
@@ -145,19 +149,20 @@ export class RiskObservatoryComponent implements AfterViewInit, OnChanges, OnDes
     const limiteSuperior = Math.ceil(maximo * 1.16);
     this.overviewChart.setOption({
       animation: !reduccionMovimiento, animationDuration: 900, animationDurationUpdate: 480, animationEasing: 'cubicOut',
-      grid: { left: 34, right: 58, top: 38, bottom: 42, containLabel: true },
+      grid: movil ? { left: 6, right: 65, top: 20, bottom: 20, containLabel: true } : { left: 34, right: 58, top: 38, bottom: 42, containLabel: true },
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: '#061a2c', borderColor: '#327d99', borderWidth: 1, padding: 14, textStyle: { color: '#ecfbff' }, extraCssText: 'border-radius:12px;box-shadow:0 18px 42px rgba(0,0,0,.38);', formatter: (parametros: Array<{ dataIndex: number }>) => this.tooltipPanorama(proyectos[parametros[0]?.dataIndex]) },
-      xAxis: { type: 'value', min: -margenIzquierdo, max: limiteSuperior, splitNumber: 8, minInterval: 1, axisLabel: { color: '#8fb8c5', formatter: (valor: number) => valor < 0 ? '' : `${Math.round(valor)} d` }, splitLine: { lineStyle: { color: 'rgba(122,184,203,.13)', type: 'dashed' } }, minorTick: { show: true }, minorSplitLine: { show: true, lineStyle: { color: 'rgba(122,184,203,.055)' } }, axisLine: { lineStyle: { color: '#376b7f' } } },
-      yAxis: { type: 'category', inverse: true, boundaryGap: true, data: nombres, axisLabel: { color: '#e0f6fb', margin: 18, width: 170, overflow: 'truncate', fontWeight: 700 }, axisTick: { show: false }, axisLine: { show: false } },
+      xAxis: { type: 'value', min: -margenIzquierdo, max: limiteSuperior, splitNumber: movil ? 3 : 8, minInterval: 1, axisLabel: { color: '#8fb8c5', hideOverlap: movil, fontSize: movil ? 10 : undefined, formatter: (valor: number) => valor < 0 ? '' : `${Math.round(valor)} d` }, splitLine: { lineStyle: { color: 'rgba(122,184,203,.13)', type: 'dashed' } }, minorTick: { show: !movil }, minorSplitLine: { show: !movil, lineStyle: { color: 'rgba(122,184,203,.055)' } }, axisLine: { lineStyle: { color: '#376b7f' } } },
+      yAxis: { type: 'category', inverse: true, boundaryGap: true, data: nombres, axisLabel: { color: '#e0f6fb', margin: movil ? 6 : 18, width: movil ? 88 : 170, fontSize: movil ? 10 : undefined, overflow: 'truncate', fontWeight: 700 }, axisTick: { show: false }, axisLine: { show: false } },
       series: [
         { type: 'bar', silent: true, data: proyectos.map(proyecto => ({ value: proyecto.diasPosibleRetraso, itemStyle: { color: `${this.colorRiesgo(proyecto.nivelRiesgo)}55`, borderRadius: 99 } })), barWidth: 7, emphasis: { disabled: true } },
-        { type: 'scatter', data: proyectos.map(proyecto => ({ value: proyecto.diasPosibleRetraso, itemStyle: { color: this.colorRiesgo(proyecto.nivelRiesgo), shadowBlur: 22, shadowColor: `${this.colorRiesgo(proyecto.nivelRiesgo)}a8`, borderColor: '#e9fcff', borderWidth: 2 }, label: { show: true, position: 'right', color: '#e5f9fd', fontWeight: 800, formatter: proyecto.diasPosibleRetraso ? `${proyecto.diasPosibleRetraso} d` : this.t('static.noDelay') } })), symbol: 'circle', symbolSize: 20, emphasis: { scale: 1.45, itemStyle: { shadowBlur: 34 }, focus: 'series' } },
+        { type: 'scatter', data: proyectos.map(proyecto => ({ value: proyecto.diasPosibleRetraso, itemStyle: { color: this.colorRiesgo(proyecto.nivelRiesgo), shadowBlur: 22, shadowColor: `${this.colorRiesgo(proyecto.nivelRiesgo)}a8`, borderColor: '#e9fcff', borderWidth: 2 }, label: { show: true, position: 'right', color: '#e5f9fd', fontWeight: 800, fontSize: movil ? 10 : undefined, formatter: proyecto.diasPosibleRetraso ? `${proyecto.diasPosibleRetraso} d` : this.t('static.noDelay') } })), symbol: 'circle', symbolSize: movil ? 13 : 20, emphasis: { scale: 1.45, itemStyle: { shadowBlur: 34 }, focus: 'series' } },
       ],
     }, { notMerge: true });
   }
 
   private dibujarTemporal(): void {
     if (!this.timelineChart || !this.proyecto) return;
+    const movil = isMobileChartLayout();
     const riesgo = this.proyecto;
     const hoy = this.inicioDelDia(new Date()).getTime();
     const inicioProyecto = this.fechaEnMilisegundos(riesgo.fechaInicio);
@@ -204,10 +209,10 @@ export class RiskObservatoryComponent implements AfterViewInit, OnChanges, OnDes
     };
     this.timelineChart.setOption({
       animation: !reduccionMovimiento, animationDuration: 1000, animationDurationUpdate: 520, animationEasing: 'cubicOut',
-      grid: { left: 82, right: 72, top: 88, bottom: 78, containLabel: true },
+      grid: movil ? { left: 10, right: 13, top: 62, bottom: 36, containLabel: true } : { left: 82, right: 72, top: 88, bottom: 78, containLabel: true },
       tooltip: { trigger: 'axis', axisPointer: { type: 'cross', snap: false, label: { backgroundColor: '#12364a', formatter: (parametro: { axisDimension?: string; value?: string | number }) => parametro.axisDimension === 'x' ? this.formatearFechaCompleta(Number(parametro.value)) : `${Math.round(Number(parametro.value))} h` } }, backgroundColor: '#061a2c', borderColor: '#327d99', borderWidth: 1, padding: 14, textStyle: { color: '#effcff' }, extraCssText: 'border-radius:12px;box-shadow:0 18px 42px rgba(0,0,0,.38);', formatter: () => `<strong>${this.t('static.operationalProjection')}</strong><br/>${this.t('static.currentPending')}: ${riesgo.horasRestantes} h<br/>${this.t('static.capacityUsed')}: ${capacidadEfectiva} ${this.t('private.reports.hSem')}<br/>${this.etiquetaDeadlineProyecto()}: ${deadline ? this.formatearFechaCompleta(deadline) : '—'}<br/>${this.t('static.estimatedDate')}: ${this.formatearFechaCompleta(estimada)}<br/><span style="color:#8fc5d4">${this.t('static.noHistory')}</span>` },
-      xAxis: { type: 'time', min: inicioEje, max: finEje, splitNumber: 12, minInterval: dia, axisLabel: { color: '#9bc2ce', hideOverlap: true, margin: 15, formatter: (valor: number) => this.formatearFechaEje(valor, alcance) }, axisLine: { lineStyle: { color: '#3b7083' } }, axisTick: { show: true, length: 7, lineStyle: { color: '#4d8497' } }, splitLine: { show: true, lineStyle: { color: 'rgba(122,184,203,.13)', type: 'dashed' } }, minorTick: { show: true, splitNumber: 4, length: 3 }, minorSplitLine: { show: true, lineStyle: { color: 'rgba(122,184,203,.05)' } } },
-      yAxis: { type: 'value', min: 0, splitNumber: 6, minInterval: 1, name: this.t('static.hoursPending'), nameGap: 18, nameTextStyle: { color: '#9bc2ce', padding: [0, 0, 0, 4] }, axisLabel: { color: '#9bc2ce', formatter: (valor: number) => `${Math.round(valor)} h` }, splitLine: { lineStyle: { color: 'rgba(122,184,203,.14)', type: 'dashed' } }, minorTick: { show: true }, minorSplitLine: { show: true, lineStyle: { color: 'rgba(122,184,203,.05)' } }, axisLine: { lineStyle: { color: '#3b7083' } } },
+      xAxis: { type: 'time', min: inicioEje, max: finEje, splitNumber: movil ? 4 : 12, minInterval: dia, axisLabel: { color: '#9bc2ce', hideOverlap: true, margin: 15, formatter: (valor: number) => this.formatearFechaEje(valor, alcance) }, axisLine: { lineStyle: { color: '#3b7083' } }, axisTick: { show: true, length: 7, lineStyle: { color: '#4d8497' } }, splitLine: { show: true, lineStyle: { color: 'rgba(122,184,203,.13)', type: 'dashed' } }, minorTick: { show: !movil, splitNumber: 4, length: 3 }, minorSplitLine: { show: !movil, lineStyle: { color: 'rgba(122,184,203,.05)' } } },
+      yAxis: { type: 'value', min: 0, splitNumber: 6, minInterval: 1, name: this.t('static.hoursPending'), nameGap: 18, nameTextStyle: { color: '#9bc2ce', padding: [0, 0, 0, 4] }, axisLabel: { color: '#9bc2ce', formatter: (valor: number) => `${Math.round(valor)} h` }, splitLine: { lineStyle: { color: 'rgba(122,184,203,.14)', type: 'dashed' } }, minorTick: { show: !movil }, minorSplitLine: { show: !movil, lineStyle: { color: 'rgba(122,184,203,.05)' } }, axisLine: { lineStyle: { color: '#3b7083' } } },
       series: [serieHorizonte, ...seriesHitos, serieHoy, serieEstrellas],
     }, { notMerge: true });
   }

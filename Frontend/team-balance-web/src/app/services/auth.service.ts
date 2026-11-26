@@ -64,6 +64,8 @@ interface FotoPerfilResponse {
   fotoPerfil: string;
 }
 
+const CLAVE_ULTIMA_ACTIVIDAD = 'tb:ultima-actividad-sesion';
+
 @Injectable({
   providedIn: 'root',
 })
@@ -156,6 +158,7 @@ export class AuthService {
     almacenamiento.setItem('token', respuesta.accessToken);
     almacenamiento.setItem('tokenExpiresAt', respuesta.expiresAt);
     almacenamiento.setItem('usuario', JSON.stringify(respuesta.usuario));
+    this.registrarActividadSesion(Date.now());
     this.usuarioSesion.set(respuesta.usuario);
   }
 
@@ -184,9 +187,11 @@ export class AuthService {
     localStorage.removeItem('token');
     localStorage.removeItem('tokenExpiresAt');
     localStorage.removeItem('usuario');
+    localStorage.removeItem(CLAVE_ULTIMA_ACTIVIDAD);
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('tokenExpiresAt');
     sessionStorage.removeItem('usuario');
+    sessionStorage.removeItem(CLAVE_ULTIMA_ACTIVIDAD);
     this.usuarioSesion.set(null);
     this.suscripcionRestringida.set(false);
   }
@@ -217,6 +222,14 @@ export class AuthService {
 
   obtenerVencimientoToken(): string | null {
     return this.obtenerAlmacenamientoSesion().getItem('tokenExpiresAt');
+  }
+
+  obtenerUltimaActividadSesion(): number {
+    return Number(this.obtenerAlmacenamientoSesion().getItem(CLAVE_ULTIMA_ACTIVIDAD)) || 0;
+  }
+
+  registrarActividadSesion(fecha: number): void {
+    this.obtenerAlmacenamientoSesion().setItem(CLAVE_ULTIMA_ACTIVIDAD, String(fecha));
   }
 
   tienePermiso(codigoPermiso: string): boolean {

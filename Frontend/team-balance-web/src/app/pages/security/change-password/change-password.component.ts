@@ -7,10 +7,12 @@ import { PageBreadcrumbComponent } from '../../../shared/components/common/page-
 import { LocalizationService } from '../../../services/localization.service';
 import { PasswordEvaluation, PasswordSecurityService } from '../../../services/security/password-security.service';
 import QRCode from 'qrcode';
+import { RemoteSessionsComponent } from './remote-sessions.component';
+import { BackupEmailComponent } from './backup-email.component';
 
 @Component({
   selector: 'app-change-password',
-  imports: [PageBreadcrumbComponent, ReactiveFormsModule, RouterLink],
+  imports: [PageBreadcrumbComponent, ReactiveFormsModule, RouterLink, RemoteSessionsComponent, BackupEmailComponent],
   templateUrl: './change-password.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

@@ -76,6 +76,7 @@ import { LanguageManagementComponent } from './pages/users/support/language-mana
 import { PlatformRevenueComponent } from './pages/users/support/platform-revenue/platform-revenue.component';
 import { NotificationSettingsComponent } from './pages/profile/notification-settings/notification-settings.component';
 import { TaskEmailActionComponent } from './pages/public/task-email-action/task-email-action.component';
+import { VerifyBackupEmailComponent } from './pages/auth-pages/verify-backup-email/verify-backup-email.component';
 
 export const routes: Routes = [
   {
@@ -173,6 +174,11 @@ export const routes: Routes = [
         path: 'validar-cuenta',
         component: VerifyAccountComponent,
         title: 'Validar cuenta | TeamBalance',
+      },
+      {
+        path: 'verificar-correo-respaldo',
+        component: VerifyBackupEmailComponent,
+        title: 'Verificar correo de respaldo | TeamBalance',
       },
       {
         path: 'reenviar-validacion',

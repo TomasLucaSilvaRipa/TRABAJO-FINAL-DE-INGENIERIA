@@ -8,3 +8,8 @@
 .tb-simulation-chart__scene { min-height: 430px; padding: 0 .45rem; }.tb-simulation-chart__canvas { width: 100%; height: 455px; }
 .tb-simulation-chart footer { border-top: 1px solid rgba(70, 145, 166, .25); padding: .75rem 1.55rem 1rem; color: #82b8c6; font-size: .72rem; }
 @media (max-width: 760px) { .tb-simulation-chart header { flex-direction: column; }.tb-simulation-chart__legend { justify-content: flex-start; min-width: 0; }.tb-simulation-chart__canvas { height: 500px; } }
+
+@media (max-width: 767px) {
+  .tb-simulation-chart__scene { min-height: 0; }
+  .tb-simulation-chart__canvas { height: 330px; }
+}

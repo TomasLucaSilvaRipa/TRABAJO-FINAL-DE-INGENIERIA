@@ -92,11 +92,13 @@ export class AppHeaderComponent {
     if (window.innerWidth >= 1280) {
       this.sidebarService.toggleExpanded();
     } else {
+      if (window.innerWidth < 768) this.isApplicationMenuOpen = false;
       this.sidebarService.toggleMobileOpen();
     }
   }
 
   toggleApplicationMenu(): void {
+    if (window.innerWidth < 768) this.sidebarService.setMobileOpen(false);
     this.isApplicationMenuOpen = !this.isApplicationMenuOpen;
   }
 

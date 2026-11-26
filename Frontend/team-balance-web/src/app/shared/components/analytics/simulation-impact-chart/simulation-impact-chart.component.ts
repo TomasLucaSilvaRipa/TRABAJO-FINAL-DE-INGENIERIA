@@ -1,3 +1,4 @@
+import { isMobileChartLayout, observeChartLayout } from '../mobile-chart-layout';
 import { AfterViewInit, Component, ElementRef, inject, Input, OnChanges, OnDestroy, SimpleChanges, ViewChild } from '@angular/core';
 import { LineChart, ScatterChart } from 'echarts/charts';
 import { AriaComponent, DataZoomComponent, GridComponent, MarkAreaComponent, MarkLineComponent, TooltipComponent } from 'echarts/components';
@@ -46,13 +47,14 @@ export class SimulationImpactChartComponent implements AfterViewInit, OnChanges,
   private inicializar(): void {
     if (!this.chartElement) { return; }
     this.chart = echarts.init(this.chartElement.nativeElement, undefined, { renderer: 'canvas' });
-    this.resizeObserver = new ResizeObserver(() => this.chart?.resize());
+    this.resizeObserver = observeChartLayout(() => this.chart?.resize(), () => this.dibujar());
     this.resizeObserver.observe(this.chartElement.nativeElement);
     this.dibujar();
   }
 
   private dibujar(): void {
     if (!this.chart) { return; }
+    const movil = isMobileChartLayout();
     const nombres = this.escenarios.map(escenario => escenario.nombreEmpleado);
     const maximo = Math.max(120, ...this.escenarios.map(escenario => Math.max(escenario.ocupacionActual, escenario.ocupacionProyectada)));
     const limite = Math.ceil((maximo + Math.max(8, maximo * .08)) / 20) * 20;
@@ -74,21 +76,21 @@ export class SimulationImpactChartComponent implements AfterViewInit, OnChanges,
       animationEasing: 'cubicOut',
       animationEasingUpdate: 'cubicInOut',
       aria: { enabled: true, description: this.texto('chartAccessible') },
-      grid: { left: 55, right: 42, top: 62, bottom: nombres.length > 6 ? 98 : 78, containLabel: true },
-      tooltip: { trigger: 'item', backgroundColor: '#061a2c', borderColor: '#3d8ca9', borderWidth: 1, padding: 14, textStyle: { color: '#effdff' }, extraCssText: 'border-radius:14px;box-shadow:0 22px 52px rgba(0,0,0,.46);min-width:250px;', formatter: (evento: { dataIndex: number; seriesId?: string }) => this.tooltip(evento.dataIndex, evento.seriesId ?? '') },
+      grid: movil ? { left: 8, right: 12, top: 43, bottom: 50, containLabel: true } : { left: 55, right: 42, top: 62, bottom: nombres.length > 6 ? 98 : 78, containLabel: true },
+      tooltip: { trigger: 'item', confine: movil, backgroundColor: '#061a2c', borderColor: '#3d8ca9', borderWidth: 1, padding: 14, textStyle: { color: '#effdff' }, extraCssText: 'border-radius:14px;box-shadow:0 22px 52px rgba(0,0,0,.46);min-width:250px;', formatter: (evento: { dataIndex: number; seriesId?: string }) => this.tooltip(evento.dataIndex, evento.seriesId ?? '') },
       xAxis: {
         type: 'category',
         data: nombres,
         boundaryGap: true,
         axisTick: { show: false },
         axisLine: { lineStyle: { color: '#4b7889', width: 2 } },
-        axisLabel: { color: '#d9f4fa', interval: 0, width: 132, overflow: 'truncate', rotate: nombres.length > 5 ? 18 : 0, fontWeight: 700, margin: 17 },
+        axisLabel: { color: '#d9f4fa', interval: 0, hideOverlap: movil, fontSize: movil ? 10 : undefined, width: movil ? 64 : 132, overflow: 'truncate', rotate: movil ? 28 : nombres.length > 5 ? 18 : 0, fontWeight: 700, margin: 17 },
       },
       yAxis: {
         type: 'value',
         min: 0,
         max: limite,
-        name: this.texto('chartAxis'),
+        name: movil ? '' : this.texto('chartAxis'),
         nameTextStyle: { color: '#a6cad6', fontWeight: 700, padding: [0, 0, 6, 8] },
         axisLabel: { color: '#9fc6d1', formatter: '{value}%' },
         axisLine: { lineStyle: { color: '#4b7889' } },
@@ -99,19 +101,20 @@ export class SimulationImpactChartComponent implements AfterViewInit, OnChanges,
         {
           id: 'zonas-simulacion', type: 'line', data: [], silent: true, symbol: 'none', lineStyle: { opacity: 0 },
           markArea: { silent: true, itemStyle: { opacity: .14 }, data: [[{ yAxis: 0, itemStyle: { color: '#317cc4' } }, { yAxis: 50 }], [{ yAxis: 50, itemStyle: { color: '#249d75' } }, { yAxis: 86 }], [{ yAxis: 86, itemStyle: { color: '#dc8d1d' } }, { yAxis: 100 }], [{ yAxis: 100, itemStyle: { color: '#d64e60' } }, { yAxis: limite }]] },
-          markLine: { silent: true, symbol: 'none', label: { color: '#b8dce5', fontSize: 11, formatter: (parametro: { value: number }) => `${parametro.value}%` }, lineStyle: { type: 'dashed', color: 'rgba(199,235,242,.45)' }, data: [{ yAxis: 50 }, { yAxis: 86 }, { yAxis: 100 }] },
+          markLine: { silent: true, symbol: 'none', label: { show: !movil, color: '#b8dce5', fontSize: 11, formatter: (parametro: { value: number }) => `${parametro.value}%` }, lineStyle: { type: 'dashed', color: 'rgba(199,235,242,.45)' }, data: [{ yAxis: 50 }, { yAxis: 86 }, { yAxis: 100 }] },
         },
         ...conexiones,
         {
           id: 'ocupacion-actual', type: 'scatter', symbol: 'circle', symbolSize: 19, z: 7,
           data: this.escenarios.map((escenario, indice) => ({ value: [indice, escenario.ocupacionActual], itemStyle: { color: '#6ed8ee', borderColor: '#e9fdff', borderWidth: 2, shadowBlur: 14, shadowColor: 'rgba(74,211,235,.65)' } })),
-          label: { show: true, position: 'left', distance: 10, formatter: (evento: { dataIndex: number }) => `{actual|${this.texto('current')}}\n{value|${this.escenarios[evento.dataIndex]?.ocupacionActual.toFixed(1)}%}`, rich: { actual: { color: '#bcebf2', fontSize: 10, fontWeight: 700 }, value: { color: '#ecfeff', fontSize: 11, fontWeight: 800, lineHeight: 17 } } },
+          label: { show: !movil, position: 'left', distance: 10, formatter: (evento: { dataIndex: number }) => `{actual|${this.texto('current')}}\n{value|${this.escenarios[evento.dataIndex]?.ocupacionActual.toFixed(1)}%}`, rich: { actual: { color: '#bcebf2', fontSize: 10, fontWeight: 700 }, value: { color: '#ecfeff', fontSize: 11, fontWeight: 800, lineHeight: 17 } } },
           emphasis: { scale: 1.35 },
         },
         {
           id: 'ocupacion-proyectada', type: 'scatter', symbol: 'circle', symbolSize: 29, z: 8,
           data: this.escenarios.map((escenario, indice) => ({ value: [indice, escenario.ocupacionProyectada], itemStyle: { color: 'rgba(7,31,48,.76)', borderColor: this.colorPorcentaje(escenario.ocupacionProyectada), borderWidth: 5, shadowBlur: 28, shadowColor: `${this.colorPorcentaje(escenario.ocupacionProyectada)}cc` } })),
-          label: { show: true, position: 'top', distance: 12, formatter: (evento: { dataIndex: number }) => `{projected|${this.texto('proyectada')} ${this.escenarios[evento.dataIndex]?.ocupacionProyectada.toFixed(1)}%}${this.escenarios[evento.dataIndex]?.conservado ? `\n{saved|${this.texto('savedScenario').toLocaleUpperCase()}}` : ''}`, rich: { projected: { color: '#f0feff', fontWeight: 850, backgroundColor: '#10364a', borderColor: '#3e89a5', borderWidth: 1, borderRadius: 8, padding: [5, 8] }, saved: { color: '#62f0bd', fontSize: 9, fontWeight: 800, lineHeight: 22 } } },
+          labelLayout: movil ? { hideOverlap: true } : undefined,
+          label: { show: true, position: 'top', distance: 12, formatter: (evento: { dataIndex: number }) => `{projected|${movil ? '' : this.texto('proyectada') + ' '}${this.escenarios[evento.dataIndex]?.ocupacionProyectada.toFixed(1)}%}${this.escenarios[evento.dataIndex]?.conservado ? `\n{saved|${this.texto('savedScenario').toLocaleUpperCase()}}` : ''}`, rich: { projected: { color: '#f0feff', fontWeight: 850, backgroundColor: '#10364a', borderColor: '#3e89a5', borderWidth: 1, borderRadius: 8, padding: [5, 8] }, saved: { color: '#62f0bd', fontSize: 9, fontWeight: 800, lineHeight: 22 } } },
           emphasis: { scale: 1.42, itemStyle: { shadowBlur: 38 } },
         },
       ],
